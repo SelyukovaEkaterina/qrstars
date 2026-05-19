@@ -1,0 +1,295 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String         @unique
+  name           String?
+  hashedPassword String?
+  phone          String?
+  role           Role           @default(OWNER)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  establishments Establishment[]
+  subscriptions  Subscription[]
+  templates      Template[]
+  fileAssets     FileAsset[]
+  businessCards     BusinessCard[]
+  wifiConfigs       WifiConfig[]
+  messengerContacts MessengerContact[]
+}
+
+model Establishment {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  address     String?
+  phone       String?
+  logoUrl     String?
+
+  yandexMapsUrl  String?
+  twoGisUrl      String?
+  avitoUrl       String?
+
+  platformRotation Boolean   @default(false)
+  webhookUrl       String?
+  vkChatId         String?
+
+  watermarkEnabled Boolean  @default(true)
+  tipsEnabled      Boolean  @default(false)
+  tipsProvider     String?
+  tipsClientId     String?
+
+  notificationEmail           String?
+  notificationEmailEnabled    Boolean  @default(false)
+  notificationTelegramChatId  String?
+  notificationTelegramEnabled Boolean  @default(false)
+  notificationMaxUserId       String?
+  notificationMaxEnabled      Boolean  @default(false)
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrcodes   QRCode[]
+  reviews   Review[]
+  promocodes PromoCode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model QRCode {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  label         String?
+  isActive      Boolean  @default(false)
+  mode          QRCodeMode @default(REVIEW)
+  redirectUrl   String?
+
+  establishmentId String?
+  establishment   Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
+
+  templateId      String?
+  template        Template?     @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  businessCardId  String?
+  businessCard    BusinessCard? @relation(fields: [businessCardId], references: [id], onDelete: SetNull)
+
+  wifiConfigId    String?
+  wifiConfig      WifiConfig?   @relation(fields: [wifiConfigId], references: [id], onDelete: SetNull)
+
+  fileAssetId     String?
+  fileAsset       FileAsset?    @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
+
+  menuId          String?
+  menu            QRMenu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
+
+  centerText    String?
+  centerLogoUrl String?
+
+  scansCount Int      @default(0)
+  reviews    Review[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Review {
+  id              String   @id @default(cuid())
+  rating          Int
+  comment         String?
+  guestName       String?
+  guestPhone      String?
+  isNegative      Boolean
+  isProcessed     Boolean  @default(false)
+
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  qrCodeId String?
+  qrCode   QRCode?  @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+}
+
+model Subscription {
+  id              String          @id @default(cuid())
+  status          SubStatus       @default(ACTIVE)
+  plan            Plan            @default(FREE)
+  yookassaPaymentId String?
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean      @default(false)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PromoCode {
+  id        String   @id @default(cuid())
+  code      String
+  discount  String
+  isActive  Boolean  @default(true)
+  maxUses   Int?
+  usedCount Int      @default(0)
+
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  OWNER
+  ADMIN
+}
+
+enum SubStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELED
+}
+
+enum Plan {
+  FREE
+  PRO
+}
+
+enum QRCodeMode {
+  REVIEW
+  REDIRECT
+  BUSINESS_CARD
+  WIFI
+  FILE
+  MENU
+}
+
+model BusinessCard {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName    String
+  title       String?
+  company     String?
+  phone       String?
+  email       String?
+  website     String?
+  address     String?
+  about       String?
+  avatarUrl   String?
+  socialLinks Json     @default("[]")
+  theme       String   @default("minimal")
+  accentColor String   @default("#4f46e5")
+
+  contactEnabled       Boolean @default(false)
+  contactMessengerId   String?
+  contactMessenger     MessengerContact? @relation(fields: [contactMessengerId], references: [id], onDelete: SetNull)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  qrcodes QRCode[]
+}
+
+enum MessengerProvider {
+  TELEGRAM
+  MAX
+}
+
+model MessengerContact {
+  id         String             @id @default(cuid())
+  userId     String
+  user       User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider   MessengerProvider
+  externalId String
+  label      String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  businessCards BusinessCard[]
+
+  @@unique([userId, provider, externalId])
+}
+
+model WifiConfig {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ssid       String
+  password   String?
+  encryption String   @default("WPA")
+  hidden     Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  qrcodes QRCode[]
+}
+
+model FileAsset {
+  id        String   @id @default(cuid())
+  title     String?
+  fileName  String
+  fileUrl   String
+  fileKey   String
+  mimeType  String
+  fileSize  Int
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  qrcodes QRCode[]
+}
+
+model Template {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  width       Float    @default(210)
+  height      Float    @default(148)
+  layout      Json
+  isPublic    Boolean  @default(false)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrcodes     QRCode[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model QRMenu {
+  id          String   @id @default(cuid())
+  title       String?
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       QRMenuItem[]
+  qrcodes     QRCode[]
+}
+
+model QRMenuItem {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       String?
+  weight      String?
+  category    String?
+  imageUrl    String?
+  order       Int      @default(0)
+
+  menuId      String
+  menu        QRMenu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
