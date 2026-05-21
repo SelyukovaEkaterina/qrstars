@@ -59,7 +59,7 @@ export async function POST(request: Request) {
     const qr = await prisma.qRCode.findFirst({
       where: {
         id: qrId,
-        OR: [{ establishment: { userId } }, { establishmentId: null }],
+        userId,
       },
     });
 

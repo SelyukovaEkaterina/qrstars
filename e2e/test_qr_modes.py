@@ -506,7 +506,8 @@ def test_scan_review_mode_returns_establishment(base_url, owner_session, owner_e
     assert data["needsActivation"] is False
     assert data["establishmentName"] is not None
     assert data["qrCodeId"] is not None
-    assert data["redirectUrl"] is not None
+    assert "reviewRouting" in data
+    assert "platformUrls" in data
     assert data.get("mode") is None
 
 

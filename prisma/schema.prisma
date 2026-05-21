@@ -14,6 +14,8 @@ model User {
   hashedPassword String?
   phone          String?
   role           Role           @default(OWNER)
+  referralCode   String?        @unique
+  referredById   String?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -24,6 +26,14 @@ model User {
   businessCards     BusinessCard[]
   wifiConfigs       WifiConfig[]
   messengerContacts MessengerContact[]
+  qrcodes           QRCode[]
+
+  referredBy       User?              @relation("PartnerReferral", fields: [referredById], references: [id], onDelete: SetNull)
+  referredUsers    User[]             @relation("PartnerReferral")
+  partnerEarnings  PartnerEarning[]
+  earningsAsReferral PartnerEarning[]  @relation("EarningReferral")
+  withdrawals      PartnerWithdrawal[]
+  passwordResetTokens PasswordResetToken[]
 }
 
 model Establishment {
@@ -54,11 +64,25 @@ model Establishment {
   notificationMaxUserId       String?
   notificationMaxEnabled      Boolean  @default(false)
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  qrcodes   QRCode[]
-  reviews   Review[]
+  reviewRouting Json?
+
+  menuId         String?       @unique
+  menu           QRMenu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
+  businessCardId String?       @unique
+  businessCard   BusinessCard? @relation(fields: [businessCardId], references: [id], onDelete: SetNull)
+  wifiConfigId   String?       @unique
+  wifiConfig     WifiConfig?   @relation(fields: [wifiConfigId], references: [id], onDelete: SetNull)
+  pageModules    Json?
+  moduleOrder    Json?
+  moduleLabels   Json?
+  landingTheme   String?
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrcodes    QRCode[]
+  reviews    Review[]
   promocodes PromoCode[]
+  customPages CustomPage[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -71,6 +95,9 @@ model QRCode {
   isActive      Boolean  @default(false)
   mode          QRCodeMode @default(REVIEW)
   redirectUrl   String?
+
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   establishmentId String?
   establishment   Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
@@ -89,6 +116,9 @@ model QRCode {
 
   menuId          String?
   menu            QRMenu?       @relation(fields: [menuId], references: [id], onDelete: SetNull)
+
+  customSectionId String?
+  customPage      CustomPage? @relation(fields: [customSectionId], references: [id], onDelete: SetNull)
 
   centerText    String?
   centerLogoUrl String?
@@ -171,6 +201,8 @@ enum QRCodeMode {
   WIFI
   FILE
   MENU
+  LANDING
+  CUSTOM_SECTION
 }
 
 model BusinessCard {
@@ -197,12 +229,14 @@ model BusinessCard {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  qrcodes QRCode[]
+  qrcodes        QRCode[]
+  establishment  Establishment?
 }
 
 enum MessengerProvider {
   TELEGRAM
   MAX
+  EMAIL
 }
 
 model MessengerContact {
@@ -231,7 +265,8 @@ model WifiConfig {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  qrcodes QRCode[]
+  qrcodes        QRCode[]
+  establishment  Establishment?
 }
 
 model FileAsset {
@@ -272,8 +307,9 @@ model QRMenu {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  items       QRMenuItem[]
-  qrcodes     QRCode[]
+  items          QRMenuItem[]
+  qrcodes        QRCode[]
+  establishment  Establishment?
 }
 
 model QRMenuItem {
@@ -285,11 +321,92 @@ model QRMenuItem {
   category    String?
   imageUrl    String?
   order       Int      @default(0)
+  hidden      Boolean  @default(false)
 
   menuId      String
   menu        QRMenu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+model PartnerEarning {
+  id            String   @id @default(cuid())
+  amount        Float
+  paymentAmount Float
+  status        PartnerEarningStatus @default(PENDING)
+  availableAt   DateTime
+  paymentId     String?
+  description   String?
+
+  partnerId     String
+  partner       User     @relation(fields: [partnerId], references: [id], onDelete: Cascade)
+
+  referralUserId String
+  referralUser   User    @relation("EarningReferral", fields: [referralUserId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PartnerWithdrawal {
+  id          String                @id @default(cuid())
+  amount      Float
+  status      PartnerWithdrawalStatus @default(PENDING)
+  recepientName    String
+  recepientInn     String
+  recepientType    String
+  bankName         String?
+  bankBik          String?
+  bankAccount      String?
+  corrAccount      String?
+  comment          String?
+  adminComment     String?
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum PartnerEarningStatus {
+  PENDING
+  AVAILABLE
+  WITHDRAWN
+}
+
+enum PartnerWithdrawalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  PAID
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+}
+
+model CustomPage {
+  id             String   @id @default(cuid())
+  establishmentId String
+  establishment  Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  menuItemLabel  String
+  title          String
+  content        String   @default("")
+  type           String   @default("HTML")
+  url            String?
+  icon           String?
+  enabled        Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  qrcodes QRCode[]
 }
 

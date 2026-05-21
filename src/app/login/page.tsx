@@ -69,6 +69,12 @@ export default function LoginPage() {
         </Button>
 
         <div className="text-center space-y-1">
+          <a href="/forgot-password" className="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+            Забыли пароль?
+          </a>
+        </div>
+
+        <div className="text-center space-y-1">
           <p className="text-sm text-gray-500">
             Нет аккаунта?{" "}
             <a href="/register" className="text-indigo-600 hover:text-indigo-800 font-medium">

@@ -52,6 +52,25 @@ export function sendWelcomeEmail(to: string, password: string, establishmentName
   );
 }
 
+export function sendPasswordResetEmail(to: string, resetUrl: string) {
+  return sendMail(
+    to,
+    "Восстановление пароля — QrStars.ru",
+    `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #1a1a2e;">Восстановление пароля</h1>
+      <p>Вы запросили сброс пароля для аккаунта <strong>${to}</strong>.</p>
+      <p>Нажмите на кнопку ниже, чтобы задать новый пароль. Ссылка действительна 1 час.</p>
+      <a href="${resetUrl}"
+         style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">
+        Сбросить пароль
+      </a>
+      <p style="color:#666;margin-top:24px;font-size:12px;">Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.</p>
+    </div>
+    `
+  );
+}
+
 export function sendNegativeReviewNotification(
   to: string,
   establishmentName: string,

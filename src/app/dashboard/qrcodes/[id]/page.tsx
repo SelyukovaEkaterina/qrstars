@@ -8,68 +8,42 @@ import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Sidebar from "@/components/dashboard/Sidebar";
-import BusinessCardConstructor from "@/components/dashboard/BusinessCardConstructor";
-import WifiConfigEditor from "@/components/dashboard/WifiConfigEditor";
 import FileAssetEditor, { type FileAssetData } from "@/components/dashboard/FileAssetEditor";
-import MenuEditor, { type MenuData } from "@/components/dashboard/MenuEditor";
+import RoutingPreview from "@/components/dashboard/RoutingPreview";
+import type { MenuData } from "@/components/dashboard/MenuEditor";
+import {
+  modeToRouting,
+  routingToMode,
+  ROUTING_GROUPS,
+  BUILTIN_SECTION_OPTIONS,
+  MODE_LABELS,
+  isBuiltinSection,
+  customSectionIdToTarget,
+  targetToCustomPageId,
+  type RoutingGroup,
+  type SectionTarget,
+  type BuiltinSectionTarget,
+  type QRMode,
+} from "@/lib/qr-routing";
+import { parsePageModules, type PageModules } from "@/lib/page-modules";
 import {
   Loader2,
   ArrowLeft,
   Download,
-  ExternalLink,
-  Star,
   Save,
   Palette,
-  CreditCard,
-  Wifi,
   FileText,
   Type,
   X,
   Upload,
   Crown,
-  Coffee,
+  Layout,
 } from "lucide-react";
+import Link from "next/link";
 import { generateQRWithCenter, type QRCenterOptions } from "@/lib/qr-generator";
+import { generatePDFFromLayout, generateQRForPDF } from "@/lib/pdf-generator";
 import { scanUrlForCode } from "@/lib/utils";
-
-type QRMode = "REVIEW" | "REDIRECT" | "BUSINESS_CARD" | "WIFI" | "FILE" | "MENU";
-
-interface SocialLink {
-  type: string;
-  url: string;
-}
-
-interface BusinessCardData {
-  id?: string;
-  fullName: string;
-  title: string | null;
-  company: string | null;
-  phone: string | null;
-  email: string | null;
-  website: string | null;
-  address: string | null;
-  about: string | null;
-  avatarUrl: string | null;
-  socialLinks: SocialLink[];
-  theme: string;
-  accentColor: string;
-  contactEnabled?: boolean;
-  contactMessengerId?: string | null;
-  contactMessenger?: {
-    id: string;
-    provider: "TELEGRAM" | "MAX";
-    label: string | null;
-    externalId: string;
-  } | null;
-}
-
-interface WifiConfigData {
-  id?: string;
-  ssid: string;
-  password: string | null;
-  encryption: string;
-  hidden: boolean;
-}
+import type { TemplateLayout } from "@/types/template";
 
 interface QRCodeData {
   id: string;
@@ -78,16 +52,19 @@ interface QRCodeData {
   isActive: boolean;
   mode: QRMode;
   redirectUrl: string | null;
+  customSectionId: string | null;
   scansCount: number;
   establishmentId: string | null;
   templateId: string | null;
   centerText: string | null;
   centerLogoUrl: string | null;
-  establishment: { name: string; id: string } | null;
-  businessCard: BusinessCardData | null;
-  wifiConfig: WifiConfigData | null;
+  establishment: {
+    name: string;
+    id: string;
+    pageModules?: unknown;
+    menu?: MenuData | null;
+  } | null;
   fileAsset: FileAssetData | null;
-  menu: MenuData | null;
 }
 
 interface Establishment {
@@ -98,17 +75,8 @@ interface Establishment {
 interface Template {
   id: string;
   name: string;
-  layout: Record<string, unknown>;
+  layout: TemplateLayout;
 }
-
-const modeLabels: Record<QRMode, string> = {
-  REVIEW: "Отзывы",
-  REDIRECT: "Редирект",
-  BUSINESS_CARD: "Визитка",
-  WIFI: "Wi-Fi",
-  FILE: "Файл",
-  MENU: "QR-Меню",
-};
 
 export default function QRCodeSettingsPage() {
   const { status } = useSession();
@@ -132,15 +100,20 @@ export default function QRCodeSettingsPage() {
   const [establishmentId, setEstablishmentId] = useState("");
   const [templateId, setTemplateId] = useState("");
 
-  const [businessCardData, setBusinessCardData] = useState<BusinessCardData | null>(null);
-  const [wifiConfigData, setWifiConfigData] = useState<WifiConfigData | null>(null);
   const [fileAssetData, setFileAssetData] = useState<FileAssetData | null>(null);
-  const [menuData, setMenuData] = useState<MenuData | null>(null);
+  const [routingGroup, setRoutingGroup] = useState<RoutingGroup>("SECTION");
+  const [sectionTarget, setSectionTarget] = useState<SectionTarget>("REVIEW");
+  const [customSectionId, setCustomSectionId] = useState<string | null>(null);
+  const [pageModules, setPageModules] = useState<PageModules>(parsePageModules(null));
+  const [previewMenu, setPreviewMenu] = useState<MenuData | null>(null);
+  const [customPages, setCustomPages] = useState<{ id: string; menuItemLabel: string; enabled: boolean }[]>([]);
 
   const [isPro, setIsPro] = useState(false);
   const [centerText, setCenterText] = useState("");
   const [centerLogoUrl, setCenterLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+  const [pdfHint, setPdfHint] = useState("");
 
   const generateQRImage = useCallback(async (code: string, centerOpts?: QRCenterOptions) => {
     const url = await generateQRWithCenter(
@@ -168,7 +141,17 @@ export default function QRCodeSettingsPage() {
         const pro = qrResponse.isPro || false;
         setQrData(qr);
         setLabel(qr.label || "");
-        setMode(qr.mode || "REVIEW");
+        const qrMode = (qr.mode || "REVIEW") as QRMode;
+        setMode(qrMode);
+        const routing = modeToRouting(qrMode);
+        setRoutingGroup(routing.group);
+        if (routing.section && isBuiltinSection(routing.section)) {
+          setSectionTarget(routing.section);
+        }
+        setCustomSectionId(qr.customSectionId || null);
+        if (qr.customSectionId) {
+          setSectionTarget(customSectionIdToTarget(qr.customSectionId));
+        }
         setRedirectUrl(qr.redirectUrl || "");
         setEstablishmentId(qr.establishmentId || "");
         setTemplateId(qr.templateId || "");
@@ -176,11 +159,38 @@ export default function QRCodeSettingsPage() {
         setCenterText(qr.centerText || "");
         setCenterLogoUrl(qr.centerLogoUrl || null);
         setEstablishments(estData.establishments || []);
-        setTemplates(tplData.templates || []);
-        if (qr.businessCard) setBusinessCardData(qr.businessCard);
-        if (qr.wifiConfig) setWifiConfigData(qr.wifiConfig);
+        const tplList = (tplData.templates || []) as Template[];
+        setTemplates(tplList);
+        if (!qr.templateId && tplList.length > 0) {
+          const defaultTplId = tplList[0].id;
+          setTemplateId(defaultTplId);
+          fetch("/api/qrcodes", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: qrId, templateId: defaultTplId }),
+          }).catch(() => {});
+        }
         if (qr.fileAsset) setFileAssetData(qr.fileAsset);
-        if (qr.menu) setMenuData(qr.menu);
+        const estId = qr.establishmentId || qr.establishment?.id;
+        if (estId) {
+          fetch(`/api/establishments/${estId}/page`)
+            .then((r) => r.json())
+            .then((res) => {
+              if (res.establishment) {
+                setPageModules(parsePageModules(res.establishment.pageModules));
+                setPreviewMenu(res.establishment.menu ?? null);
+                setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean }) => ({
+                  id: p.id,
+                  menuItemLabel: p.menuItemLabel,
+                  enabled: p.enabled,
+                })));
+              }
+            })
+            .catch(() => {});
+        } else if (qr.establishment?.menu) {
+          setPreviewMenu(qr.establishment.menu);
+          setPageModules(parsePageModules(qr.establishment.pageModules));
+        }
         generateQRImage(qr.code, {
           isPro: pro,
           centerText: qr.centerText,
@@ -206,9 +216,85 @@ export default function QRCodeSettingsPage() {
     return () => clearTimeout(timer);
   }, [centerText, centerLogoUrl, isPro, qrData, generateQRImage]);
 
+  const handleDownloadTablePDF = async () => {
+    if (!templateId || !qrData) {
+      setPdfHint("Для скачивания таблички привяжите шаблон");
+      return;
+    }
+
+    const tpl = templates.find((t) => t.id === templateId);
+    if (!tpl?.layout) {
+      setPdfHint("Для скачивания таблички привяжите шаблон");
+      return;
+    }
+
+    setPdfDownloading(true);
+    setPdfHint("");
+    try {
+      const layout = tpl.layout;
+      const qrEl = layout.elements.find((e) => e.type === "qr");
+      const qrDataUrl = await generateQRForPDF(
+        scanUrlForCode(qrData.code),
+        qrEl?.qrColor || "#1e1b4b",
+        qrEl?.qrBgColor || "#ffffff",
+        {
+          isPro,
+          centerText: isPro ? centerText : null,
+          centerLogoUrl: isPro ? centerLogoUrl : null,
+        }
+      );
+      await generatePDFFromLayout(layout, qrDataUrl);
+    } catch {
+      setPdfHint("Ошибка генерации PDF");
+    } finally {
+      setPdfDownloading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!establishmentId) return;
+    fetch(`/api/establishments/${establishmentId}/page`)
+      .then((r) => r.json())
+      .then((res) => {
+        if (res.establishment) {
+          setPageModules(parsePageModules(res.establishment.pageModules));
+          setPreviewMenu(res.establishment.menu ?? null);
+          setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean }) => ({
+            id: p.id,
+            menuItemLabel: p.menuItemLabel,
+            enabled: p.enabled,
+          })));
+        }
+      })
+      .catch(() => {});
+  }, [establishmentId]);
+
+  const applyRouting = (group: RoutingGroup, section?: SectionTarget, customPageId?: string | null) => {
+    setRoutingGroup(group);
+    if (customPageId) {
+      setCustomSectionId(customPageId);
+      setSectionTarget(customSectionIdToTarget(customPageId));
+    } else if (section && isBuiltinSection(section)) {
+      setCustomSectionId(null);
+      setSectionTarget(section);
+    } else {
+      setCustomSectionId(null);
+      if (section) setSectionTarget(section);
+    }
+    setMode(routingToMode(group, section, customPageId || undefined));
+  };
+
   const handleSaveBasic = async () => {
-    if (mode === "REDIRECT" && !redirectUrl.trim()) {
+    const saveMode = routingToMode(routingGroup, sectionTarget, customSectionId || undefined);
+    if (routingGroup === "REDIRECT" && !redirectUrl.trim()) {
       setError("Укажите URL для редиректа");
+      return;
+    }
+    if (
+      (routingGroup === "LANDING" || routingGroup === "SECTION") &&
+      !establishmentId
+    ) {
+      setError("Привяжите QR-код к заведению");
       return;
     }
 
@@ -220,8 +306,9 @@ export default function QRCodeSettingsPage() {
       const payload: Record<string, unknown> = {
         id: qrId,
         label: label || null,
-        mode,
-        redirectUrl: mode === "REDIRECT" ? redirectUrl : null,
+        mode: saveMode,
+        redirectUrl: routingGroup === "REDIRECT" ? redirectUrl : null,
+        customSectionId: saveMode === "CUSTOM_SECTION" ? (customSectionId || null) : null,
         establishmentId: establishmentId || null,
         templateId: templateId || null,
         centerText: isPro ? (centerText || null) : null,
@@ -261,134 +348,6 @@ export default function QRCodeSettingsPage() {
     }
   };
 
-  const handleSaveBusinessCard = async (cardData: BusinessCardData) => {
-    setSaving(true);
-    setError("");
-
-    try {
-      let bcId = businessCardData?.id;
-
-      if (!bcId) {
-        const res = await fetch("/api/business-cards", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(cardData),
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          setError(d.error || "Ошибка создания визитки");
-          return;
-        }
-        const d = await res.json();
-        bcId = d.businessCard.id;
-        setBusinessCardData(d.businessCard);
-      } else {
-        const res = await fetch("/api/business-cards", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...cardData, id: bcId }),
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          setError(d.error || "Ошибка обновления визитки");
-          return;
-        }
-        const d = await res.json();
-        setBusinessCardData(d.businessCard);
-      }
-
-      const qrRes = await fetch("/api/qrcodes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: qrId,
-          mode: "BUSINESS_CARD",
-          businessCardId: bcId,
-        }),
-      });
-
-      if (!qrRes.ok) {
-        const d = await qrRes.json();
-        setError(d.error || "Ошибка привязки визитки");
-        return;
-      }
-
-      const qrResult = await qrRes.json();
-      setQrData(qrResult.qrcode);
-      setMode("BUSINESS_CARD");
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      setError("Ошибка соединения");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveWifiConfig = async (configData: WifiConfigData) => {
-    setSaving(true);
-    setError("");
-
-    try {
-      let wcId = wifiConfigData?.id;
-
-      if (!wcId) {
-        const res = await fetch("/api/wifi-configs", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(configData),
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          setError(d.error || "Ошибка создания Wi-Fi конфигурации");
-          return;
-        }
-        const d = await res.json();
-        wcId = d.wifiConfig.id;
-        setWifiConfigData(d.wifiConfig);
-      } else {
-        const res = await fetch("/api/wifi-configs", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...configData, id: wcId }),
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          setError(d.error || "Ошибка обновления Wi-Fi");
-          return;
-        }
-        const d = await res.json();
-        setWifiConfigData(d.wifiConfig);
-      }
-
-      const qrRes = await fetch("/api/qrcodes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: qrId,
-          mode: "WIFI",
-          wifiConfigId: wcId,
-        }),
-      });
-
-      if (!qrRes.ok) {
-        const d = await qrRes.json();
-        setError(d.error || "Ошибка привязки Wi-Fi");
-        return;
-      }
-
-      const qrResult = await qrRes.json();
-      setQrData(qrResult.qrcode);
-      setMode("WIFI");
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      setError("Ошибка соединения");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleSaveFileAsset = async (assetData: FileAssetData) => {
     setSaving(true);
     setError("");
@@ -414,7 +373,7 @@ export default function QRCodeSettingsPage() {
         setFileAssetData(d.fileAsset);
       }
 
-      const qrRes = await fetch("/api/qrcodes", {
+      await fetch("/api/qrcodes", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -423,80 +382,8 @@ export default function QRCodeSettingsPage() {
           fileAssetId: assetData.id,
         }),
       });
-
-      if (!qrRes.ok) {
-        const d = await qrRes.json();
-        setError(d.error || "Ошибка привязки файла");
-        return;
-      }
-
-      const qrResult = await qrRes.json();
-      setQrData(qrResult.qrcode);
       setMode("FILE");
-      setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
-    } catch {
-      setError("Ошибка соединения");
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleSaveMenu = async (saveData: MenuData) => {
-    setSaving(true);
-    setError("");
-
-    try {
-      let mId = menuData?.id;
-
-      if (!mId) {
-        const res = await fetch("/api/menus", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(saveData),
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          setError(d.error || "Ошибка создания меню");
-          return;
-        }
-        const d = await res.json();
-        mId = d.menu.id;
-        setMenuData(d.menu);
-      } else {
-        const res = await fetch("/api/menus", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...saveData, id: mId }),
-        });
-        if (!res.ok) {
-          const d = await res.json();
-          setError(d.error || "Ошибка обновления меню");
-          return;
-        }
-        const d = await res.json();
-        setMenuData(d.menu);
-      }
-
-      const qrRes = await fetch("/api/qrcodes", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: qrId,
-          mode: "MENU",
-          menuId: mId,
-        }),
-      });
-
-      if (!qrRes.ok) {
-        const d = await qrRes.json();
-        setError(d.error || "Ошибка привязки меню");
-        return;
-      }
-
-      const qrResult = await qrRes.json();
-      setQrData(qrResult.qrcode);
-      setMode("MENU");
+      setRoutingGroup("FILE");
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -543,50 +430,16 @@ export default function QRCodeSettingsPage() {
     );
   }
 
-  const modes: { value: QRMode; icon: typeof Star; label: string; desc: string }[] = [
-    {
-      value: "REVIEW",
-      icon: Star,
-      label: "Сбор отзывов",
-      desc: "Гость оценивает заведение. Позитив — на карты, негатив — руководству",
-    },
-    {
-      value: "REDIRECT",
-      icon: ExternalLink,
-      label: "Прямой редирект",
-      desc: "Гость мгновенно перенаправляется на указанный URL",
-    },
-    {
-      value: "BUSINESS_CARD",
-      icon: CreditCard,
-      label: "Визитка",
-      desc: "Красивая мобильная страница с контактами, соцсетями и кнопкой сохранения",
-    },
-    {
-      value: "WIFI",
-      icon: Wifi,
-      label: "Wi-Fi",
-      desc: "Страница с QR-кодом для автоматического подключения к Wi-Fi",
-    },
-    {
-      value: "FILE",
-      icon: FileText,
-      label: "Файл",
-      desc: "Меню (PDF), прайс, презентация — гость скачает любой файл прямо на телефон",
-    },
-    {
-      value: "MENU",
-      icon: Coffee,
-      label: "QR-Меню",
-      desc: "Удобное мобильное меню с фотографиями, описанием и ценами блюд",
-    },
-  ];
+  const previewName =
+    qrData.establishment?.name ||
+    establishments.find((e) => e.id === establishmentId)?.name ||
+    "Заведение";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 p-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="w-full space-y-6">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.push("/dashboard/qrcodes")}
@@ -636,8 +489,8 @@ export default function QRCodeSettingsPage() {
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="text-gray-500">Режим</span>
-                    <Badge variant={mode === "REDIRECT" ? "info" : mode === "BUSINESS_CARD" ? "success" : mode === "WIFI" ? "warning" : mode === "FILE" ? "warning" : "default"}>
-                      {modeLabels[mode]}
+                    <Badge variant="default">
+                      {MODE_LABELS[mode]}
                     </Badge>
                   </div>
                   <div className="flex items-center justify-between">
@@ -705,15 +558,30 @@ export default function QRCodeSettingsPage() {
                         </option>
                       ))}
                     </select>
-                    {templateId && (
-                      <button
+                    <div className="mt-2 flex flex-wrap items-center gap-3">
+                      {templateId && (
+                        <button
+                          type="button"
+                          onClick={() => router.push(`/dashboard/templates/${templateId}`)}
+                          className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                        >
+                          <Palette className="w-3 h-3" />
+                          Открыть конструктор
+                        </button>
+                      )}
+                      <Button
                         type="button"
-                        onClick={() => router.push(`/dashboard/templates/${templateId}`)}
-                        className="mt-1 text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
+                        size="sm"
+                        variant="ghost"
+                        onClick={handleDownloadTablePDF}
+                        disabled={pdfDownloading}
                       >
-                        <Palette className="w-3 h-3" />
-                        Открыть конструктор
-                      </button>
+                        <Download className="w-4 h-4 mr-1" />
+                        {pdfDownloading ? "Готовим PDF..." : "Скачать PDF табличку"}
+                      </Button>
+                    </div>
+                    {pdfHint && (
+                      <p className="mt-1 text-xs text-amber-700">{pdfHint}</p>
                     )}
                   </div>
                 </div>
@@ -843,24 +711,25 @@ export default function QRCodeSettingsPage() {
                   </div>
                 </div>
               </Card>
+            </div>
+          </div>
 
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            <div className="xl:col-span-2 space-y-4">
               <Card>
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  Режим работы
-                </h3>
+                <h3 className="font-semibold text-gray-900 mb-2">Режим работы</h3>
                 <p className="text-sm text-gray-500 mb-4">
-                  Выберите, что произойдёт при сканировании QR-кода гостем
+                  Куда попадёт гость при сканировании этой наклейки
                 </p>
 
-                <div className="space-y-3">
-                  {modes.map((m) => {
-                    const Icon = m.icon;
-                    const selected = mode === m.value;
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {ROUTING_GROUPS.map((g) => {
+                    const selected = routingGroup === g.id;
                     return (
                       <button
-                        key={m.value}
+                        key={g.id}
                         type="button"
-                        onClick={() => setMode(m.value)}
+                        onClick={() => applyRouting(g.id, sectionTarget)}
                         className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                           selected
                             ? "border-indigo-600 bg-indigo-50"
@@ -869,28 +738,18 @@ export default function QRCodeSettingsPage() {
                       >
                         <div className="flex items-start gap-3">
                           <div
-                            className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                              selected
-                                ? "bg-indigo-600 text-white"
-                                : "bg-gray-100 text-gray-500"
+                            className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 text-lg ${
+                              selected ? "bg-indigo-600" : "bg-gray-100"
                             }`}
                           >
-                            <Icon className="w-5 h-5" />
+                            {g.emoji}
                           </div>
                           <div>
-                            <p
-                              className={`font-semibold ${
-                                selected ? "text-indigo-900" : "text-gray-900"
-                              }`}
-                            >
-                              {m.label}
+                            <p className={`font-semibold ${selected ? "text-indigo-900" : "text-gray-900"}`}>
+                              {g.label}
                             </p>
-                            <p
-                              className={`text-sm mt-0.5 ${
-                                selected ? "text-indigo-700" : "text-gray-500"
-                              }`}
-                            >
-                              {m.desc}
+                            <p className={`text-sm mt-0.5 ${selected ? "text-indigo-700" : "text-gray-500"}`}>
+                              {g.desc}
                             </p>
                           </div>
                         </div>
@@ -899,7 +758,82 @@ export default function QRCodeSettingsPage() {
                   })}
                 </div>
 
-                {mode === "REDIRECT" && (
+                {routingGroup === "LANDING" && (
+                  <div className="mt-4 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+                    <p className="text-sm text-indigo-900 mb-3">
+                      Контент страницы настраивается один раз для всего заведения
+                    </p>
+                    <Link href="/dashboard/my-page">
+                      <Button type="button" variant="secondary" size="sm">
+                        <Layout className="w-4 h-4 mr-2" />
+                        Редактировать контент страницы
+                      </Button>
+                    </Link>
+                  </div>
+                )}
+
+                {routingGroup === "SECTION" && (
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Открыть раздел
+                    </label>
+                    <select
+                      value={customSectionId ? customSectionIdToTarget(customSectionId) : (isBuiltinSection(sectionTarget) ? sectionTarget : "REVIEW")}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const cId = targetToCustomPageId(val);
+                        if (cId) {
+                          applyRouting("SECTION", undefined, cId);
+                        } else {
+                          applyRouting("SECTION", val as BuiltinSectionTarget, null);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    >
+                      <optgroup label="Основные разделы">
+                        {BUILTIN_SECTION_OPTIONS.map((opt) => {
+                          const moduleKey = opt.value.toLowerCase() === "business_card" ? "businessCard" : opt.value.toLowerCase();
+                          const disabled = !pageModules[moduleKey as keyof PageModules];
+                          return (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}{disabled ? " (отключён)" : ""}
+                            </option>
+                          );
+                        })}
+                      </optgroup>
+                      {customPages.length > 0 && (
+                        <optgroup label="Кастомные страницы">
+                          {customPages.map((cp) => (
+                            <option key={cp.id} value={customSectionIdToTarget(cp.id)}>
+                              {cp.menuItemLabel}{!cp.enabled ? " (отключена)" : ""}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                    </select>
+                    {!customSectionId && isBuiltinSection(sectionTarget) && (() => {
+                      const mk = sectionTarget.toLowerCase() === "business_card" ? "businessCard" : sectionTarget.toLowerCase();
+                      return !pageModules[mk as keyof PageModules];
+                    })() && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Этот раздел отключён на микро-лендинге. Гость не увидит контент.
+                      </p>
+                    )}
+                    {customSectionId && !customPages.find((p) => p.id === customSectionId)?.enabled && (
+                      <p className="text-xs text-amber-600 mt-1">
+                        Эта страница отключена. Гость не увидит контент.
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-400 mt-2">
+                      Контент раздела — в{" "}
+                      <Link href="/dashboard/my-page" className="text-indigo-600 hover:underline">
+                        Моей странице
+                      </Link>
+                    </p>
+                  </div>
+                )}
+
+                {routingGroup === "REDIRECT" && (
                   <div className="mt-4">
                     <Input
                       label="URL для редиректа"
@@ -907,56 +841,28 @@ export default function QRCodeSettingsPage() {
                       onChange={(e) => setRedirectUrl(e.target.value)}
                       placeholder="https://example.com"
                     />
-                    <p className="text-xs text-gray-400 mt-1">
-                      Гость будет перенаправлен на этот адрес сразу после сканирования
-                    </p>
                   </div>
                 )}
-              </Card>
 
-              {mode === "BUSINESS_CARD" && (
-                <BusinessCardConstructor
-                  qrId={qrId}
-                  initialData={businessCardData}
-                  onSave={handleSaveBusinessCard}
-                  saving={saving}
-                />
-              )}
+                {routingGroup === "FILE" && (
+                  <div className="mt-4">
+                    <FileAssetEditor
+                      initialData={fileAssetData}
+                      onSave={handleSaveFileAsset}
+                      onDelete={handleFileDeleted}
+                      saving={saving}
+                    />
+                  </div>
+                )}
 
-              {mode === "WIFI" && (
-                <WifiConfigEditor
-                  initialData={wifiConfigData}
-                  onSave={handleSaveWifiConfig}
-                  saving={saving}
-                />
-              )}
+                {error && (
+                  <div className="mt-4 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
 
-              {mode === "FILE" && (
-                <FileAssetEditor
-                  initialData={fileAssetData}
-                  onSave={handleSaveFileAsset}
-                  onDelete={handleFileDeleted}
-                  saving={saving}
-                />
-              )}
-
-              {mode === "MENU" && (
-                <MenuEditor
-                  initialData={menuData}
-                  onSave={handleSaveMenu}
-                  saving={saving}
-                />
-              )}
-
-              {error && (
-                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
-
-              {mode !== "BUSINESS_CARD" && mode !== "WIFI" && mode !== "FILE" && mode !== "MENU" && (
-                <>
-                  <div className="flex items-center gap-3">
+                {routingGroup !== "FILE" && (
+                  <div className="mt-6 flex items-center gap-3">
                     <Button onClick={handleSaveBasic} disabled={saving}>
                       {saving ? (
                         <>
@@ -966,42 +872,32 @@ export default function QRCodeSettingsPage() {
                       ) : (
                         <>
                           <Save className="w-4 h-4 mr-2" />
-                          Сохранить
+                          Сохранить маршрут
                         </>
                       )}
                     </Button>
                     {saved && (
-                      <span className="text-sm text-green-600 font-medium">
-                        Сохранено!
-                      </span>
+                      <span className="text-sm text-green-600 font-medium">Сохранено!</span>
                     )}
-                    <Button
-                      variant="ghost"
-                      onClick={() => router.push("/dashboard/qrcodes")}
-                    >
-                      Назад к списку
-                    </Button>
                   </div>
-                </>
-              )}
+                )}
+              </Card>
+            </div>
 
-              {(mode === "BUSINESS_CARD" || mode === "WIFI" || mode === "FILE" || mode === "MENU") && saved && (
-                <div className="flex items-center gap-3">
-                  <span className="text-sm text-green-600 font-medium">Сохранено!</span>
-                  <Button
-                    variant="ghost"
-                    onClick={() => router.push("/dashboard/qrcodes")}
-                  >
-                    Назад к списку
-                  </Button>
-                </div>
-              )}
-
-              {(mode === "BUSINESS_CARD" || mode === "WIFI" || mode === "FILE" || mode === "MENU") && error && (
-                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
-                  {error}
-                </div>
-              )}
+            <div className="xl:col-span-1">
+              <Card className="sticky top-8">
+                <RoutingPreview
+                  routingGroup={routingGroup}
+                  section={routingGroup === "SECTION" ? sectionTarget : undefined}
+                  establishmentName={previewName}
+                  establishmentId={establishmentId || undefined}
+                  pageModules={pageModules}
+                  menu={previewMenu}
+                  redirectUrl={redirectUrl}
+                  hasFile={!!fileAssetData?.id}
+                  customPageLabel={customSectionId ? customPages.find((p) => p.id === customSectionId)?.menuItemLabel ?? null : null}
+                />
+              </Card>
             </div>
           </div>
         </div>

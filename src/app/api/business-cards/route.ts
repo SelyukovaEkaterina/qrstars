@@ -58,6 +58,7 @@ export async function POST(request: Request) {
     accentColor,
     contactEnabled,
     contactMessengerId,
+    establishmentId,
   } = body;
 
   if (contactMessengerId) {
@@ -94,6 +95,18 @@ export async function POST(request: Request) {
     include: { contactMessenger: true },
   });
 
+  if (establishmentId) {
+    const est = await prisma.establishment.findFirst({
+      where: { id: establishmentId, userId },
+    });
+    if (est) {
+      await prisma.establishment.update({
+        where: { id: establishmentId },
+        data: { businessCardId: businessCard.id },
+      });
+    }
+  }
+
   return NextResponse.json({ businessCard });
 }
 
@@ -128,7 +141,13 @@ export async function PUT(request: Request) {
   }
 
   const existing = await prisma.businessCard.findFirst({
-    where: { id, userId },
+    where: {
+      id,
+      OR: [
+        { userId },
+        { establishment: { userId } },
+      ],
+    },
   });
 
   if (!existing) {

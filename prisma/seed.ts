@@ -71,11 +71,13 @@ async function main() {
         update: {
           isActive: true,
           establishmentId: establishment.id,
+          userId: user.id,
         },
         create: {
           code,
           isActive: true,
           establishmentId: establishment.id,
+          userId: user.id,
           scansCount: Math.floor(Math.random() * 100) + 10,
         },
       })

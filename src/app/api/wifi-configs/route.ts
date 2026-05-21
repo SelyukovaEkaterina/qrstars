@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { ssid, password, encryption, hidden } = body;
+  const { ssid, password, encryption, hidden, establishmentId } = body;
 
   if (!ssid?.trim()) {
     return NextResponse.json({ error: "Название сети обязательно" }, { status: 400 });
@@ -42,6 +42,18 @@ export async function POST(request: Request) {
       hidden: !!hidden,
     },
   });
+
+  if (establishmentId) {
+    const est = await prisma.establishment.findFirst({
+      where: { id: establishmentId, userId },
+    });
+    if (est) {
+      await prisma.establishment.update({
+        where: { id: establishmentId },
+        data: { wifiConfigId: wifiConfig.id },
+      });
+    }
+  }
 
   return NextResponse.json({ wifiConfig });
 }
@@ -61,7 +73,13 @@ export async function PUT(request: Request) {
   }
 
   const existing = await prisma.wifiConfig.findFirst({
-    where: { id, userId },
+    where: {
+      id,
+      OR: [
+        { userId },
+        { establishment: { userId } },
+      ],
+    },
   });
 
   if (!existing) {

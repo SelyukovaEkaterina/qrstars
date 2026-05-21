@@ -50,6 +50,7 @@ export async function POST(
       data: {
         isActive: true,
         establishmentId: existingEst.id,
+        userId: existingEst.userId,
       },
     });
 
@@ -105,6 +106,7 @@ export async function POST(
     data: {
       isActive: true,
       establishmentId: establishment.id,
+      userId: user.id,
     },
   });
 

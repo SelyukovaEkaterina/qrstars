@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Loader2, MessageCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { getLandingTheme, isDarkLandingTheme } from "@/lib/landing-themes";
 
 interface SocialLink {
   type: string;
@@ -22,7 +23,6 @@ export interface BusinessCardData {
   about: string | null;
   avatarUrl: string | null;
   socialLinks: SocialLink[];
-  theme: string;
   accentColor: string;
 }
 
@@ -53,22 +53,16 @@ function buildVCard(card: BusinessCardData): string {
   return vcard;
 }
 
-const themes: Record<string, { bg: string; cardBg: string; text: string; subtext: string }> = {
-  minimal: { bg: "bg-gray-50", cardBg: "bg-white", text: "text-gray-900", subtext: "text-gray-500" },
-  modern: { bg: "bg-slate-900", cardBg: "bg-slate-800", text: "text-white", subtext: "text-slate-400" },
-  warm: { bg: "bg-amber-50", cardBg: "bg-white", text: "text-amber-900", subtext: "text-amber-600" },
-  nature: { bg: "bg-emerald-50", cardBg: "bg-white", text: "text-emerald-900", subtext: "text-emerald-600" },
-  ocean: { bg: "bg-blue-50", cardBg: "bg-white", text: "text-blue-900", subtext: "text-blue-600" },
-};
-
 interface BusinessCardViewProps {
   card: BusinessCardData;
   qrCode?: string;
   showContactForm?: boolean;
+  landingTheme?: string | null;
 }
 
-export default function BusinessCardView({ card, qrCode, showContactForm }: BusinessCardViewProps) {
-  const theme = themes[card.theme] || themes.minimal;
+export default function BusinessCardView({ card, qrCode, showContactForm, landingTheme: themeId }: BusinessCardViewProps) {
+  const theme = getLandingTheme(themeId);
+  const dark = isDarkLandingTheme(themeId);
   const vcard = useMemo(() => buildVCard(card), [card]);
   const vcardUrl = useMemo(() => `data:text/vcard;charset=utf-8,${encodeURIComponent(vcard)}`, [vcard]);
 
@@ -129,10 +123,14 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
     }
   };
 
+  const contactRowBg = dark ? "bg-slate-700 hover:bg-slate-600" : "bg-gray-50 hover:bg-gray-100";
+  const contactLabelColor = dark ? "text-slate-400" : "text-gray-500";
+  const contactValueColor = dark ? "text-white" : "text-gray-900";
+
   return (
     <div className={`min-h-screen ${theme.bg} flex flex-col items-center px-4 py-8`}>
       <div className="w-full max-w-sm">
-        <div className={`${theme.cardBg} rounded-2xl shadow-xl overflow-hidden`}>
+        <div className={`${theme.cardBg} rounded-2xl shadow-xl overflow-hidden ${dark ? "border border-slate-700" : ""}`}>
           <div
             className="h-28 relative"
             style={{ background: `linear-gradient(135deg, ${card.accentColor}, ${card.accentColor}99)` }}
@@ -156,14 +154,14 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
           </div>
 
           <div className="pt-14 pb-6 px-6 text-center">
-            <h1 className={`text-xl font-bold ${theme.text}`}>{card.fullName}</h1>
-            {card.title && <p className={`text-sm mt-0.5 ${theme.subtext}`}>{card.title}</p>}
-            {card.company && <p className={`text-sm font-medium mt-0.5 ${theme.subtext}`}>{card.company}</p>}
+            <h1 className={`text-xl font-bold ${dark ? "text-white" : "text-gray-900"}`}>{card.fullName}</h1>
+            {card.title && <p className={`text-sm mt-0.5 ${dark ? "text-slate-400" : "text-gray-500"}`}>{card.title}</p>}
+            {card.company && <p className={`text-sm font-medium mt-0.5 ${dark ? "text-slate-400" : "text-gray-500"}`}>{card.company}</p>}
           </div>
 
           {card.about && (
             <div className="px-6 pb-4">
-              <p className={`text-sm text-center leading-relaxed ${theme.subtext}`}>{card.about}</p>
+              <p className={`text-sm text-center leading-relaxed ${dark ? "text-slate-400" : "text-gray-500"}`}>{card.about}</p>
             </div>
           )}
 
@@ -171,24 +169,24 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
             {card.phone && (
               <a
                 href={`tel:${card.phone}`}
-                className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
               >
                 <span className="text-lg">{"\ud83d\udcde"}</span>
                 <div>
-                  <p className="text-xs text-gray-500">Телефон</p>
-                  <p className="text-sm font-medium text-gray-900">{card.phone}</p>
+                  <p className={`text-xs ${contactLabelColor}`}>Телефон</p>
+                  <p className={`text-sm font-medium ${contactValueColor}`}>{card.phone}</p>
                 </div>
               </a>
             )}
             {card.email && (
               <a
                 href={`mailto:${card.email}`}
-                className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
               >
                 <span className="text-lg">{"\u2709\ufe0f"}</span>
                 <div>
-                  <p className="text-xs text-gray-500">Email</p>
-                  <p className="text-sm font-medium text-gray-900">{card.email}</p>
+                  <p className={`text-xs ${contactLabelColor}`}>Email</p>
+                  <p className={`text-sm font-medium ${contactValueColor}`}>{card.email}</p>
                 </div>
               </a>
             )}
@@ -197,12 +195,12 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
                 href={card.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
               >
                 <span className="text-lg">{"\ud83c\udf10"}</span>
                 <div>
-                  <p className="text-xs text-gray-500">Сайт</p>
-                  <p className="text-sm font-medium text-gray-900">
+                  <p className={`text-xs ${contactLabelColor}`}>Сайт</p>
+                  <p className={`text-sm font-medium ${contactValueColor}`}>
                     {card.website.replace(/^https?:\/\//, "")}
                   </p>
                 </div>
@@ -213,12 +211,12 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
                 href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
               >
                 <span className="text-lg">{"\ud83d\udccd"}</span>
                 <div>
-                  <p className="text-xs text-gray-500">Адрес</p>
-                  <p className="text-sm font-medium text-gray-900">{card.address}</p>
+                  <p className={`text-xs ${contactLabelColor}`}>Адрес</p>
+                  <p className={`text-sm font-medium ${contactValueColor}`}>{card.address}</p>
                 </div>
               </a>
             )}
@@ -265,7 +263,7 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
                   style={{ backgroundColor: `${card.accentColor}15`, color: card.accentColor }}
                 >
                   <p className="font-medium">Сообщение отправлено!</p>
-                  <p className="text-gray-500 mt-1">Владелец визитки получит его в мессенджере.</p>
+                  <p className={`mt-1 ${dark ? "text-slate-400" : "text-gray-500"}`}>Владелец визитки получит его в мессенджере.</p>
                   <button
                     type="button"
                     onClick={() => {
@@ -279,8 +277,8 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3 p-4 rounded-xl bg-gray-50 border border-gray-100">
-                  <p className="text-sm font-medium text-gray-900 text-center">Написать {card.fullName}</p>
+                <div className={`space-y-3 p-4 rounded-xl ${dark ? "bg-slate-700 border border-slate-600" : "bg-gray-50 border border-gray-100"}`}>
+                  <p className={`text-sm font-medium text-center ${dark ? "text-white" : "text-gray-900"}`}>Написать {card.fullName}</p>
                   <Input
                     label="Ваше имя"
                     value={guestName}
@@ -289,13 +287,17 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
                     maxLength={100}
                   />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Сообщение</label>
+                    <label className={`block text-sm font-medium mb-1 ${dark ? "text-slate-300" : "text-gray-700"}`}>Сообщение</label>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={4}
                       maxLength={2000}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
+                        dark
+                          ? "bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 focus:ring-indigo-400"
+                          : "border-gray-300 focus:ring-indigo-500"
+                      }`}
                       placeholder="Ваш вопрос или предложение..."
                     />
                   </div>
@@ -337,7 +339,7 @@ export default function BusinessCardView({ card, qrCode, showContactForm }: Busi
           </div>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">QrStars.ru</p>
+        <p className={`text-center text-xs mt-6 ${dark ? "text-slate-500" : "text-gray-400"}`}>QrStars.ru</p>
       </div>
     </div>
   );

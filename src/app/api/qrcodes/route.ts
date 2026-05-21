@@ -17,11 +17,26 @@ export async function GET(request: Request) {
   const qrId = searchParams.get("id");
 
   const include = {
-    establishment: { select: { name: true, id: true } },
+    establishment: {
+      select: {
+        name: true,
+        id: true,
+        pageModules: true,
+        menu: {
+          include: {
+            items: { orderBy: { order: "asc" as const } },
+          },
+        },
+        businessCard: { include: { contactMessenger: true } },
+        wifiConfig: true,
+        customPages: { orderBy: { createdAt: "asc" as const } },
+      },
+    },
     template: { select: { id: true, name: true } },
     businessCard: { include: { contactMessenger: true } },
     wifiConfig: true,
     fileAsset: true,
+    customPage: true,
     menu: {
       include: {
         items: {
@@ -39,7 +54,7 @@ export async function GET(request: Request) {
 
   if (qrId) {
     const qrcode = await prisma.qRCode.findFirst({
-      where: { id: qrId, OR: [{ establishment: { userId } }, { establishmentId: null }] },
+      where: { id: qrId, userId },
       include,
     });
     if (!qrcode) {
@@ -48,8 +63,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ qrcode, isPro });
   }
 
-  const baseFilter = { OR: [{ establishment: { userId } }, { establishmentId: null }] };
-  const where: Record<string, unknown> = baseFilter;
+  const where: Record<string, unknown> = { userId };
   if (establishmentId) {
     where.establishmentId = establishmentId;
     delete where.OR;
@@ -121,10 +135,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "QR-код с таким кодом уже существует" }, { status: 400 });
   }
 
-  const createData: Parameters<typeof prisma.qRCode.create>[0]["data"] = {
+  const createData: Record<string, unknown> = {
     code,
     mode: mode || "REVIEW",
     isActive: !!establishmentId,
+    userId,
   };
   if (label) createData.label = label;
   if (redirectUrl) createData.redirectUrl = redirectUrl;
@@ -133,7 +148,7 @@ export async function POST(request: Request) {
   }
 
   const qrcode = await prisma.qRCode.create({
-    data: createData,
+    data: createData as Parameters<typeof prisma.qRCode.create>[0]["data"],
   });
 
   return NextResponse.json({ qrcode });
@@ -148,14 +163,14 @@ export async function PUT(request: Request) {
 
     const userId = (session.user as Record<string, unknown>).id as string;
     const body = await request.json();
-    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl } = body;
+    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID required" }, { status: 400 });
     }
 
     const qrcode = await prisma.qRCode.findFirst({
-      where: { id, OR: [{ establishment: { userId } }, { establishmentId: null }] },
+      where: { id, userId },
     });
 
     if (!qrcode) {
@@ -220,6 +235,13 @@ export async function PUT(request: Request) {
     }
     if (centerText !== undefined) data.centerText = centerText || null;
     if (centerLogoUrl !== undefined) data.centerLogoUrl = centerLogoUrl || null;
+    if (customSectionId !== undefined) {
+      if (customSectionId) {
+        data.customPage = { connect: { id: customSectionId } };
+      } else {
+        data.customPage = { disconnect: true };
+      }
+    }
 
     const updated = await prisma.qRCode.update({
       where: { id },

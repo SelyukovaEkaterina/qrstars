@@ -277,7 +277,7 @@ export default async function DashboardPage() {
 
           {establishments.length === 0 ? (
             <Card className="text-center py-12">
-              <div className="text-5xl mb-4">&#x1F4CB;</div>
+              <div className="text-5xl mb-4">📋</div>
               <h2 className="text-xl font-semibold text-gray-900">Пока нет заведений</h2>
               <p className="text-gray-500 mt-2">
                 Создайте заведение или отсканируйте QR-код таблички для активации

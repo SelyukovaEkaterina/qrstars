@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "CustomPage" ADD COLUMN "type" TEXT NOT NULL DEFAULT 'HTML';
+ALTER TABLE "CustomPage" ADD COLUMN "url" TEXT;

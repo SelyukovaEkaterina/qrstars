@@ -4,20 +4,14 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Sidebar from "@/components/dashboard/Sidebar";
+import MessengerContactsManager from "@/components/dashboard/MessengerContactsManager";
 import { Save, Loader2 } from "lucide-react";
 
 interface Establishment {
   id: string;
   name: string;
-  address: string | null;
-  phone: string | null;
-  yandexMapsUrl: string | null;
-  twoGisUrl: string | null;
-  avitoUrl: string | null;
-  platformRotation: boolean;
   watermarkEnabled: boolean;
   tipsEnabled: boolean;
 }
@@ -119,61 +113,24 @@ export default function SettingsPage() {
           {current ? (
             <div className="space-y-6">
               <Card>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900">
-                    {current.name}
-                  </h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">{current.name}</h3>
                   <button
+                    type="button"
                     onClick={() => router.push(`/dashboard/establishments/${activeId}`)}
                     className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
                     Настройки заведения →
                   </button>
                 </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Площадки для отзывов (Яндекс.Карты, 2GIS, Авито) и уведомления о негативных отзывах — в настройках заведения.
+                </p>
               </Card>
 
-              <Card>
-                <h3 className="font-semibold text-gray-900 mb-4">Площадки для отзывов</h3>
-                <div className="space-y-4">
-                  <Input
-                    label="Яндекс.Карты"
-                    type="url"
-                    value={current.yandexMapsUrl || ""}
-                    onChange={(e) => updateField("yandexMapsUrl", e.target.value)}
-                    placeholder="https://yandex.ru/maps/org/..."
-                  />
-                  <Input
-                    label="2GIS"
-                    type="url"
-                    value={current.twoGisUrl || ""}
-                    onChange={(e) => updateField("twoGisUrl", e.target.value)}
-                    placeholder="https://2gis.ru/..."
-                  />
-                  <Input
-                    label="Авито"
-                    type="url"
-                    value={current.avitoUrl || ""}
-                    onChange={(e) => updateField("avitoUrl", e.target.value)}
-                    placeholder="https://avito.ru/..."
-                  />
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={current.platformRotation}
-                      onChange={(e) => updateField("platformRotation", e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                    />
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">
-                        Умная ротация площадок (PRO)
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        Гостей будет перенаправлять на разные площадки по очереди
-                      </p>
-                    </div>
-                  </label>
-                </div>
-              </Card>
+              <div id="notification-channels">
+                <MessengerContactsManager compact />
+              </div>
 
               <Card>
                 <h3 className="font-semibold text-gray-900 mb-4">Брендинг</h3>

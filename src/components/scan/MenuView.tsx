@@ -3,10 +3,13 @@
 import { useMemo, useRef, useState } from "react";
 import { type MenuData, type MenuItemData } from "@/components/dashboard/MenuEditor";
 import { Search, X } from "lucide-react";
+import { getLandingTheme, isDarkLandingTheme } from "@/lib/landing-themes";
 
 interface MenuViewProps {
   menu: MenuData;
   establishmentName?: string;
+  embedded?: boolean;
+  landingTheme?: string | null;
 }
 
 const UNCATEGORIZED = "Прочее";
@@ -31,9 +34,15 @@ function groupByCategory(items: MenuItemData[]): { category: string; items: Menu
 function MenuItemCard({
   item,
   onOpen,
+  compact,
+  theme,
+  dark,
 }: {
   item: MenuItemData;
   onOpen: () => void;
+  compact?: boolean;
+  theme: ReturnType<typeof getLandingTheme>;
+  dark: boolean;
 }) {
   return (
     <div
@@ -46,10 +55,16 @@ function MenuItemCard({
           onOpen();
         }
       }}
-      className="w-full text-left bg-white rounded-2xl p-4 shadow-sm border border-gray-100 flex gap-4 transition-transform active:scale-[0.98] hover:border-indigo-100 cursor-pointer"
+      className={`w-full text-left ${theme.cardBg} shadow-sm border ${theme.cardBorder} flex transition-transform active:scale-[0.98] ${theme.hoverBorder} cursor-pointer ${
+        compact ? "p-3 gap-3 rounded-xl" : "p-4 gap-4 rounded-2xl"
+      }`}
     >
       {item.imageUrl && (
-        <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl overflow-hidden shrink-0 bg-gray-100">
+        <div
+          className={`rounded-xl overflow-hidden shrink-0 ${dark ? "bg-slate-700" : "bg-gray-100"} ${
+            compact ? "w-16 h-16" : "w-24 h-24 sm:w-32 sm:h-32"
+          }`}
+        >
           <img
             src={item.imageUrl}
             alt={item.name}
@@ -60,21 +75,21 @@ function MenuItemCard({
       )}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex justify-between items-start gap-2 mb-1">
-          <h3 className="font-bold text-gray-900 leading-tight">{item.name}</h3>
+          <h3 className={`font-bold leading-tight ${dark ? "text-white" : "text-gray-900"}`}>{item.name}</h3>
           {item.price && (
-            <span className="font-semibold text-indigo-600 whitespace-nowrap bg-indigo-50 px-2 py-0.5 rounded-lg text-sm">
+            <span className={`font-semibold whitespace-nowrap ${theme.priceBg} ${theme.priceText} px-2 py-0.5 rounded-lg text-sm`}>
               {item.price}
             </span>
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2 mt-0.5">
           {item.weight && (
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
+            <span className={`text-xs px-2 py-0.5 rounded-md ${dark ? "text-slate-400 bg-slate-700" : "text-gray-500 bg-gray-100"}`}>
               {item.weight}
             </span>
           )}
           {item.description && (
-            <span className="text-xs text-indigo-500">Подробнее →</span>
+            <span className={`text-xs ${dark ? "text-indigo-400" : theme.priceText}`}>Подробнее →</span>
           )}
         </div>
       </div>
@@ -82,28 +97,36 @@ function MenuItemCard({
   );
 }
 
-export default function MenuView({ menu, establishmentName }: MenuViewProps) {
+export default function MenuView({ menu, establishmentName, embedded, landingTheme: themeId }: MenuViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<MenuItemData | null>(null);
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
   const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
+  const theme = getLandingTheme(themeId);
+  const dark = isDarkLandingTheme(themeId);
+
+  const visibleItems = useMemo(
+    () => menu.items.filter((item) => !item.hidden),
+    [menu.items]
+  );
+
   const filteredItems = useMemo(
     () =>
-      menu.items.filter(
+      visibleItems.filter(
         (item) =>
           item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
           item.category?.toLowerCase().includes(searchQuery.toLowerCase())
       ),
-    [menu.items, searchQuery]
+    [visibleItems, searchQuery]
   );
 
   const categories = useMemo(() => {
     const seen = new Set<string>();
     const order: string[] = [];
-    for (const item of menu.items) {
+    for (const item of visibleItems) {
       const cat = itemCategory(item);
       if (!seen.has(cat)) {
         seen.add(cat);
@@ -111,7 +134,7 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
       }
     }
     return order;
-  }, [menu.items]);
+  }, [visibleItems]);
 
   const grouped = useMemo(() => groupByCategory(filteredItems), [filteredItems]);
 
@@ -120,29 +143,42 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
     sectionRefs.current[category]?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const rootBg = embedded
+    ? (dark ? "min-h-0 h-full bg-slate-900 pb-6" : "min-h-0 h-full bg-gray-50 pb-6")
+    : (dark ? "min-h-screen bg-slate-900 pb-10" : "min-h-screen bg-gray-50 pb-10");
+  const containerClass = embedded ? "px-3 py-3 space-y-3" : "max-w-xl mx-auto px-4 py-4 space-y-3";
+  const contentClass = embedded ? "px-3 py-4 space-y-6" : "max-w-xl mx-auto px-4 py-6 space-y-8";
+  const scrollMt = embedded ? "scroll-mt-32" : "scroll-mt-44";
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-10">
-      <div className="bg-white shadow-sm sticky top-0 z-20">
-        <div className="max-w-xl mx-auto px-4 py-4 space-y-3">
+    <div className={rootBg}>
+      <div className={`${dark ? "bg-slate-800" : "bg-white"} shadow-sm sticky top-0 z-20`}>
+        <div className={containerClass}>
           <div className="text-center">
             {establishmentName && (
-              <p className="text-xs text-gray-500 font-medium uppercase tracking-wider mb-1">
+              <p className={`text-xs font-medium uppercase tracking-wider mb-1 ${dark ? "text-slate-400" : "text-gray-500"}`}>
                 {establishmentName}
               </p>
             )}
-            <h1 className="text-2xl font-bold text-gray-900">{menu.title || "Меню"}</h1>
+            <h1 className={`font-bold ${dark ? "text-white" : "text-gray-900"} ${embedded ? "text-lg" : "text-2xl"}`}>
+              {menu.title || "Меню"}
+            </h1>
             {menu.description && (
-              <p className="text-sm text-gray-500 mt-1">{menu.description}</p>
+              <p className={`text-sm mt-1 ${dark ? "text-slate-400" : "text-gray-500"}`}>{menu.description}</p>
             )}
           </div>
 
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-gray-400" />
+              <Search className={`h-5 w-5 ${dark ? "text-slate-500" : "text-gray-400"}`} />
             </div>
             <input
               type="text"
-              className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-xl leading-5 bg-gray-50 placeholder-gray-500 focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition-colors"
+              className={`block w-full pl-10 pr-3 py-2 border rounded-xl leading-5 ${
+                dark
+                  ? "bg-slate-700 border-slate-600 placeholder-slate-500 text-white focus:ring-indigo-400 focus:border-indigo-400"
+                  : `bg-gray-50 placeholder-gray-500 ${theme.inputBorder}`
+              } sm:text-sm transition-colors focus:outline-none focus:bg-white`}
               placeholder="Поиск по меню..."
               value={searchQuery}
               onChange={(e) => {
@@ -161,8 +197,10 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
                   onClick={() => scrollToCategory(cat)}
                   className={`shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
                     activeCategory === cat
-                      ? "bg-indigo-600 text-white"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      ? `${theme.activePillBg} ${theme.activePillText}`
+                      : dark
+                        ? "bg-slate-700 text-slate-300 hover:bg-slate-600"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                 >
                   {cat}
@@ -173,11 +211,17 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
         </div>
       </div>
 
-      <div className="max-w-xl mx-auto px-4 py-6 space-y-8">
+      <div className={contentClass}>
         {filteredItems.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-4xl mb-4">🔍</div>
-            <p className="text-gray-500">По вашему запросу ничего не найдено</p>
+            <p className={dark ? "text-slate-400" : "text-gray-500"}>
+              {menu.items.length === 0
+                ? "Добавьте позиции в меню"
+                : visibleItems.length === 0
+                  ? "Все позиции сейчас скрыты"
+                  : "По вашему запросу ничего не найдено"}
+            </p>
           </div>
         ) : (
           grouped.map(({ category, items }) => (
@@ -186,10 +230,10 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
               ref={(el) => {
                 sectionRefs.current[category] = el;
               }}
-              className="scroll-mt-44"
+              className={scrollMt}
             >
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="w-1 h-5 bg-indigo-500 rounded-full" />
+              <h2 className={`text-lg font-bold mb-4 flex items-center gap-2 ${dark ? "text-white" : "text-gray-900"}`}>
+                <span className={`w-1 h-5 rounded-full ${theme.sectionBar}`} />
                 {category}
               </h2>
               <div className="grid grid-cols-1 gap-4">
@@ -198,6 +242,9 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
                     key={item.id || item.name}
                     item={item}
                     onOpen={() => setSelectedItem(item)}
+                    compact={embedded}
+                    theme={theme}
+                    dark={dark}
                   />
                 ))}
               </div>
@@ -206,9 +253,11 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
         )}
       </div>
 
-      <div className="text-center mt-8 pb-4">
-        <p className="text-xs text-gray-400">Сделано в QrStars.ru</p>
-      </div>
+      {!embedded && (
+        <div className="text-center mt-8 pb-4">
+          <p className={`text-xs ${dark ? "text-slate-500" : "text-gray-400"}`}>Сделано в QrStars.ru</p>
+        </div>
+      )}
 
       {selectedItem && (
         <div
@@ -223,11 +272,11 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
             aria-label="Закрыть"
             onClick={() => setSelectedItem(null)}
           />
-          <div className="relative w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
+          <div className={`relative w-full max-w-lg rounded-t-3xl sm:rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto ${dark ? "bg-slate-800" : "bg-white"}`}>
             <button
               type="button"
               onClick={() => setSelectedItem(null)}
-              className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/90 shadow text-gray-600 hover:bg-gray-100"
+              className={`absolute top-3 right-3 z-10 p-2 rounded-full shadow hover:bg-gray-100 ${dark ? "bg-slate-700 text-slate-300" : "bg-white/90 text-gray-600"}`}
               aria-label="Закрыть"
             >
               <X className="w-5 h-5" />
@@ -237,7 +286,7 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
               <button
                 type="button"
                 onClick={() => setLightboxUrl(selectedItem.imageUrl!)}
-                className="w-full aspect-[4/3] bg-gray-100 block"
+                className={`w-full aspect-[4/3] block ${dark ? "bg-slate-700" : "bg-gray-100"}`}
                 aria-label="Увеличить фото"
               >
                 <img
@@ -250,31 +299,31 @@ export default function MenuView({ menu, establishmentName }: MenuViewProps) {
 
             <div className="p-5 space-y-3">
               <div className="flex justify-between items-start gap-3 pr-8">
-                <h2 id="menu-item-title" className="text-xl font-bold text-gray-900">
+                <h2 id="menu-item-title" className={`text-xl font-bold ${dark ? "text-white" : "text-gray-900"}`}>
                   {selectedItem.name}
                 </h2>
                 {selectedItem.price && (
-                  <span className="font-semibold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg shrink-0">
+                  <span className={`font-semibold ${theme.priceBg} ${theme.priceText} px-3 py-1 rounded-lg shrink-0`}>
                     {selectedItem.price}
                   </span>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
                 {selectedItem.weight && (
-                  <span className="text-sm text-gray-600 bg-gray-100 px-2.5 py-1 rounded-lg">
+                  <span className={`text-sm px-2.5 py-1 rounded-lg ${dark ? "text-slate-400 bg-slate-700" : "text-gray-600 bg-gray-100"}`}>
                     {selectedItem.weight}
                   </span>
                 )}
                 {selectedItem.category && (
-                  <span className="text-sm text-gray-500">{selectedItem.category}</span>
+                  <span className={`text-sm ${dark ? "text-slate-500" : "text-gray-500"}`}>{selectedItem.category}</span>
                 )}
               </div>
               {selectedItem.description ? (
-                <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                <p className={`leading-relaxed whitespace-pre-line ${dark ? "text-slate-300" : "text-gray-600"}`}>
                   {selectedItem.description}
                 </p>
               ) : (
-                <p className="text-gray-400 text-sm">Описание не указано</p>
+                <p className={`text-sm ${dark ? "text-slate-500" : "text-gray-400"}`}>Описание не указано</p>
               )}
             </div>
           </div>

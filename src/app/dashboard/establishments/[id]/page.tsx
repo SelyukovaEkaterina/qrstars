@@ -14,6 +14,10 @@ interface EstablishmentSettings {
   name: string;
   address: string | null;
   phone: string | null;
+  yandexMapsUrl: string | null;
+  twoGisUrl: string | null;
+  avitoUrl: string | null;
+  platformRotation: boolean;
   notificationEmail: string | null;
   notificationEmailEnabled: boolean;
   notificationTelegramChatId: string | null;
@@ -300,6 +304,50 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
                 onChange={(e) => updateField("phone", e.target.value)}
                 placeholder="+7 (999) 123-45-67"
               />
+            </div>
+          </Card>
+
+          <Card>
+            <h3 className="font-semibold text-gray-900 mb-4">Площадки для отзывов</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Ссылки используются в сценариях «Сбор отзывов» при выборе действия «Яндекс.Карты», «2GIS» или «Авито».
+            </p>
+            <div className="space-y-4">
+              <Input
+                label="Яндекс.Карты"
+                type="url"
+                value={data.yandexMapsUrl || ""}
+                onChange={(e) => updateField("yandexMapsUrl", e.target.value)}
+                placeholder="https://yandex.ru/maps/org/..."
+              />
+              <Input
+                label="2GIS"
+                type="url"
+                value={data.twoGisUrl || ""}
+                onChange={(e) => updateField("twoGisUrl", e.target.value)}
+                placeholder="https://2gis.ru/..."
+              />
+              <Input
+                label="Авито"
+                type="url"
+                value={data.avitoUrl || ""}
+                onChange={(e) => updateField("avitoUrl", e.target.value)}
+                placeholder="https://avito.ru/..."
+              />
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={data.platformRotation}
+                  onChange={(e) => updateField("platformRotation", e.target.checked)}
+                  className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Умная ротация площадок (PRO)</p>
+                  <p className="text-xs text-gray-400">
+                    При ротации ссылка выбирается автоматически, если в сценарии не задана конкретная площадка
+                  </p>
+                </div>
+              </label>
             </div>
           </Card>
 

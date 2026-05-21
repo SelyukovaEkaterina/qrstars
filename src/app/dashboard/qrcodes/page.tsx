@@ -31,7 +31,7 @@ interface QRCodeItem {
   code: string;
   label: string | null;
   isActive: boolean;
-  mode: "REVIEW" | "REDIRECT" | "BUSINESS_CARD" | "WIFI" | "FILE";
+  mode: "REVIEW" | "REDIRECT" | "BUSINESS_CARD" | "WIFI" | "FILE" | "MENU" | "LANDING";
   redirectUrl: string | null;
   scansCount: number;
   establishmentId: string | null;
@@ -332,6 +332,7 @@ function QRCodesPageContent() {
           <DashboardOnboardingBanner
             establishments={establishments}
             qrcodes={qrcodes}
+            filterEstId={filterEstId}
             onCreateEstablishment={() => {
               setShowCreateEst(true);
               setError("");
@@ -661,6 +662,10 @@ function QRCodesPageContent() {
                           "Wi-Fi"
                         ) : qr.mode === "FILE" ? (
                           "Файл"
+                        ) : qr.mode === "MENU" ? (
+                          "Меню"
+                        ) : qr.mode === "LANDING" ? (
+                          "Лендинг"
                         ) : (
                           "Отзывы"
                         )}

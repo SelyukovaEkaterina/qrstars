@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { collectClientInfo } from "@/lib/client-info";
-import { sendBusinessCardContactNotification } from "@/lib/messenger-contact";
+import { sendBusinessCardContactNotification } from "@/lib/messenger-contact-notify";
 import prisma from "@/lib/prisma";
 
 export async function POST(request: Request) {

@@ -86,7 +86,7 @@ export default function ActivateForm({ qrCodeId, code }: ActivateFormProps) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-green-50 to-white flex items-center justify-center px-4">
         <div className="max-w-md w-full text-center space-y-4">
-          <div className="text-6xl">&#x2705;</div>
+          <div className="text-6xl">✅</div>
           <h1 className="text-2xl font-bold text-gray-900">Табличка активирована!</h1>
           <p className="text-gray-600">
             Поставьте её на видное место. Гости смогут оставлять отзывы, сканируя QR-код.

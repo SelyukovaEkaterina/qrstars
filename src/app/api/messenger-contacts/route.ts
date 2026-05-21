@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     label?: string;
   };
 
-  if (provider !== "TELEGRAM" && provider !== "MAX") {
+  if (provider !== "TELEGRAM" && provider !== "MAX" && provider !== "EMAIL") {
     return NextResponse.json({ error: "Некорректный провайдер" }, { status: 400 });
   }
 
@@ -44,19 +44,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "externalId обязателен" }, { status: 400 });
   }
 
+  const normalizedId = externalId.trim();
+  if (provider === "EMAIL" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedId)) {
+    return NextResponse.json({ error: "Некорректный email" }, { status: 400 });
+  }
+
+  const defaultLabel =
+    provider === "TELEGRAM" ? "Telegram" : provider === "MAX" ? "MAX" : normalizedId;
+
   const contact = await prisma.messengerContact.upsert({
     where: {
       userId_provider_externalId: {
         userId,
         provider,
-        externalId: externalId.trim(),
+        externalId: normalizedId,
       },
     },
     create: {
       userId,
       provider,
-      externalId: externalId.trim(),
-      label: label?.trim() || (provider === "TELEGRAM" ? "Telegram" : "MAX"),
+      externalId: normalizedId,
+      label: label?.trim() || defaultLabel,
     },
     update: {
       ...(label !== undefined && { label: label?.trim() || null }),

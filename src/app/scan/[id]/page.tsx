@@ -1,19 +1,30 @@
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { renderDemoScan } from "@/lib/render-demo-scan";
-
-function getRotatedUrl(
-  urls: string[]
-): string {
-  if (urls.length === 0) return "";
-  if (urls.length === 1) return urls[0];
-  const daySeed = new Date().getDate();
-  return urls[daySeed % urls.length];
-}
+import { DEFAULT_REVIEW_ROUTING, parseReviewRouting } from "@/lib/review-routing";
+import { parsePageModules, parseModuleOrder, parseModuleLabels } from "@/lib/page-modules";
+import {
+  resolveMenu,
+  resolveBusinessCard,
+  resolveWifiConfig,
+} from "@/lib/establishment-content";
 
 interface ScanPageProps {
   params: Promise<{ id: string }>;
 }
+
+const establishmentContentInclude = {
+  menu: {
+    include: {
+      items: { orderBy: { order: "asc" as const } },
+    },
+  },
+  businessCard: true,
+  wifiConfig: true,
+  customPages: { where: { enabled: true }, orderBy: { createdAt: "asc" as const } },
+  promocodes: { where: { isActive: true }, take: 1 },
+  user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
+} as const;
 
 export default async function ScanPage({ params }: ScanPageProps) {
   const { id } = await params;
@@ -26,20 +37,14 @@ export default async function ScanPage({ params }: ScanPageProps) {
   const qrCode = await prisma.qRCode.findUnique({
     where: { code: id },
     include: {
-      establishment: {
-        include: {
-          promocodes: { where: { isActive: true }, take: 1 },
-          user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
-        },
-      },
+      establishment: { include: establishmentContentInclude },
       businessCard: true,
       wifiConfig: true,
       fileAsset: true,
+      customPage: true,
       menu: {
         include: {
-          items: {
-            orderBy: { order: "asc" },
-          },
+          items: { orderBy: { order: "asc" } },
         },
       },
     },
@@ -49,9 +54,11 @@ export default async function ScanPage({ params }: ScanPageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
-          <div className="text-5xl">&#x2753;</div>
+          <div className="text-5xl">❓</div>
           <h1 className="text-2xl font-bold text-gray-900">QR-код не найден</h1>
-          <p className="text-gray-500">Проверьте правильность кода или обратитесь к администратору.</p>
+          <p className="text-gray-500">
+            Проверьте правильность кода или обратитесь к администратору.
+          </p>
         </div>
       </div>
     );
@@ -69,155 +76,197 @@ export default async function ScanPage({ params }: ScanPageProps) {
     redirect(qrCode.redirectUrl);
   }
 
-  if (qrCode.mode === "BUSINESS_CARD") {
-    if (!qrCode.businessCard) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <div className="text-5xl">&#x1F4CB;</div>
-            <h1 className="text-2xl font-bold text-gray-900">Визитка не настроена</h1>
-            <p className="text-gray-500">Владелец ещё не заполнил данные визитки.</p>
-          </div>
-        </div>
-      );
-    }
+  const est = qrCode.establishment;
+  const menu = resolveMenu(est, qrCode);
+  const businessCard = resolveBusinessCard(est, qrCode);
+  const wifiConfig = resolveWifiConfig(est, qrCode);
 
+  const incrementScan = async () => {
     await prisma.qRCode.update({
       where: { id: qrCode.id },
       data: { scansCount: { increment: 1 } },
     });
-
-    const bc = qrCode.businessCard;
-    const showContactForm = bc.contactEnabled && !!bc.contactMessengerId;
-
-    const safeCard = {
-      id: bc.id,
-      fullName: bc.fullName,
-      title: bc.title,
-      company: bc.company,
-      phone: bc.phone,
-      email: bc.email,
-      website: bc.website,
-      address: bc.address,
-      about: bc.about,
-      avatarUrl: bc.avatarUrl,
-      socialLinks: (bc.socialLinks as { type: string; url: string }[]) || [],
-      theme: bc.theme,
-      accentColor: bc.accentColor,
-    };
-
-    const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-    return (
-      <BusinessCardView card={safeCard} qrCode={id} showContactForm={showContactForm} />
-    );
-  }
+  };
 
   if (qrCode.mode === "FILE") {
     if (!qrCode.fileAsset) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <div className="text-5xl">&#x1F4C1;</div>
-            <h1 className="text-2xl font-bold text-gray-900">Файл не загружен</h1>
-            <p className="text-gray-500">Владелец ещё не прикрепил документ к этому QR-коду.</p>
-          </div>
-        </div>
-      );
+      return <ScanEmptyState emoji="📁" title="Файл не загружен" desc="Владелец ещё не прикрепил документ к этому QR-коду." />;
     }
-
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
-
+    await incrementScan();
     const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
     return (
       <FileDownloadView
         file={JSON.parse(JSON.stringify(qrCode.fileAsset))}
-        establishmentName={qrCode.establishment?.name}
+        establishmentName={est?.name}
+        landingTheme={est?.landingTheme}
+      />
+    );
+  }
+
+  if (!est) {
+    redirect(`/activate/${id}`);
+  }
+
+  const sub = est.user.subscriptions[0];
+  const isPro = sub?.plan === "PRO";
+  let promoCode: string | undefined;
+  if (isPro && est.promocodes.length > 0) {
+    promoCode = est.promocodes[0].code;
+  }
+  const reviewRouting = isPro
+    ? parseReviewRouting(est.reviewRouting)
+    : DEFAULT_REVIEW_ROUTING;
+  const platformUrls = {
+    yandexMapsUrl: est.yandexMapsUrl,
+    twoGisUrl: est.twoGisUrl,
+    avitoUrl: est.avitoUrl,
+  };
+  const reviewProps = {
+    establishmentName: est.name,
+    establishmentId: est.id,
+    qrCodeId: qrCode.id,
+    reviewRouting,
+    platformUrls,
+    watermarkEnabled: isPro ? !est.watermarkEnabled : true,
+    showPromo: isPro && !!promoCode,
+    promoCode,
+  };
+
+  if (qrCode.mode === "LANDING") {
+    await incrementScan();
+    const MicroLandingView = (await import("@/components/scan/MicroLandingView")).default;
+    const pageModules = parsePageModules(est.pageModules);
+    const moduleOrder = parseModuleOrder(est.moduleOrder);
+    const moduleLabels = parseModuleLabels(est.moduleLabels);
+    const safeCard = businessCard
+      ? {
+          id: businessCard.id,
+          fullName: businessCard.fullName,
+          title: businessCard.title,
+          company: businessCard.company,
+          phone: businessCard.phone,
+          email: businessCard.email,
+          website: businessCard.website,
+          address: businessCard.address,
+          about: businessCard.about,
+          avatarUrl: businessCard.avatarUrl,
+          socialLinks: (businessCard.socialLinks as { type: string; url: string }[]) || [],
+          accentColor: businessCard.accentColor,
+        }
+      : null;
+
+    return (
+      <MicroLandingView
+        establishmentName={est.name}
+        establishmentId={est.id}
+        qrCodeId={qrCode.id}
+        pageModules={pageModules}
+        moduleOrder={moduleOrder}
+        moduleLabels={moduleLabels}
+        menu={menu ? JSON.parse(JSON.stringify(menu)) : null}
+        businessCard={safeCard}
+        wifiConfig={wifiConfig ? JSON.parse(JSON.stringify(wifiConfig)) : null}
+        reviewRouting={reviewRouting}
+        customPages={JSON.parse(JSON.stringify(est.customPages || []))}
+        platformUrls={platformUrls}
+        watermarkEnabled={reviewProps.watermarkEnabled}
+        showPromo={reviewProps.showPromo}
+        promoCode={promoCode}
+        landingTheme={est.landingTheme}
+      />
+    );
+  }
+
+  if (qrCode.mode === "BUSINESS_CARD") {
+    if (!businessCard) {
+      return <ScanEmptyState emoji="📋" title="Визитка не настроена" desc="Заполните визитку в разделе «Моя страница»." />;
+    }
+    await incrementScan();
+    const bc = businessCard;
+    const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
+    return (
+      <BusinessCardView
+        card={{
+          id: bc.id,
+          fullName: bc.fullName,
+          title: bc.title,
+          company: bc.company,
+          phone: bc.phone,
+          email: bc.email,
+          website: bc.website,
+          address: bc.address,
+          about: bc.about,
+          avatarUrl: bc.avatarUrl,
+          socialLinks: (bc.socialLinks as { type: string; url: string }[]) || [],
+          accentColor: bc.accentColor,
+        }}
+        qrCode={id}
+        showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
+        landingTheme={est.landingTheme}
       />
     );
   }
 
   if (qrCode.mode === "MENU") {
-    if (!qrCode.menu) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <div className="text-5xl">&#x2615;</div>
-            <h1 className="text-2xl font-bold text-gray-900">Меню не заполнено</h1>
-            <p className="text-gray-500">Владелец ещё не добавил позиции в меню.</p>
-          </div>
-        </div>
-      );
+    if (!menu) {
+      return <ScanEmptyState emoji="☕" title="Меню не заполнено" desc="Добавьте позиции в разделе «Моя страница»." />;
     }
-
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
-
+    await incrementScan();
     const MenuView = (await import("@/components/scan/MenuView")).default;
     return (
-      <MenuView
-        menu={JSON.parse(JSON.stringify(qrCode.menu))}
-        establishmentName={qrCode.establishment?.name}
-      />
+      <MenuView menu={JSON.parse(JSON.stringify(menu))} establishmentName={est.name} landingTheme={est.landingTheme} />
     );
   }
 
   if (qrCode.mode === "WIFI") {
-    if (!qrCode.wifiConfig) {
-      return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-          <div className="text-center space-y-4">
-            <div className="text-5xl">&#x1F4F6;</div>
-            <h1 className="text-2xl font-bold text-gray-900">Wi-Fi не настроен</h1>
-            <p className="text-gray-500">Владелец ещё не настроил параметры Wi-Fi.</p>
-          </div>
-        </div>
-      );
+    if (!wifiConfig) {
+      return <ScanEmptyState emoji="📶" title="Wi-Fi не настроен" desc="Настройте Wi-Fi в разделе «Моя страница»." />;
     }
-
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
-
+    await incrementScan();
     const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
-    return <WifiConnect wifiConfig={JSON.parse(JSON.stringify(qrCode.wifiConfig))} />;
+    return <WifiConnect wifiConfig={JSON.parse(JSON.stringify(wifiConfig))} landingTheme={est.landingTheme} />;
   }
 
-  if (!qrCode.establishment) {
-    redirect(`/activate/${id}`);
+  if (qrCode.mode === "CUSTOM_SECTION") {
+    if (!qrCode.customPage) {
+      return <ScanEmptyState emoji="📄" title="Страница не найдена" desc="Кастомная страница была удалена или отключена." />;
+    }
+    await incrementScan();
+    if (qrCode.customPage.type === "LINK" && qrCode.customPage.url) {
+      redirect(qrCode.customPage.url);
+    }
+    const CustomPageView = (await import("@/components/scan/CustomPageView")).default;
+    return (
+      <CustomPageView
+        title={qrCode.customPage.title}
+        content={qrCode.customPage.content}
+        landingTheme={est.landingTheme}
+      />
+    );
   }
 
+  await incrementScan();
   const ScanFlow = (await import("@/components/scan/ScanFlow")).default;
+  return <ScanFlow {...reviewProps} landingTheme={est.landingTheme} />;
+}
 
-  const est = qrCode.establishment;
-  const sub = est.user.subscriptions[0];
-  const isPro = sub?.plan === "PRO";
-
-  let redirectUrl = est.yandexMapsUrl || "";
-  if (isPro && est.platformRotation) {
-    const urls = [est.yandexMapsUrl, est.twoGisUrl, est.avitoUrl].filter(Boolean) as string[];
-    redirectUrl = getRotatedUrl(urls) || redirectUrl;
-  }
-
-  let promoCode: string | undefined;
-  if (isPro && est.promocodes.length > 0) {
-    promoCode = est.promocodes[0].code;
-  }
-
+function ScanEmptyState({
+  emoji,
+  title,
+  desc,
+}: {
+  emoji: string;
+  title: string;
+  desc: string;
+}) {
   return (
-    <ScanFlow
-      establishmentName={est.name}
-      establishmentId={est.id}
-      qrCodeId={qrCode.id}
-      redirectUrl={redirectUrl}
-      watermarkEnabled={isPro ? !est.watermarkEnabled : true}
-      showPromo={isPro && !!promoCode}
-      promoCode={promoCode}
-    />
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center space-y-4">
+        <div className="text-5xl">{emoji}</div>
+        <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+        <p className="text-gray-500">{desc}</p>
+      </div>
+    </div>
   );
 }
+

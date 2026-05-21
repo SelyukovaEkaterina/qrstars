@@ -18,7 +18,11 @@ export function getAppBaseUrl(): string {
   if (typeof window !== "undefined") {
     return window.location.origin;
   }
-  return process.env.NEXT_PUBLIC_BASE_URL ?? "http://localhost:3000";
+  const env = process.env.NEXT_PUBLIC_BASE_URL;
+  if (env && !env.includes("localhost")) {
+    return env;
+  }
+  return "https://app.qrstars.ru";
 }
 
 export function scanUrlForCode(code: string): string {

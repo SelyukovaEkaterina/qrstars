@@ -75,7 +75,6 @@ export default function BusinessCardPreviewPage() {
     about: card.about,
     avatarUrl: card.avatarUrl,
     socialLinks: card.socialLinks || [],
-    theme: card.theme,
     accentColor: card.accentColor,
   };
 

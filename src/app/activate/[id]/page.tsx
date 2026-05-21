@@ -17,7 +17,7 @@ export default async function ActivatePage({ params }: ActivatePageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center space-y-4">
-          <div className="text-5xl">&#x2753;</div>
+          <div className="text-5xl">❓</div>
           <h1 className="text-2xl font-bold text-gray-900">QR-код не найден</h1>
           <p className="text-gray-500">Проверьте правильность кода.</p>
         </div>

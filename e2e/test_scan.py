@@ -9,7 +9,8 @@ def test_scan_active_qr(base_url):
     assert data["needsActivation"] is False
     assert data["establishmentName"] is not None
     assert data["qrCodeId"] is not None
-    assert data["redirectUrl"] is not None
+    assert "reviewRouting" in data
+    assert "platformUrls" in data
 
 
 def test_scan_unactivated_qr(base_url):

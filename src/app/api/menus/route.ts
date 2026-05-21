@@ -10,6 +10,7 @@ type MenuItemInput = {
   weight?: string | null;
   category?: string | null;
   imageUrl?: string | null;
+  hidden?: boolean;
 };
 
 export async function POST(request: Request) {
@@ -18,8 +19,18 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { title, description, items } = body;
+  const { title, description, items, establishmentId } = body;
+
+  if (establishmentId) {
+    const est = await prisma.establishment.findFirst({
+      where: { id: establishmentId, userId },
+    });
+    if (!est) {
+      return NextResponse.json({ error: "Establishment not found" }, { status: 404 });
+    }
+  }
 
   const menu = await prisma.qRMenu.create({
     data: {
@@ -34,11 +45,19 @@ export async function POST(request: Request) {
           category: item.category?.trim() || null,
           imageUrl: item.imageUrl?.trim() || null,
           order: index,
+          hidden: item.hidden || false,
         })),
       },
     },
     include: { items: true },
   });
+
+  if (establishmentId) {
+    await prisma.establishment.update({
+      where: { id: establishmentId },
+      data: { menuId: menu.id },
+    });
+  }
 
   return NextResponse.json({ menu });
 }
@@ -58,7 +77,13 @@ export async function PUT(request: Request) {
   }
 
   const existing = await prisma.qRMenu.findFirst({
-    where: { id, qrcodes: { some: { establishment: { userId } } } },
+    where: {
+      id,
+      OR: [
+        { qrcodes: { some: { establishment: { userId } } } },
+        { establishment: { userId } },
+      ],
+    },
   });
 
   if (!existing) {
@@ -84,6 +109,7 @@ export async function PUT(request: Request) {
           category: item.category?.trim() || null,
           imageUrl: item.imageUrl?.trim() || null,
           order: index,
+          hidden: item.hidden || false,
         })),
       },
     },

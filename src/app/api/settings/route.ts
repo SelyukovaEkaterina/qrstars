@@ -4,6 +4,34 @@ import { authOptions } from "@/lib/auth";
 import { sendMail } from "@/lib/mailer";
 import { sendMaxMessage } from "@/lib/max";
 import prisma from "@/lib/prisma";
+import { reviewRoutingToJson, parseReviewRouting } from "@/lib/review-routing";
+
+const establishmentSelect = {
+  id: true,
+  name: true,
+  address: true,
+  phone: true,
+  yandexMapsUrl: true,
+  twoGisUrl: true,
+  avitoUrl: true,
+  platformRotation: true,
+  watermarkEnabled: true,
+  tipsEnabled: true,
+  reviewRouting: true,
+  notificationEmail: true,
+  notificationEmailEnabled: true,
+  notificationTelegramChatId: true,
+  notificationTelegramEnabled: true,
+  notificationMaxUserId: true,
+  notificationMaxEnabled: true,
+} as const;
+
+async function userHasPro(userId: string): Promise<boolean> {
+  const sub = await prisma.subscription.findFirst({
+    where: { userId, status: "ACTIVE", plan: "PRO" },
+  });
+  return !!sub;
+}
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -18,24 +46,7 @@ export async function GET(request: Request) {
   if (establishmentId) {
     const establishment = await prisma.establishment.findFirst({
       where: { id: establishmentId, userId },
-      select: {
-        id: true,
-        name: true,
-        address: true,
-        phone: true,
-        yandexMapsUrl: true,
-        twoGisUrl: true,
-        avitoUrl: true,
-        platformRotation: true,
-        watermarkEnabled: true,
-        tipsEnabled: true,
-        notificationEmail: true,
-        notificationEmailEnabled: true,
-        notificationTelegramChatId: true,
-        notificationTelegramEnabled: true,
-        notificationMaxUserId: true,
-        notificationMaxEnabled: true,
-      },
+      select: establishmentSelect,
     });
 
     if (!establishment) {
@@ -47,24 +58,7 @@ export async function GET(request: Request) {
 
   const establishments = await prisma.establishment.findMany({
     where: { userId },
-    select: {
-      id: true,
-      name: true,
-      address: true,
-      phone: true,
-      yandexMapsUrl: true,
-      twoGisUrl: true,
-      avitoUrl: true,
-      platformRotation: true,
-      watermarkEnabled: true,
-      tipsEnabled: true,
-      notificationEmail: true,
-      notificationEmailEnabled: true,
-      notificationTelegramChatId: true,
-      notificationTelegramEnabled: true,
-      notificationMaxUserId: true,
-      notificationMaxEnabled: true,
-    },
+    select: establishmentSelect,
   });
 
   return NextResponse.json({ establishments });
@@ -87,25 +81,49 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const isPro = await userHasPro(userId);
+
+  if (body.reviewRouting !== undefined && !isPro) {
+    return NextResponse.json(
+      { error: "Настройка сценариев по звёздам доступна на PRO-тарифе" },
+      { status: 403 }
+    );
+  }
+
+  const data: Record<string, unknown> = {};
+
+  if (body.name !== undefined) data.name = body.name;
+  if (body.address !== undefined) data.address = body.address || null;
+  if (body.phone !== undefined) data.phone = body.phone || null;
+  if (body.yandexMapsUrl !== undefined) data.yandexMapsUrl = body.yandexMapsUrl || null;
+  if (body.twoGisUrl !== undefined) data.twoGisUrl = body.twoGisUrl || null;
+  if (body.avitoUrl !== undefined) data.avitoUrl = body.avitoUrl || null;
+  if (body.platformRotation !== undefined) data.platformRotation = body.platformRotation;
+  if (body.watermarkEnabled !== undefined) data.watermarkEnabled = body.watermarkEnabled;
+  if (body.tipsEnabled !== undefined) data.tipsEnabled = body.tipsEnabled;
+  if (body.notificationEmail !== undefined) data.notificationEmail = body.notificationEmail || null;
+  if (body.notificationEmailEnabled !== undefined) {
+    data.notificationEmailEnabled = body.notificationEmailEnabled;
+  }
+  if (body.notificationTelegramChatId !== undefined) {
+    data.notificationTelegramChatId = body.notificationTelegramChatId || null;
+  }
+  if (body.notificationTelegramEnabled !== undefined) {
+    data.notificationTelegramEnabled = body.notificationTelegramEnabled;
+  }
+  if (body.notificationMaxUserId !== undefined) {
+    data.notificationMaxUserId = body.notificationMaxUserId || null;
+  }
+  if (body.notificationMaxEnabled !== undefined) {
+    data.notificationMaxEnabled = body.notificationMaxEnabled;
+  }
+  if (isPro && body.reviewRouting !== undefined) {
+    data.reviewRouting = reviewRoutingToJson(parseReviewRouting(body.reviewRouting));
+  }
+
   const updated = await prisma.establishment.update({
     where: { id: body.id },
-    data: {
-      name: body.name,
-      address: body.address || null,
-      phone: body.phone || null,
-      yandexMapsUrl: body.yandexMapsUrl || null,
-      twoGisUrl: body.twoGisUrl || null,
-      avitoUrl: body.avitoUrl || null,
-      platformRotation: body.platformRotation ?? false,
-      watermarkEnabled: body.watermarkEnabled ?? true,
-      tipsEnabled: body.tipsEnabled ?? false,
-      notificationEmail: body.notificationEmail || null,
-      notificationEmailEnabled: body.notificationEmailEnabled ?? false,
-      notificationTelegramChatId: body.notificationTelegramChatId || null,
-      notificationTelegramEnabled: body.notificationTelegramEnabled ?? false,
-      notificationMaxUserId: body.notificationMaxUserId || null,
-      notificationMaxEnabled: body.notificationMaxEnabled ?? false,
-    },
+    data,
   });
 
   return NextResponse.json({ establishment: updated });

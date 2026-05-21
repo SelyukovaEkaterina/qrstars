@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+const PARTNER_COMMISSION_RATE = 0.15;
+const HOLD_DAYS = 30;
+
 export async function POST(request: Request) {
   const body = await request.json();
   const event = body.event;
@@ -34,6 +37,30 @@ export async function POST(request: Request) {
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
       });
+
+      const payingUser = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { referredById: true },
+      });
+
+      if (payingUser?.referredById) {
+        const paymentAmount = parseFloat(payment.amount?.value || "990");
+        const commissionAmount = Math.round(paymentAmount * PARTNER_COMMISSION_RATE * 100) / 100;
+        const availableAt = new Date(Date.now() + HOLD_DAYS * 24 * 60 * 60 * 1000);
+
+        await prisma.partnerEarning.create({
+          data: {
+            amount: commissionAmount,
+            paymentAmount,
+            status: "PENDING",
+            availableAt,
+            paymentId: payment.id,
+            description: `15% от оплаты подписки PRO (${paymentAmount} ₽)`,
+            partnerId: payingUser.referredById,
+            referralUserId: userId,
+          },
+        });
+      }
     }
   }
 

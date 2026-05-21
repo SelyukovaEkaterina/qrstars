@@ -3,7 +3,7 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
-  const { email, password, name, phone, consentPd } = await request.json();
+  const { email, password, name, phone, consentPd, ref } = await request.json();
 
   if (!consentPd) {
     return NextResponse.json(
@@ -35,12 +35,22 @@ export async function POST(request: Request) {
   }
 
   const hashedPassword = await bcrypt.hash(password, 12);
+
+  let referredById: string | null = null;
+  if (ref) {
+    const referrer = await prisma.user.findUnique({ where: { referralCode: ref } });
+    if (referrer && referrer.email !== email) {
+      referredById = referrer.id;
+    }
+  }
+
   const user = await prisma.user.create({
     data: {
       email,
       name: name || null,
       phone: phone || null,
       hashedPassword,
+      referredById,
     },
   });
 

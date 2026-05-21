@@ -19,6 +19,7 @@ interface QRCodeItem {
 interface Props {
   establishments: Establishment[];
   qrcodes: QRCodeItem[];
+  filterEstId?: string;
   onCreateEstablishment: () => void;
   onCreateQr: (establishmentId: string) => void;
   onLinkQr: (establishmentId: string) => void;
@@ -27,11 +28,16 @@ interface Props {
 export default function DashboardOnboardingBanner({
   establishments,
   qrcodes,
+  filterEstId = "all",
   onCreateEstablishment,
   onCreateQr,
   onLinkQr,
 }: Props) {
   const unlinkedQrcodes = qrcodes.filter((q) => !q.establishmentId);
+
+  if (filterEstId !== "all") {
+    return null;
+  }
 
   const establishmentsWithoutQr = establishments.filter(
     (est) => !qrcodes.some((q) => q.establishmentId === est.id)

@@ -30,7 +30,7 @@ interface BusinessCardData {
   about: string | null;
   avatarUrl: string | null;
   socialLinks: SocialLink[];
-  theme: string;
+  theme?: string;
   accentColor: string;
   contactEnabled?: boolean;
   contactMessengerId?: string | null;
@@ -71,14 +71,6 @@ const socialTypes = [
   { value: "github", label: "GitHub" },
 ];
 
-const themes = [
-  { value: "minimal", label: "Минимализм", preview: "bg-gray-100 border-gray-300" },
-  { value: "modern", label: "Тёмная", preview: "bg-slate-800 border-slate-600" },
-  { value: "warm", label: "Тёплая", preview: "bg-amber-100 border-amber-300" },
-  { value: "nature", label: "Природа", preview: "bg-emerald-100 border-emerald-300" },
-  { value: "ocean", label: "Океан", preview: "bg-blue-100 border-blue-300" },
-];
-
 const presetColors = [
   "#4f46e5", "#7c3aed", "#db2777", "#dc2626",
   "#ea580c", "#ca8a04", "#16a34a", "#0891b2",
@@ -86,7 +78,7 @@ const presetColors = [
 ];
 
 interface BusinessCardConstructorProps {
-  qrId: string;
+  qrId?: string;
   initialData?: BusinessCardData | null;
   onSave: (data: BusinessCardData) => Promise<void>;
   saving?: boolean;
@@ -160,6 +152,7 @@ export default function BusinessCardConstructor({ qrId, initialData, onSave, sav
   };
 
   const openPreview = () => {
+    if (!qrId) return;
     localStorage.setItem(`bc-draft-${qrId}`, JSON.stringify(card));
     window.open(`/dashboard/qrcodes/${qrId}/preview`, "_blank");
   };
@@ -303,10 +296,10 @@ export default function BusinessCardConstructor({ qrId, initialData, onSave, sav
             {messengerContacts.length === 0 ? (
               <p className="text-sm text-amber-700 bg-amber-50 px-3 py-2 rounded-lg">
                 Сначала{" "}
-                <Link href="/dashboard/messengers" className="underline font-medium">
+                <Link href="/dashboard/settings#notification-channels" className="underline font-medium">
                   подключите контакт
                 </Link>{" "}
-                в разделе «Мессенджеры».
+                в настройках («Каналы для уведомлений»).
               </p>
             ) : (
               <>
@@ -332,7 +325,7 @@ export default function BusinessCardConstructor({ qrId, initialData, onSave, sav
                   </p>
                 )}
                 <Link
-                  href="/dashboard/messengers"
+                  href="/dashboard/settings#notification-channels"
                   className="inline-block text-sm text-indigo-600 hover:text-indigo-800"
                 >
                   Добавить или управлять контактами →
@@ -344,47 +337,28 @@ export default function BusinessCardConstructor({ qrId, initialData, onSave, sav
       </Card>
 
       <Card>
-        <h3 className="font-semibold text-gray-900 mb-4">Оформление</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Тема</label>
-            <div className="grid grid-cols-5 gap-2">
-              {themes.map((t) => (
-                <button
-                  key={t.value}
-                  onClick={() => updateField("theme", t.value)}
-                  className={`flex flex-col items-center gap-1 p-2 rounded-lg border-2 transition-all ${
-                    card.theme === t.value ? "border-indigo-600 ring-2 ring-indigo-200" : "border-gray-200"
-                  }`}
-                >
-                  <div className={`w-8 h-8 rounded-full ${t.preview}`} />
-                  <span className="text-xs text-gray-600">{t.label}</span>
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Акцентный цвет</label>
-            <div className="flex flex-wrap gap-2">
-              {presetColors.map((color) => (
-                <button
-                  key={color}
-                  onClick={() => updateField("accentColor", color)}
-                  className={`w-8 h-8 rounded-full border-2 transition-all ${
-                    card.accentColor === color ? "border-gray-900 scale-110" : "border-transparent"
-                  }`}
-                  style={{ backgroundColor: color }}
-                />
-              ))}
-              <input
-                type="color"
-                value={card.accentColor}
-                onChange={(e) => updateField("accentColor", e.target.value)}
-                className="w-8 h-8 rounded-full cursor-pointer border-0"
-              />
-            </div>
-          </div>
+        <h3 className="font-semibold text-gray-900 mb-4">Акцентный цвет</h3>
+        <div className="flex flex-wrap gap-2">
+          {presetColors.map((color) => (
+            <button
+              key={color}
+              onClick={() => updateField("accentColor", color)}
+              className={`w-8 h-8 rounded-full border-2 transition-all ${
+                card.accentColor === color ? "border-gray-900 scale-110" : "border-transparent"
+              }`}
+              style={{ backgroundColor: color }}
+            />
+          ))}
+          <input
+            type="color"
+            value={card.accentColor}
+            onChange={(e) => updateField("accentColor", e.target.value)}
+            className="w-8 h-8 rounded-full cursor-pointer border-0"
+          />
         </div>
+        <p className="text-xs text-gray-400 mt-2">
+          Цвет шапки, кнопок соцсетей и кнопки «Сохранить контакт». Оформление фона настраивается в разделе «Оформление лендинга» выше.
+        </p>
       </Card>
 
       <div className="flex items-center gap-3">
