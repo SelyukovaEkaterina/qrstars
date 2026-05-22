@@ -82,15 +82,17 @@ function EstablishmentsPageContent() {
   }, [status, router]);
 
   useEffect(() => {
-    if (searchParams.get("create") === "1") {
+    let isMounted = true;
+    if (searchParams.get("create") === "1" && isMounted) {
       setShowCreate(true);
     }
+    return () => { isMounted = false; };
   }, [searchParams]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.yandexMapsUrl) {
-      setError("Название и ссылка на Яндекс.Карты обязательны");
+    if (!form.name) {
+      setError("Название обязательно");
       return;
     }
     setCreating(true);
@@ -260,7 +262,7 @@ function EstablishmentsPageContent() {
                   />
                 </div>
                 <Input
-                  label="Ссылка на Яндекс.Карты *"
+                  label="Ссылка на Яндекс.Карты"
                   type="url"
                   value={form.yandexMapsUrl}
                   onChange={(e) =>

@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "QRMenuItem" ADD COLUMN "hidden" BOOLEAN NOT NULL DEFAULT false;

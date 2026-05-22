@@ -25,7 +25,7 @@ export async function POST(request: Request) {
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
   await prisma.passwordResetToken.create({
-    data: { token, userId: user.id, expiresAt },
+    data: { token, user: { connect: { id: user.id } }, expiresAt },
   });
 
   const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;

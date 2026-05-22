@@ -61,7 +61,7 @@ export async function POST(request: Request) {
       },
     },
     create: {
-      userId,
+      user: { connect: { id: userId } },
       provider,
       externalId: normalizedId,
       label: label?.trim() || defaultLabel,

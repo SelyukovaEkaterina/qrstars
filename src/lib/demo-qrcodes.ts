@@ -2,7 +2,7 @@ import type { QRCodeMode } from "@/generated/prisma/client";
 import { DEMO_MENU_ITEMS } from "@/lib/demo-menu-data";
 import { DEMO_TIRE_MENU_ITEMS } from "@/lib/demo-tire-menu-data";
 import { DEMO_DENTAL_MENU_ITEMS } from "@/lib/demo-dental-menu-data";
-import { type PageModules } from "@/lib/page-modules";
+import { type PageModules, type ModuleIcons } from "@/lib/page-modules";
 import { DEFAULT_REVIEW_ROUTING, reviewRoutingToJson } from "@/lib/review-routing";
 
 /** Стабильные коды для лендинга: /scan/demo-review и т.д. Не хранятся в БД. */
@@ -264,6 +264,13 @@ export const demoPageModules: PageModules = {
   wifi: true,
 };
 
+export const demoModuleIcons: ModuleIcons = {
+  menu: "☕",
+  review: "⭐",
+  businessCard: "📇",
+  wifi: "📶",
+};
+
 export const demoCustomPages = [
   {
     id: "demo-custom-1",
@@ -371,6 +378,13 @@ export const demo2PageModules: PageModules = {
   review: true,
   businessCard: true,
   wifi: true,
+};
+
+export const demo2ModuleIcons: ModuleIcons = {
+  menu: "🔧",
+  review: "⭐",
+  businessCard: "📇",
+  wifi: "📶",
 };
 
 export const demo2CustomPages = [
@@ -490,6 +504,13 @@ export const demo3PageModules: PageModules = {
   review: true,
   businessCard: true,
   wifi: true,
+};
+
+export const demo3ModuleIcons: ModuleIcons = {
+  menu: "🦷",
+  review: "⭐",
+  businessCard: "📇",
+  wifi: "📶",
 };
 
 export const demo3CustomPages = [

@@ -3,7 +3,18 @@
 import { useCallback, useState } from "react";
 import Button from "@/components/ui/Button";
 import { Check, Copy, Wifi } from "lucide-react";
-import { getLandingTheme, isDarkLandingTheme } from "@/lib/landing-themes";
+import {
+  headingColor,
+  iconBoxStyle,
+  infoBoxStyle,
+  mutedColor,
+  panelStyle,
+  primaryButtonStyle,
+  rowSurfaceStyle,
+  scanRootStyle,
+  submutedColor,
+} from "@/lib/brand-theme-ui";
+import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 
 interface WifiConfigData {
   id: string;
@@ -44,12 +55,16 @@ async function copyText(text: string): Promise<boolean> {
   }
 }
 
-export default function WifiConnect({ wifiConfig, landingTheme: themeId }: { wifiConfig: WifiConfigData; landingTheme?: string | null }) {
+export default function WifiConnect({
+  wifiConfig,
+  brandColor,
+  pageAppearance,
+  isBg,
+}: { wifiConfig: WifiConfigData } & BrandThemeScanProps & { isBg?: boolean }) {
   const [copied, setCopied] = useState<"password" | "ssid" | null>(null);
   const [copyError, setCopyError] = useState(false);
 
-  const theme = getLandingTheme(themeId);
-  const dark = isDarkLandingTheme(themeId);
+  const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
 
   const hasPassword =
     Boolean(wifiConfig.password) && wifiConfig.encryption !== "nopass";
@@ -66,39 +81,71 @@ export default function WifiConnect({ wifiConfig, landingTheme: themeId }: { wif
   }, []);
 
   return (
-    <div className={`min-h-screen ${theme.bg} flex flex-col items-center justify-center px-4 py-10`}>
+    <div
+      className="min-h-[inherit] flex flex-col items-center justify-center px-4 py-10 relative z-10"
+      style={scanRootStyle(theme, { isBg })}
+    >
       <div className="w-full max-w-md space-y-6">
         <div className="text-center space-y-2">
-          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${theme.iconBg} ${theme.iconText} mb-1`}>
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-2xl backdrop-blur-sm shadow-sm mb-1"
+            style={iconBoxStyle(isBg)}
+          >
             <Wifi className="w-8 h-8" aria-hidden />
           </div>
-          <h1 className={`text-2xl font-bold ${dark ? "text-white" : "text-gray-900"}`}>Гостевой Wi‑Fi</h1>
-          <p className={`text-sm leading-relaxed ${dark ? "text-slate-400" : "text-gray-500"}`}>
+          <h1 className="text-2xl font-bold" style={{ color: headingColor(isBg) }}>
+            Гостевой Wi‑Fi
+          </h1>
+          <p className="text-sm leading-relaxed" style={{ color: mutedColor(isBg) }}>
             {hasPassword
               ? "Скопируйте пароль и подключитесь к сети в настройках телефона"
               : "Откройте настройки Wi‑Fi и выберите сеть без пароля"}
           </p>
         </div>
 
-        <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} overflow-hidden`}>
+        <div
+          className="backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border"
+          style={panelStyle(isBg)}
+        >
           <div className="px-6 py-5 space-y-4">
             <div className="space-y-2 text-left">
-              <div className={`flex items-center justify-between gap-3 p-3 rounded-xl ${dark ? "bg-slate-700" : "bg-gray-50"}`}>
-                <span className={`text-sm shrink-0 ${dark ? "text-slate-400" : "text-gray-500"}`}>Сеть</span>
-                <span className={`text-sm font-semibold text-right break-all ${dark ? "text-white" : "text-gray-900"}`}>
+              <div
+                className="flex items-center justify-between gap-3 p-3 rounded-xl border shadow-sm"
+                style={rowSurfaceStyle(isBg)}
+              >
+                <span className="text-sm shrink-0" style={{ color: submutedColor(isBg) }}>
+                  Сеть
+                </span>
+                <span
+                  className="text-sm font-semibold text-right break-all"
+                  style={{ color: headingColor(isBg) }}
+                >
                   {wifiConfig.ssid}
                 </span>
               </div>
-              <div className={`flex items-center justify-between gap-3 p-3 rounded-xl ${dark ? "bg-slate-700" : "bg-gray-50"}`}>
-                <span className={`text-sm shrink-0 ${dark ? "text-slate-400" : "text-gray-500"}`}>Шифрование</span>
-                <span className={`text-sm font-semibold ${dark ? "text-white" : "text-gray-900"}`}>
+              <div
+                className="flex items-center justify-between gap-3 p-3 rounded-xl border shadow-sm"
+                style={rowSurfaceStyle(isBg)}
+              >
+                <span className="text-sm shrink-0" style={{ color: submutedColor(isBg) }}>
+                  Шифрование
+                </span>
+                <span className="text-sm font-semibold" style={{ color: headingColor(isBg) }}>
                   {encryptionLabel(wifiConfig.encryption)}
                 </span>
               </div>
               {hasPassword && wifiConfig.password && (
-                <div className={`flex items-center justify-between gap-3 p-3 rounded-xl ${dark ? "bg-slate-700" : "bg-gray-50"}`}>
-                  <span className={`text-sm shrink-0 ${dark ? "text-slate-400" : "text-gray-500"}`}>Пароль</span>
-                  <span className={`text-sm font-mono font-semibold text-right break-all ${dark ? "text-white" : "text-gray-900"}`}>
+                <div
+                  className="flex items-center justify-between gap-3 p-3 rounded-xl border shadow-sm"
+                  style={rowSurfaceStyle(isBg)}
+                >
+                  <span className="text-sm shrink-0" style={{ color: submutedColor(isBg) }}>
+                    Пароль
+                  </span>
+                  <span
+                    className="text-sm font-mono font-semibold text-right break-all"
+                    style={{ color: headingColor(isBg) }}
+                  >
                     {wifiConfig.password}
                   </span>
                 </div>
@@ -111,6 +158,7 @@ export default function WifiConnect({ wifiConfig, landingTheme: themeId }: { wif
                   type="button"
                   size="lg"
                   className="w-full gap-2"
+                  style={primaryButtonStyle(isBg)}
                   onClick={() => handleCopy(wifiConfig.password!, "password")}
                 >
                   {copied === "password" ? (
@@ -132,6 +180,19 @@ export default function WifiConnect({ wifiConfig, landingTheme: themeId }: { wif
                 variant="outline"
                 size="lg"
                 className="w-full gap-2"
+                style={
+                  isBg
+                    ? {
+                        backgroundColor: "var(--brand-cover-module-bg)",
+                        borderColor: "var(--brand-cover-module-border)",
+                        color: "#fff",
+                      }
+                    : {
+                        backgroundColor: "var(--brand-row-bg)",
+                        borderColor: "var(--brand-border)",
+                        color: "var(--brand-heading)",
+                      }
+                }
                 onClick={() => handleCopy(wifiConfig.ssid, "ssid")}
               >
                 {copied === "ssid" ? (
@@ -154,9 +215,14 @@ export default function WifiConnect({ wifiConfig, landingTheme: themeId }: { wif
               )}
             </div>
 
-            <div className={`rounded-xl ${theme.infoBoxBg} border ${theme.infoBoxBorder} p-4 text-left space-y-2`}>
-              <p className={`text-sm font-medium ${theme.infoBoxTitle}`}>Как подключиться</p>
-              <ol className={`text-sm space-y-1.5 list-decimal list-inside ${theme.infoBoxText}`}>
+            <div
+              className="rounded-xl border p-4 text-left space-y-2 backdrop-blur-sm"
+              style={infoBoxStyle(isBg)}
+            >
+              <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>
+                Как подключиться
+              </p>
+              <ol className="text-sm space-y-1.5 list-decimal list-inside" style={{ color: mutedColor(isBg) }}>
                 {hasPassword && <li>Нажмите «Скопировать пароль»</li>}
                 <li>
                   Откройте <span className="font-medium">Настройки → Wi‑Fi</span>
@@ -174,7 +240,9 @@ export default function WifiConnect({ wifiConfig, landingTheme: themeId }: { wif
           </div>
         </div>
 
-        <p className={`text-xs text-center ${dark ? "text-slate-500" : "text-gray-400"}`}>QrStars.ru</p>
+        <p className="text-xs text-center" style={{ color: submutedColor(isBg) }}>
+          QrStars.ru
+        </p>
       </div>
     </div>
   );

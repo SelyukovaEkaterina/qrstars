@@ -12,10 +12,12 @@ import WifiConfigEditor from "@/components/dashboard/WifiConfigEditor";
 import ReviewRoutingEditor from "@/components/dashboard/ReviewRoutingEditor";
 import CustomPageEditor from "@/components/dashboard/CustomPageEditor";
 import MicroLandingView from "@/components/scan/MicroLandingView";
+import EmojiPicker from "@/components/ui/EmojiPicker";
 import {
   parsePageModules,
   parseModuleOrder,
   parseModuleLabels,
+  parseModuleIcons,
   buildDefaultModuleOrder,
   PAGE_MODULE_LABELS,
   isBuiltinModuleKey,
@@ -25,10 +27,19 @@ import {
   type BuiltinModuleKey,
   type ModuleKey,
   type ModuleLabels,
+  type ModuleIcons,
 } from "@/lib/page-modules";
 import { parseReviewRouting, type ReviewRoutingConfig } from "@/lib/review-routing";
 import { DEFAULT_REVIEW_ROUTING } from "@/lib/review-routing";
-import { LANDING_THEME_LIST, DEFAULT_LANDING_THEME, type LandingThemeId } from "@/lib/landing-themes";
+import {
+  BRAND_COLOR_PRESETS,
+  DEFAULT_BRAND_COLOR,
+  DEFAULT_PAGE_APPEARANCE,
+  DEFAULT_LANDING_SUBTITLE,
+  normalizeBrandColor,
+  type PageAppearance,
+} from "@/lib/brand-theme";
+import { STANDARD_COVERS } from "@/lib/standard-covers";
 import {
   Loader2,
   Layout,
@@ -43,6 +54,8 @@ import {
   Check,
   X,
   Palette,
+  Image as ImageIcon,
+  Upload,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -112,9 +125,17 @@ export default function MyPageDashboard() {
   const [customPages, setCustomPages] = useState<CustomPageItem[]>([]);
   const [moduleOrder, setModuleOrder] = useState<ModuleKey[] | null>(null);
   const [moduleLabels, setModuleLabels] = useState<ModuleLabels>({});
+  const [moduleIcons, setModuleIcons] = useState<ModuleIcons>({});
   const [editingLabel, setEditingLabel] = useState<BuiltinModuleKey | null>(null);
   const [editLabelValue, setEditLabelValue] = useState("");
-  const [landingTheme, setLandingTheme] = useState<LandingThemeId>(DEFAULT_LANDING_THEME);
+  const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);
+  const [pageAppearance, setPageAppearance] = useState<PageAppearance>(DEFAULT_PAGE_APPEARANCE);
+  const [customColorOpen, setCustomColorOpen] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [landingSubtitle, setLandingSubtitle] = useState("");
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const loadPage = useCallback(async (estId: string) => {
     const res = await fetch(`/api/establishments/${estId}/page`);
@@ -125,13 +146,24 @@ export default function MyPageDashboard() {
     setPageModules(parsePageModules(est.pageModules));
     setModuleOrder(parseModuleOrder(est.moduleOrder));
     setModuleLabels(parseModuleLabels(est.moduleLabels));
+    setModuleIcons(parseModuleIcons(est.moduleIcons));
     setMenuData(est.menu);
     setBusinessCardData(est.businessCard);
     setWifiConfigData(est.wifiConfig);
     setReviewRouting(parseReviewRouting(est.reviewRouting));
     setIsPro(data.isPro || false);
     setCustomPages(est.customPages || []);
-    setLandingTheme(est.landingTheme || DEFAULT_LANDING_THEME);
+    const loadedColor = est.brandColor || DEFAULT_BRAND_COLOR;
+    setBrandColor(loadedColor);
+    setPageAppearance(
+      est.pageAppearance === "dark" ? "dark" : DEFAULT_PAGE_APPEARANCE
+    );
+    setCustomColorOpen(
+      !BRAND_COLOR_PRESETS.some((p) => p.hex === loadedColor)
+    );
+    setLogoUrl(est.logoUrl || null);
+    setCoverUrl(est.coverUrl || null);
+    setLandingSubtitle(est.landingSubtitle || "");
   }, []);
 
   useEffect(() => {
@@ -190,6 +222,15 @@ export default function MyPageDashboard() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ moduleLabels: next }),
+    });
+  };
+
+  const saveModuleIcons = async (next: ModuleIcons) => {
+    setModuleIcons(next);
+    await fetch(`/api/establishments/${establishmentId}/page`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ moduleIcons: next }),
     });
   };
 
@@ -264,24 +305,109 @@ export default function MyPageDashboard() {
     saveModuleOrder(newOrder);
   };
 
-  const saveLandingTheme = async (themeId: LandingThemeId) => {
-    setLandingTheme(themeId);
+  const saveBrandSettings = async (
+    color: string,
+    appearance: PageAppearance
+  ) => {
+    const normalized =
+      normalizeBrandColor(color) ?? DEFAULT_BRAND_COLOR;
+    setBrandColor(normalized);
+    setPageAppearance(appearance);
+    setBusinessCardData((prev) =>
+      prev ? { ...prev, accentColor: normalized } : prev
+    );
     await fetch(`/api/establishments/${establishmentId}/page`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ landingTheme: themeId }),
+      body: JSON.stringify({
+        brandColor: normalized,
+        pageAppearance: appearance,
+      }),
     });
   };
 
+  const saveCoverUrl = async (url: string | null) => {
+    setCoverUrl(url);
+    await fetch(`/api/establishments/${establishmentId}/page`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ coverUrl: url }),
+    });
+  };
+
+  const saveLogoUrl = async (url: string | null) => {
+    setLogoUrl(url);
+    await fetch(`/api/establishments/${establishmentId}/page`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ logoUrl: url }),
+    });
+  };
+
+  const saveLandingSubtitle = async (value: string) => {
+    const trimmed = value.trim();
+    const toSave =
+      trimmed && trimmed !== DEFAULT_LANDING_SUBTITLE ? trimmed.slice(0, 120) : null;
+    setLandingSubtitle(trimmed && trimmed !== DEFAULT_LANDING_SUBTITLE ? trimmed : "");
+    await fetch(`/api/establishments/${establishmentId}/page`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ landingSubtitle: toSave }),
+    });
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "logo" | "cover") => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (type === "logo") setUploadingLogo(true);
+    else setUploadingCover(true);
+    setError("");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/file-assets/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error((await res.json()).error || "Ошибка загрузки файла");
+      }
+
+      const data = await res.json();
+      const url = data.fileAsset.fileUrl;
+
+      if (type === "logo") {
+        await saveLogoUrl(url);
+      } else {
+        await saveCoverUrl(url);
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError("Неизвестная ошибка");
+      }
+    } finally {
+      if (type === "logo") setUploadingLogo(false);
+      else setUploadingCover(false);
+      // Reset input
+      e.target.value = "";
+    }
+  };
+
   const getEffectiveOrder = (): ModuleKey[] => {
+    const allKeys = new Set<ModuleKey>();
+    (Object.keys(pageModules) as BuiltinModuleKey[]).forEach((k) => {
+      allKeys.add(k);
+    });
+    customPages.forEach((p) => {
+      if (p.enabled) allKeys.add(`custom-${p.id}` as ModuleKey);
+    });
     if (moduleOrder && moduleOrder.length > 0) {
-      const allKeys = new Set<ModuleKey>();
-      (Object.keys(pageModules) as BuiltinModuleKey[]).forEach((k) => {
-        if (pageModules[k]) allKeys.add(k);
-      });
-      customPages.forEach((p) => {
-        if (p.enabled) allKeys.add(`custom-${p.id}` as ModuleKey);
-      });
       const ordered = moduleOrder.filter((k) => allKeys.has(k));
       const seen = new Set(ordered);
       allKeys.forEach((k) => {
@@ -333,13 +459,14 @@ export default function MyPageDashboard() {
   const handleSaveBusinessCard = async (cardData: BusinessCardData) => {
     setSaving(true);
     setError("");
+    const payload = { ...cardData, accentColor: brandColor };
     try {
       let bcId = businessCardData?.id;
       if (!bcId) {
         const res = await fetch("/api/business-cards", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...cardData, establishmentId }),
+          body: JSON.stringify({ ...payload, establishmentId }),
         });
         if (!res.ok) {
           setError((await res.json()).error || "Ошибка");
@@ -350,7 +477,7 @@ export default function MyPageDashboard() {
         const res = await fetch("/api/business-cards", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ ...cardData, id: bcId }),
+          body: JSON.stringify({ ...payload, id: bcId }),
         });
         if (!res.ok) {
           setError((await res.json()).error || "Ошибка");
@@ -525,39 +652,238 @@ export default function MyPageDashboard() {
 
             <Card>
               <div className="flex items-center gap-2 mb-3">
-                <Palette className="w-5 h-5 text-gray-500" />
-                <h3 className="font-semibold text-gray-900">Оформление лендинга</h3>
+                <ImageIcon className="w-5 h-5 text-gray-500" />
+                <h3 className="font-semibold text-gray-900">Брендирование (Логотип и Обложка)</h3>
               </div>
               <p className="text-sm text-gray-500 mb-4">
-                Выберите цветовую схему для микро-лендинга и страницы отзывов.
+                Загрузите логотип заведения и выберите красивую фотографию для шапки страницы.
               </p>
-              <div className="grid grid-cols-3 gap-3">
-                {LANDING_THEME_LIST.map((t) => {
-                  const selected = landingTheme === t.id;
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Подзаголовок на лендинге
+                </label>
+                <input
+                  type="text"
+                  value={landingSubtitle}
+                  onChange={(e) => setLandingSubtitle(e.target.value)}
+                  onBlur={() => saveLandingSubtitle(landingSubtitle)}
+                  placeholder={DEFAULT_LANDING_SUBTITLE}
+                  maxLength={120}
+                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Текст под названием заведения. Пустое поле — стандартная фраза «{DEFAULT_LANDING_SUBTITLE}».
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Логотип заведения
+                </label>
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-full border border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden shrink-0">
+                    {logoUrl ? (
+                      <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon className="w-6 h-6 text-gray-300" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <label className="relative cursor-pointer bg-white border border-gray-300 rounded-md shadow-sm px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-500">
+                        <span>{uploadingLogo ? "Загрузка..." : "Загрузить логотип"}</span>
+                        <input
+                          type="file"
+                          className="sr-only"
+                          accept="image/png, image/jpeg, image/webp"
+                          onChange={(e) => handleFileUpload(e, "logo")}
+                          disabled={uploadingLogo}
+                        />
+                      </label>
+                      {logoUrl && (
+                        <button
+                          type="button"
+                          onClick={() => saveLogoUrl(null)}
+                          className="text-sm text-red-600 hover:text-red-700"
+                        >
+                          Удалить
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">PNG, JPG до 5 МБ. Рекомендуется квадратное изображение.</p>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Обложка (Баннер)
+                  </label>
+                  <label className="relative cursor-pointer text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1">
+                    {uploadingCover ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Upload className="w-3.5 h-3.5" />
+                    )}
+                    <span>Загрузить свою</span>
+                    <input
+                      type="file"
+                      className="sr-only"
+                      accept="image/png, image/jpeg, image/webp"
+                      onChange={(e) => handleFileUpload(e, "cover")}
+                      disabled={uploadingCover}
+                    />
+                  </label>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => saveCoverUrl(null)}
+                    className={`relative rounded-xl border-2 overflow-hidden aspect-video transition-all flex flex-col items-center justify-center bg-gray-50 ${
+                      !coverUrl
+                        ? "border-indigo-600 ring-2 ring-indigo-600/20"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <X className="w-6 h-6 text-gray-400 mb-1" />
+                    <span className="text-xs font-medium text-gray-500">Без обложки</span>
+                    {!coverUrl && (
+                      <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
+                        <Check className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    )}
+                  </button>
+                  
+                  {/* Показываем кастомную обложку, если она загружена и не из стандартных */}
+                  {coverUrl && !STANDARD_COVERS.some(c => c.url === coverUrl) && (
+                    <button
+                      type="button"
+                      className="relative rounded-xl border-2 overflow-hidden aspect-video transition-all group border-indigo-600 ring-2 ring-indigo-600/20"
+                    >
+                      <img
+                        src={coverUrl}
+                        alt="Своя обложка"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-2">
+                        <span className="text-white text-xs font-medium truncate">Своя обложка</span>
+                      </div>
+                      <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
+                        <Check className="w-2.5 h-2.5 text-white" />
+                      </div>
+                    </button>
+                  )}
+
+                  {STANDARD_COVERS.map((cover) => {
+                    const selected = coverUrl === cover.url;
+                    return (
+                      <button
+                        key={cover.id}
+                        type="button"
+                        onClick={() => saveCoverUrl(cover.url)}
+                        className={`relative rounded-xl border-2 overflow-hidden aspect-video transition-all group ${
+                          selected
+                            ? "border-indigo-600 ring-2 ring-indigo-600/20"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                      >
+                        <img
+                          src={cover.url}
+                          alt={cover.name}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                          <span className="text-white text-xs font-medium truncate">{cover.name}</span>
+                        </div>
+                        {selected && (
+                          <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center z-10">
+                            <Check className="w-2.5 h-2.5 text-white" />
+                          </div>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </Card>
+
+            <Card>
+              <div className="flex items-center gap-2 mb-3">
+                <Palette className="w-5 h-5 text-gray-500" />
+                <h3 className="font-semibold text-gray-900">Цвет бренда</h3>
+              </div>
+              <p className="text-sm text-gray-500 mb-4">
+                Акцент для микро-лендинга, меню, отзывов и визитки. Обложка настраивается отдельно выше.
+              </p>
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {BRAND_COLOR_PRESETS.map((preset) => {
+                  const selected =
+                    brandColor === preset.hex && !customColorOpen;
                   return (
                     <button
-                      key={t.id}
+                      key={preset.hex}
                       type="button"
-                      onClick={() => saveLandingTheme(t.id)}
-                      className={`relative rounded-xl border-2 p-3 text-left transition-all ${
+                      title={preset.label}
+                      onClick={() => {
+                        setCustomColorOpen(false);
+                        saveBrandSettings(preset.hex, pageAppearance);
+                      }}
+                      className={`w-10 h-10 rounded-full border-2 transition-all ${
                         selected
-                          ? "border-indigo-600 ring-2 ring-indigo-600/20"
-                          : "border-gray-200 hover:border-gray-300"
+                          ? "border-gray-900 scale-110 ring-2 ring-indigo-600/30"
+                          : "border-transparent hover:scale-105"
                       }`}
-                    >
-                      <div
-                        className="w-full h-8 rounded-lg mb-2"
-                        style={{ backgroundColor: t.accentHex }}
-                      />
-                      <p className="text-xs font-medium text-gray-700 truncate">{t.label}</p>
-                      {selected && (
-                        <div className="absolute top-1.5 right-1.5 w-4 h-4 bg-indigo-600 rounded-full flex items-center justify-center">
-                          <Check className="w-2.5 h-2.5 text-white" />
-                        </div>
-                      )}
-                    </button>
+                      style={{ backgroundColor: preset.hex }}
+                    />
                   );
                 })}
+                <label
+                  className={`relative w-10 h-10 rounded-full border-2 cursor-pointer overflow-hidden flex items-center justify-center text-xs font-medium transition-all ${
+                    customColorOpen ||
+                    !BRAND_COLOR_PRESETS.some((p) => p.hex === brandColor)
+                      ? "border-gray-900 scale-110 ring-2 ring-indigo-600/30"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                  title="Свой цвет"
+                >
+                  <span className="text-gray-600">Свой</span>
+                  <input
+                    type="color"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    value={brandColor}
+                    onChange={(e) => {
+                      setCustomColorOpen(true);
+                      saveBrandSettings(e.target.value, pageAppearance);
+                    }}
+                  />
+                </label>
+              </div>
+              <p className="text-xs text-gray-500 mb-2">Стиль страницы</p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => saveBrandSettings(brandColor, "light")}
+                  className={`flex-1 rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                    pageAppearance === "light"
+                      ? "border-indigo-600 bg-indigo-50 text-indigo-900"
+                      : "border-gray-200 text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  Светлая
+                </button>
+                <button
+                  type="button"
+                  onClick={() => saveBrandSettings(brandColor, "dark")}
+                  className={`flex-1 rounded-xl border-2 px-4 py-2.5 text-sm font-medium transition-all ${
+                    pageAppearance === "dark"
+                      ? "border-indigo-600 bg-slate-800 text-white"
+                      : "border-gray-200 text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  Тёмная
+                </button>
               </div>
             </Card>
 
@@ -593,7 +919,9 @@ export default function MyPageDashboard() {
                       return (
                         <div
                           key={key}
-                          className="flex items-center gap-2 p-2 rounded-lg border border-gray-200 hover:bg-gray-50 group"
+                          className={`flex items-center gap-2 p-2 rounded-lg border border-gray-200 group ${
+                            isOn ? "hover:bg-gray-50" : "opacity-50 bg-gray-50"
+                          }`}
                         >
                           <div className="flex flex-col gap-0.5 shrink-0">
                             <button
@@ -616,20 +944,42 @@ export default function MyPageDashboard() {
 
                           <GripVertical className="w-4 h-4 text-gray-300 shrink-0" />
 
-                          {isCustom && (() => {
+                          {isBuiltinModuleKey(key) ? (
+                            (() => {
+                              const emoji = moduleIcons[key];
+                              return emoji ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const next = { ...moduleIcons };
+                                    delete next[key];
+                                    saveModuleIcons(next);
+                                  }}
+                                  className="w-7 h-7 rounded flex items-center justify-center shrink-0 bg-indigo-100 text-base hover:opacity-70 transition-opacity"
+                                  title="Убрать иконку"
+                                >
+                                  {emoji}
+                                </button>
+                              ) : (
+                                <EmojiPicker
+                                  value={null}
+                                  onChange={(e) => {
+                                    const next: ModuleIcons = { ...moduleIcons };
+                                    if (e) next[key] = e; else delete next[key];
+                                    saveModuleIcons(next);
+                                  }}
+                                  inline
+                                />
+                              );
+                            })()
+                          ) : (() => {
                             const cp = customPages.find((p) => p.id === customModuleKeyToId(key));
                             return cp?.icon ? (
                               <div className="w-7 h-7 rounded flex items-center justify-center shrink-0 bg-purple-100 text-base">
                                 {cp.icon}
                               </div>
                             ) : (
-                              <div
-                                className={`w-7 h-7 rounded flex items-center justify-center shrink-0 ${
-                                  isCustom
-                                    ? "bg-purple-100 text-purple-600"
-                                    : "bg-indigo-100 text-indigo-600"
-                                }`}
-                              >
+                              <div className="w-7 h-7 rounded flex items-center justify-center shrink-0 bg-purple-100 text-purple-600">
                                 <FileText className="w-3.5 h-3.5" />
                               </div>
                             );
@@ -669,7 +1019,9 @@ export default function MyPageDashboard() {
                             <button
                               type="button"
                               onClick={() => setActiveEditor(key as EditorTab)}
-                              className="flex-1 text-left text-sm font-medium text-gray-800 hover:text-indigo-600 transition-colors truncate"
+                              className={`flex-1 text-left text-sm font-medium text-gray-800 hover:text-indigo-600 transition-colors truncate ${
+                                !isOn ? "line-through text-gray-400" : ""
+                              }`}
                             >
                               {label}
                             </button>
@@ -768,6 +1120,7 @@ export default function MyPageDashboard() {
                   )}
                   {activeEditor === "businessCard" && (
                     <BusinessCardConstructor
+                      brandColor={brandColor}
                       initialData={businessCardData}
                       onSave={handleSaveBusinessCard}
                       saving={saving}
@@ -813,8 +1166,9 @@ export default function MyPageDashboard() {
                        qrCodeId="preview"
                        pageModules={pageModules}
                        moduleOrder={effectiveOrder}
-                       moduleLabels={moduleLabels}
-                      menu={menuData}
+                        moduleLabels={moduleLabels}
+                        moduleIcons={moduleIcons}
+                       menu={menuData}
                        businessCard={
                          businessCardData?.id
                            ? {
@@ -851,9 +1205,13 @@ export default function MyPageDashboard() {
                         twoGisUrl: null,
                         avitoUrl: null,
                       }}
+                      logoUrl={logoUrl}
+                      coverUrl={coverUrl}
+                      landingSubtitle={landingSubtitle || null}
                        watermarkEnabled
                        embedded
-                       landingTheme={landingTheme}
+                       brandColor={brandColor}
+                       pageAppearance={pageAppearance}
                      />
                   )}
                 </Card>

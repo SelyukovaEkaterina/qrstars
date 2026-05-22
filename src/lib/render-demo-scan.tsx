@@ -6,6 +6,7 @@ import {
   demoFileAsset,
   demoMenu,
   demoPageModules,
+  demoModuleIcons,
   demoRedirectUrl,
   demoReviewScan,
   demoWifiConfig,
@@ -15,6 +16,7 @@ import {
   demo2WifiConfig,
   demo2FileAsset,
   demo2PageModules,
+  demo2ModuleIcons,
   demo2CustomPages,
   demo2ReviewScan,
   demo2RedirectUrl,
@@ -23,6 +25,7 @@ import {
   demo3WifiConfig,
   demo3FileAsset,
   demo3PageModules,
+  demo3ModuleIcons,
   demo3CustomPages,
   demo3ReviewScan,
   demo3RedirectUrl,
@@ -46,6 +49,7 @@ export async function renderDemoScan(code: string) {
           qrCodeId="demo-landing"
           pageModules={demoPageModules}
           moduleOrder={null}
+          moduleIcons={demoModuleIcons}
           menu={demoMenu}
           businessCard={demoBusinessCard}
           wifiConfig={demoWifiConfig}
@@ -56,7 +60,8 @@ export async function renderDemoScan(code: string) {
           showPromo={demoReviewScan.showPromo}
           promoCode={demoReviewScan.promoCode}
           isDemo
-          landingTheme="default"
+          brandColor="#4f46e5"
+          pageAppearance="light"
         />
       );
     }
@@ -66,25 +71,25 @@ export async function renderDemoScan(code: string) {
 
     case "demo-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-      return <BusinessCardView card={demoBusinessCard} landingTheme="default" />;
+      return <BusinessCardView card={demoBusinessCard} brandColor="#4f46e5" pageAppearance="light" />;
     }
 
     case "demo-wifi": {
       const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
-      return <WifiConnect wifiConfig={demoWifiConfig} landingTheme="default" />;
+      return <WifiConnect wifiConfig={demoWifiConfig} brandColor="#4f46e5" pageAppearance="light" />;
     }
 
     case "demo-file": {
       const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
       return (
-        <FileDownloadView file={demoFileAsset} establishmentName="Кофейня «Бобр» (демо)" landingTheme="default" />
+        <FileDownloadView file={demoFileAsset} establishmentName="Кофейня «Бобр» (демо)" brandColor="#4f46e5" pageAppearance="light" />
       );
     }
 
     case "demo-menu": {
       const MenuView = (await import("@/components/scan/MenuView")).default;
       return (
-        <MenuView menu={demoMenu} establishmentName="Кофейня «Бобр» (демо)" landingTheme="default" />
+        <MenuView menu={demoMenu} establishmentName="Кофейня «Бобр» (демо)" brandColor="#4f46e5" pageAppearance="light" />
       );
     }
 
@@ -102,7 +107,8 @@ export async function renderDemoScan(code: string) {
           showPromo={demoReviewScan.showPromo}
           promoCode={demoReviewScan.promoCode}
           isDemo
-          landingTheme="default"
+          brandColor="#4f46e5"
+          pageAppearance="light"
         />
       );
     }
@@ -119,6 +125,7 @@ export async function renderDemoScan(code: string) {
           qrCodeId="demo2-landing"
           pageModules={demo2PageModules}
           moduleOrder={null}
+          moduleIcons={demo2ModuleIcons}
           menu={demo2Menu}
           businessCard={demo2BusinessCard}
           wifiConfig={demo2WifiConfig}
@@ -129,7 +136,8 @@ export async function renderDemoScan(code: string) {
           showPromo={demo2ReviewScan.showPromo}
           promoCode={demo2ReviewScan.promoCode}
           isDemo
-          landingTheme="sunset"
+          brandColor="#ea580c"
+          pageAppearance="light"
         />
       );
     }
@@ -139,25 +147,25 @@ export async function renderDemoScan(code: string) {
 
     case "demo2-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-      return <BusinessCardView card={demo2BusinessCard} landingTheme="sunset" />;
+      return <BusinessCardView card={demo2BusinessCard} brandColor="#ea580c" pageAppearance="light" />;
     }
 
     case "demo2-wifi": {
       const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
-      return <WifiConnect wifiConfig={demo2WifiConfig} landingTheme="sunset" />;
+      return <WifiConnect wifiConfig={demo2WifiConfig} brandColor="#ea580c" pageAppearance="light" />;
     }
 
     case "demo2-file": {
       const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
       return (
-        <FileDownloadView file={demo2FileAsset} establishmentName="Шиномонтаж «Колесо» (демо)" landingTheme="sunset" />
+        <FileDownloadView file={demo2FileAsset} establishmentName="Шиномонтаж «Колесо» (демо)" brandColor="#ea580c" pageAppearance="light" />
       );
     }
 
     case "demo2-menu": {
       const MenuView = (await import("@/components/scan/MenuView")).default;
       return (
-        <MenuView menu={demo2Menu} establishmentName="Шиномонтаж «Колесо» (демо)" landingTheme="sunset" />
+        <MenuView menu={demo2Menu} establishmentName="Шиномонтаж «Колесо» (демо)" brandColor="#ea580c" pageAppearance="light" />
       );
     }
 
@@ -175,7 +183,8 @@ export async function renderDemoScan(code: string) {
           showPromo={demo2ReviewScan.showPromo}
           promoCode={demo2ReviewScan.promoCode}
           isDemo
-          landingTheme="sunset"
+          brandColor="#ea580c"
+          pageAppearance="light"
         />
       );
     }
@@ -192,6 +201,7 @@ export async function renderDemoScan(code: string) {
           qrCodeId="demo3-landing"
           pageModules={demo3PageModules}
           moduleOrder={null}
+          moduleIcons={demo3ModuleIcons}
           menu={demo3Menu}
           businessCard={demo3BusinessCard}
           wifiConfig={demo3WifiConfig}
@@ -202,7 +212,8 @@ export async function renderDemoScan(code: string) {
           showPromo={demo3ReviewScan.showPromo}
           promoCode={demo3ReviewScan.promoCode}
           isDemo
-          landingTheme="ocean"
+          brandColor="#0369a1"
+          pageAppearance="light"
         />
       );
     }
@@ -212,25 +223,25 @@ export async function renderDemoScan(code: string) {
 
     case "demo3-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-      return <BusinessCardView card={demo3BusinessCard} landingTheme="ocean" />;
+      return <BusinessCardView card={demo3BusinessCard} brandColor="#0369a1" pageAppearance="light" />;
     }
 
     case "demo3-wifi": {
       const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
-      return <WifiConnect wifiConfig={demo3WifiConfig} landingTheme="ocean" />;
+      return <WifiConnect wifiConfig={demo3WifiConfig} brandColor="#0369a1" pageAppearance="light" />;
     }
 
     case "demo3-file": {
       const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
       return (
-        <FileDownloadView file={demo3FileAsset} establishmentName="Стоматология «ДентаЛюкс» (демо)" landingTheme="ocean" />
+        <FileDownloadView file={demo3FileAsset} establishmentName="Стоматология «ДентаЛюкс» (демо)" brandColor="#0369a1" pageAppearance="light" />
       );
     }
 
     case "demo3-menu": {
       const MenuView = (await import("@/components/scan/MenuView")).default;
       return (
-        <MenuView menu={demo3Menu} establishmentName="Стоматология «ДентаЛюкс» (демо)" landingTheme="ocean" />
+        <MenuView menu={demo3Menu} establishmentName="Стоматология «ДентаЛюкс» (демо)" brandColor="#0369a1" pageAppearance="light" />
       );
     }
 
@@ -248,7 +259,8 @@ export async function renderDemoScan(code: string) {
           showPromo={demo3ReviewScan.showPromo}
           promoCode={demo3ReviewScan.promoCode}
           isDemo
-          landingTheme="ocean"
+          brandColor="#0369a1"
+          pageAppearance="light"
         />
       );
     }

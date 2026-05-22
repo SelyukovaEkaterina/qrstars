@@ -55,7 +55,7 @@ export async function POST(request: Request) {
   if (establishmentId) {
     await prisma.establishment.update({
       where: { id: establishmentId },
-      data: { menuId: menu.id },
+      data: { menu: { connect: { id: menu.id } } },
     });
   }
 

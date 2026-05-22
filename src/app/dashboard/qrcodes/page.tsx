@@ -21,6 +21,8 @@ import {
   ExternalLink,
   Settings,
   Link2,
+  Copy,
+  Check,
 } from "lucide-react";
 import { generateQRWithCenter } from "@/lib/qr-generator";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
@@ -63,6 +65,7 @@ function QRCodesPageContent() {
   const [creatingEst, setCreatingEst] = useState(false);
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState("");
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     code: "",
@@ -133,7 +136,8 @@ function QRCodesPageContent() {
   }, [status, router, refreshData]);
 
   useEffect(() => {
-    if (searchParams.get("createEst") === "1") {
+    let isMounted = true;
+    if (searchParams.get("createEst") === "1" && isMounted) {
       setShowCreateEst(true);
     }
     const linkEst = searchParams.get("linkEst");
@@ -157,8 +161,8 @@ function QRCodesPageContent() {
 
   const handleCreateEstablishment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!estForm.name || !estForm.yandexMapsUrl) {
-      setError("Название и ссылка на Яндекс.Карты обязательны");
+    if (!estForm.name) {
+      setError("Название обязательно");
       return;
     }
     setCreatingEst(true);
@@ -389,7 +393,7 @@ function QRCodesPageContent() {
                   />
                 </div>
                 <Input
-                  label="Ссылка на Яндекс.Карты *"
+                  label="Ссылка на Яндекс.Карты"
                   type="url"
                   value={estForm.yandexMapsUrl}
                   onChange={(e) =>
@@ -683,6 +687,38 @@ function QRCodesPageContent() {
                         <Settings className="w-3 h-3 mr-1" />
                         Настройки
                       </Button>
+                      <button
+                        onClick={() => {
+                          const url = scanUrlForCode(qr.code);
+                          if (navigator.clipboard) {
+                            navigator.clipboard.writeText(url);
+                          } else {
+                            const ta = document.createElement("textarea");
+                            ta.value = url;
+                            ta.style.position = "fixed";
+                            ta.style.opacity = "0";
+                            document.body.appendChild(ta);
+                            ta.select();
+                            document.execCommand("copy");
+                            document.body.removeChild(ta);
+                          }
+                          setCopiedId(qr.id);
+                          setTimeout(() => setCopiedId((prev) => prev === qr.id ? null : prev), 2000);
+                        }}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
+                      >
+                        {copiedId === qr.id ? (
+                          <>
+                            <Check className="w-3 h-3" />
+                            Скопировано
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3 h-3" />
+                            Ссылка
+                          </>
+                        )}
+                      </button>
                       <a
                         href={qr.imageUrl}
                         download={`qr-${qr.code}.png`}

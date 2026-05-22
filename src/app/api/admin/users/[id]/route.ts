@@ -37,7 +37,7 @@ export async function PATCH(
     } else {
       await prisma.subscription.create({
         data: {
-          userId: id,
+          user: { connect: { id: id } },
           plan: subscriptionPlan,
           status: subscriptionStatus || "ACTIVE",
           currentPeriodStart: new Date(),

@@ -21,8 +21,8 @@ export async function POST(request: Request) {
 
   const review = await prisma.review.create({
     data: {
-      establishmentId,
-      qrCodeId: qrCodeId || null,
+      establishment: { connect: { id: establishmentId } },
+      ...(qrCodeId ? { qrCode: { connect: { id: qrCodeId } } } : {}),
       rating,
       comment: comment || null,
       guestName: guestName || null,

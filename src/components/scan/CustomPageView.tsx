@@ -1,38 +1,51 @@
 "use client";
 
-import { getLandingTheme, isDarkLandingTheme } from "@/lib/landing-themes";
+import {
+  headingColor,
+  mutedColor,
+  panelStyle,
+  scanRootStyle,
+} from "@/lib/brand-theme-ui";
+import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 
-interface CustomPageViewProps {
+interface CustomPageViewProps extends BrandThemeScanProps {
   title: string;
   content: string;
   embedded?: boolean;
-  landingTheme?: string | null;
+  isBg?: boolean;
 }
 
 export default function CustomPageView({
   title,
   content,
   embedded,
-  landingTheme: themeId,
+  brandColor,
+  pageAppearance,
+  isBg,
 }: CustomPageViewProps) {
-  const theme = getLandingTheme(themeId);
-  const dark = isDarkLandingTheme(themeId);
+  const { theme } = useBrandThemeScan({ brandColor, pageAppearance });
 
   return (
-    <div className={embedded ? "p-4" : "px-4 pt-6 pb-10 max-w-2xl mx-auto"}>
-      <h1
-        className={`font-bold mb-6 ${
-          embedded ? "text-lg" : "text-2xl"
-        } ${dark ? "text-white" : "text-gray-900"}`}
-      >
-        {title}
-      </h1>
+    <div
+      className={embedded ? "p-4 relative z-10 min-h-[inherit]" : "px-4 pt-6 pb-10 max-w-2xl mx-auto relative z-10 min-h-[inherit]"}
+      style={scanRootStyle(theme, { isBg, embedded })}
+    >
       <div
-        className={`prose prose-sm max-w-none ${
-          dark ? "text-slate-300 prose-headings:text-white prose-a:text-indigo-400 prose-strong:text-slate-200 prose-li:text-slate-300" : "text-gray-700"
-        } ${embedded ? "prose-sm" : ""}`}
-        dangerouslySetInnerHTML={{ __html: content }}
-      />
+        className="backdrop-blur-md rounded-2xl shadow-sm p-6 border"
+        style={panelStyle(isBg)}
+      >
+        <h1
+          className={`font-bold mb-6 ${embedded ? "text-lg" : "text-2xl"}`}
+          style={{ color: headingColor(isBg) }}
+        >
+          {title}
+        </h1>
+        <div
+          className={`prose prose-sm max-w-none ${embedded ? "prose-sm" : ""}`}
+          style={{ color: mutedColor(isBg) }}
+          dangerouslySetInnerHTML={{ __html: content }}
+        />
+      </div>
     </div>
   );
 }

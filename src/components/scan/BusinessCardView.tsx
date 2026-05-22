@@ -4,7 +4,15 @@ import { useMemo, useState } from "react";
 import { Loader2, MessageCircle } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { getLandingTheme, isDarkLandingTheme } from "@/lib/landing-themes";
+import {
+  headingColor,
+  mutedColor,
+  panelStyle,
+  rowSurfaceStyle,
+  scanRootStyle,
+  submutedColor,
+} from "@/lib/brand-theme-ui";
+import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 
 interface SocialLink {
   type: string;
@@ -53,16 +61,23 @@ function buildVCard(card: BusinessCardData): string {
   return vcard;
 }
 
-interface BusinessCardViewProps {
+interface BusinessCardViewProps extends BrandThemeScanProps {
   card: BusinessCardData;
   qrCode?: string;
   showContactForm?: boolean;
-  landingTheme?: string | null;
+  isBg?: boolean;
 }
 
-export default function BusinessCardView({ card, qrCode, showContactForm, landingTheme: themeId }: BusinessCardViewProps) {
-  const theme = getLandingTheme(themeId);
-  const dark = isDarkLandingTheme(themeId);
+export default function BusinessCardView({
+  card,
+  qrCode,
+  showContactForm,
+  brandColor,
+  pageAppearance,
+  isBg,
+}: BusinessCardViewProps) {
+  const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
+  const accent = "var(--brand-600)";
   const vcard = useMemo(() => buildVCard(card), [card]);
   const vcardUrl = useMemo(() => `data:text/vcard;charset=utf-8,${encodeURIComponent(vcard)}`, [vcard]);
 
@@ -123,17 +138,21 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
     }
   };
 
-  const contactRowBg = dark ? "bg-slate-700 hover:bg-slate-600" : "bg-gray-50 hover:bg-gray-100";
-  const contactLabelColor = dark ? "text-slate-400" : "text-gray-500";
-  const contactValueColor = dark ? "text-white" : "text-gray-900";
-
   return (
-    <div className={`min-h-screen ${theme.bg} flex flex-col items-center px-4 py-8`}>
-      <div className="w-full max-w-sm">
-        <div className={`${theme.cardBg} rounded-2xl shadow-xl overflow-hidden ${dark ? "border border-slate-700" : ""}`}>
+    <div
+      className={`min-h-[inherit] ${isBg ? "" : ""} flex flex-col items-center px-4 py-8 relative`}
+      style={scanRootStyle(theme, { isBg })}
+    >
+      <div className="w-full max-w-sm relative z-10">
+        <div
+          className="backdrop-blur-md rounded-2xl shadow-xl overflow-hidden border"
+          style={panelStyle(isBg)}
+        >
           <div
             className="h-28 relative"
-            style={{ background: `linear-gradient(135deg, ${card.accentColor}, ${card.accentColor}99)` }}
+            style={{
+              background: `linear-gradient(135deg, var(--brand-600), var(--brand-500))`,
+            }}
           >
             <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
               {card.avatarUrl ? (
@@ -145,7 +164,7 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
               ) : (
                 <div
                   className="w-24 h-24 rounded-full border-4 border-white shadow-lg flex items-center justify-center text-2xl font-bold text-white"
-                  style={{ backgroundColor: card.accentColor }}
+                  style={{ backgroundColor: accent }}
                 >
                   {initials}
                 </div>
@@ -154,14 +173,26 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
           </div>
 
           <div className="pt-14 pb-6 px-6 text-center">
-            <h1 className={`text-xl font-bold ${dark ? "text-white" : "text-gray-900"}`}>{card.fullName}</h1>
-            {card.title && <p className={`text-sm mt-0.5 ${dark ? "text-slate-400" : "text-gray-500"}`}>{card.title}</p>}
-            {card.company && <p className={`text-sm font-medium mt-0.5 ${dark ? "text-slate-400" : "text-gray-500"}`}>{card.company}</p>}
+            <h1 className="text-xl font-bold" style={{ color: headingColor(isBg) }}>
+              {card.fullName}
+            </h1>
+            {card.title && (
+              <p className="text-sm mt-0.5" style={{ color: mutedColor(isBg) }}>
+                {card.title}
+              </p>
+            )}
+            {card.company && (
+              <p className="text-sm font-medium mt-0.5" style={{ color: mutedColor(isBg) }}>
+                {card.company}
+              </p>
+            )}
           </div>
 
           {card.about && (
             <div className="px-6 pb-4">
-              <p className={`text-sm text-center leading-relaxed ${dark ? "text-slate-400" : "text-gray-500"}`}>{card.about}</p>
+              <p className="text-sm text-center leading-relaxed" style={{ color: mutedColor(isBg) }}>
+                {card.about}
+              </p>
             </div>
           )}
 
@@ -169,24 +200,30 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
             {card.phone && (
               <a
                 href={`tel:${card.phone}`}
-                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
+                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
+                style={rowSurfaceStyle(isBg)}
               >
                 <span className="text-lg">{"\ud83d\udcde"}</span>
                 <div>
-                  <p className={`text-xs ${contactLabelColor}`}>Телефон</p>
-                  <p className={`text-sm font-medium ${contactValueColor}`}>{card.phone}</p>
+                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>
+                    Телефон
+                  </p>
+                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>
+                    {card.phone}
+                  </p>
                 </div>
               </a>
             )}
             {card.email && (
               <a
                 href={`mailto:${card.email}`}
-                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
+                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
+                style={rowSurfaceStyle(isBg)}
               >
                 <span className="text-lg">{"\u2709\ufe0f"}</span>
                 <div>
-                  <p className={`text-xs ${contactLabelColor}`}>Email</p>
-                  <p className={`text-sm font-medium ${contactValueColor}`}>{card.email}</p>
+                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>Email</p>
+                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>{card.email}</p>
                 </div>
               </a>
             )}
@@ -195,12 +232,13 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                 href={card.website}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
+                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
+                style={rowSurfaceStyle(isBg)}
               >
                 <span className="text-lg">{"\ud83c\udf10"}</span>
                 <div>
-                  <p className={`text-xs ${contactLabelColor}`}>Сайт</p>
-                  <p className={`text-sm font-medium ${contactValueColor}`}>
+                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>Сайт</p>
+                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>
                     {card.website.replace(/^https?:\/\//, "")}
                   </p>
                 </div>
@@ -211,12 +249,13 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                 href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center gap-3 p-3 rounded-xl ${contactRowBg} transition-colors`}
+                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
+                style={rowSurfaceStyle(isBg)}
               >
                 <span className="text-lg">{"\ud83d\udccd"}</span>
                 <div>
-                  <p className={`text-xs ${contactLabelColor}`}>Адрес</p>
-                  <p className={`text-sm font-medium ${contactValueColor}`}>{card.address}</p>
+                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>Адрес</p>
+                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>{card.address}</p>
                 </div>
               </a>
             )}
@@ -234,7 +273,7 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-full text-sm font-medium text-white transition-transform hover:scale-105"
-                      style={{ backgroundColor: card.accentColor }}
+                      style={{ backgroundColor: accent }}
                     >
                       <span>{meta.icon}</span>
                       {meta.label}
@@ -252,7 +291,7 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                   type="button"
                   onClick={() => setContactOpen(true)}
                   className="w-full py-3 rounded-xl text-center font-medium border-2 transition-colors flex items-center justify-center gap-2"
-                  style={{ borderColor: card.accentColor, color: card.accentColor }}
+                  style={{ borderColor: accent, color: accent }}
                 >
                   <MessageCircle className="w-4 h-4" />
                   Написать человеку
@@ -260,10 +299,12 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
               ) : contactSuccess ? (
                 <div
                   className="p-4 rounded-xl text-center text-sm"
-                  style={{ backgroundColor: `${card.accentColor}15`, color: card.accentColor }}
+                  style={{ backgroundColor: "var(--brand-50)", color: "var(--brand-600)" }}
                 >
                   <p className="font-medium">Сообщение отправлено!</p>
-                  <p className={`mt-1 ${dark ? "text-slate-400" : "text-gray-500"}`}>Владелец визитки получит его в мессенджере.</p>
+                  <p className="mt-1" style={{ color: mutedColor(isBg) }}>
+                    Владелец визитки получит его в мессенджере.
+                  </p>
                   <button
                     type="button"
                     onClick={() => {
@@ -271,14 +312,19 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                       setContactOpen(false);
                     }}
                     className="mt-3 text-sm underline"
-                    style={{ color: card.accentColor }}
+                    style={{ color: accent }}
                   >
                     Написать ещё
                   </button>
                 </div>
               ) : (
-                <div className={`space-y-3 p-4 rounded-xl ${dark ? "bg-slate-700 border border-slate-600" : "bg-gray-50 border border-gray-100"}`}>
-                  <p className={`text-sm font-medium text-center ${dark ? "text-white" : "text-gray-900"}`}>Написать {card.fullName}</p>
+                <div
+                  className="space-y-3 p-4 rounded-xl border"
+                  style={rowSurfaceStyle(isBg)}
+                >
+                  <p className="text-sm font-medium text-center" style={{ color: headingColor(isBg) }}>
+                    Написать {card.fullName}
+                  </p>
                   <Input
                     label="Ваше имя"
                     value={guestName}
@@ -287,16 +333,18 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                     maxLength={100}
                   />
                   <div>
-                    <label className={`block text-sm font-medium mb-1 ${dark ? "text-slate-300" : "text-gray-700"}`}>Сообщение</label>
+                    <label className={`block text-sm font-medium mb-1 ${isBg ? "text-white/80" : dark ? "text-slate-300" : "text-gray-700"}`}>Сообщение</label>
                     <textarea
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       rows={4}
                       maxLength={2000}
                       className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 ${
-                        dark
-                          ? "bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 focus:ring-indigo-400"
-                          : "border-gray-300 focus:ring-indigo-500"
+                        isBg
+                          ? "bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:ring-white/50"
+                          : dark
+                            ? "bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 focus:ring-indigo-400"
+                            : "border-gray-300 focus:ring-indigo-500"
                       }`}
                       placeholder="Ваш вопрос или предложение..."
                     />
@@ -307,7 +355,7 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
                       className="flex-1"
                       onClick={handleSendContact}
                       disabled={sending}
-                      style={{ backgroundColor: card.accentColor }}
+                      style={{ backgroundColor: accent }}
                     >
                       {sending ? (
                         <>
@@ -332,14 +380,16 @@ export default function BusinessCardView({ card, qrCode, showContactForm, landin
               href={vcardUrl}
               download={`${card.fullName}.vcf`}
               className="block w-full py-3 rounded-xl text-center text-white font-medium transition-opacity hover:opacity-90"
-              style={{ backgroundColor: card.accentColor }}
+              style={{ backgroundColor: accent }}
             >
               {"\ud83d\udcbe"} Сохранить контакт
             </a>
           </div>
         </div>
 
-        <p className={`text-center text-xs mt-6 ${dark ? "text-slate-500" : "text-gray-400"}`}>QrStars.ru</p>
+        <p className="text-center text-xs mt-6 relative z-10" style={{ color: submutedColor(isBg) }}>
+          QrStars.ru
+        </p>
       </div>
     </div>
   );

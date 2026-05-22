@@ -84,7 +84,7 @@ export async function POST(request: Request) {
           },
         },
         create: {
-          userId,
+          user: { connect: { id: userId } },
           provider: "TELEGRAM",
           externalId: String(chatId),
           label,

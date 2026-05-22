@@ -71,7 +71,7 @@ export async function POST(request: Request) {
           },
         },
         create: {
-          userId: link.id,
+          user: { connect: { id: link.id } },
           provider: "MAX",
           externalId: userId,
           label: "MAX",

@@ -31,7 +31,7 @@ export async function POST(request: Request) {
           id: payment.id,
           plan: "PRO",
           status: "ACTIVE",
-          userId,
+          user: { connect: { id: userId } },
           yookassaPaymentId: payment.payment_method?.id,
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -56,8 +56,8 @@ export async function POST(request: Request) {
             availableAt,
             paymentId: payment.id,
             description: `15% от оплаты подписки PRO (${paymentAmount} ₽)`,
-            partnerId: payingUser.referredById,
-            referralUserId: userId,
+            partner: { connect: { id: payingUser.referredById } },
+            referralUser: { connect: { id: userId } },
           },
         });
       }

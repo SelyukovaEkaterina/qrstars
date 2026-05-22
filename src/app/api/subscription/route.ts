@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         create: {
           plan: "PRO",
           status: "ACTIVE",
-          userId,
+          user: { connect: { id: userId } },
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },

@@ -62,6 +62,40 @@ def test_menu_linked_to_establishment(owner_session, base_url, owner_establishme
     assert page["establishment"]["menu"]["id"] == menu_id
 
 
+def test_establishment_page_landing_subtitle(owner_session, base_url, owner_establishment_id):
+    custom = "Добро пожаловать в нашу кофейню"
+    r = owner_session.put(
+        f"{base_url}/api/establishments/{owner_establishment_id}/page",
+        json={"landingSubtitle": custom},
+    )
+    assert r.status_code == 200
+    assert r.json()["establishment"]["landingSubtitle"] == custom
+
+    r2 = owner_session.put(
+        f"{base_url}/api/establishments/{owner_establishment_id}/page",
+        json={"landingSubtitle": ""},
+    )
+    assert r2.status_code == 200
+    assert r2.json()["establishment"]["landingSubtitle"] is None
+
+
+def test_establishment_page_brand_color(owner_session, base_url, owner_establishment_id):
+    r = owner_session.put(
+        f"{base_url}/api/establishments/{owner_establishment_id}/page",
+        json={"brandColor": "#059669", "pageAppearance": "dark"},
+    )
+    assert r.status_code == 200
+    est = r.json()["establishment"]
+    assert est["brandColor"] == "#059669"
+    assert est["pageAppearance"] == "dark"
+
+    r2 = owner_session.put(
+        f"{base_url}/api/establishments/{owner_establishment_id}/page",
+        json={"brandColor": "#4f46e5", "pageAppearance": "light"},
+    )
+    assert r2.status_code == 200
+
+
 def test_establishment_page_api_unauthorized(base_url, owner_establishment_id):
     r = requests.get(f"{base_url}/api/establishments/{owner_establishment_id}/page")
     assert r.status_code in (401, 403)

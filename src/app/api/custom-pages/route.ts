@@ -67,7 +67,7 @@ export async function POST(request: Request) {
 
   const page = await prisma.customPage.create({
     data: {
-      establishmentId,
+      establishment: { connect: { id: establishmentId } },
       menuItemLabel: String(menuItemLabel).slice(0, 100),
       title: String(title).slice(0, 200),
       content: typeof content === "string" ? content : "",

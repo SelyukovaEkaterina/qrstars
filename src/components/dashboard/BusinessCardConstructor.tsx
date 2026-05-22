@@ -71,20 +71,21 @@ const socialTypes = [
   { value: "github", label: "GitHub" },
 ];
 
-const presetColors = [
-  "#4f46e5", "#7c3aed", "#db2777", "#dc2626",
-  "#ea580c", "#ca8a04", "#16a34a", "#0891b2",
-  "#2563eb", "#0f172a", "#64748b", "#1e293b",
-];
-
 interface BusinessCardConstructorProps {
   qrId?: string;
   initialData?: BusinessCardData | null;
+  brandColor?: string;
   onSave: (data: BusinessCardData) => Promise<void>;
   saving?: boolean;
 }
 
-export default function BusinessCardConstructor({ qrId, initialData, onSave, saving }: BusinessCardConstructorProps) {
+export default function BusinessCardConstructor({
+  qrId,
+  initialData,
+  brandColor,
+  onSave,
+  saving,
+}: BusinessCardConstructorProps) {
   const cardSyncKey = initialData?.id ?? "new";
   const [card, setCard] = useSyncPropState(
     initialData ? { ...defaultCard, ...initialData } : defaultCard,
@@ -336,30 +337,19 @@ export default function BusinessCardConstructor({ qrId, initialData, onSave, sav
         )}
       </Card>
 
-      <Card>
-        <h3 className="font-semibold text-gray-900 mb-4">Акцентный цвет</h3>
-        <div className="flex flex-wrap gap-2">
-          {presetColors.map((color) => (
-            <button
-              key={color}
-              onClick={() => updateField("accentColor", color)}
-              className={`w-8 h-8 rounded-full border-2 transition-all ${
-                card.accentColor === color ? "border-gray-900 scale-110" : "border-transparent"
-              }`}
-              style={{ backgroundColor: color }}
+      {brandColor && (
+        <p className="text-xs text-gray-500 -mt-2 mb-4">
+          Цвет шапки и кнопок совпадает с{" "}
+          <span className="inline-flex items-center gap-1 font-medium text-gray-700">
+            <span
+              className="inline-block w-3 h-3 rounded-full border border-gray-200"
+              style={{ backgroundColor: brandColor }}
             />
-          ))}
-          <input
-            type="color"
-            value={card.accentColor}
-            onChange={(e) => updateField("accentColor", e.target.value)}
-            className="w-8 h-8 rounded-full cursor-pointer border-0"
-          />
-        </div>
-        <p className="text-xs text-gray-400 mt-2">
-          Цвет шапки, кнопок соцсетей и кнопки «Сохранить контакт». Оформление фона настраивается в разделе «Оформление лендинга» выше.
+            цветом бренда
+          </span>{" "}
+          в блоке выше.
         </p>
-      </Card>
+      )}
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={saving}>

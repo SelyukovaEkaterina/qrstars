@@ -52,10 +52,63 @@ const EMOJI_CATEGORIES: { label: string; emojis: string[] }[] = [
 interface EmojiPickerProps {
   value: string | null | undefined;
   onChange: (emoji: string | null) => void;
+  inline?: boolean;
 }
 
-export default function EmojiPicker({ value, onChange }: EmojiPickerProps) {
+export default function EmojiPicker({ value, onChange, inline }: EmojiPickerProps) {
   const [open, setOpen] = useState(false);
+
+  if (inline) {
+    return (
+      <div className="relative">
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className={`w-7 h-7 rounded flex items-center justify-center text-sm transition-colors ${
+            open
+              ? "bg-indigo-100 border border-indigo-300"
+              : "bg-indigo-100 text-indigo-600 hover:bg-indigo-200"
+          }`}
+          title="Выбрать иконку"
+        >
+          {value || "📌"}
+        </button>
+
+        {open && (
+          <>
+            <div
+              className="fixed inset-0 z-40"
+              onClick={() => setOpen(false)}
+            />
+            <div className="absolute z-50 top-full mt-1 left-0 w-80 max-h-80 overflow-y-auto bg-white rounded-xl border border-gray-200 shadow-xl p-3">
+              {EMOJI_CATEGORIES.map((cat) => (
+                <div key={cat.label} className="mb-3 last:mb-0">
+                  <p className="text-xs font-medium text-gray-400 mb-1.5">{cat.label}</p>
+                  <div className="grid grid-cols-10 gap-0.5">
+                    {cat.emojis.map((emoji) => (
+                      <button
+                        key={emoji}
+                        type="button"
+                        onClick={() => {
+                          onChange(emoji);
+                          setOpen(false);
+                        }}
+                        className={`w-7 h-7 rounded flex items-center justify-center text-base hover:bg-indigo-50 transition-colors ${
+                          value === emoji ? "bg-indigo-100 ring-1 ring-indigo-300" : ""
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

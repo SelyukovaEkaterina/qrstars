@@ -102,7 +102,7 @@ export default function MessengerContactsManager({ compact }: MessengerContactsM
   };
 
   const handleStartMaxPolling = () => {
-    const maxBotUrl = process.env.NEXT_PUBLIC_MAX_BOT_URL;
+  const maxBotUrl = process.env.NEXT_PUBLIC_MAX_BOT_URL || "https://max.ru/id540536312882_bot";
     if (maxBotUrl) window.open(maxBotUrl, "_blank");
 
     const countBefore = contactsCountRef.current;

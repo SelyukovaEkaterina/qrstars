@@ -2,12 +2,13 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { renderDemoScan } from "@/lib/render-demo-scan";
 import { DEFAULT_REVIEW_ROUTING, parseReviewRouting } from "@/lib/review-routing";
-import { parsePageModules, parseModuleOrder, parseModuleLabels } from "@/lib/page-modules";
+import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons } from "@/lib/page-modules";
 import {
   resolveMenu,
   resolveBusinessCard,
   resolveWifiConfig,
 } from "@/lib/establishment-content";
+import { resolveBrandSettings } from "@/lib/brand-theme";
 
 interface ScanPageProps {
   params: Promise<{ id: string }>;
@@ -93,12 +94,14 @@ export default async function ScanPage({ params }: ScanPageProps) {
       return <ScanEmptyState emoji="📁" title="Файл не загружен" desc="Владелец ещё не прикрепил документ к этому QR-коду." />;
     }
     await incrementScan();
+    const fileBrand = resolveBrandSettings(est ?? {});
     const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
     return (
       <FileDownloadView
         file={JSON.parse(JSON.stringify(qrCode.fileAsset))}
         establishmentName={est?.name}
-        landingTheme={est?.landingTheme}
+        brandColor={fileBrand.brandColor}
+        pageAppearance={fileBrand.pageAppearance}
       />
     );
   }
@@ -106,6 +109,12 @@ export default async function ScanPage({ params }: ScanPageProps) {
   if (!est) {
     redirect(`/activate/${id}`);
   }
+
+  const brand = resolveBrandSettings(est);
+  const brandProps = {
+    brandColor: brand.brandColor,
+    pageAppearance: brand.pageAppearance,
+  };
 
   const sub = est.user.subscriptions[0];
   const isPro = sub?.plan === "PRO";
@@ -138,6 +147,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     const pageModules = parsePageModules(est.pageModules);
     const moduleOrder = parseModuleOrder(est.moduleOrder);
     const moduleLabels = parseModuleLabels(est.moduleLabels);
+    const moduleIcons = parseModuleIcons(est.moduleIcons);
     const safeCard = businessCard
       ? {
           id: businessCard.id,
@@ -163,6 +173,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
         pageModules={pageModules}
         moduleOrder={moduleOrder}
         moduleLabels={moduleLabels}
+        moduleIcons={moduleIcons}
         menu={menu ? JSON.parse(JSON.stringify(menu)) : null}
         businessCard={safeCard}
         wifiConfig={wifiConfig ? JSON.parse(JSON.stringify(wifiConfig)) : null}
@@ -172,7 +183,10 @@ export default async function ScanPage({ params }: ScanPageProps) {
         watermarkEnabled={reviewProps.watermarkEnabled}
         showPromo={reviewProps.showPromo}
         promoCode={promoCode}
-        landingTheme={est.landingTheme}
+        {...brandProps}
+        logoUrl={est.logoUrl}
+        coverUrl={est.coverUrl}
+        landingSubtitle={est.landingSubtitle}
       />
     );
   }
@@ -202,7 +216,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
         }}
         qrCode={id}
         showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
-        landingTheme={est.landingTheme}
+        {...brandProps}
       />
     );
   }
@@ -214,7 +228,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     await incrementScan();
     const MenuView = (await import("@/components/scan/MenuView")).default;
     return (
-      <MenuView menu={JSON.parse(JSON.stringify(menu))} establishmentName={est.name} landingTheme={est.landingTheme} />
+      <MenuView menu={JSON.parse(JSON.stringify(menu))} establishmentName={est.name} {...brandProps} />
     );
   }
 
@@ -224,7 +238,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     }
     await incrementScan();
     const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
-    return <WifiConnect wifiConfig={JSON.parse(JSON.stringify(wifiConfig))} landingTheme={est.landingTheme} />;
+    return <WifiConnect wifiConfig={JSON.parse(JSON.stringify(wifiConfig))} {...brandProps} />;
   }
 
   if (qrCode.mode === "CUSTOM_SECTION") {
@@ -240,14 +254,14 @@ export default async function ScanPage({ params }: ScanPageProps) {
       <CustomPageView
         title={qrCode.customPage.title}
         content={qrCode.customPage.content}
-        landingTheme={est.landingTheme}
+        {...brandProps}
       />
     );
   }
 
   await incrementScan();
   const ScanFlow = (await import("@/components/scan/ScanFlow")).default;
-  return <ScanFlow {...reviewProps} landingTheme={est.landingTheme} />;
+  return <ScanFlow {...reviewProps} {...brandProps} />;
 }
 
 function ScanEmptyState({

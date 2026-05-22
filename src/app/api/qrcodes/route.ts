@@ -6,6 +6,7 @@ import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
 import { generateQRCode } from "@/lib/utils";
 
 export async function GET(request: Request) {
+  try {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -82,6 +83,10 @@ export async function GET(request: Request) {
   });
 
   return NextResponse.json({ qrcodes, isPro });
+  } catch (e) {
+    console.error("QR GET error:", e);
+    return NextResponse.json({ error: String(e) }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -139,7 +144,7 @@ export async function POST(request: Request) {
     code,
     mode: mode || "REVIEW",
     isActive: !!establishmentId,
-    userId,
+    user: { connect: { id: userId } },
   };
   if (label) createData.label = label;
   if (redirectUrl) createData.redirectUrl = redirectUrl;

@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       height: height || 148,
       layout,
       isPublic: isPublic || false,
-      userId,
+      user: { connect: { id: userId } },
     },
   });
 

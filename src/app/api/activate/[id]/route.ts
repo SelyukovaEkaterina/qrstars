@@ -49,8 +49,8 @@ export async function POST(
       where: { id: qrCodeId || qrCode.id },
       data: {
         isActive: true,
-        establishmentId: existingEst.id,
-        userId: existingEst.userId,
+        establishment: { connect: { id: existingEst.id } },
+        user: { connect: { id: existingEst.userId } },
       },
     });
 
@@ -61,7 +61,7 @@ export async function POST(
     });
   }
 
-  if (!establishmentName || !email || !yandexMapsUrl) {
+  if (!establishmentName || !email) {
     return NextResponse.json(
       { error: "Заполните все обязательные поля" },
       { status: 400 }
@@ -94,10 +94,10 @@ export async function POST(
   const establishment = await prisma.establishment.create({
     data: {
       name: establishmentName,
-      yandexMapsUrl,
+      yandexMapsUrl: yandexMapsUrl || null,
       twoGisUrl: twoGisUrl || null,
       phone: phone || null,
-      userId: user.id,
+      user: { connect: { id: user.id } },
     },
   });
 
@@ -105,8 +105,8 @@ export async function POST(
     where: { id: qrCodeId || qrCode.id },
     data: {
       isActive: true,
-      establishmentId: establishment.id,
-      userId: user.id,
+      establishment: { connect: { id: establishment.id } },
+      user: { connect: { id: user.id } },
     },
   });
 

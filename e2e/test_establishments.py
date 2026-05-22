@@ -37,10 +37,21 @@ def test_create_establishment(owner_session, base_url):
     assert data["establishment"]["yandexMapsUrl"] == "https://yandex.ru/maps/org/e2e-new"
 
 
-def test_create_establishment_missing_fields(owner_session, base_url):
+def test_create_establishment_without_yandex_maps(owner_session, base_url):
     r = owner_session.post(
         f"{base_url}/api/establishments",
         json={"name": "Only Name"},
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert data["establishment"]["name"] == "Only Name"
+    assert data["establishment"]["yandexMapsUrl"] is None
+
+
+def test_create_establishment_missing_name(owner_session, base_url):
+    r = owner_session.post(
+        f"{base_url}/api/establishments",
+        json={"yandexMapsUrl": "https://yandex.ru/maps/org/test"},
     )
     assert r.status_code == 400
 

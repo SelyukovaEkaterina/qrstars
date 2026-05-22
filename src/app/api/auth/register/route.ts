@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       name: name || null,
       phone: phone || null,
       hashedPassword,
-      referredById,
+      ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
     },
   });
 

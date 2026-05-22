@@ -35,7 +35,7 @@ export async function POST(request: Request) {
 
   const wifiConfig = await prisma.wifiConfig.create({
     data: {
-      userId,
+      user: { connect: { id: userId } },
       ssid: ssid.trim(),
       password: password?.trim() || null,
       encryption: encryption || "WPA",
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
     if (est) {
       await prisma.establishment.update({
         where: { id: establishmentId },
-        data: { wifiConfigId: wifiConfig.id },
+        data: { wifiConfig: { connect: { id: wifiConfig.id } } },
       });
     }
   }

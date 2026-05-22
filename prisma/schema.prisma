@@ -43,6 +43,7 @@ model Establishment {
   address     String?
   phone       String?
   logoUrl     String?
+  coverUrl    String?
 
   yandexMapsUrl  String?
   twoGisUrl      String?
@@ -75,7 +76,11 @@ model Establishment {
   pageModules    Json?
   moduleOrder    Json?
   moduleLabels   Json?
-  landingTheme   String?
+  moduleIcons    Json?
+  landingTheme    String?
+  brandColor      String   @default("#4f46e5")
+  pageAppearance  String   @default("light")
+  landingSubtitle String?
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)

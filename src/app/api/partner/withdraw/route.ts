@@ -87,7 +87,7 @@ export async function POST(request: Request) {
       bankAccount: bankAccount || null,
       corrAccount: corrAccount || null,
       comment: comment || null,
-      userId,
+      user: { connect: { id: userId } },
     },
   });
 

@@ -76,7 +76,7 @@ export async function POST(request: Request) {
 
   const businessCard = await prisma.businessCard.create({
     data: {
-      userId,
+      user: { connect: { id: userId } },
       fullName: fullName.trim(),
       title: title?.trim() || null,
       company: company?.trim() || null,
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       theme: theme || "minimal",
       accentColor: accentColor || "#4f46e5",
       contactEnabled: contactEnabled ?? false,
-      contactMessengerId: contactMessengerId || null,
+      ...(contactMessengerId ? { contactMessenger: { connect: { id: contactMessengerId } } } : {}),
     },
     include: { contactMessenger: true },
   });
@@ -102,7 +102,7 @@ export async function POST(request: Request) {
     if (est) {
       await prisma.establishment.update({
         where: { id: establishmentId },
-        data: { businessCardId: businessCard.id },
+        data: { businessCard: { connect: { id: businessCard.id } } },
       });
     }
   }
@@ -180,7 +180,9 @@ export async function PUT(request: Request) {
       ...(accentColor !== undefined && { accentColor }),
       ...(contactEnabled !== undefined && { contactEnabled }),
       ...(contactMessengerId !== undefined && {
-        contactMessengerId: contactMessengerId || null,
+        contactMessenger: contactMessengerId
+          ? { connect: { id: contactMessengerId } }
+          : { disconnect: true },
       }),
     },
     include: { contactMessenger: true },

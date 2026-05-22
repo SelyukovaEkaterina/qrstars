@@ -1,7 +1,14 @@
 "use client";
 
 import { fileTypeLabel, formatFileSize } from "@/lib/file-assets";
-import { getLandingTheme, isDarkLandingTheme } from "@/lib/landing-themes";
+import {
+  headingColor,
+  mutedColor,
+  panelStyle,
+  scanRootStyle,
+  submutedColor,
+} from "@/lib/brand-theme-ui";
+import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 
 interface FileAssetData {
   id: string;
@@ -12,10 +19,9 @@ interface FileAssetData {
   fileSize: number;
 }
 
-interface FileDownloadViewProps {
+interface FileDownloadViewProps extends BrandThemeScanProps {
   file: FileAssetData;
   establishmentName?: string;
-  landingTheme?: string | null;
 }
 
 function MimeIcon({ mimeType, dark }: { mimeType: string; dark: boolean }) {
@@ -39,20 +45,29 @@ function MimeIcon({ mimeType, dark }: { mimeType: string; dark: boolean }) {
   );
 }
 
-export default function FileDownloadView({ file, establishmentName, landingTheme: themeId }: FileDownloadViewProps) {
-  const theme = getLandingTheme(themeId);
-  const dark = isDarkLandingTheme(themeId);
+export default function FileDownloadView({
+  file,
+  establishmentName,
+  brandColor,
+  pageAppearance,
+}: FileDownloadViewProps) {
+  const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
   const displayTitle = file.title || file.fileName;
 
   return (
-    <div className={`min-h-screen ${theme.bg} flex flex-col items-center justify-center px-4 py-10`}>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-10"
+      style={scanRootStyle(theme)}
+    >
       <div className="w-full max-w-md">
         {establishmentName && (
-          <p className={`text-center text-sm mb-2 ${dark ? "text-slate-400" : "text-gray-500"}`}>{establishmentName}</p>
+          <p className="text-center text-sm mb-2" style={{ color: mutedColor(false) }}>
+            {establishmentName}
+          </p>
         )}
 
-        <div className={`${theme.cardBg} rounded-2xl shadow-xl border ${theme.cardBorder} overflow-hidden`}>
-          <div className={`bg-gradient-to-r ${theme.headerGradientFrom} ${theme.headerGradientTo} px-6 py-8 text-center text-white`}>
+        <div className="rounded-2xl shadow-xl border overflow-hidden" style={panelStyle(false)}>
+          <div className="px-6 py-8 text-center text-white" style={theme.headerGradientStyle}>
             <p className="text-white/70 text-sm font-medium uppercase tracking-wide mb-1">
               Документ
             </p>
@@ -63,8 +78,10 @@ export default function FileDownloadView({ file, establishmentName, landingTheme
             <div className="flex items-center gap-4">
               <MimeIcon mimeType={file.mimeType} dark={dark} />
               <div className="min-w-0 flex-1">
-                <p className={`font-medium truncate ${dark ? "text-white" : "text-gray-900"}`}>{file.fileName}</p>
-                <p className={`text-sm mt-0.5 ${dark ? "text-slate-400" : "text-gray-500"}`}>
+                <p className="font-medium truncate" style={{ color: headingColor(false) }}>
+                  {file.fileName}
+                </p>
+                <p className="text-sm mt-0.5" style={{ color: mutedColor(false) }}>
                   {fileTypeLabel(file.mimeType, file.fileName)} · {formatFileSize(file.fileSize)}
                 </p>
               </div>
@@ -75,7 +92,8 @@ export default function FileDownloadView({ file, establishmentName, landingTheme
               download={file.fileName}
               target="_blank"
               rel="noopener noreferrer"
-              className={`flex items-center justify-center gap-2 w-full py-3.5 px-4 ${theme.downloadBtnBg} text-white font-semibold rounded-xl transition-colors shadow-md ${theme.downloadBtnShadow}`}
+              className={`flex items-center justify-center gap-2 w-full py-3.5 px-4 text-white font-semibold rounded-xl transition-colors hover:opacity-90 ${theme.downloadBtnShadow}`}
+              style={theme.downloadBtnStyle}
             >
               Скачать файл
             </a>
@@ -84,15 +102,15 @@ export default function FileDownloadView({ file, establishmentName, landingTheme
               href={file.fileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className={`block text-center text-sm font-medium ${dark ? "text-indigo-400 hover:text-indigo-300" : `hover:opacity-80`}`}
-              style={!dark ? { color: theme.accentHex } : undefined}
+              className="block text-center text-sm font-medium hover:opacity-80"
+              style={theme.linkAccentStyle}
             >
               Открыть в браузере
             </a>
           </div>
         </div>
 
-        <p className={`text-center text-xs mt-6 ${dark ? "text-slate-500" : "text-gray-400"}`}>
+        <p className="text-center text-xs mt-6" style={{ color: submutedColor(false) }}>
           Сохраните файл на телефон — он останется доступен офлайн
         </p>
       </div>

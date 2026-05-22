@@ -92,7 +92,7 @@ export async function POST(request: Request) {
       fileKey: key,
       mimeType: contentType,
       fileSize: file.size,
-      userId,
+      user: { connect: { id: userId } },
     },
   });
 

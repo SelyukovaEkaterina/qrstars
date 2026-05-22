@@ -47,9 +47,9 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { name, address, phone, yandexMapsUrl, twoGisUrl, avitoUrl, qrCodeId } = body;
 
-  if (!name || !yandexMapsUrl) {
+  if (!name) {
     return NextResponse.json(
-      { error: "Название и ссылка на Яндекс.Карты обязательны" },
+      { error: "Название обязательно" },
       { status: 400 }
     );
   }
@@ -61,10 +61,10 @@ export async function POST(request: Request) {
       name,
       address: address || null,
       phone: phone || null,
-      yandexMapsUrl,
+      yandexMapsUrl: yandexMapsUrl || null,
       twoGisUrl: twoGisUrl || null,
       avitoUrl: avitoUrl || null,
-      userId,
+      user: { connect: { id: userId } },
     },
   });
 
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
       await prisma.qRCode.update({
         where: { id: qr.id },
         data: {
-          establishmentId: establishment.id,
+          establishment: { connect: { id: establishment.id } },
           isActive: true,
         },
       });

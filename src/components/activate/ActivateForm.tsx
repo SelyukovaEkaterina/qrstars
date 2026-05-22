@@ -213,9 +213,8 @@ export default function ActivateForm({ qrCodeId, code }: ActivateFormProps) {
             />
             <Input
               id="yandexMapsUrl"
-              label="Ссылка на Яндекс.Карты *"
+              label="Ссылка на Яндекс.Карты"
               type="url"
-              required
               value={form.yandexMapsUrl}
               onChange={(e) => setForm({ ...form, yandexMapsUrl: e.target.value })}
               placeholder="https://yandex.ru/maps/org/..."

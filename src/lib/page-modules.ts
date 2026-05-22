@@ -22,6 +22,8 @@ export const PAGE_MODULE_LABELS: Record<BuiltinModuleKey, string> = {
 
 export type ModuleLabels = Partial<Record<BuiltinModuleKey, string>>;
 
+export type ModuleIcons = Partial<Record<BuiltinModuleKey, string>>;
+
 export const DEFAULT_MODULE_LABELS: Record<BuiltinModuleKey, string> = { ...PAGE_MODULE_LABELS };
 
 export function parseModuleLabels(raw: unknown): ModuleLabels {
@@ -42,6 +44,22 @@ export function getModuleLabel(key: BuiltinModuleKey, labels: ModuleLabels): str
 
 export function moduleLabelsToJson(labels: ModuleLabels): ModuleLabels {
   return { ...labels };
+}
+
+export function parseModuleIcons(raw: unknown): ModuleIcons {
+  if (!raw || typeof raw !== "object") return {};
+  const o = raw as Record<string, unknown>;
+  const result: ModuleIcons = {};
+  for (const key of Object.keys(DEFAULT_MODULE_LABELS) as BuiltinModuleKey[]) {
+    if (typeof o[key] === "string" && o[key].trim().length > 0) {
+      result[key] = o[key].trim();
+    }
+  }
+  return result;
+}
+
+export function moduleIconsToJson(icons: ModuleIcons): ModuleIcons {
+  return { ...icons };
 }
 
 export function parsePageModules(raw: unknown): PageModules {

@@ -19,7 +19,7 @@ export async function ensureDefaultTemplate(userId: string): Promise<void> {
       height: preset.layout.height,
       layout: preset.layout as object,
       isPublic: false,
-      userId,
+      user: { connect: { id: userId } },
     },
   });
 }

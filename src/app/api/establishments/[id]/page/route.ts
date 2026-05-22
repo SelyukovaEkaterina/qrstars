@@ -2,8 +2,17 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { pageModulesToJson, parsePageModules, parseModuleOrder, parseModuleLabels, moduleLabelsToJson } from "@/lib/page-modules";
+import { pageModulesToJson, parsePageModules, parseModuleOrder, parseModuleLabels, moduleLabelsToJson, parseModuleIcons, moduleIconsToJson } from "@/lib/page-modules";
 import { parseReviewRouting } from "@/lib/review-routing";
+import {
+  DEFAULT_LANDING_SUBTITLE,
+  DEFAULT_BRAND_COLOR,
+  DEFAULT_PAGE_APPEARANCE,
+  normalizeBrandColor,
+  ensureReadableBrandColor,
+  parsePageAppearance,
+  resolveBrandSettings,
+} from "@/lib/brand-theme";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -41,6 +50,8 @@ export async function GET(_request: Request, context: RouteContext) {
     where: { userId, status: "ACTIVE", plan: "PRO" },
   });
 
+  const brand = resolveBrandSettings(establishment);
+
   return NextResponse.json({
     establishment: {
       id: establishment.id,
@@ -52,7 +63,12 @@ export async function GET(_request: Request, context: RouteContext) {
       pageModules: parsePageModules(establishment.pageModules),
       moduleOrder: parseModuleOrder(establishment.moduleOrder),
       moduleLabels: parseModuleLabels(establishment.moduleLabels),
-      landingTheme: establishment.landingTheme,
+      moduleIcons: parseModuleIcons(establishment.moduleIcons),
+      brandColor: brand.brandColor,
+      pageAppearance: brand.pageAppearance,
+      logoUrl: establishment.logoUrl,
+      coverUrl: establishment.coverUrl,
+      landingSubtitle: establishment.landingSubtitle,
       menu: establishment.menu,
       businessCard: establishment.businessCard,
       wifiConfig: establishment.wifiConfig,
@@ -85,13 +101,13 @@ export async function PUT(request: Request, context: RouteContext) {
     data.pageModules = pageModulesToJson(parsePageModules(body.pageModules));
   }
   if (body.menuId !== undefined) {
-    data.menuId = body.menuId || null;
+    data.menu = body.menuId ? { connect: { id: body.menuId } } : { disconnect: true };
   }
   if (body.businessCardId !== undefined) {
-    data.businessCardId = body.businessCardId || null;
+    data.businessCard = body.businessCardId ? { connect: { id: body.businessCardId } } : { disconnect: true };
   }
   if (body.wifiConfigId !== undefined) {
-    data.wifiConfigId = body.wifiConfigId || null;
+    data.wifiConfig = body.wifiConfigId ? { connect: { id: body.wifiConfigId } } : { disconnect: true };
   }
   if (body.moduleOrder !== undefined) {
     data.moduleOrder = Array.isArray(body.moduleOrder) ? body.moduleOrder : null;
@@ -99,9 +115,43 @@ export async function PUT(request: Request, context: RouteContext) {
   if (body.moduleLabels !== undefined) {
     data.moduleLabels = moduleLabelsToJson(parseModuleLabels(body.moduleLabels));
   }
-  if (body.landingTheme !== undefined) {
-    data.landingTheme = body.landingTheme || null;
+  if (body.moduleIcons !== undefined) {
+    data.moduleIcons = moduleIconsToJson(parseModuleIcons(body.moduleIcons));
   }
+  if (body.brandColor !== undefined) {
+    const raw =
+      typeof body.brandColor === "string" ? body.brandColor.trim() : "";
+    data.brandColor = raw
+      ? ensureReadableBrandColor(normalizeBrandColor(raw) ?? DEFAULT_BRAND_COLOR)
+      : DEFAULT_BRAND_COLOR;
+  }
+  if (body.pageAppearance !== undefined) {
+    data.pageAppearance = parsePageAppearance(
+      typeof body.pageAppearance === "string" ? body.pageAppearance : null
+    );
+  }
+  /** @deprecated — конвертируем в brandColor + pageAppearance */
+  if (body.landingTheme !== undefined && body.brandColor === undefined) {
+    const legacy = resolveBrandSettings({
+      landingTheme: body.landingTheme || null,
+    });
+    data.brandColor = legacy.brandColor;
+    data.pageAppearance = legacy.pageAppearance;
+  }
+  if (body.logoUrl !== undefined) {
+    data.logoUrl = body.logoUrl || null;
+  }
+  if (body.coverUrl !== undefined) {
+    data.coverUrl = body.coverUrl || null;
+  }
+  if (body.landingSubtitle !== undefined) {
+    const raw = typeof body.landingSubtitle === "string" ? body.landingSubtitle.trim() : "";
+    data.landingSubtitle =
+      raw && raw !== DEFAULT_LANDING_SUBTITLE ? raw.slice(0, 120) : null;
+  }
+
+  const accentToSync =
+    typeof data.brandColor === "string" ? data.brandColor : undefined;
 
   const updated = await prisma.establishment.update({
     where: { id },
@@ -118,6 +168,18 @@ export async function PUT(request: Request, context: RouteContext) {
     },
   });
 
+  if (accentToSync && updated.businessCardId) {
+    await prisma.businessCard.update({
+      where: { id: updated.businessCardId },
+      data: { accentColor: accentToSync },
+    });
+    if (updated.businessCard) {
+      updated.businessCard.accentColor = accentToSync;
+    }
+  }
+
+  const brandUpdated = resolveBrandSettings(updated);
+
   return NextResponse.json({
     establishment: {
       id: updated.id,
@@ -125,7 +187,12 @@ export async function PUT(request: Request, context: RouteContext) {
       pageModules: parsePageModules(updated.pageModules),
       moduleOrder: parseModuleOrder(updated.moduleOrder),
       moduleLabels: parseModuleLabels(updated.moduleLabels),
-      landingTheme: updated.landingTheme,
+      moduleIcons: parseModuleIcons(updated.moduleIcons),
+      brandColor: brandUpdated.brandColor,
+      pageAppearance: brandUpdated.pageAppearance,
+      logoUrl: updated.logoUrl,
+      coverUrl: updated.coverUrl,
+      landingSubtitle: updated.landingSubtitle,
       menu: updated.menu,
       businessCard: updated.businessCard,
       wifiConfig: updated.wifiConfig,

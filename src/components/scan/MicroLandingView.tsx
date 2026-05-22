@@ -11,7 +11,7 @@ import {
   ArrowLeft,
   ExternalLink,
 } from "lucide-react";
-import type { PageModules, ModuleKey, BuiltinModuleKey, ModuleLabels } from "@/lib/page-modules";
+import type { PageModules, ModuleKey, BuiltinModuleKey, ModuleLabels, ModuleIcons } from "@/lib/page-modules";
 import { isBuiltinModuleKey, customModuleKeyToId, getModuleLabel } from "@/lib/page-modules";
 import MenuView from "@/components/scan/MenuView";
 import BusinessCardView from "@/components/scan/BusinessCardView";
@@ -20,8 +20,20 @@ import ScanFlow from "@/components/scan/ScanFlow";
 import CustomPageView from "@/components/scan/CustomPageView";
 import type { MenuData } from "@/components/dashboard/MenuEditor";
 import type { ReviewRoutingConfig } from "@/lib/review-routing";
-import { getLandingTheme, isDarkLandingTheme, type LandingThemeId } from "@/lib/landing-themes";
-import type { LandingTheme } from "@/lib/landing-themes";
+import { resolveLandingSubtitle } from "@/lib/brand-theme";
+import type { BrandTheme } from "@/lib/brand-theme";
+import {
+  accentTextStyle,
+  coverOverlayStyle,
+  headerBarStyle,
+  headingColor,
+  iconBoxStyle,
+  moduleButtonStyle,
+  mutedColor,
+  scanRootStyle,
+  submutedColor,
+} from "@/lib/brand-theme-ui";
+import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 
 export interface CustomPageItem {
   id: string;
@@ -41,6 +53,7 @@ interface MicroLandingViewProps {
   pageModules: PageModules;
   moduleOrder: ModuleKey[] | null;
   moduleLabels?: ModuleLabels;
+  moduleIcons?: ModuleIcons;
   menu: MenuData | null;
   businessCard: Parameters<typeof BusinessCardView>[0]["card"] | null;
   wifiConfig: Parameters<typeof WifiConnect>[0]["wifiConfig"] | null;
@@ -57,7 +70,11 @@ interface MicroLandingViewProps {
   initialSection?: string;
   embedded?: boolean;
   isDemo?: boolean;
-  landingTheme?: LandingThemeId | string | null;
+  brandColor?: string | null;
+  pageAppearance?: string | null;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
+  landingSubtitle?: string | null;
 }
 
 const BUILTIN_ICONS: Record<BuiltinModuleKey, typeof Coffee> = {
@@ -80,6 +97,7 @@ export default function MicroLandingView({
   pageModules,
   moduleOrder,
   moduleLabels = {},
+  moduleIcons = {},
   menu,
   businessCard,
   wifiConfig,
@@ -92,14 +110,19 @@ export default function MicroLandingView({
   initialSection,
   embedded,
   isDemo = false,
-  landingTheme: landingThemeId,
+  brandColor,
+  pageAppearance,
+  logoUrl,
+  coverUrl,
+  landingSubtitle,
 }: MicroLandingViewProps) {
   const [section, setSection] = useState<string>(
     initialSection ?? "home"
   );
 
-  const theme = getLandingTheme(landingThemeId);
-  const dark = isDarkLandingTheme(landingThemeId);
+  const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
+  const themeProps = { brandColor, pageAppearance };
+  const subtitleText = resolveLandingSubtitle(landingSubtitle);
 
   const showBackToHome = section !== "home" && !initialSection;
   const goHome = () => setSection("home");
@@ -108,12 +131,13 @@ export default function MicroLandingView({
 
   if (section === "menu" && menu) {
     return (
-      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark}>
+      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
         <MenuView
           menu={menu}
           establishmentName={establishmentName}
           embedded={embedded}
-          landingTheme={landingThemeId}
+          {...themeProps}
+          isBg={!!coverUrl}
         />
       </LandingSectionShell>
     );
@@ -121,23 +145,23 @@ export default function MicroLandingView({
 
   if (section === "businessCard" && businessCard) {
     return (
-      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark}>
-        <BusinessCardView card={businessCard} qrCode="" showContactForm={false} landingTheme={landingThemeId} />
+      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
+        <BusinessCardView card={businessCard} qrCode="" showContactForm={false} brandColor={brandColor} pageAppearance={pageAppearance} isBg={!!coverUrl} />
       </LandingSectionShell>
     );
   }
 
   if (section === "wifi" && wifiConfig) {
     return (
-      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark}>
-        <WifiConnect wifiConfig={wifiConfig} landingTheme={landingThemeId} />
+      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
+        <WifiConnect wifiConfig={wifiConfig} {...themeProps} isBg={!!coverUrl} />
       </LandingSectionShell>
     );
   }
 
   if (section === "review") {
     return (
-      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark}>
+      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
         <ScanFlow
           establishmentName={establishmentName}
           establishmentId={establishmentId}
@@ -148,7 +172,8 @@ export default function MicroLandingView({
           showPromo={!!showPromo}
           promoCode={promoCode}
           isDemo={isDemo}
-          landingTheme={landingThemeId}
+          {...themeProps}
+          isBg={!!coverUrl}
         />
       </LandingSectionShell>
     );
@@ -159,12 +184,13 @@ export default function MicroLandingView({
     const page = customPageMap.get(customId);
     if (page) {
       return (
-        <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark}>
+        <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
           <CustomPageView
             title={page.title}
             content={page.content}
             embedded={embedded}
-            landingTheme={landingThemeId}
+            {...themeProps}
+            isBg={!!coverUrl}
           />
         </LandingSectionShell>
       );
@@ -191,7 +217,10 @@ export default function MicroLandingView({
   };
 
   const getIcon = (key: string, idx: number) => {
-    if (isBuiltinModuleKey(key)) return BUILTIN_ICONS[key];
+    if (isBuiltinModuleKey(key)) {
+      if (moduleIcons[key]) return null;
+      return BUILTIN_ICONS[key];
+    }
     const cId = customModuleKeyToId(key);
     if (cId) {
       const p = customPageMap.get(cId);
@@ -202,35 +231,61 @@ export default function MicroLandingView({
   };
 
   const getEmoji = (key: string): string | null => {
-    if (isBuiltinModuleKey(key)) return null;
+    if (isBuiltinModuleKey(key)) return moduleIcons[key] ?? null;
     const cId = customModuleKeyToId(key);
     if (!cId) return null;
     return customPageMap.get(cId)?.icon ?? null;
   };
 
   const wrapperClass = embedded
-    ? `${theme.bgEmbedded} rounded-2xl overflow-hidden`
-    : `min-h-screen ${theme.bg}`;
+    ? "rounded-2xl overflow-hidden relative"
+    : "min-h-screen relative";
+
+  const isBg = !!coverUrl;
 
   return (
-    <div className={wrapperClass}>
-      <div className={embedded ? "p-4" : "px-4 pt-10 pb-8 max-w-md mx-auto"}>
-        <h1
-          className={`font-bold text-center ${
-            embedded ? "text-lg" : "text-2xl"
-          } ${dark ? "text-white" : "text-gray-900"}`}
-        >
-          {establishmentName}
-        </h1>
-        <p
-          className={`text-center mt-1 ${
-            embedded ? "text-xs" : "text-sm"
-          } ${dark ? "text-slate-400" : "text-gray-500"}`}
-        >
-          Выберите, что вам нужно
-        </p>
+    <div
+      className={wrapperClass}
+      style={scanRootStyle(theme, { isBg, embedded })}
+    >
+      {coverUrl && (
+        <div className="absolute inset-0 z-0 overflow-hidden rounded-[inherit]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={coverUrl} alt="Background" className={`w-full h-full object-cover ${embedded ? "absolute" : "fixed"} inset-0`} />
+          <div className={`${embedded ? "absolute" : "fixed"} inset-0`} style={coverOverlayStyle()} />
+        </div>
+      )}
 
-        <div className={`space-y-3 ${embedded ? "mt-4" : "mt-8"}`}>
+      <div className={`relative z-10 ${embedded ? "p-4" : "px-4 pt-10 pb-8 max-w-md mx-auto min-h-[inherit] flex flex-col"}`}>
+        <div className="flex flex-col items-center">
+          {logoUrl && (
+            <div
+              className={`rounded-full overflow-hidden border-2 shadow-lg flex items-center justify-center ${embedded ? "w-16 h-16 mb-3" : "w-24 h-24 mb-5"}`}
+              style={
+                isBg
+                  ? { borderColor: "rgba(255,255,255,0.25)", backgroundColor: "#fff" }
+                  : { borderColor: "var(--brand-border)", backgroundColor: "var(--brand-surface)" }
+              }
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" />
+            </div>
+          )}
+          <h1
+            className={`font-bold text-center ${embedded ? "text-lg" : "text-2xl"}`}
+            style={{ color: headingColor(isBg) }}
+          >
+            {establishmentName}
+          </h1>
+          <p
+            className={`text-center mt-1 ${embedded ? "text-xs" : "text-sm"}`}
+            style={{ color: mutedColor(isBg) }}
+          >
+            {subtitleText}
+          </p>
+        </div>
+
+        <div className={`space-y-3 w-full ${embedded ? "mt-5" : "mt-8"}`}>
           {enabledModules.map((key, idx) => {
             const Icon = getIcon(key, idx);
             const emoji = getEmoji(key);
@@ -254,28 +309,23 @@ export default function MicroLandingView({
               }
               setSection(key);
             };
+
             return (
               <button
                 key={key}
                 type="button"
                 onClick={handleClick}
                 disabled={!ready}
-                className={`w-full flex items-center gap-4 rounded-2xl border text-left transition-all ${
+                className={`w-full flex items-center gap-4 rounded-2xl border text-left transition-all backdrop-blur-md shadow-sm ${
                   embedded ? "p-3" : "p-4"
-                } ${
-                  dark
-                    ? "bg-slate-800 border-slate-700"
-                    : "bg-white border-gray-200"
-                } ${
-                  ready
-                    ? `${theme.hoverBorder} hover:shadow-sm`
-                    : `${dark ? "border-slate-700 opacity-50" : "border-gray-100 opacity-50"} cursor-not-allowed`
-                }`}
+                } ${ready ? "hover:shadow-md hover:opacity-95" : "opacity-50 cursor-not-allowed"}`}
+                style={moduleButtonStyle(isBg)}
               >
                 <div
-                  className={`rounded-xl ${theme.iconBg} ${theme.iconText} flex items-center justify-center shrink-0 ${
+                  className={`rounded-xl flex items-center justify-center shrink-0 ${
                     embedded ? "w-9 h-9" : "w-12 h-12"
                   }`}
+                  style={iconBoxStyle(isBg)}
                 >
                   {emoji ? (
                     <span className={embedded ? "text-base" : "text-xl"}>{emoji}</span>
@@ -285,20 +335,22 @@ export default function MicroLandingView({
                 </div>
                 <div className="flex-1 min-w-0">
                   <p
-                    className={`font-semibold ${
-                      embedded ? "text-sm" : ""
-                    } ${dark ? "text-white" : "text-gray-900"}`}
+                    className={`font-semibold ${embedded ? "text-sm" : ""}`}
+                    style={{ color: headingColor(isBg) }}
                   >
                     {getLabel(key)}
                   </p>
                   {!ready && (
-                    <p className={`text-xs mt-0.5 ${dark ? "text-slate-500" : "text-gray-400"}`}>
+                    <p className="text-xs mt-0.5" style={{ color: submutedColor(isBg) }}>
                       Раздел ещё не заполнен
                     </p>
                   )}
                 </div>
                 {ready && (
-                  <ChevronRight className={`w-5 h-5 shrink-0 ${dark ? "text-slate-500" : "text-gray-400"}`} />
+                  <ChevronRight
+                    className="w-5 h-5 shrink-0"
+                    style={{ color: submutedColor(isBg) }}
+                  />
                 )}
               </button>
             );
@@ -306,9 +358,11 @@ export default function MicroLandingView({
         </div>
 
         {!embedded && (
-          <p className={`text-center text-xs mt-8 ${dark ? "text-slate-500" : "text-gray-400"}`}>
-            Сделано в QrStars.ru
-          </p>
+          <div className="mt-auto pt-8 pb-2 w-full">
+            <p className="text-center text-xs" style={{ color: submutedColor(isBg) }}>
+              Сделано в QrStars.ru
+            </p>
+          </div>
         )}
       </div>
     </div>
@@ -346,40 +400,50 @@ function LandingSectionShell({
   embedded,
   theme,
   dark,
+  coverUrl,
   children,
 }: {
   showBack: boolean;
   onBack: () => void;
   embedded?: boolean;
-  theme: LandingTheme;
+  theme: BrandTheme;
   dark: boolean;
+  coverUrl?: string | null;
   children: React.ReactNode;
 }) {
   if (!showBack) {
     return <>{children}</>;
   }
 
+  const isBg = !!coverUrl;
+
   return (
-    <div className={embedded ? "flex flex-col" : "min-h-screen flex flex-col"}>
+    <div className={embedded ? "flex flex-col relative min-h-[inherit]" : "min-h-screen flex flex-col relative"} style={theme.cssVars}>
+      {coverUrl && (
+        <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-[inherit]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={coverUrl} alt="Background" className={`w-full h-full object-cover ${embedded ? "absolute" : "fixed"} inset-0`} />
+          <div className={`${embedded ? "absolute" : "fixed"} inset-0`} style={coverOverlayStyle()} />
+        </div>
+      )}
+
       <div
-        className={`sticky top-0 z-30 shrink-0 backdrop-blur-sm border-b ${
-          dark
-            ? "bg-slate-900/95 border-slate-700"
-            : "bg-white/95 border-gray-100"
-        } ${embedded ? "px-2 py-2" : "px-4 py-3"}`}
+        className={`shrink-0 backdrop-blur-md border-b relative z-20 ${embedded ? "px-2 py-2" : "px-4 py-3"}`}
+        style={headerBarStyle(isBg, dark)}
       >
         <button
           type="button"
           onClick={onBack}
-          className={`inline-flex items-center gap-1.5 font-medium active:opacity-70 transition-colors ${
+          className={`inline-flex items-center gap-1.5 font-medium active:opacity-70 transition-colors hover:opacity-80 ${
             embedded ? "text-xs" : "text-sm"
-          } ${theme.backText}`}
+          }`}
+          style={isBg ? { color: "var(--brand-300)" } : accentTextStyle()}
         >
           <ArrowLeft className={embedded ? "w-3.5 h-3.5" : "w-4 h-4"} />
           На главную
         </button>
       </div>
-      <div className="flex-1 min-h-0">{children}</div>
+      <div className="flex-1 min-h-0 relative z-10">{children}</div>
     </div>
   );
 }
