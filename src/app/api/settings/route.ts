@@ -5,6 +5,11 @@ import { sendMail } from "@/lib/mailer";
 import { sendMaxMessage } from "@/lib/max";
 import prisma from "@/lib/prisma";
 import { reviewRoutingToJson, parseReviewRouting } from "@/lib/review-routing";
+import { parseWorkingHours } from "@/lib/working-hours";
+import {
+  establishmentAccessWhere,
+  establishmentHasPaidFeatures,
+} from "@/lib/establishment-access";
 
 const establishmentSelect = {
   id: true,
@@ -24,14 +29,10 @@ const establishmentSelect = {
   notificationTelegramEnabled: true,
   notificationMaxUserId: true,
   notificationMaxEnabled: true,
+  legalName: true,
+  inn: true,
+  workingHours: true,
 } as const;
-
-async function userHasPro(userId: string): Promise<boolean> {
-  const sub = await prisma.subscription.findFirst({
-    where: { userId, status: "ACTIVE", plan: "PRO" },
-  });
-  return !!sub;
-}
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
 
   if (establishmentId) {
     const establishment = await prisma.establishment.findFirst({
-      where: { id: establishmentId, userId },
+      where: { id: establishmentId, ...establishmentAccessWhere(userId) },
       select: establishmentSelect,
     });
 
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
   }
 
   const establishments = await prisma.establishment.findMany({
-    where: { userId },
+    where: establishmentAccessWhere(userId),
     select: establishmentSelect,
   });
 
@@ -74,14 +75,14 @@ export async function PUT(request: Request) {
   const body = await request.json();
 
   const establishment = await prisma.establishment.findFirst({
-    where: { id: body.id, userId },
+    where: { id: body.id, ...establishmentAccessWhere(userId) },
   });
 
   if (!establishment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isPro = await userHasPro(userId);
+  const isPro = await establishmentHasPaidFeatures(body.id);
 
   if (body.reviewRouting !== undefined && !isPro) {
     return NextResponse.json(
@@ -94,7 +95,12 @@ export async function PUT(request: Request) {
 
   if (body.name !== undefined) data.name = body.name;
   if (body.address !== undefined) data.address = body.address || null;
+  if (body.workingHours !== undefined) {
+    data.workingHours = body.workingHours === null ? null : parseWorkingHours(body.workingHours);
+  }
   if (body.phone !== undefined) data.phone = body.phone || null;
+  if (body.legalName !== undefined) data.legalName = body.legalName || null;
+  if (body.inn !== undefined) data.inn = body.inn || null;
   if (body.yandexMapsUrl !== undefined) data.yandexMapsUrl = body.yandexMapsUrl || null;
   if (body.twoGisUrl !== undefined) data.twoGisUrl = body.twoGisUrl || null;
   if (body.avitoUrl !== undefined) data.avitoUrl = body.avitoUrl || null;

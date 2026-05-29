@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { deleteObject } from "@/lib/s3";
+import { establishmentAccessWhere } from "@/lib/establishment-access";
 
 async function getOwnedFileAsset(id: string, userId: string) {
   return prisma.fileAsset.findFirst({
@@ -10,7 +11,7 @@ async function getOwnedFileAsset(id: string, userId: string) {
       id,
       OR: [
         { userId },
-        { qrcodes: { some: { establishment: { userId } } } },
+        { qrcodes: { some: { establishment: establishmentAccessWhere(userId) } } },
       ],
     },
     include: { qrcodes: { select: { id: true } } },

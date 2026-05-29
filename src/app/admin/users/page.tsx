@@ -9,12 +9,17 @@ import {
   Users,
   Search,
   Loader2,
-  LogIn,
+  Eye,
   Edit,
   ChevronLeft,
   ChevronRight,
   Crown,
   Shield,
+  X,
+  ExternalLink,
+  Building2,
+  QrCode,
+  Star,
 } from "lucide-react";
 
 interface UserEstablishment {
@@ -53,6 +58,7 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState(0);
   const [editModal, setEditModal] = useState<AdminUser | null>(null);
   const [editLoading, setEditLoading] = useState(false);
+  const [viewModal, setViewModal] = useState<AdminUser | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/admin/login");
@@ -70,21 +76,6 @@ export default function AdminUsersPage() {
       .catch(() => setLoading(false));
   }, [status, router, page, search]);
 
-  const handleLoginAs = async (userId: string) => {
-    if (!confirm("Войти под этим пользователем? Вы будете перенаправлены в его дашборд. Для возврата зайдите через /admin/login.")) return;
-    try {
-      const res = await fetch("/api/admin/login-as", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      const data = await res.json();
-      if (data.user) {
-        window.open("/dashboard", "_blank");
-      }
-    } catch {
-    }
-  };
 
   const handleSaveEdit = async () => {
     if (!editModal) return;
@@ -211,14 +202,17 @@ export default function AdminUsersPage() {
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          {u.subscription?.plan === "PRO" ? (
+                          {u.subscription?.plan === "PRO" ||
+                          u.subscription?.plan === "NETWORK" ? (
                             <div>
                               <Badge
                                 variant="success"
                                 className="bg-green-500/10 text-green-400"
                               >
                                 <Crown className="w-3 h-3 mr-1" />
-                                PRO
+                                {u.subscription.plan === "NETWORK"
+                                  ? "Сеть"
+                                  : "PRO"}
                               </Badge>
                               {u.subscription.currentPeriodEnd && (
                                 <p className="text-[10px] text-gray-600 mt-1">
@@ -268,18 +262,18 @@ export default function AdminUsersPage() {
                         <td className="px-4 py-3 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
+                              onClick={() => setViewModal(u)}
+                              className="p-1.5 rounded-lg text-gray-400 hover:text-blue-400 hover:bg-gray-800 transition-colors"
+                              title="Просмотр профиля"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
+                            <button
                               onClick={() => setEditModal(u)}
                               className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
                               title="Редактировать"
                             >
                               <Edit className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => handleLoginAs(u.id)}
-                              className="p-1.5 rounded-lg text-gray-400 hover:text-amber-400 hover:bg-gray-800 transition-colors"
-                              title="Войти как пользователь"
-                            >
-                              <LogIn className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -328,7 +322,101 @@ export default function AdminUsersPage() {
             </>
           )}
 
-          {editModal && (
+          {viewModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-lg">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-lg font-semibold text-white">
+                {viewModal.name || "Без имени"}
+              </h2>
+              <button onClick={() => setViewModal(null)} className="text-gray-500 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs mb-1">Email</p>
+                  <p className="text-white break-all">{viewModal.email}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs mb-1">Телефон</p>
+                  <p className="text-white">{viewModal.phone || "—"}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs mb-1">Роль</p>
+                  <p className="text-white">{viewModal.role}</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg p-3">
+                  <p className="text-gray-400 text-xs mb-1">Тариф</p>
+                  <p
+                    className={
+                      viewModal.subscription?.plan === "PRO" ||
+                      viewModal.subscription?.plan === "NETWORK"
+                        ? "text-amber-400 font-semibold"
+                        : "text-white"
+                    }
+                  >
+                    {viewModal.subscription?.plan === "NETWORK"
+                      ? "Сеть"
+                      : viewModal.subscription?.plan || "FREE"}
+                    {viewModal.subscription?.status === "ACTIVE" &&
+                      (viewModal.subscription.plan === "PRO" ||
+                        viewModal.subscription.plan === "NETWORK") &&
+                      " ✓"}
+                  </p>
+                </div>
+              </div>
+
+              {viewModal.establishments.length > 0 && (
+                <div>
+                  <p className="text-xs text-gray-400 mb-2 flex items-center gap-1">
+                    <Building2 className="w-3 h-3" /> Заведения
+                  </p>
+                  <div className="space-y-2">
+                    {viewModal.establishments.map((e) => (
+                      <div key={e.id} className="bg-gray-800 rounded-lg px-3 py-2 flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-white">{e.name}</p>
+                          <p className="text-xs text-gray-500 flex items-center gap-2 mt-0.5">
+                            <span className="flex items-center gap-0.5"><QrCode className="w-3 h-3" />{e._count.qrcodes} QR</span>
+                            <span className="flex items-center gap-0.5"><Star className="w-3 h-3" />{e._count.reviews} отз.</span>
+                          </p>
+                        </div>
+                        <a
+                          href={`/dashboard`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-gray-500 hover:text-amber-400"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-between items-center pt-2 border-t border-gray-800">
+                <p className="text-xs text-gray-500">
+                  Зарегистрирован: {new Date(viewModal.createdAt).toLocaleDateString("ru-RU")}
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="ghost" onClick={() => { setViewModal(null); setEditModal(viewModal); }} className="text-gray-400">
+                    <Edit className="w-3.5 h-3.5 mr-1" />
+                    Редактировать
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setViewModal(null)} className="text-gray-400">
+                    Закрыть
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editModal && (
             <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
               <div className="bg-gray-900 border border-gray-800 rounded-xl p-6 w-full max-w-md">
                 <h2 className="text-lg font-semibold text-white mb-4">
@@ -377,9 +465,11 @@ export default function AdminUsersPage() {
                     >
                       <option value="FREE">FREE</option>
                       <option value="PRO">PRO</option>
+                      <option value="NETWORK">Сеть</option>
                     </select>
                   </div>
-                  {editModal.subscription?.plan === "PRO" && (
+                  {(editModal.subscription?.plan === "PRO" ||
+                    editModal.subscription?.plan === "NETWORK") && (
                     <div>
                       <label className="block text-sm font-medium text-gray-300 mb-1.5">
                         Статус подписки

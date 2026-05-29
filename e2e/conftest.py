@@ -1,4 +1,5 @@
 import io
+import uuid
 
 import pytest
 import requests
@@ -6,6 +7,34 @@ import os
 import time
 
 BASE_URL = os.environ.get("BASE_URL", "http://localhost:3000")
+
+
+def unique_code(prefix="e2e"):
+    return f"{prefix}-{uuid.uuid4().hex[:8]}"
+
+
+def _find_user_by_email(admin_session, base_url, email):
+    users_r = admin_session.get(f"{base_url}/api/admin/users", params={"search": email})
+    users = users_r.json().get("users", [])
+    return next((u for u in users if u["email"] == email), None)
+
+
+def reset_user_to_free(admin_session, base_url, email="demo@smartreview.ru"):
+    user = _find_user_by_email(admin_session, base_url, email)
+    if user:
+        admin_session.patch(
+            f"{base_url}/api/admin/users/{user['id']}",
+            json={"subscriptionPlan": "FREE", "subscriptionStatus": "ACTIVE"},
+        )
+
+
+def set_user_plan(admin_session, base_url, plan, email="demo@smartreview.ru"):
+    user = _find_user_by_email(admin_session, base_url, email)
+    if user:
+        admin_session.patch(
+            f"{base_url}/api/admin/users/{user['id']}",
+            json={"subscriptionPlan": plan, "subscriptionStatus": "ACTIVE"},
+        )
 
 
 @pytest.fixture(scope="session")

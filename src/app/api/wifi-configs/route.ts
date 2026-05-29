@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import {
+  establishmentAccessWhere,
+  getEstablishmentAccess,
+} from "@/lib/establishment-access";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -27,7 +31,7 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { ssid, password, encryption, hidden, establishmentId } = body;
+  const { ssid, password, encryption, hidden, establishmentId, linkAsPrimary } = body;
 
   if (!ssid?.trim()) {
     return NextResponse.json({ error: "Название сети обязательно" }, { status: 400 });
@@ -40,12 +44,13 @@ export async function POST(request: Request) {
       password: password?.trim() || null,
       encryption: encryption || "WPA",
       hidden: !!hidden,
+      estId: establishmentId || null,
     },
   });
 
-  if (establishmentId) {
+  if (establishmentId && linkAsPrimary !== false) {
     const est = await prisma.establishment.findFirst({
-      where: { id: establishmentId, userId },
+      where: { id: establishmentId, ...establishmentAccessWhere(userId) },
     });
     if (est) {
       await prisma.establishment.update({
@@ -77,13 +82,23 @@ export async function PUT(request: Request) {
       id,
       OR: [
         { userId },
-        { establishment: { userId } },
+        { establishment: establishmentAccessWhere(userId) },
+        { estId: { not: null } },
       ],
     },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (existing.estId && existing.userId !== userId) {
+    const est = await prisma.establishment.findFirst({
+      where: { id: existing.estId, ...establishmentAccessWhere(userId) },
+    });
+    if (!est) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
   }
 
   const wifiConfig = await prisma.wifiConfig.update({
@@ -97,4 +112,39 @@ export async function PUT(request: Request) {
   });
 
   return NextResponse.json({ wifiConfig });
+}
+
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = (session.user as Record<string, unknown>).id as string;
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "ID required" }, { status: 400 });
+  }
+
+  const config = await prisma.wifiConfig.findFirst({ where: { id } });
+  if (!config) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  const canDelete =
+    config.userId === userId ||
+    (config.estId && (await getEstablishmentAccess(userId, config.estId))) ||
+    !!(await prisma.establishment.findFirst({
+      where: { wifiConfigId: id, ...establishmentAccessWhere(userId) },
+    }));
+
+  if (!canDelete) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.wifiConfig.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
 }

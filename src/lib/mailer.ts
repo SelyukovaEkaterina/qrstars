@@ -71,6 +71,52 @@ export function sendPasswordResetEmail(to: string, resetUrl: string) {
   );
 }
 
+export function sendEstablishmentInviteEmail(
+  to: string,
+  inviterName: string,
+  establishmentName: string,
+  registerUrl: string
+) {
+  return sendMail(
+    to,
+    `Приглашение в заведение «${establishmentName}» — QrStars.ru`,
+    `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #1a1a2e;">Вас пригласили в команду</h1>
+      <p><strong>${inviterName}</strong> приглашает вас управлять заведением <strong>${establishmentName}</strong> в QrStars.ru.</p>
+      <p>Зарегистрируйтесь по ссылке ниже — после регистрации заведение появится в вашем личном кабинете.</p>
+      <a href="${registerUrl}"
+         style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">
+        Принять приглашение
+      </a>
+      <p style="color:#666;margin-top:24px;font-size:12px;">Если вы не ожидали это письмо, проигнорируйте его.</p>
+    </div>
+    `
+  );
+}
+
+export function sendEstablishmentAccessGrantedEmail(
+  to: string,
+  inviterName: string,
+  establishmentName: string,
+  dashboardUrl: string
+) {
+  return sendMail(
+    to,
+    `Доступ к заведению «${establishmentName}» — QrStars.ru`,
+    `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #1a1a2e;">Вам открыт доступ</h1>
+      <p><strong>${inviterName}</strong> добавил вас в команду заведения <strong>${establishmentName}</strong>.</p>
+      <a href="${dashboardUrl}"
+         style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">
+        Открыть личный кабинет
+      </a>
+    </div>
+    `
+  );
+}
+
 export function sendNegativeReviewNotification(
   to: string,
   establishmentName: string,

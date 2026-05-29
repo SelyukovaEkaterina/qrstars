@@ -16,6 +16,8 @@ model User {
   role           Role           @default(OWNER)
   referralCode   String?        @unique
   referredById   String?
+  onboardingCompleted Boolean  @default(false)
+  telegramForumTopicId Int?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -27,6 +29,10 @@ model User {
   wifiConfigs       WifiConfig[]
   messengerContacts MessengerContact[]
   qrcodes           QRCode[]
+  activationBatches ActivationBatch[]
+  supportTickets    SupportTicket[]
+  establishmentMemberships EstablishmentMember[]
+  sentInvites       EstablishmentMember[] @relation("SentInvites")
 
   referredBy       User?              @relation("PartnerReferral", fields: [referredById], references: [id], onDelete: SetNull)
   referredUsers    User[]             @relation("PartnerReferral")
@@ -77,10 +83,20 @@ model Establishment {
   moduleOrder    Json?
   moduleLabels   Json?
   moduleIcons    Json?
+  moduleTypes    Json?
   landingTheme    String?
   brandColor      String   @default("#4f46e5")
   pageAppearance  String   @default("light")
   landingSubtitle String?
+  shortSlug       String?  @unique
+
+  legalName       String?
+  inn             String?
+  landingTipsType  String?
+  landingTipsPhone String?
+  landingTipsBankName String?
+  landingTipsUrl   String?
+  workingHours    Json?
 
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -88,6 +104,11 @@ model Establishment {
   reviews    Review[]
   promocodes PromoCode[]
   customPages CustomPage[]
+  activationBatches ActivationBatch[]
+  forms        Form[]
+  orders       MenuOrder[]
+  tipsEmployees TipsEmployee[]
+  members      EstablishmentMember[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -125,11 +146,26 @@ model QRCode {
   customSectionId String?
   customPage      CustomPage? @relation(fields: [customSectionId], references: [id], onDelete: SetNull)
 
+  formId          String?
+  form            Form?        @relation(fields: [formId], references: [id], onDelete: SetNull)
+
+  tipsType        String?
+  tipsPhone       String?
+  tipsBankName    String?
+
   centerText    String?
   centerLogoUrl String?
 
+  batchId    String?
+  batch      ActivationBatch? @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  serialCode String?
+  source     QRCodeSource     @default(DASHBOARD)
+
   scansCount Int      @default(0)
   reviews    Review[]
+  tipsEmployees TipsEmployee[]
+  orders     MenuOrder[]
+  submissions FormSubmission[]
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 }
@@ -149,7 +185,28 @@ model Review {
   qrCodeId String?
   qrCode   QRCode?  @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
 
+  pdConsentAt DateTime?
+  pdConsentIp String?
+
   createdAt DateTime @default(now())
+}
+
+model ActivationBatch {
+  id              String      @id @default(cuid())
+  masterCode      String      @unique
+  status          BatchStatus @default(PENDING)
+  label           String?
+  qty             Int
+  activatedAt     DateTime?
+  createdAt       DateTime    @default(now())
+
+  userId          String?
+  user            User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  establishmentId String?
+  establishment   Establishment? @relation(fields: [establishmentId], references: [id], onDelete: SetNull)
+
+  qrcodes         QRCode[]
 }
 
 model Subscription {
@@ -197,6 +254,7 @@ enum SubStatus {
 enum Plan {
   FREE
   PRO
+  NETWORK
 }
 
 enum QRCodeMode {
@@ -208,6 +266,18 @@ enum QRCodeMode {
   MENU
   LANDING
   CUSTOM_SECTION
+  FORM
+  TIPS
+}
+
+enum QRCodeSource {
+  DASHBOARD
+  MARKETPLACE
+}
+
+enum BatchStatus {
+  PENDING
+  ACTIVATED
 }
 
 model BusinessCard {
@@ -230,6 +300,10 @@ model BusinessCard {
   contactEnabled       Boolean @default(false)
   contactMessengerId   String?
   contactMessenger     MessengerContact? @relation(fields: [contactMessengerId], references: [id], onDelete: SetNull)
+
+  estId       String?
+  tipsLabel   String?
+  tipsUrl     String?
 
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -267,6 +341,7 @@ model WifiConfig {
   password   String?
   encryption String   @default("WPA")
   hidden     Boolean  @default(false)
+  estId      String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -288,6 +363,7 @@ model FileAsset {
   updatedAt DateTime @updatedAt
 
   qrcodes QRCode[]
+  customPages CustomPage[]
 }
 
 model Template {
@@ -305,10 +381,33 @@ model Template {
   updatedAt   DateTime @updatedAt
 }
 
+enum MenuSource {
+  MANUAL
+  IIKO
+}
+
 model QRMenu {
-  id          String   @id @default(cuid())
+  id          String     @id @default(cuid())
   title       String?
   description String?
+  estId       String?
+  source      MenuSource @default(MANUAL)
+  cartEnabled Boolean    @default(false)
+  askPhone    Boolean    @default(false)
+  askEmail    Boolean    @default(false)
+  askAddress  Boolean    @default(false)
+
+  iikoApiLogin            String?
+  iikoOrganizationId      String?
+  iikoExternalMenuId      String?
+  iikoPriceCategoryId     String?
+  iikoTerminalGroupId     String?
+  iikoPaymentTypeId       String?
+  iikoOrderTypePickupId   String?
+  iikoOrderTypeDeliveryId String?
+  /** id категорий iiko, скрытых в QR-меню (blacklist) */
+  iikoHiddenCategoryIds   Json?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -409,9 +508,168 @@ model CustomPage {
   url            String?
   icon           String?
   enabled        Boolean  @default(true)
+  fileAssetId    String?
+  fileAsset      FileAsset? @relation(fields: [fileAssetId], references: [id], onDelete: SetNull)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   qrcodes QRCode[]
+}
+
+enum MenuOrderStatus {
+  NEW
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  CLOSED
+}
+
+enum SupportMessageAuthor {
+  USER
+  STAFF
+}
+
+enum EstablishmentMemberStatus {
+  PENDING
+  ACTIVE
+}
+
+model Form {
+  id              String   @id @default(cuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  submitLabel     String   @default("Отправить")
+  successMessage  String   @default("Спасибо! Мы получили вашу заявку и скоро свяжемся с вами.")
+  preset          String?
+  enabled         Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  fields      FormField[]
+  submissions FormSubmission[]
+  qrcodes     QRCode[]
+}
+
+model FormField {
+  id          String   @id @default(cuid())
+  formId      String
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  label       String
+  placeholder String?
+  helpText    String?
+  type        String   @default("text")
+  required    Boolean  @default(false)
+  options     Json?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model FormSubmission {
+  id          String   @id @default(cuid())
+  formId      String
+  form        Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  qrCodeId    String?
+  qrCode      QRCode?  @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  values      Json
+  guestIp     String?
+  userAgent   String?
+  isRead      Boolean  @default(false)
+  pdConsentAt DateTime?
+  pdConsentIp String?
+  createdAt   DateTime @default(now())
+}
+
+model MenuOrder {
+  id              String          @id @default(cuid())
+  establishmentId String
+  establishment   Establishment   @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  qrCodeId        String?
+  qrCode          QRCode?         @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  items           Json
+  total           Float?
+  totalText       String?
+  guestName       String
+  tableNumber     String?
+  guestPhone      String?
+  guestEmail      String?
+  guestAddress    String?
+  comment         String?
+  guestIp         String?
+  guestRegion     String?
+  guestBrowser    String?
+  guestDevice     String?
+  status            MenuOrderStatus @default(NEW)
+  iikoOrderId       String?
+  iikoCorrelationId String?
+  pdConsentAt       DateTime?
+  pdConsentIp       String?
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+}
+
+model TipsEmployee {
+  id              String   @id @default(cuid())
+  qrCodeId        String?
+  qrCode          QRCode?  @relation(fields: [qrCodeId], references: [id], onDelete: SetNull)
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  name            String
+  photoUrl        String?
+  paymentType     String   @default("PHONE")
+  paymentUrl      String?
+  phone           String?
+  bankName        String?
+  order           Int      @default(0)
+  createdAt       DateTime @default(now())
+}
+
+model SupportTicket {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          SupportTicketStatus @default(OPEN)
+  telegramTopicId Int?
+  subject         String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  messages SupportMessage[]
+}
+
+model SupportMessage {
+  id             String                @id @default(cuid())
+  ticketId       String
+  ticket         SupportTicket         @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  author         SupportMessageAuthor
+  body           String
+  readByUser     Boolean               @default(false)
+  attachmentUrl  String?
+  attachmentName String?
+  attachmentMime String?
+  createdAt      DateTime              @default(now())
+}
+
+model EstablishmentMember {
+  id              String   @id @default(cuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  email           String
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status          EstablishmentMemberStatus @default(PENDING)
+  inviteToken     String?  @unique
+  invitedById     String
+  invitedBy       User     @relation("SentInvites", fields: [invitedById], references: [id], onDelete: Cascade)
+  createdAt       DateTime @default(now())
+  acceptedAt      DateTime?
+
+  @@unique([establishmentId, email])
 }
 

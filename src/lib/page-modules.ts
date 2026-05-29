@@ -1,8 +1,17 @@
-export type BuiltinModuleKey = "menu" | "review" | "businessCard" | "wifi";
+export type BuiltinModuleKey = "menu" | "review" | "businessCard" | "wifi" | "tips";
+
+/** Блоки микро-лендинга (включая чаевые при pageModules.tips). */
+export const LANDING_BUILTIN_MODULE_KEYS: BuiltinModuleKey[] = [
+  "menu",
+  "review",
+  "businessCard",
+  "wifi",
+  "tips",
+];
 
 export type CustomModuleId = string;
 
-export type ModuleKey = BuiltinModuleKey | `custom-${string}`;
+export type ModuleKey = BuiltinModuleKey | `custom-${string}` | `menu-${string}` | `bizcard-${string}` | `wifi-${string}` | `form-${string}`;
 
 export type PageModules = Record<BuiltinModuleKey, boolean>;
 
@@ -11,6 +20,13 @@ export const DEFAULT_PAGE_MODULES: PageModules = {
   review: true,
   businessCard: true,
   wifi: true,
+  tips: false,
+};
+
+/** Микро-лендинг без сбора отзывов (меню, визитка, Wi‑Fi). */
+export const GUEST_PAGE_MODULES: PageModules = {
+  ...DEFAULT_PAGE_MODULES,
+  review: false,
 };
 
 export const PAGE_MODULE_LABELS: Record<BuiltinModuleKey, string> = {
@@ -18,6 +34,7 @@ export const PAGE_MODULE_LABELS: Record<BuiltinModuleKey, string> = {
   review: "Сбор отзывов",
   businessCard: "Визитка",
   wifi: "Wi-Fi",
+  tips: "Чаевые",
 };
 
 export type ModuleLabels = Partial<Record<BuiltinModuleKey, string>>;
@@ -70,6 +87,7 @@ export function parsePageModules(raw: unknown): PageModules {
     review: o.review !== false,
     businessCard: o.businessCard !== false,
     wifi: o.wifi !== false,
+    tips: o.tips === true,
   };
 }
 
@@ -86,11 +104,44 @@ export function buildDefaultModuleOrder(
   pageModules: PageModules,
   customPageIds: string[]
 ): ModuleKey[] {
-  const builtin: ModuleKey[] = (
-    Object.keys(pageModules) as BuiltinModuleKey[]
-  ).filter((k) => pageModules[k]);
+  const builtin: ModuleKey[] = LANDING_BUILTIN_MODULE_KEYS.filter((k) => pageModules[k]);
   const custom: ModuleKey[] = customPageIds.map((id) => `custom-${id}` as ModuleKey);
   return [...builtin, ...custom];
+}
+
+/** Включённые блоки в порядке отображения на микро-лендинге. */
+export function resolveEnabledModuleOrder(
+  pageModules: PageModules,
+  customPages: { id: string; enabled: boolean }[],
+  moduleOrder: ModuleKey[] | null,
+  moduleTypes: ModuleTypes
+): ModuleKey[] {
+  const valid = new Set<ModuleKey>();
+  LANDING_BUILTIN_MODULE_KEYS.forEach((k) => {
+    if (pageModules[k]) valid.add(k);
+  });
+  customPages.forEach((p) => {
+    if (p.enabled) valid.add(`custom-${p.id}`);
+  });
+  (Object.keys(moduleTypes) as ModuleKey[]).forEach((k) => {
+    valid.add(k);
+  });
+
+  if (moduleOrder && moduleOrder.length > 0) {
+    const ordered = moduleOrder.filter((k) => valid.has(k));
+    const seen = new Set(ordered);
+    valid.forEach((k) => {
+      if (!seen.has(k)) ordered.push(k);
+    });
+    return ordered;
+  }
+
+  const builtin = LANDING_BUILTIN_MODULE_KEYS.filter((k) => pageModules[k]);
+  const custom = customPages
+    .filter((p) => p.enabled)
+    .map((p) => `custom-${p.id}` as ModuleKey);
+  const typed = Object.keys(moduleTypes) as ModuleKey[];
+  return [...builtin, ...typed, ...custom];
 }
 
 export function customModuleKeyToId(key: string): string | null {
@@ -100,4 +151,70 @@ export function customModuleKeyToId(key: string): string | null {
 
 export function isBuiltinModuleKey(key: string): key is BuiltinModuleKey {
   return key in PAGE_MODULE_LABELS;
+}
+
+export type TypedModuleType = "menu" | "businessCard" | "wifi" | "form";
+
+export interface ModuleTypeInfo {
+  type: TypedModuleType;
+  instanceId: string;
+}
+
+export type ModuleTypes = Record<string, ModuleTypeInfo>;
+
+export function parseModuleTypes(raw: unknown): ModuleTypes {
+  if (!raw || typeof raw !== "object") return {};
+  const o = raw as Record<string, unknown>;
+  const result: ModuleTypes = {};
+  for (const [key, val] of Object.entries(o)) {
+    if (val && typeof val === "object") {
+      const v = val as Record<string, unknown>;
+      if (typeof v.type === "string" && typeof v.instanceId === "string") {
+        result[key] = { type: v.type as TypedModuleType, instanceId: v.instanceId };
+      }
+    }
+  }
+  return result;
+}
+
+export function moduleTypesToJson(types: ModuleTypes): ModuleTypes {
+  return { ...types };
+}
+
+export function menuModuleKey(menuId: string): `menu-${string}` {
+  return `menu-${menuId}`;
+}
+
+export function bizcardModuleKey(cardId: string): `bizcard-${string}` {
+  return `bizcard-${cardId}`;
+}
+
+export function wifiModuleKey(configId: string): `wifi-${string}` {
+  return `wifi-${configId}`;
+}
+
+export function formModuleKey(formId: string): `form-${string}` {
+  return `form-${formId}`;
+}
+
+export function getModuleTypeInfo(key: string, moduleTypes: ModuleTypes): ModuleTypeInfo | null {
+  return moduleTypes[key] ?? null;
+}
+
+export function typedModuleKeyToInstanceId(key: string, moduleTypes: ModuleTypes): string | null {
+  return moduleTypes[key]?.instanceId ?? null;
+}
+
+export function isTypedModuleKey(key: string, moduleTypes: ModuleTypes): boolean {
+  return key in moduleTypes;
+}
+
+export function getModuleType(key: string, moduleTypes: ModuleTypes): TypedModuleType | null {
+  return moduleTypes[key]?.type ?? null;
+}
+
+export function removeModuleType(key: string, types: ModuleTypes): ModuleTypes {
+  const next = { ...types };
+  delete next[key];
+  return next;
 }

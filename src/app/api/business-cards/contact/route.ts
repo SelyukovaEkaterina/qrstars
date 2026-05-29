@@ -2,8 +2,19 @@ import { NextResponse } from "next/server";
 import { collectClientInfo } from "@/lib/client-info";
 import { sendBusinessCardContactNotification } from "@/lib/messenger-contact-notify";
 import prisma from "@/lib/prisma";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit: 5 сообщений в 10 минут с одного IP
+  const ip = getClientIp(request);
+  const rl = rateLimit(`bcard-contact:${ip}`, 5, 10 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Слишком много сообщений. Попробуйте позже." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   const body = await request.json();
   const { qrCode, guestName, message } = body as {
     qrCode?: string;

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import type { PlanId } from "@/lib/plans";
 
 const PARTNER_COMMISSION_RATE = 0.15;
 const HOLD_DAYS = 30;
+
+function subscriptionPeriodMs(billing: string | undefined): number {
+  if (billing === "yearly") return 365 * 24 * 60 * 60 * 1000;
+  return 30 * 24 * 60 * 60 * 1000;
+}
 
 export async function POST(request: Request) {
   const body = await request.json();
@@ -18,23 +24,29 @@ export async function POST(request: Request) {
     if (!userId) return NextResponse.json({ received: true });
 
     if (payment.metadata?.type === "subscription" || payment.recurring) {
+      const planMeta = payment.metadata?.plan;
+      const plan: PlanId =
+        planMeta === "NETWORK" ? "NETWORK" : planMeta === "PRO" ? "PRO" : "PRO";
+      const billing = payment.metadata?.billing as string | undefined;
+      const periodEnd = new Date(Date.now() + subscriptionPeriodMs(billing));
+
       await prisma.subscription.upsert({
         where: { id: payment.id },
         update: {
           status: "ACTIVE",
-          plan: "PRO",
+          plan,
           currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          currentPeriodEnd: periodEnd,
           cancelAtPeriodEnd: false,
         },
         create: {
           id: payment.id,
-          plan: "PRO",
+          plan,
           status: "ACTIVE",
           user: { connect: { id: userId } },
           yookassaPaymentId: payment.payment_method?.id,
           currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          currentPeriodEnd: periodEnd,
         },
       });
 
@@ -44,9 +56,10 @@ export async function POST(request: Request) {
       });
 
       if (payingUser?.referredById) {
-        const paymentAmount = parseFloat(payment.amount?.value || "990");
+        const paymentAmount = parseFloat(payment.amount?.value || "690");
         const commissionAmount = Math.round(paymentAmount * PARTNER_COMMISSION_RATE * 100) / 100;
         const availableAt = new Date(Date.now() + HOLD_DAYS * 24 * 60 * 60 * 1000);
+        const planLabel = plan === "NETWORK" ? "Сеть" : "PRO";
 
         await prisma.partnerEarning.create({
           data: {
@@ -55,7 +68,7 @@ export async function POST(request: Request) {
             status: "PENDING",
             availableAt,
             paymentId: payment.id,
-            description: `15% от оплаты подписки PRO (${paymentAmount} ₽)`,
+            description: `15% от оплаты подписки ${planLabel} (${paymentAmount} ₽)`,
             partner: { connect: { id: payingUser.referredById } },
             referralUser: { connect: { id: userId } },
           },

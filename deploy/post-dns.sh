@@ -15,11 +15,17 @@ certbot --nginx \
 env_get() { grep -m1 "^$1=" /opt/qrstars/deploy/.env | cut -d= -f2- | tr -d '"'; }
 
 TELEGRAM_BOT_TOKEN=$(env_get TELEGRAM_BOT_TOKEN)
+TELEGRAM_SUPPORT_BOT_TOKEN=$(env_get TELEGRAM_SUPPORT_BOT_TOKEN)
 MAX_BOT_ACCESS_TOKEN=$(env_get MAX_BOT_ACCESS_TOKEN)
 MAX_WEBHOOK_SECRET=$(env_get MAX_WEBHOOK_SECRET)
 
 curl -fsS "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/setWebhook" \
   -d "url=https://app.qrstars.ru/api/telegram/webhook"
+
+if [ -n "${TELEGRAM_SUPPORT_BOT_TOKEN}" ]; then
+  curl -fsS "https://api.telegram.org/bot${TELEGRAM_SUPPORT_BOT_TOKEN}/setWebhook" \
+    -d "url=https://app.qrstars.ru/api/telegram/support-webhook"
+fi
 
 curl -fsS -X POST "https://platform-api.max.ru/subscriptions" \
   -H "Authorization: ${MAX_BOT_ACCESS_TOKEN}" \

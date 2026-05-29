@@ -42,6 +42,8 @@ export default function AdminPaymentsPage() {
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [total, setTotal] = useState(0);
+  const [totalActivePro, setTotalActivePro] = useState(0);
+  const [totalRevenue, setTotalRevenue] = useState(0);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/admin/login");
@@ -54,13 +56,12 @@ export default function AdminPaymentsPage() {
         setSubscriptions(data.subscriptions || []);
         setPages(data.pages || 1);
         setTotal(data.total || 0);
+        setTotalActivePro(data.totalActivePro || 0);
+        setTotalRevenue(data.totalRevenue || 0);
         setLoading(false);
       })
       .catch(() => setLoading(false));
   }, [status, router, page]);
-
-  const activePro = subscriptions.filter((s) => s.plan === "PRO" && s.status === "ACTIVE").length;
-  const totalRevenue = subscriptions.filter((s) => s.plan === "PRO" && s.status === "ACTIVE").length * 990;
 
   if (status !== "authenticated") {
     return (
@@ -80,7 +81,7 @@ export default function AdminPaymentsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
               <p className="text-sm text-gray-400">Активные PRO</p>
-              <p className="text-2xl font-bold text-white mt-1">{activePro}</p>
+              <p className="text-2xl font-bold text-white mt-1">{totalActivePro}</p>
             </div>
             <div className="bg-gray-900 border border-gray-800 rounded-xl p-5">
               <p className="text-sm text-gray-400">Ожидаемый MRR</p>

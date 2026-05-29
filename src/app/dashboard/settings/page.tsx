@@ -13,7 +13,6 @@ interface Establishment {
   id: string;
   name: string;
   watermarkEnabled: boolean;
-  tipsEnabled: boolean;
 }
 
 export default function SettingsPage() {
@@ -58,7 +57,10 @@ export default function SettingsPage() {
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(current),
+        body: JSON.stringify({
+          id: current.id,
+          watermarkEnabled: current.watermarkEnabled,
+        }),
       });
 
       if (res.ok) {
@@ -147,26 +149,6 @@ export default function SettingsPage() {
                     </p>
                     <p className="text-xs text-gray-400">
                       Убрать надпись «Сделано в QrStars.ru»
-                    </p>
-                  </div>
-                </label>
-              </Card>
-
-              <Card>
-                <h3 className="font-semibold text-gray-900 mb-4">Чаевые (PRO)</h3>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={current.tipsEnabled}
-                    onChange={(e) => updateField("tipsEnabled", e.target.checked)}
-                    className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                  />
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">
-                      Включить чаевые для персонала
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Гости смогут оставить чаевые после положительного отзыва
                     </p>
                   </div>
                 </label>

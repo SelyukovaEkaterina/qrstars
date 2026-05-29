@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,12 @@ function RegisterForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
+  const establishmentInvite = searchParams.get("establishmentInvite");
+  const [invitePreview, setInvitePreview] = useState<{
+    establishmentName: string;
+    email: string;
+    inviterName: string;
+  } | null>(null);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -19,6 +25,19 @@ function RegisterForm() {
   const [consentPd, setConsentPd] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!establishmentInvite) return;
+    fetch(`/api/establishments/invite-preview?token=${encodeURIComponent(establishmentInvite)}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.email) {
+          setInvitePreview(data);
+          setEmail(data.email);
+        }
+      })
+      .catch(() => {});
+  }, [establishmentInvite]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,7 +65,15 @@ function RegisterForm() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name, phone, consentPd: true, ref: refCode || undefined }),
+      body: JSON.stringify({
+        email,
+        password,
+        name,
+        phone,
+        consentPd: true,
+        ref: refCode || undefined,
+        establishmentInvite: establishmentInvite || undefined,
+      }),
     });
 
     const data = await res.json();
@@ -69,7 +96,7 @@ function RegisterForm() {
       return;
     }
 
-    router.push("/dashboard");
+    router.push("/dashboard/start");
   };
 
   return (
@@ -77,8 +104,16 @@ function RegisterForm() {
       <form onSubmit={handleSubmit} className="max-w-sm w-full space-y-5">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">QrStars.ru</h1>
-          <p className="text-gray-500 mt-2">Регистрация аккаунта</p>
+          <p className="text-gray-500 mt-2">Регистрация — дальше настроите страницу и QR для гостей</p>
         </div>
+
+        {invitePreview && (
+          <div className="bg-indigo-50 text-indigo-900 px-4 py-3 rounded-lg text-sm">
+            <strong>{invitePreview.inviterName}</strong> приглашает вас в заведение{" "}
+            <strong>{invitePreview.establishmentName}</strong>. Зарегистрируйтесь с email{" "}
+            <strong>{invitePreview.email}</strong>.
+          </div>
+        )}
 
         {error && (
           <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
@@ -99,6 +134,7 @@ function RegisterForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          readOnly={!!invitePreview}
           placeholder="owner@example.com"
         />
 
@@ -140,23 +176,22 @@ function RegisterForm() {
             required
           />
           <span>
-            Даю{" "}
-            <a
-              href="https://qrstars.ru/soglasie-pd.html"
+            Принимаю условия{" "}
+            <Link
+              href="/offer"
               target="_blank"
-              rel="noopener noreferrer"
               className="text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              согласие о передаче персональных данных
-            </a>{" "}
-            и подтверждаю ознакомление с{" "}
+              публичной оферты
+            </Link>
+            {" "}и{" "}
             <a
               href="https://qrstars.ru/politika-konfidencialnosti.html"
               target="_blank"
               rel="noopener noreferrer"
               className="text-indigo-600 hover:text-indigo-800 font-medium"
             >
-              политикой конфиденциальности
+              политики конфиденциальности
             </a>
             .
           </span>

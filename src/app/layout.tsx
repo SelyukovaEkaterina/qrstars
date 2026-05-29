@@ -12,7 +12,7 @@ export const metadata: Metadata = {
   title: "QrStars.ru — Умный QR-отзывик",
   description: "Перехватывайте негативные отзывы и получайте 5 звёзд от довольных клиентов",
   icons: {
-    icon: "https://qrstars.ru/favicon.ico",
+    icon: "/favicon.ico",
   },
 };
 

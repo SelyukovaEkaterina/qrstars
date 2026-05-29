@@ -4,6 +4,12 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
 import { generateQRCode } from "@/lib/utils";
+import { userHasPaidFeatures } from "@/lib/subscription-utils";
+import {
+  qrcodeAccessWhere,
+  establishmentAccessWhere,
+  establishmentHasPaidFeatures,
+} from "@/lib/establishment-access";
 
 export async function GET(request: Request) {
   try {
@@ -47,28 +53,28 @@ export async function GET(request: Request) {
     }
   };
 
-  const subscription = await prisma.subscription.findFirst({
-    where: { userId, status: "ACTIVE", plan: "PRO" },
-    orderBy: { createdAt: "desc" },
-  });
-  const isPro = !!subscription;
-
   if (qrId) {
     const qrcode = await prisma.qRCode.findFirst({
-      where: { id: qrId, userId },
+      where: { id: qrId, ...qrcodeAccessWhere(userId) },
       include,
     });
     if (!qrcode) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+    const isPro = qrcode.establishmentId
+      ? await establishmentHasPaidFeatures(qrcode.establishmentId)
+      : await userHasPaidFeatures(userId);
     return NextResponse.json({ qrcode, isPro });
   }
 
-  const where: Record<string, unknown> = { userId };
+  const where: Record<string, unknown> = { ...qrcodeAccessWhere(userId) };
   if (establishmentId) {
     where.establishmentId = establishmentId;
-    delete where.OR;
   }
+
+  const isPro = establishmentId
+    ? await establishmentHasPaidFeatures(establishmentId)
+    : await userHasPaidFeatures(userId);
 
   const qrcodes = await prisma.qRCode.findMany({
     where,
@@ -78,6 +84,7 @@ export async function GET(request: Request) {
       businessCard: { include: { contactMessenger: true } },
       wifiConfig: true,
       fileAsset: true,
+      batch: { select: { id: true, masterCode: true, status: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -97,11 +104,23 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { establishmentId, label, redirectUrl, mode, generate } = body;
+  const { code: bodyCode, establishmentId, label, redirectUrl, mode } = body;
 
-  let code = body.code as string | undefined;
-
-  if (generate) {
+  let code: string | undefined;
+  if (bodyCode?.trim()) {
+    const trimmed = bodyCode.trim();
+    code = trimmed;
+    if (trimmed.startsWith(DEMO_QR_PREFIX)) {
+      return NextResponse.json(
+        { error: "Код пересекается с зарезервированным префиксом" },
+        { status: 400 }
+      );
+    }
+    const existing = await prisma.qRCode.findUnique({ where: { code: trimmed } });
+    if (existing) {
+      return NextResponse.json({ error: "QR-код с таким кодом уже существует" }, { status: 400 });
+    }
+  } else {
     for (let i = 0; i < 10; i++) {
       const candidate = generateQRCode();
       const exists = await prisma.qRCode.findUnique({ where: { code: candidate } });
@@ -113,37 +132,28 @@ export async function POST(request: Request) {
     if (!code) {
       return NextResponse.json({ error: "Не удалось сгенерировать уникальный код" }, { status: 500 });
     }
-  }
-
-  if (!code) {
-    return NextResponse.json({ error: "Code is required" }, { status: 400 });
-  }
-
-  if (code.startsWith(DEMO_QR_PREFIX)) {
-    return NextResponse.json(
-      { error: "Префикс demo- зарезервирован для демонстрации на лендинге" },
-      { status: 400 }
-    );
+    if (code.startsWith(DEMO_QR_PREFIX)) {
+      return NextResponse.json(
+        { error: "Сгенерированный код пересекается с зарезервированным префиксом" },
+        { status: 500 }
+      );
+    }
   }
 
   if (establishmentId) {
     const establishment = await prisma.establishment.findFirst({
-      where: { id: establishmentId, userId },
+      where: { id: establishmentId, ...establishmentAccessWhere(userId) },
     });
     if (!establishment) {
       return NextResponse.json({ error: "Establishment not found" }, { status: 404 });
     }
   }
 
-  const existing = await prisma.qRCode.findUnique({ where: { code } });
-  if (existing) {
-    return NextResponse.json({ error: "QR-код с таким кодом уже существует" }, { status: 400 });
-  }
-
   const createData: Record<string, unknown> = {
     code,
     mode: mode || "REVIEW",
     isActive: !!establishmentId,
+    source: "DASHBOARD",
     user: { connect: { id: userId } },
   };
   if (label) createData.label = label;
@@ -168,14 +178,14 @@ export async function PUT(request: Request) {
 
     const userId = (session.user as Record<string, unknown>).id as string;
     const body = await request.json();
-    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId } = body;
+    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId, tipsType, tipsPhone, tipsBankName } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID required" }, { status: 400 });
     }
 
     const qrcode = await prisma.qRCode.findFirst({
-      where: { id, userId },
+      where: { id, ...qrcodeAccessWhere(userId) },
     });
 
     if (!qrcode) {
@@ -184,7 +194,7 @@ export async function PUT(request: Request) {
 
     if (establishmentId) {
       const est = await prisma.establishment.findFirst({
-        where: { id: establishmentId, userId },
+        where: { id: establishmentId, ...establishmentAccessWhere(userId) },
       });
       if (!est) {
         return NextResponse.json({ error: "Establishment not found" }, { status: 404 });
@@ -240,6 +250,9 @@ export async function PUT(request: Request) {
     }
     if (centerText !== undefined) data.centerText = centerText || null;
     if (centerLogoUrl !== undefined) data.centerLogoUrl = centerLogoUrl || null;
+    if (tipsType !== undefined) data.tipsType = tipsType || null;
+    if (tipsPhone !== undefined) data.tipsPhone = tipsPhone || null;
+    if (tipsBankName !== undefined) data.tipsBankName = tipsBankName || null;
     if (customSectionId !== undefined) {
       if (customSectionId) {
         data.customPage = { connect: { id: customSectionId } };

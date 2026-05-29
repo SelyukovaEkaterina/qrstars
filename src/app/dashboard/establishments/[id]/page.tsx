@@ -8,12 +8,17 @@ import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Sidebar from "@/components/dashboard/Sidebar";
 import { Save, Loader2, ArrowLeft, Send, Mail, CheckCircle2, ExternalLink, Copy, MessageCircle } from "lucide-react";
+import EstablishmentTeamAccess from "@/components/dashboard/EstablishmentTeamAccess";
+import WorkingHoursEditor from "@/components/dashboard/WorkingHoursEditor";
+import { parseWorkingHours, type WorkingHours } from "@/lib/working-hours";
 
 interface EstablishmentSettings {
   id: string;
   name: string;
   address: string | null;
   phone: string | null;
+  legalName: string | null;
+  inn: string | null;
   yandexMapsUrl: string | null;
   twoGisUrl: string | null;
   avitoUrl: string | null;
@@ -24,6 +29,7 @@ interface EstablishmentSettings {
   notificationTelegramEnabled: boolean;
   notificationMaxUserId: string | null;
   notificationMaxEnabled: boolean;
+  workingHours: unknown;
 }
 
 export default function EstablishmentSettingsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -290,7 +296,7 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
                 label="Название заведения"
                 value={data.name}
                 onChange={(e) => updateField("name", e.target.value)}
-                placeholder="Кофейня «Бобр»"
+                placeholder="Кафе, салон, клиника, автосервис…"
               />
               <Input
                 label="Адрес"
@@ -305,6 +311,45 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
                 placeholder="+7 (999) 123-45-67"
               />
             </div>
+          </Card>
+
+          <Card>
+            <h3 className="font-semibold text-gray-900 mb-1">Часы работы</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Показываются на микро-лендинге («Открыто до 22:00» / «Откроется завтра в 09:00»).
+            </p>
+            <WorkingHoursEditor
+              value={parseWorkingHours(data.workingHours)}
+              onChange={(wh: WorkingHours | null) =>
+                setData((prev) => (prev ? { ...prev, workingHours: wh } : prev))
+              }
+            />
+          </Card>
+
+          <Card>
+            <h3 className="font-semibold text-gray-900 mb-1">Реквизиты для политики персональных данных</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Необходимо для форм, собирающих телефон или email гостей. Пока не заполнено — такие поля будут заблокированы на микросайте.
+            </p>
+            <div className="space-y-4">
+              <Input
+                label="Юридическое наименование *"
+                value={data.legalName || ""}
+                onChange={(e) => updateField("legalName", e.target.value)}
+                placeholder="ИП Иванов Иван Иванович / ООО «Название»"
+              />
+              <Input
+                label="ИНН *"
+                value={data.inn || ""}
+                onChange={(e) => updateField("inn", e.target.value)}
+                placeholder="123456789012"
+              />
+            </div>
+            {(data.legalName && data.inn) ? (
+              <p className="mt-3 text-xs text-green-600">✓ Политика ПД активна — формы с телефоном/email доступны гостям.</p>
+            ) : (
+              <p className="mt-3 text-xs text-amber-600">⚠ Заполните оба поля, чтобы разблокировать формы с телефоном и email.</p>
+            )}
           </Card>
 
           <Card>
@@ -499,6 +544,8 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
               </div>
             </div>
           </Card>
+
+          <EstablishmentTeamAccess establishmentId={id} />
 
           {message && (
             <div

@@ -6,6 +6,7 @@
 
 body {
   font-family: var(--font-sans);
+  background-color: #f8fafc;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -13,4 +14,27 @@ body {
 input:focus,
 textarea:focus {
   outline: none;
+}
+
+.driver-popover.onboarding-popover {
+  max-width: 400px;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.driver-popover.onboarding-popover .driver-popover-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.driver-popover.onboarding-popover .driver-popover-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #4b5563;
+}
+
+.driver-popover.onboarding-popover .driver-popover-progress-text {
+  font-size: 12px;
+  color: #9ca3af;
 }

@@ -2,10 +2,11 @@ import type { QRCodeMode } from "@/generated/prisma/client";
 import { DEMO_MENU_ITEMS } from "@/lib/demo-menu-data";
 import { DEMO_TIRE_MENU_ITEMS } from "@/lib/demo-tire-menu-data";
 import { DEMO_DENTAL_MENU_ITEMS } from "@/lib/demo-dental-menu-data";
-import { type PageModules, type ModuleIcons } from "@/lib/page-modules";
+import { type PageModules, type ModuleIcons, type ModuleTypes } from "@/lib/page-modules";
+import type { FormViewData } from "@/components/scan/FormView";
 import { DEFAULT_REVIEW_ROUTING, reviewRoutingToJson } from "@/lib/review-routing";
 
-/** Стабильные коды для лендинга: /scan/demo-review и т.д. Не хранятся в БД. */
+/** Стабильные коды для лендинга: /q/demo-review и т.д. Не хранятся в БД. */
 export const DEMO_QR_PREFIX = "demo-" as const;
 
 export type DemoQrSlug =
@@ -16,6 +17,7 @@ export type DemoQrSlug =
   | "demo-wifi"
   | "demo-file"
   | "demo-menu"
+  | "demo-form"
   | "demo2-landing"
   | "demo2-review"
   | "demo2-redirect"
@@ -29,7 +31,8 @@ export type DemoQrSlug =
   | "demo3-business-card"
   | "demo3-wifi"
   | "demo3-file"
-  | "demo3-menu";
+  | "demo3-menu"
+  | "demo-tips";
 
 export interface DemoQrCatalogItem {
   slug: DemoQrSlug;
@@ -88,6 +91,20 @@ export const DEMO_QR_CATALOG: DemoQrCatalogItem[] = [
     title: "Меню",
     description: "Цифровое меню с поиском по позициям",
     emoji: "☕",
+  },
+  {
+    slug: "demo-form",
+    mode: "FORM",
+    title: "Форма",
+    description: "Сбор заявок: запись на услугу, бронь столика, опрос",
+    emoji: "📝",
+  },
+  {
+    slug: "demo-tips",
+    mode: "TIPS",
+    title: "Чаевые",
+    description: "Страница приёма чаевых: перевод по номеру телефона или редирект на сервис",
+    emoji: "💰",
   },
   {
     slug: "demo2-landing",
@@ -196,7 +213,7 @@ export function isDemoQrCode(code: string): code is DemoQrSlug {
 }
 
 export function scanPath(slug: DemoQrSlug): string {
-  return `/scan/${slug}`;
+  return `/q/${slug}`;
 }
 
 /** ID заведения для демо-режима отзывов (не пишется в БД). */
@@ -206,11 +223,11 @@ export const demoBusinessCard = {
   id: "demo-bc",
   fullName: "Анна Иванова",
   title: "Управляющая",
-  company: "Кофейня «Бобр» (демо)",
+  company: "Кофейня «Бобр»",
   phone: "+7 (495) 123-45-67",
   email: "anna@demo.qrstars.ru",
   website: "https://qrstars.ru",
-  address: "г. Москва, ул. Примерная, 42",
+  address: "Москва, ул. Примерная, 42",
   about:
     "Демо-визитка QrStars.ru. Отсканируйте QR на столе — гости увидят такой же экран с вашими контактами.",
   avatarUrl: null,
@@ -231,7 +248,7 @@ export const demoWifiConfig = {
 
 export const demoFileAsset = {
   id: "demo-file",
-  title: "Меню напитков (демо)",
+  title: "Меню напитков",
   fileName: "menu-demo.pdf",
   fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   mimeType: "application/pdf",
@@ -244,6 +261,10 @@ export const demoMenu = {
   id: "demo-menu",
   title: "Меню кофейни",
   description: "Демо-режим QrStars.ru — так гости видят ваше меню",
+  cartEnabled: true,
+  askPhone: true,
+  askEmail: false,
+  askAddress: false,
   items: DEMO_MENU_ITEMS.map((item, order) => ({
     id: item.id,
     name: item.name,
@@ -262,6 +283,7 @@ export const demoPageModules: PageModules = {
   review: true,
   businessCard: true,
   wifi: true,
+  tips: true,
 };
 
 export const demoModuleIcons: ModuleIcons = {
@@ -269,6 +291,48 @@ export const demoModuleIcons: ModuleIcons = {
   review: "⭐",
   businessCard: "📇",
   wifi: "📶",
+  tips: "💰",
+};
+
+const demoTipsImage = (file: string) => `/demo/tips/${file}`;
+
+/** Сотрудники для демо-чаевых кофейни «Бобр» — разные способы приёма. */
+export const demoTipsEmployees = [
+  {
+    id: "demo-tip-maria",
+    name: "Мария",
+    photoUrl: demoTipsImage("maria.jpg"),
+    paymentType: "LINK" as const,
+    paymentUrl: "https://qrstars.ru/?demo-tips=cloudtips",
+  },
+  {
+    id: "demo-tip-alexander",
+    name: "Александр",
+    photoUrl: demoTipsImage("alexander.jpg"),
+    paymentType: "PHONE" as const,
+    phone: "+7 900 123-45-67",
+    bankName: "Тинькофф",
+  },
+  {
+    id: "demo-tip-darya",
+    name: "Дарья",
+    photoUrl: demoTipsImage("darya.jpg"),
+    paymentType: "PHONE" as const,
+    phone: "+7 916 555-12-34",
+    bankName: "Сбербанк",
+  },
+  {
+    id: "demo-tip-ivan",
+    name: "Иван",
+    photoUrl: demoTipsImage("ivan.jpg"),
+    paymentType: "LINK" as const,
+    paymentUrl: "https://qrstars.ru/?demo-tips=netmonet",
+  },
+];
+
+export const demoTipsConfig = {
+  tipsType: "EMPLOYEES" as const,
+  employees: demoTipsEmployees,
 };
 
 export const demoCustomPages = [
@@ -296,7 +360,7 @@ export const demoCustomPages = [
 ];
 
 export const demoReviewScan = {
-  establishmentName: "Кофейня «Бобр» (демо)",
+  establishmentName: "Кофейня «Бобр»",
   establishmentId: DEMO_ESTABLISHMENT_ID,
   qrCodeId: "demo-review" as DemoQrSlug,
   reviewRouting: reviewRoutingToJson(DEFAULT_REVIEW_ROUTING),
@@ -312,6 +376,37 @@ export const demoReviewScan = {
 
 /** Куда уводит демо-редирект (безопасная публичная ссылка). */
 export const demoRedirectUrl = "https://yandex.ru/maps/";
+
+/** Часы работы для демо-заведений. */
+export const demoWorkingHours = {
+  mon: { open: "08:00", close: "22:00" },
+  tue: { open: "08:00", close: "22:00" },
+  wed: { open: "08:00", close: "22:00" },
+  thu: { open: "08:00", close: "22:00" },
+  fri: { open: "08:00", close: "23:00" },
+  sat: { open: "09:00", close: "23:00" },
+  sun: { open: "09:00", close: "22:00" },
+};
+
+export const demo2WorkingHours = {
+  mon: { open: "09:00", close: "20:00" },
+  tue: { open: "09:00", close: "20:00" },
+  wed: { open: "09:00", close: "20:00" },
+  thu: { open: "09:00", close: "20:00" },
+  fri: { open: "09:00", close: "20:00" },
+  sat: { open: "10:00", close: "18:00" },
+  sun: null,
+};
+
+export const demo3WorkingHours = {
+  mon: { open: "09:00", close: "21:00" },
+  tue: { open: "09:00", close: "21:00" },
+  wed: { open: "09:00", close: "21:00" },
+  thu: { open: "09:00", close: "21:00" },
+  fri: { open: "09:00", close: "21:00" },
+  sat: { open: "10:00", close: "18:00" },
+  sun: null,
+};
 
 // ─────────────────────────────────────────────
 // Демо-набор №2: Шиномонтаж «Колесо»
@@ -341,7 +436,7 @@ export const demo2BusinessCard = {
   id: "demo2-bc",
   fullName: "Дмитрий Петров",
   title: "Мастер-приёмщик",
-  company: "Шиномонтаж «Колесо» (демо)",
+  company: "Шиномонтаж «Колесо»",
   phone: "+7 (495) 987-65-43",
   email: "info@demo2.qrstars.ru",
   website: "https://qrstars.ru",
@@ -366,7 +461,7 @@ export const demo2WifiConfig = {
 
 export const demo2FileAsset = {
   id: "demo2-file",
-  title: "Полный прайс-лист (демо)",
+  title: "Полный прайс-лист",
   fileName: "pricelist-demo.pdf",
   fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   mimeType: "application/pdf",
@@ -378,6 +473,7 @@ export const demo2PageModules: PageModules = {
   review: true,
   businessCard: true,
   wifi: true,
+  tips: false,
 };
 
 export const demo2ModuleIcons: ModuleIcons = {
@@ -410,20 +506,10 @@ export const demo2CustomPages = [
     icon: "🗺️",
     enabled: true,
   },
-  {
-    id: "demo2-custom-link-1",
-    menuItemLabel: "Запись онлайн",
-    title: "Запись онлайн",
-    content: "",
-    type: "LINK",
-    url: "https://qrstars.ru",
-    icon: "📅",
-    enabled: true,
-  },
 ];
 
 export const demo2ReviewScan = {
-  establishmentName: "Шиномонтаж «Колесо» (демо)",
+  establishmentName: "Шиномонтаж «Колесо»",
   establishmentId: demo2EstablishmentId,
   qrCodeId: "demo2-review" as DemoQrSlug,
   reviewRouting: reviewRoutingToJson(DEFAULT_REVIEW_ROUTING),
@@ -467,7 +553,7 @@ export const demo3BusinessCard = {
   id: "demo3-bc",
   fullName: "Елена Смирнова",
   title: "Главный врач, стоматолог-ортопед",
-  company: "Стоматология «ДентаЛюкс» (демо)",
+  company: "Стоматология «ДентаЛюкс»",
   phone: "+7 (495) 555-12-34",
   email: "info@demo3.qrstars.ru",
   website: "https://qrstars.ru",
@@ -492,7 +578,7 @@ export const demo3WifiConfig = {
 
 export const demo3FileAsset = {
   id: "demo3-file",
-  title: "Полный прайс-лист (демо)",
+  title: "Полный прайс-лист",
   fileName: "dental-pricelist-demo.pdf",
   fileUrl: "https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf",
   mimeType: "application/pdf",
@@ -504,6 +590,7 @@ export const demo3PageModules: PageModules = {
   review: true,
   businessCard: true,
   wifi: true,
+  tips: false,
 };
 
 export const demo3ModuleIcons: ModuleIcons = {
@@ -536,20 +623,10 @@ export const demo3CustomPages = [
     icon: "🗺️",
     enabled: true,
   },
-  {
-    id: "demo3-custom-link-1",
-    menuItemLabel: "Онлайн-запись",
-    title: "Онлайн-запись",
-    content: "",
-    type: "LINK",
-    url: "https://qrstars.ru",
-    icon: "📅",
-    enabled: true,
-  },
 ];
 
 export const demo3ReviewScan = {
-  establishmentName: "Стоматология «ДентаЛюкс» (демо)",
+  establishmentName: "Стоматология «ДентаЛюкс»",
   establishmentId: demo3EstablishmentId,
   qrCodeId: "demo3-review" as DemoQrSlug,
   reviewRouting: reviewRoutingToJson(DEFAULT_REVIEW_ROUTING),
@@ -564,3 +641,70 @@ export const demo3ReviewScan = {
 };
 
 export const demo3RedirectUrl = "https://yandex.ru/maps/";
+
+// ─────────────────────────────────────────────
+// Демо-формы для лендингов
+// ─────────────────────────────────────────────
+
+export const demoForm: FormViewData = {
+  id: "demo-form-landing",
+  title: "Забронировать столик",
+  description: "Демо: ваша заявка никуда не отправится.",
+  submitLabel: "Забронировать",
+  successMessage: "Спасибо! Мы подтвердим бронь по телефону в ближайшее время.",
+  enabled: true,
+  fields: [
+    { id: "df-1", label: "Имя", placeholder: "Как к вам обращаться", helpText: null, type: "text", required: true, options: null, order: 0 },
+    { id: "df-2", label: "Телефон", placeholder: "+7 (___) ___-__-__", helpText: null, type: "phone", required: true, options: null, order: 1 },
+    { id: "df-3", label: "Дата", placeholder: null, helpText: null, type: "date", required: true, options: null, order: 2 },
+    { id: "df-4", label: "Время", placeholder: null, helpText: null, type: "time", required: true, options: null, order: 3 },
+    { id: "df-5", label: "Количество гостей", placeholder: "2", helpText: null, type: "number", required: true, options: null, order: 4 },
+    { id: "df-6", label: "Пожелания", placeholder: "У окна, детский стульчик и т.д.", helpText: null, type: "textarea", required: false, options: null, order: 5 },
+  ],
+};
+
+export const demo2Form: FormViewData = {
+  id: "demo2-form-landing",
+  title: "Записаться на шиномонтаж",
+  description: "Демо: ваша заявка никуда не отправится.",
+  submitLabel: "Записаться",
+  successMessage: "Спасибо! Мастер свяжется с вами для подтверждения времени.",
+  enabled: true,
+  fields: [
+    { id: "d2f-1", label: "Имя", placeholder: "Как к вам обращаться", helpText: null, type: "text", required: true, options: null, order: 0 },
+    { id: "d2f-2", label: "Телефон", placeholder: "+7 (___) ___-__-__", helpText: null, type: "phone", required: true, options: null, order: 1 },
+    { id: "d2f-3", label: "Марка и модель авто", placeholder: "Toyota Camry 2018", helpText: null, type: "text", required: true, options: null, order: 2 },
+    { id: "d2f-4", label: "Тип услуги", placeholder: null, helpText: null, type: "select", required: true, options: ["Сезонный шиномонтаж R13–R16", "Сезонный шиномонтаж R17+", "Балансировка", "Ремонт прокола", "Другое"], order: 3 },
+    { id: "d2f-5", label: "Удобная дата", placeholder: null, helpText: null, type: "date", required: false, options: null, order: 4 },
+    { id: "d2f-6", label: "Комментарий", placeholder: null, helpText: null, type: "textarea", required: false, options: null, order: 5 },
+  ],
+};
+
+export const demo3Form: FormViewData = {
+  id: "demo3-form-landing",
+  title: "Записаться к стоматологу",
+  description: "Демо: ваша заявка никуда не отправится.",
+  submitLabel: "Записаться",
+  successMessage: "Спасибо! Администратор клиники свяжется с вами в ближайшее время.",
+  enabled: true,
+  fields: [
+    { id: "d3f-1", label: "Имя", placeholder: "Как к вам обращаться", helpText: null, type: "text", required: true, options: null, order: 0 },
+    { id: "d3f-2", label: "Телефон", placeholder: "+7 (___) ___-__-__", helpText: null, type: "phone", required: true, options: null, order: 1 },
+    { id: "d3f-3", label: "Услуга", placeholder: null, helpText: null, type: "select", required: true, options: ["Консультация", "Профессиональная чистка", "Лечение кариеса", "Имплантация", "Другое"], order: 2 },
+    { id: "d3f-4", label: "Удобная дата визита", placeholder: null, helpText: null, type: "date", required: false, options: null, order: 3 },
+    { id: "d3f-5", label: "Номер полиса ОМС", placeholder: "необязательно", helpText: "Если лечение по ОМС", type: "text", required: false, options: null, order: 4 },
+    { id: "d3f-6", label: "Жалобы / комментарий", placeholder: null, helpText: null, type: "textarea", required: false, options: null, order: 5 },
+  ],
+};
+
+export const demoModuleTypes: ModuleTypes = {
+  [`form-${demoForm.id}`]: { type: "form", instanceId: demoForm.id },
+};
+
+export const demo2ModuleTypes: ModuleTypes = {
+  [`form-${demo2Form.id}`]: { type: "form", instanceId: demo2Form.id },
+};
+
+export const demo3ModuleTypes: ModuleTypes = {
+  [`form-${demo3Form.id}`]: { type: "form", instanceId: demo3Form.id },
+};

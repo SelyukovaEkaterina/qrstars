@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from conftest import login
+from conftest import login, set_user_plan
 
 
 def test_get_establishments_authenticated(owner_session, base_url):
@@ -21,7 +21,8 @@ def test_get_establishments_authenticated(owner_session, base_url):
     assert "totalScans" in est
 
 
-def test_create_establishment(owner_session, base_url):
+def test_create_establishment(owner_session, admin_session, base_url):
+    set_user_plan(admin_session, base_url, "NETWORK")
     r = owner_session.post(
         f"{base_url}/api/establishments",
         json={
@@ -37,7 +38,8 @@ def test_create_establishment(owner_session, base_url):
     assert data["establishment"]["yandexMapsUrl"] == "https://yandex.ru/maps/org/e2e-new"
 
 
-def test_create_establishment_without_yandex_maps(owner_session, base_url):
+def test_create_establishment_without_yandex_maps(owner_session, admin_session, base_url):
+    set_user_plan(admin_session, base_url, "NETWORK")
     r = owner_session.post(
         f"{base_url}/api/establishments",
         json={"name": "Only Name"},
@@ -56,7 +58,8 @@ def test_create_establishment_missing_name(owner_session, base_url):
     assert r.status_code == 400
 
 
-def test_delete_establishment(owner_session, base_url):
+def test_delete_establishment(owner_session, admin_session, base_url):
+    set_user_plan(admin_session, base_url, "NETWORK")
     create_r = owner_session.post(
         f"{base_url}/api/establishments",
         json={

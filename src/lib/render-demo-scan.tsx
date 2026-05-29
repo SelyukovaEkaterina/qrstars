@@ -29,6 +29,17 @@ import {
   demo3CustomPages,
   demo3ReviewScan,
   demo3RedirectUrl,
+  demoForm,
+  demo2Form,
+  demo3Form,
+  demoModuleTypes,
+  demo2ModuleTypes,
+  demo3ModuleTypes,
+  demoTipsConfig,
+  demoTipsEmployees,
+  demoWorkingHours,
+  demo2WorkingHours,
+  demo3WorkingHours,
 } from "@/lib/demo-qrcodes";
 
 export async function renderDemoScan(code: string) {
@@ -50,6 +61,8 @@ export async function renderDemoScan(code: string) {
           pageModules={demoPageModules}
           moduleOrder={null}
           moduleIcons={demoModuleIcons}
+          moduleTypes={demoModuleTypes}
+          forms={[demoForm]}
           menu={demoMenu}
           businessCard={demoBusinessCard}
           wifiConfig={demoWifiConfig}
@@ -59,9 +72,15 @@ export async function renderDemoScan(code: string) {
           watermarkEnabled={demoReviewScan.watermarkEnabled}
           showPromo={demoReviewScan.showPromo}
           promoCode={demoReviewScan.promoCode}
+          tipsConfig={demoTipsConfig}
           isDemo
           brandColor="#4f46e5"
           pageAppearance="light"
+          landingSubtitle="Кофе на зерне собственной обжарки • Открыто до 22:00"
+          address={demoBusinessCard.address}
+          phone={demoBusinessCard.phone}
+          yandexMapsUrl={demoReviewScan.platformUrls.yandexMapsUrl}
+          workingHours={demoWorkingHours}
         />
       );
     }
@@ -82,14 +101,45 @@ export async function renderDemoScan(code: string) {
     case "demo-file": {
       const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
       return (
-        <FileDownloadView file={demoFileAsset} establishmentName="Кофейня «Бобр» (демо)" brandColor="#4f46e5" pageAppearance="light" />
+        <FileDownloadView file={demoFileAsset} establishmentName="Кофейня «Бобр»" brandColor="#4f46e5" pageAppearance="light" />
       );
     }
 
     case "demo-menu": {
       const MenuView = (await import("@/components/scan/MenuView")).default;
       return (
-        <MenuView menu={demoMenu} establishmentName="Кофейня «Бобр» (демо)" brandColor="#4f46e5" pageAppearance="light" />
+        <MenuView menu={demoMenu} establishmentName="Кофейня «Бобр»" brandColor="#4f46e5" pageAppearance="light" isDemo />
+      );
+    }
+
+    case "demo-form": {
+      const FormView = (await import("@/components/scan/FormView")).default;
+      const { FORM_PRESETS } = await import("@/lib/form-config");
+      const preset = FORM_PRESETS.find((p) => p.id === "service_appointment") ?? FORM_PRESETS[0];
+      return (
+        <FormView
+          form={{
+            id: "demo-form",
+            title: preset.title,
+            description: "Демо: ваша заявка никуда не отправится.",
+            submitLabel: preset.submitLabel,
+            successMessage: preset.successMessage,
+            enabled: true,
+            fields: preset.fields.map((f, i) => ({
+              id: `demo-${i}`,
+              label: f.label,
+              placeholder: f.placeholder ?? null,
+              helpText: null,
+              type: f.type,
+              required: f.required,
+              options: f.options ?? null,
+              order: i,
+            })),
+          }}
+          isDemo
+          brandColor="#4f46e5"
+          pageAppearance="light"
+        />
       );
     }
 
@@ -126,6 +176,8 @@ export async function renderDemoScan(code: string) {
           pageModules={demo2PageModules}
           moduleOrder={null}
           moduleIcons={demo2ModuleIcons}
+          moduleTypes={demo2ModuleTypes}
+          forms={[demo2Form]}
           menu={demo2Menu}
           businessCard={demo2BusinessCard}
           wifiConfig={demo2WifiConfig}
@@ -138,6 +190,11 @@ export async function renderDemoScan(code: string) {
           isDemo
           brandColor="#ea580c"
           pageAppearance="light"
+          landingSubtitle="Шиномонтаж за 20 минут • Запись и сезонное хранение"
+          address={demo2BusinessCard.address}
+          phone={demo2BusinessCard.phone}
+          yandexMapsUrl={demo2ReviewScan.platformUrls.yandexMapsUrl}
+          workingHours={demo2WorkingHours}
         />
       );
     }
@@ -158,14 +215,14 @@ export async function renderDemoScan(code: string) {
     case "demo2-file": {
       const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
       return (
-        <FileDownloadView file={demo2FileAsset} establishmentName="Шиномонтаж «Колесо» (демо)" brandColor="#ea580c" pageAppearance="light" />
+        <FileDownloadView file={demo2FileAsset} establishmentName="Шиномонтаж «Колесо»" brandColor="#ea580c" pageAppearance="light" />
       );
     }
 
     case "demo2-menu": {
       const MenuView = (await import("@/components/scan/MenuView")).default;
       return (
-        <MenuView menu={demo2Menu} establishmentName="Шиномонтаж «Колесо» (демо)" brandColor="#ea580c" pageAppearance="light" />
+        <MenuView menu={demo2Menu} establishmentName="Шиномонтаж «Колесо»" brandColor="#ea580c" pageAppearance="light" />
       );
     }
 
@@ -202,6 +259,8 @@ export async function renderDemoScan(code: string) {
           pageModules={demo3PageModules}
           moduleOrder={null}
           moduleIcons={demo3ModuleIcons}
+          moduleTypes={demo3ModuleTypes}
+          forms={[demo3Form]}
           menu={demo3Menu}
           businessCard={demo3BusinessCard}
           wifiConfig={demo3WifiConfig}
@@ -214,6 +273,11 @@ export async function renderDemoScan(code: string) {
           isDemo
           brandColor="#0369a1"
           pageAppearance="light"
+          landingSubtitle="Современная стоматология • Приём без боли и очередей"
+          address={demo3BusinessCard.address}
+          phone={demo3BusinessCard.phone}
+          yandexMapsUrl={demo3ReviewScan.platformUrls.yandexMapsUrl}
+          workingHours={demo3WorkingHours}
         />
       );
     }
@@ -234,14 +298,14 @@ export async function renderDemoScan(code: string) {
     case "demo3-file": {
       const FileDownloadView = (await import("@/components/scan/FileDownloadView")).default;
       return (
-        <FileDownloadView file={demo3FileAsset} establishmentName="Стоматология «ДентаЛюкс» (демо)" brandColor="#0369a1" pageAppearance="light" />
+        <FileDownloadView file={demo3FileAsset} establishmentName="Стоматология «ДентаЛюкс»" brandColor="#0369a1" pageAppearance="light" />
       );
     }
 
     case "demo3-menu": {
       const MenuView = (await import("@/components/scan/MenuView")).default;
       return (
-        <MenuView menu={demo3Menu} establishmentName="Стоматология «ДентаЛюкс» (демо)" brandColor="#0369a1" pageAppearance="light" />
+        <MenuView menu={demo3Menu} establishmentName="Стоматология «ДентаЛюкс»" brandColor="#0369a1" pageAppearance="light" />
       );
     }
 
@@ -260,6 +324,18 @@ export async function renderDemoScan(code: string) {
           promoCode={demo3ReviewScan.promoCode}
           isDemo
           brandColor="#0369a1"
+          pageAppearance="light"
+        />
+      );
+    }
+
+    case "demo-tips": {
+      const TipsEmployeesView = (await import("@/components/scan/TipsEmployeesView")).default;
+      return (
+        <TipsEmployeesView
+          employees={demoTipsEmployees}
+          establishmentName="Кофейня «Бобр»"
+          brandColor="#4f46e5"
           pageAppearance="light"
         />
       );

@@ -317,8 +317,10 @@ export default function EnhancedAnalytics() {
     fill: MODE_PIE_COLORS[m.mode] || "#9ca3af",
   }));
 
-  const reviewScans = (data.scansByMode || []).find((m) => m.mode === "REVIEW")?.scans || 0;
-  const otherScans = stats.totalScans - reviewScans;
+  const reviewCapableScans = (data.scansByMode || [])
+    .filter((m) => m.mode === "REVIEW" || m.mode === "LANDING")
+    .reduce((a, m) => a + m.scans, 0);
+  const otherScans = stats.totalScans - reviewCapableScans;
 
   return (
     <div className="space-y-6">
@@ -804,7 +806,7 @@ export default function EnhancedAnalytics() {
                 <div>
                   <p className="text-sm text-gray-500">QR-отзывы</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {reviewScans}
+                    {reviewCapableScans}
                   </p>
                 </div>
                 <div className="p-2 bg-indigo-50 rounded-lg">

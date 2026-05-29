@@ -1,7 +1,7 @@
 import pytest
 import requests
 
-from conftest import find_qrcode_by_code, upload_test_file_asset
+from conftest import find_qrcode_by_code, upload_test_file_asset, unique_code
 
 
 # --- QR Code Mode CRUD ---
@@ -11,7 +11,7 @@ def test_create_qrcode_mode_review(owner_session, base_url, owner_establishment_
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_rev01",
+            "code": unique_code("qrrev"),
             "establishmentId": owner_establishment_id,
             "mode": "REVIEW",
         },
@@ -25,7 +25,7 @@ def test_create_qrcode_mode_redirect(owner_session, base_url, owner_establishmen
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_red01",
+            "code": unique_code("qrred"),
             "establishmentId": owner_establishment_id,
             "mode": "REDIRECT",
             "redirectUrl": "https://example.com/promo",
@@ -41,7 +41,7 @@ def test_create_qrcode_mode_business_card(owner_session, base_url, owner_establi
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_bc01",
+            "code": unique_code("qrbc"),
             "establishmentId": owner_establishment_id,
             "mode": "BUSINESS_CARD",
         },
@@ -55,7 +55,7 @@ def test_create_qrcode_mode_wifi(owner_session, base_url, owner_establishment_id
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_wf01",
+            "code": unique_code("qrwf"),
             "establishmentId": owner_establishment_id,
             "mode": "WIFI",
         },
@@ -69,7 +69,7 @@ def test_create_qrcode_mode_file(owner_session, base_url, owner_establishment_id
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_file01",
+            "code": unique_code("qrfl"),
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
@@ -82,11 +82,12 @@ def test_update_qrcode_switch_mode_to_redirect(owner_session, base_url, owner_es
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_sw01",
+            "code": unique_code("qrswred"),
             "establishmentId": owner_establishment_id,
             "mode": "REVIEW",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     r = owner_session.put(
@@ -107,11 +108,12 @@ def test_update_qrcode_switch_mode_to_business_card(owner_session, base_url, own
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_sw02",
+            "code": unique_code("qrswbc"),
             "establishmentId": owner_establishment_id,
             "mode": "REVIEW",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     r = owner_session.put(
@@ -126,11 +128,12 @@ def test_update_qrcode_switch_mode_to_wifi(owner_session, base_url, owner_establ
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_sw03",
+            "code": unique_code("qrswwf"),
             "establishmentId": owner_establishment_id,
             "mode": "REVIEW",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     r = owner_session.put(
@@ -145,11 +148,12 @@ def test_update_qrcode_switch_mode_to_file(owner_session, base_url, owner_establ
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_sw_file01",
+            "code": unique_code("qrswfl"),
             "establishmentId": owner_establishment_id,
             "mode": "REVIEW",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     r = owner_session.put(
@@ -164,7 +168,7 @@ def test_qrcode_default_mode_is_review(owner_session, base_url, owner_establishm
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_def01",
+            "code": unique_code("qrdef"),
             "establishmentId": owner_establishment_id,
         },
     )
@@ -176,17 +180,18 @@ def test_qrcode_default_mode_is_review(owner_session, base_url, owner_establishm
 
 
 def test_scan_redirect_mode(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnredir")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_redir01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "REDIRECT",
             "redirectUrl": "https://example.com/redirect-target",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_redir01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is False
@@ -197,27 +202,29 @@ def test_scan_redirect_mode(base_url, owner_session, owner_establishment_id):
 
 
 def test_scan_business_card_without_card_linked(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnbcno")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_bc_no01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "BUSINESS_CARD",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_bc_no01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is True
-    assert data["code"] == "scan_bc_no01"
+    assert data["code"] == code
 
 
 def test_scan_business_card_with_card_linked(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnbcyes")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_bc_yes01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "BUSINESS_CARD",
         },
@@ -239,7 +246,7 @@ def test_scan_business_card_with_card_linked(base_url, owner_session, owner_esta
     list_r = owner_session.get(f"{base_url}/api/qrcodes", params={"establishmentId": owner_establishment_id})
     qr_id = None
     for qr in list_r.json()["qrcodes"]:
-        if qr["code"] == "scan_bc_yes01":
+        if qr["code"] == code:
             qr_id = qr["id"]
             break
     assert qr_id is not None
@@ -249,7 +256,7 @@ def test_scan_business_card_with_card_linked(base_url, owner_session, owner_esta
         json={"id": qr_id, "businessCardId": card_id},
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_bc_yes01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is False
@@ -262,10 +269,11 @@ def test_scan_business_card_with_card_linked(base_url, owner_session, owner_esta
 
 
 def test_scan_business_card_increments_counter(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnbccnt")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_bc_cnt01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "BUSINESS_CARD",
         },
@@ -280,7 +288,7 @@ def test_scan_business_card_increments_counter(base_url, owner_session, owner_es
     list_r = owner_session.get(f"{base_url}/api/qrcodes", params={"establishmentId": owner_establishment_id})
     qr_id = None
     for qr in list_r.json()["qrcodes"]:
-        if qr["code"] == "scan_bc_cnt01":
+        if qr["code"] == code:
             qr_id = qr["id"]
             break
     owner_session.put(
@@ -288,9 +296,9 @@ def test_scan_business_card_increments_counter(base_url, owner_session, owner_es
         json={"id": qr_id, "businessCardId": card_id},
     )
 
-    r1 = requests.get(f"{base_url}/api/scan/scan_bc_cnt01")
+    r1 = requests.get(f"{base_url}/api/scan/{code}")
     assert r1.status_code == 200
-    r2 = requests.get(f"{base_url}/api/scan/scan_bc_cnt01")
+    r2 = requests.get(f"{base_url}/api/scan/{code}")
     assert r2.status_code == 200
 
 
@@ -298,27 +306,29 @@ def test_scan_business_card_increments_counter(base_url, owner_session, owner_es
 
 
 def test_scan_wifi_without_config_linked(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnwfno")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_wf_no01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "WIFI",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_wf_no01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is True
-    assert data["code"] == "scan_wf_no01"
+    assert data["code"] == code
 
 
 def test_scan_wifi_with_config_linked(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnwfyes")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_wf_yes01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "WIFI",
         },
@@ -339,7 +349,7 @@ def test_scan_wifi_with_config_linked(base_url, owner_session, owner_establishme
     list_r = owner_session.get(f"{base_url}/api/qrcodes", params={"establishmentId": owner_establishment_id})
     qr_id = None
     for qr in list_r.json()["qrcodes"]:
-        if qr["code"] == "scan_wf_yes01":
+        if qr["code"] == code:
             qr_id = qr["id"]
             break
     assert qr_id is not None
@@ -349,7 +359,7 @@ def test_scan_wifi_with_config_linked(base_url, owner_session, owner_establishme
         json={"id": qr_id, "wifiConfigId": wifi_id},
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_wf_yes01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is False
@@ -361,10 +371,11 @@ def test_scan_wifi_with_config_linked(base_url, owner_session, owner_establishme
 
 
 def test_scan_wifi_increments_counter(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnwfcnt")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_wf_cnt01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "WIFI",
         },
@@ -379,7 +390,7 @@ def test_scan_wifi_increments_counter(base_url, owner_session, owner_establishme
     list_r = owner_session.get(f"{base_url}/api/qrcodes", params={"establishmentId": owner_establishment_id})
     qr_id = None
     for qr in list_r.json()["qrcodes"]:
-        if qr["code"] == "scan_wf_cnt01":
+        if qr["code"] == code:
             qr_id = qr["id"]
             break
     owner_session.put(
@@ -387,9 +398,9 @@ def test_scan_wifi_increments_counter(base_url, owner_session, owner_establishme
         json={"id": qr_id, "wifiConfigId": wifi_id},
     )
 
-    r1 = requests.get(f"{base_url}/api/scan/scan_wf_cnt01")
+    r1 = requests.get(f"{base_url}/api/scan/{code}")
     assert r1.status_code == 200
-    r2 = requests.get(f"{base_url}/api/scan/scan_wf_cnt01")
+    r2 = requests.get(f"{base_url}/api/scan/{code}")
     assert r2.status_code == 200
 
 
@@ -397,27 +408,29 @@ def test_scan_wifi_increments_counter(base_url, owner_session, owner_establishme
 
 
 def test_scan_file_without_asset_linked(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnflno")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_file_no01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_file_no01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is True
-    assert data["code"] == "scan_file_no01"
+    assert data["code"] == code
 
 
 def test_scan_file_with_asset_linked(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnflyes")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_file_yes01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
@@ -431,7 +444,7 @@ def test_scan_file_with_asset_linked(base_url, owner_session, owner_establishmen
     )
 
     qr = find_qrcode_by_code(
-        owner_session, base_url, "scan_file_yes01", owner_establishment_id
+        owner_session, base_url, code, owner_establishment_id
     )
     assert qr is not None
 
@@ -440,7 +453,7 @@ def test_scan_file_with_asset_linked(base_url, owner_session, owner_establishmen
         json={"id": qr["id"], "fileAssetId": file_asset["id"], "mode": "FILE"},
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_file_yes01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is False
@@ -453,10 +466,11 @@ def test_scan_file_with_asset_linked(base_url, owner_session, owner_establishmen
 
 
 def test_scan_file_increments_counter(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnflcnt")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_file_cnt01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
@@ -465,7 +479,7 @@ def test_scan_file_increments_counter(base_url, owner_session, owner_establishme
     file_asset = upload_test_file_asset(owner_session, base_url, file_name="counter.pdf")
 
     qr = find_qrcode_by_code(
-        owner_session, base_url, "scan_file_cnt01", owner_establishment_id
+        owner_session, base_url, code, owner_establishment_id
     )
     owner_session.put(
         f"{base_url}/api/qrcodes",
@@ -476,9 +490,9 @@ def test_scan_file_increments_counter(base_url, owner_session, owner_establishme
         f"{base_url}/api/qrcodes", params={"id": qr["id"]}
     ).json()["qrcode"]["scansCount"]
 
-    r1 = requests.get(f"{base_url}/api/scan/scan_file_cnt01")
+    r1 = requests.get(f"{base_url}/api/scan/{code}")
     assert r1.status_code == 200
-    r2 = requests.get(f"{base_url}/api/scan/scan_file_cnt01")
+    r2 = requests.get(f"{base_url}/api/scan/{code}")
     assert r2.status_code == 200
 
     after = owner_session.get(
@@ -491,16 +505,17 @@ def test_scan_file_increments_counter(base_url, owner_session, owner_establishme
 
 
 def test_scan_review_mode_returns_establishment(base_url, owner_session, owner_establishment_id):
+    code = unique_code("scnrev")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_rev01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "REVIEW",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_rev01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is False
@@ -515,45 +530,48 @@ def test_scan_review_mode_returns_establishment(base_url, owner_session, owner_e
 
 
 def test_scan_unactivated_business_card_mode(base_url, owner_session):
+    code = unique_code("scnbunact")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_bc_unact",
+            "code": code,
             "mode": "BUSINESS_CARD",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_bc_unact")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is True
 
 
 def test_scan_unactivated_wifi_mode(base_url, owner_session):
+    code = unique_code("scnwfunact")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_wf_unact",
+            "code": code,
             "mode": "WIFI",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_wf_unact")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is True
 
 
 def test_scan_unactivated_file_mode(base_url, owner_session):
+    code = unique_code("scnflunact")
     owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "scan_file_unact",
+            "code": code,
             "mode": "FILE",
         },
     )
 
-    r = requests.get(f"{base_url}/api/scan/scan_file_unact")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     data = r.json()
     assert data["needsActivation"] is True
@@ -563,14 +581,16 @@ def test_scan_unactivated_file_mode(base_url, owner_session):
 
 
 def test_get_qrcode_includes_business_card(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrbcget")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_bc_get01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "BUSINESS_CARD",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     card_r = owner_session.post(
@@ -592,14 +612,16 @@ def test_get_qrcode_includes_business_card(owner_session, base_url, owner_establ
 
 
 def test_get_qrcode_includes_wifi_config(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrwfget")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_wf_get01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "WIFI",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     wifi_r = owner_session.post(
@@ -621,14 +643,16 @@ def test_get_qrcode_includes_wifi_config(owner_session, base_url, owner_establis
 
 
 def test_get_qrcode_includes_file_asset(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrflget")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_file_get01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     file_asset = upload_test_file_asset(
@@ -652,14 +676,16 @@ def test_get_qrcode_includes_file_asset(owner_session, base_url, owner_establish
 
 
 def test_list_qrcodes_includes_file_asset(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrfllist")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_file_list01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     file_asset = upload_test_file_asset(owner_session, base_url, file_name="catalog.pdf")
@@ -681,14 +707,16 @@ def test_list_qrcodes_includes_file_asset(owner_session, base_url, owner_establi
 
 
 def test_unlink_business_card_from_qr(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrbculnk")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_bc_unlk01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "BUSINESS_CARD",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     card_r = owner_session.post(
@@ -708,20 +736,22 @@ def test_unlink_business_card_from_qr(owner_session, base_url, owner_establishme
     )
     assert unlink_r.status_code == 200
 
-    r = requests.get(f"{base_url}/api/scan/qr_bc_unlk01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     assert r.json()["needsActivation"] is True
 
 
 def test_unlink_wifi_config_from_qr(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrwfulnk")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_wf_unlk01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "WIFI",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     wifi_r = owner_session.post(
@@ -741,20 +771,22 @@ def test_unlink_wifi_config_from_qr(owner_session, base_url, owner_establishment
     )
     assert unlink_r.status_code == 200
 
-    r = requests.get(f"{base_url}/api/scan/qr_wf_unlk01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     assert r.json()["needsActivation"] is True
 
 
 def test_unlink_file_asset_from_qr(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrflulnk")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qr_file_unlk01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "mode": "FILE",
         },
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     file_asset = upload_test_file_asset(owner_session, base_url, file_name="unlink.pdf")
@@ -770,7 +802,7 @@ def test_unlink_file_asset_from_qr(owner_session, base_url, owner_establishment_
     )
     assert unlink_r.status_code == 200
 
-    r = requests.get(f"{base_url}/api/scan/qr_file_unlk01")
+    r = requests.get(f"{base_url}/api/scan/{code}")
     assert r.status_code == 200
     assert r.json()["needsActivation"] is True
 

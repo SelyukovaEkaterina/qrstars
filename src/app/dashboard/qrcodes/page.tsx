@@ -9,6 +9,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Sidebar from "@/components/dashboard/Sidebar";
 import DashboardOnboardingBanner from "@/components/dashboard/DashboardOnboardingBanner";
+import Link from "next/link";
 import {
   QrCode,
   Plus,
@@ -17,12 +18,12 @@ import {
   Store,
   Tag,
   Download,
-  Wand2,
   ExternalLink,
   Settings,
   Link2,
   Copy,
   Check,
+  Package,
 } from "lucide-react";
 import { generateQRWithCenter } from "@/lib/qr-generator";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
@@ -39,6 +40,9 @@ interface QRCodeItem {
   establishmentId: string | null;
   centerText: string | null;
   centerLogoUrl: string | null;
+  source: "DASHBOARD" | "MARKETPLACE";
+  serialCode: string | null;
+  batch: { id: string; masterCode: string; status: string } | null;
   establishment: { name: string } | null;
   imageUrl: string;
 }
@@ -68,9 +72,10 @@ function QRCodesPageContent() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    code: "",
     label: "",
     establishmentId: "",
+    mode: "LANDING",
+    redirectUrl: "",
   });
 
   const [estForm, setEstForm] = useState({
@@ -260,16 +265,20 @@ function QRCodesPageContent() {
     try {
       const payload: Record<string, unknown> = {
         label: form.label || undefined,
+        mode: form.mode,
       };
-
-      if (!form.code) {
-        payload.generate = true;
-      } else {
-        payload.code = form.code;
-      }
 
       if (form.establishmentId) {
         payload.establishmentId = form.establishmentId;
+      }
+
+      if (form.mode === "REDIRECT") {
+        if (!form.redirectUrl) {
+          setError("Укажите URL для редиректа");
+          setAdding(false);
+          return;
+        }
+        payload.redirectUrl = form.redirectUrl;
       }
 
       const res = await fetch("/api/qrcodes", {
@@ -283,7 +292,7 @@ function QRCodesPageContent() {
         return;
       }
       setShowAdd(false);
-      setForm({ code: "", label: "", establishmentId: "" });
+      setForm({ label: "", establishmentId: "", mode: "LANDING", redirectUrl: "" });
       if (data.qrcode?.id) {
         router.push(`/dashboard/qrcodes/${data.qrcode.id}`);
         return;
@@ -319,18 +328,23 @@ function QRCodesPageContent() {
                 Каждый QR-код имеет свою статистику и настройки
               </p>
             </div>
-            <Button
-              onClick={() => {
-                if (establishments.length === 0) {
-                  setShowCreateEst(true);
-                } else {
+            <div className="flex flex-wrap gap-2">
+              <Link href="/dashboard/activate">
+                <Button variant="outline">
+                  <Package className="w-4 h-4 mr-2" />
+                  Активировать табличку
+                </Button>
+              </Link>
+              <Button
+                onClick={() => {
                   setShowAdd(true);
-                }
-              }}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Добавить QR-код
-            </Button>
+                  setError("");
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить QR-код
+              </Button>
+            </div>
           </div>
 
           <DashboardOnboardingBanner
@@ -376,7 +390,7 @@ function QRCodesPageContent() {
                   label="Название организации *"
                   value={estForm.name}
                   onChange={(e) => setEstForm({ ...estForm, name: e.target.value })}
-                  placeholder="Кофейня «Бобр»"
+                  placeholder="Кафе, салон, клиника, автосервис…"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
@@ -533,69 +547,89 @@ function QRCodesPageContent() {
                     {error}
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Тип QR-кода
+                  </label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {[
+                      { value: "LANDING", label: "Лендинг", desc: "Страница заведения · рекомендуем" },
+                      { value: "REVIEW", label: "Отзывы", desc: "Сразу сбор отзывов" },
+                      { value: "REDIRECT", label: "Редирект", desc: "Ссылка на любой сайт" },
+                      { value: "MENU", label: "Меню", desc: "Меню заведения" },
+                      { value: "BUSINESS_CARD", label: "Визитка", desc: "Цифровая визитка" },
+                      { value: "WIFI", label: "Wi-Fi", desc: "Подключение к сети" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setForm({ ...form, mode: opt.value })}
+                        className={`p-3 rounded-lg border text-left transition-colors ${
+                          form.mode === opt.value
+                            ? "border-indigo-600 bg-indigo-50 text-indigo-700"
+                            : "border-gray-200 hover:border-gray-300 text-gray-700"
+                        }`}
+                      >
+                        <div className="font-medium text-sm">{opt.label}</div>
+                        <div className="text-xs text-gray-400 mt-0.5">{opt.desc}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {form.mode === "REDIRECT" && (
+                  <Input
+                    label="URL для перехода *"
+                    type="url"
+                    value={form.redirectUrl}
+                    onChange={(e) => setForm({ ...form, redirectUrl: e.target.value })}
+                    placeholder="https://example.com"
+                  />
+                )}
+
+                {form.mode !== "REDIRECT" && establishments.length === 0 && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
+                    Для этого режима нужно заведение.{" "}
+                    <button
+                      type="button"
+                      className="underline font-medium"
+                      onClick={() => { setShowAdd(false); setShowCreateEst(true); setError(""); }}
+                    >
+                      Создать заведение
+                    </button>
+                    {" "}или создайте QR сейчас и привяжите заведение в настройках.
+                  </div>
+                )}
+
+                <Input
+                  label="Метка (необязательно)"
+                  value={form.label}
+                  onChange={(e) =>
+                    setForm({ ...form, label: e.target.value })
+                  }
+                  placeholder="Стол 1, Бар, Вход..."
+                />
+                {establishments.length > 0 && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Код QR-таблички
+                      Заведение
                     </label>
-                    <div className="flex gap-2">
-                      <input
-                        value={form.code}
-                        onChange={(e) =>
-                          setForm({ ...form, code: e.target.value })
-                        }
-                        placeholder="Оставьте пустым для автогенерации"
-                        className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const chars = "abcdefghijkmnopqrstuvwxyz23456789";
-                          let c = "";
-                          for (let i = 0; i < 8; i++) c += chars[Math.floor(Math.random() * chars.length)];
-                          setForm({ ...form, code: c });
-                        }}
-                      >
-                        <Wand2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Без кода — сгенерируется автоматически
-                    </p>
+                    <select
+                      value={form.establishmentId}
+                      onChange={(e) =>
+                        setForm({ ...form, establishmentId: e.target.value })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    >
+                      <option value="">Без привязки (настроить потом)</option>
+                      {establishments.map((est) => (
+                        <option key={est.id} value={est.id}>
+                          {est.name}
+                        </option>
+                      ))}
+                    </select>
                   </div>
-                  <Input
-                    label="Метка (необязательно)"
-                    value={form.label}
-                    onChange={(e) =>
-                      setForm({ ...form, label: e.target.value })
-                    }
-                    placeholder="Стол 1, Бар, Вход..."
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Заведение
-                  </label>
-                  <select
-                    value={form.establishmentId}
-                    onChange={(e) =>
-                      setForm({ ...form, establishmentId: e.target.value })
-                    }
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  >
-                    <option value="">Без привязки (неактивный)</option>
-                    {establishments.map((est) => (
-                      <option key={est.id} value={est.id}>
-                        {est.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Без заведения QR-код создаётся неактивным — настройте его после создания
-                  </p>
-                </div>
+                )}
                 <div className="flex gap-3">
                   <Button type="submit" disabled={adding}>
                     {adding ? "Создаём..." : "Создать QR-код"}
@@ -605,6 +639,7 @@ function QRCodesPageContent() {
                     variant="ghost"
                     onClick={() => {
                       setShowAdd(false);
+                      setForm({ label: "", establishmentId: "", mode: "LANDING", redirectUrl: "" });
                       setError("");
                     }}
                   >
@@ -639,7 +674,13 @@ function QRCodesPageContent() {
                       <p className="font-mono text-sm text-gray-600">
                         {qr.code}
                       </p>
-                      {qr.label && (
+                      {qr.serialCode && (
+                        <p className="text-sm text-orange-600 mt-0.5 flex items-center justify-center gap-1">
+                          <Tag className="w-3 h-3" />
+                          №{qr.serialCode}
+                        </p>
+                      )}
+                      {qr.label && !qr.serialCode && (
                         <p className="text-sm text-gray-700 mt-0.5 flex items-center justify-center gap-1">
                           <Tag className="w-3 h-3" />
                           {qr.label}
@@ -653,6 +694,9 @@ function QRCodesPageContent() {
                     <div className="flex items-center justify-center gap-2 flex-wrap">
                       <Badge variant={qr.isActive ? "success" : "warning"}>
                         {qr.isActive ? "Активен" : "Неактивен"}
+                      </Badge>
+                      <Badge variant={qr.source === "MARKETPLACE" ? "warning" : "info"}>
+                        {qr.source === "MARKETPLACE" ? "Табличка" : "ЛК"}
                       </Badge>
                       <Badge variant={qr.mode === "REDIRECT" ? "info" : qr.mode === "BUSINESS_CARD" ? "success" : qr.mode === "WIFI" || qr.mode === "FILE" ? "warning" : "default"}>
                         {qr.mode === "REDIRECT" ? (

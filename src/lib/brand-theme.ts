@@ -181,7 +181,7 @@ function buildCssVars(brandColor: string, dark: boolean): CSSProperties {
   const { r: bR, g: bG, b: bB } = hexToRgb(brandColor);
 
   if (dark) {
-    const surface = mixHex(brandColor, "#1e293b", 0.12);
+    const surface = mixHex(brandColor, "#1e293b", 0.42);
     const surfaceElevated = mixHex(brandColor, "#0f172a", 0.08);
     const border = mixHex(brandColor, "#334155", 0.35);
     const rowBg = mixHex(brandColor, "#334155", 0.25);
@@ -207,7 +207,7 @@ function buildCssVars(brandColor: string, dark: boolean): CSSProperties {
       ["--brand-icon-fg" as string]: brand300,
       ["--brand-heading" as string]: "#f8fafc",
       ["--brand-muted" as string]: "#94a3b8",
-      ["--brand-submuted" as string]: "#64748b",
+      ["--brand-submuted" as string]: "#8a97aa",
       ["--brand-info-bg" as string]: infoBg,
       ["--brand-info-border" as string]: mixHex(brandColor, "#4f46e5", 0.5),
       ["--brand-info-text" as string]: brand100,

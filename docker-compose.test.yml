@@ -38,6 +38,7 @@ services:
       SMTP_PASS: ""
       SMTP_FROM: "noreply@smartreview.ru"
       NODE_ENV: "test"
+      DISABLE_REGISTER_RATE_LIMIT: "true"
       S3_ENDPOINT: "http://minio-test:9000"
       S3_BUCKET: "qrwin-test"
       S3_ACCESS_KEY: "minioadmin"

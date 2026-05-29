@@ -75,7 +75,7 @@ export default function RoutingPreview({
             </div>
           )}
           {routingGroup === "SECTION" &&
-            (section === "BUSINESS_CARD" || section === "WIFI") && (
+            (section === "BUSINESS_CARD" || section === "WIFI" || section === "TIPS") && (
               <SectionPlaceholder section={section} />
             )}
           {routingGroup === "SECTION" && section && !isBuiltinSection(section) && (
@@ -95,14 +95,6 @@ export default function RoutingPreview({
               </p>
             </div>
           )}
-          {routingGroup === "FILE" && (
-            <div className="p-6 text-center space-y-3">
-              <p className="text-4xl">📄</p>
-              <p className="font-medium text-gray-900">
-                {hasFile ? "Скачивание файла" : "Файл не загружен"}
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </div>
@@ -112,12 +104,17 @@ export default function RoutingPreview({
 function SectionPlaceholder({
   section,
 }: {
-  section: "BUSINESS_CARD" | "WIFI";
+  section: "BUSINESS_CARD" | "WIFI" | "TIPS";
 }) {
+  const labels: Record<typeof section, string> = {
+    BUSINESS_CARD: "Визитка",
+    WIFI: "Wi-Fi",
+    TIPS: "Чаевые",
+  };
   return (
     <div className="p-6 text-center space-y-2">
       <p className="font-medium text-gray-900">
-        {section === "BUSINESS_CARD" ? "Визитка" : "Wi-Fi"}
+        {labels[section]}
       </p>
       <p className="text-xs text-gray-400">Контент из «Моей страницы»</p>
     </div>

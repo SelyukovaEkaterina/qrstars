@@ -2,8 +2,19 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/mailer";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
+  // Rate limit: 5 запросов в 10 минут с одного IP
+  const ip = getClientIp(request);
+  const rl = rateLimit(`forgot-password:${ip}`, 5, 10 * 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Слишком много запросов. Попробуйте позже." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   const { email } = await request.json();
 
   if (!email) {

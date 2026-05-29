@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { estimateSubscriptionMonthlyRevenue } from "@/lib/plans";
 
 export async function GET() {
   const { error } = await requireAdmin();
@@ -11,16 +12,14 @@ export async function GET() {
     totalEstablishments,
     totalReviews,
     totalQRCodes,
-    activeSubscriptions,
     negativeReviews,
     recentUsers,
-    revenue,
+    paidSubscriptions,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.establishment.count(),
     prisma.review.count(),
     prisma.qRCode.count(),
-    prisma.subscription.count({ where: { status: "ACTIVE", plan: "PRO" } }),
     prisma.review.count({ where: { isNegative: true } }),
     prisma.user.findMany({
       take: 10,
@@ -28,9 +27,30 @@ export async function GET() {
       select: { id: true, email: true, name: true, createdAt: true, role: true },
     }),
     prisma.subscription.findMany({
-      where: { status: "ACTIVE", plan: "PRO" },
+      where: {
+        status: "ACTIVE",
+        plan: { in: ["PRO", "NETWORK"] },
+      },
+      include: {
+        user: {
+          include: {
+            _count: { select: { establishments: true } },
+          },
+        },
+      },
     }),
   ]);
+
+  const activeSubscriptions = paidSubscriptions.length;
+  const monthlyRevenue = paidSubscriptions.reduce(
+    (sum, s) =>
+      sum +
+      estimateSubscriptionMonthlyRevenue(
+        s.plan,
+        s.user._count.establishments
+      ),
+    0
+  );
 
   const now = new Date();
   const thirtyDaysAgo = new Date(now);
@@ -64,6 +84,6 @@ export async function GET() {
     reviewsLast30,
     reviewsPrev30,
     recentUsers,
-    monthlyRevenue: revenue.length * 990,
+    monthlyRevenue,
   });
 }

@@ -1,5 +1,7 @@
 import pytest
 
+from conftest import unique_code
+
 
 def test_get_qrcodes_authenticated(owner_session, base_url):
     r = owner_session.get(f"{base_url}/api/qrcodes")
@@ -41,13 +43,14 @@ def test_get_qrcode_not_found(owner_session, base_url):
 
 
 def test_create_qrcode_with_code(owner_session, base_url):
+    code = unique_code("qrcrt")
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "e2etest01"},
+        json={"code": code},
     )
     assert r.status_code == 200
     data = r.json()
-    assert data["qrcode"]["code"] == "e2etest01"
+    assert data["qrcode"]["code"] == code
     assert data["qrcode"]["isActive"] is False
 
 
@@ -63,16 +66,18 @@ def test_create_qrcode_auto_generate(owner_session, base_url):
 
 
 def test_create_qrcode_duplicate(owner_session, base_url):
-    owner_session.post(f"{base_url}/api/qrcodes", json={"code": "e2edup01"})
-    r = owner_session.post(f"{base_url}/api/qrcodes", json={"code": "e2edup01"})
+    code = unique_code("qrdup")
+    owner_session.post(f"{base_url}/api/qrcodes", json={"code": code})
+    r = owner_session.post(f"{base_url}/api/qrcodes", json={"code": code})
     assert r.status_code == 400
 
 
 def test_create_qrcode_with_establishment(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrest")
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "e2eest01",
+            "code": code,
             "establishmentId": owner_establishment_id,
             "label": "Table 1",
         },
@@ -84,10 +89,12 @@ def test_create_qrcode_with_establishment(owner_session, base_url, owner_establi
 
 
 def test_update_qrcode(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrupd")
     create_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "e2eupd01", "establishmentId": owner_establishment_id},
+        json={"code": code, "establishmentId": owner_establishment_id},
     )
+    assert create_r.status_code == 200, f"Create failed: {create_r.status_code} {create_r.text}"
     qr_id = create_r.json()["qrcode"]["id"]
 
     r = owner_session.put(

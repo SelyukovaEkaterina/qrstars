@@ -44,8 +44,8 @@ def test_create_review_missing_fields(base_url):
     assert r.status_code == 400
 
 
-def test_get_reviews(base_url, owner_establishment_id):
-    r = req_lib.get(
+def test_get_reviews(base_url, owner_session, owner_establishment_id):
+    r = owner_session.get(
         f"{base_url}/api/reviews",
         params={"establishmentId": owner_establishment_id},
     )
@@ -57,8 +57,8 @@ def test_get_reviews(base_url, owner_establishment_id):
     assert data["total"] >= 0
 
 
-def test_get_reviews_with_pagination(base_url, owner_establishment_id):
-    r = req_lib.get(
+def test_get_reviews_with_pagination(base_url, owner_session, owner_establishment_id):
+    r = owner_session.get(
         f"{base_url}/api/reviews",
         params={"establishmentId": owner_establishment_id, "limit": "5", "offset": "0"},
     )
@@ -67,6 +67,8 @@ def test_get_reviews_with_pagination(base_url, owner_establishment_id):
     assert len(data["reviews"]) <= 5
 
 
-def test_get_reviews_missing_establishment(base_url):
-    r = req_lib.get(f"{base_url}/api/reviews")
-    assert r.status_code == 400
+def test_get_reviews_missing_establishment(base_url, owner_session):
+    r = owner_session.get(f"{base_url}/api/reviews")
+    assert r.status_code == 200
+    data = r.json()
+    assert "reviews" in data

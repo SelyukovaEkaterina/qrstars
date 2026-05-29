@@ -82,7 +82,7 @@ export default function WifiConnect({
 
   return (
     <div
-      className="min-h-[inherit] flex flex-col items-center justify-center px-4 py-10 relative z-10"
+      className="flex-1 min-h-[inherit] flex flex-col items-center justify-center px-4 py-10 relative z-10"
       style={scanRootStyle(theme, { isBg })}
     >
       <div className="w-full max-w-md space-y-6">

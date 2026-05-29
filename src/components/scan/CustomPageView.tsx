@@ -27,7 +27,7 @@ export default function CustomPageView({
 
   return (
     <div
-      className={embedded ? "p-4 relative z-10 min-h-[inherit]" : "px-4 pt-6 pb-10 max-w-2xl mx-auto relative z-10 min-h-[inherit]"}
+      className={embedded ? "flex-1 p-4 relative z-10 min-h-[inherit]" : "flex-1 px-4 pt-6 pb-10 max-w-2xl mx-auto relative z-10 min-h-[inherit]"}
       style={scanRootStyle(theme, { isBg, embedded })}
     >
       <div

@@ -13,6 +13,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import Link from "next/link";
+import { estimateSubscriptionMonthlyRevenue } from "@/lib/plans";
 
 export default async function AdminDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -33,7 +34,9 @@ export default async function AdminDashboardPage() {
     prisma.establishment.count(),
     prisma.review.count(),
     prisma.qRCode.count(),
-    prisma.subscription.count({ where: { status: "ACTIVE", plan: "PRO" } }),
+    prisma.subscription.count({
+      where: { status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
+    }),
     prisma.review.count({ where: { isNegative: true } }),
     prisma.review.aggregate({ _avg: { rating: true } }),
     prisma.user.findMany({
@@ -41,7 +44,12 @@ export default async function AdminDashboardPage() {
       orderBy: { createdAt: "desc" },
       select: { id: true, email: true, name: true, createdAt: true },
     }),
-    prisma.subscription.findMany({ where: { status: "ACTIVE", plan: "PRO" } }),
+    prisma.subscription.findMany({
+      where: { status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
+      include: {
+        user: { include: { _count: { select: { establishments: true } } } },
+      },
+    }),
   ]);
 
   const now = new Date();
@@ -58,7 +66,15 @@ export default async function AdminDashboardPage() {
   ]);
 
   const avgRating = avgRatingResult._avg.rating ? +avgRatingResult._avg.rating.toFixed(1) : null;
-  const monthlyRevenue = subscriptions.length * 990;
+  const monthlyRevenue = subscriptions.reduce(
+    (sum, s) =>
+      sum +
+      estimateSubscriptionMonthlyRevenue(
+        s.plan,
+        s.user._count.establishments
+      ),
+    0
+  );
 
   const pct = (curr: number, prev: number) => {
     if (prev === 0) return curr > 0 ? 100 : 0;

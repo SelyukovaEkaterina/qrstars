@@ -178,7 +178,7 @@ export default function ActivateForm({ qrCodeId, code }: ActivateFormProps) {
               required
               value={form.establishmentName}
               onChange={(e) => setForm({ ...form, establishmentName: e.target.value })}
-              placeholder="Кофейня «Бобр»"
+              placeholder="Кафе, салон, клиника, автосервис…"
             />
 
             {status !== "authenticated" && (

@@ -1,6 +1,8 @@
 import pytest
 import requests
 
+from conftest import unique_code
+
 
 # --- Wifi Config CRUD ---
 
@@ -116,8 +118,9 @@ def test_update_wifi_config(owner_session, base_url):
 
     link_qr_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "wf_upd_link01", "mode": "WIFI"},
+        json={"code": unique_code("wfupd"), "mode": "WIFI"},
     )
+    assert link_qr_r.status_code == 200, f"Create QR failed: {link_qr_r.status_code} {link_qr_r.text}"
     qr_id = link_qr_r.json()["qrcode"]["id"]
 
     owner_session.put(
@@ -168,8 +171,9 @@ def test_update_wifi_config_partial(owner_session, base_url):
 
     link_qr_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "wf_part_link01", "mode": "WIFI"},
+        json={"code": unique_code("wfpart"), "mode": "WIFI"},
     )
+    assert link_qr_r.status_code == 200, f"Create QR failed: {link_qr_r.status_code} {link_qr_r.text}"
     qr_id = link_qr_r.json()["qrcode"]["id"]
 
     owner_session.put(

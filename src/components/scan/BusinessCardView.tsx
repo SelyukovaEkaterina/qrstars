@@ -13,6 +13,8 @@ import {
   submutedColor,
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
+import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
+import type { PdConsent } from "@/components/scan/ScanFlow";
 
 interface SocialLink {
   type: string;
@@ -32,6 +34,8 @@ export interface BusinessCardData {
   avatarUrl: string | null;
   socialLinks: SocialLink[];
   accentColor: string;
+  tipsUrl?: string | null;
+  tipsLabel?: string | null;
 }
 
 const socialLabels: Record<string, { label: string; icon: string }> = {
@@ -66,6 +70,7 @@ interface BusinessCardViewProps extends BrandThemeScanProps {
   qrCode?: string;
   showContactForm?: boolean;
   isBg?: boolean;
+  pdConsent?: PdConsent;
 }
 
 export default function BusinessCardView({
@@ -75,6 +80,7 @@ export default function BusinessCardView({
   brandColor,
   pageAppearance,
   isBg,
+  pdConsent,
 }: BusinessCardViewProps) {
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
   const accent = "var(--brand-600)";
@@ -84,9 +90,12 @@ export default function BusinessCardView({
   const [contactOpen, setContactOpen] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [message, setMessage] = useState("");
+  const [consentChecked, setConsentChecked] = useState(false);
   const [sending, setSending] = useState(false);
   const [contactError, setContactError] = useState("");
   const [contactSuccess, setContactSuccess] = useState(false);
+
+  const needsConsent = !!pdConsent?.ready;
 
   const initials = card.fullName
     .split(" ")
@@ -140,7 +149,7 @@ export default function BusinessCardView({
 
   return (
     <div
-      className={`min-h-[inherit] ${isBg ? "" : ""} flex flex-col items-center px-4 py-8 relative`}
+      className="flex-1 min-h-[inherit] flex flex-col items-center px-4 py-8 relative"
       style={scanRootStyle(theme, { isBg })}
     >
       <div className="w-full max-w-sm relative z-10">
@@ -349,12 +358,21 @@ export default function BusinessCardView({
                       placeholder="Ваш вопрос или предложение..."
                     />
                   </div>
+                  {needsConsent && (
+                    <ConsentCheckbox
+                      checked={consentChecked}
+                      onChange={setConsentChecked}
+                      policyUrl={pdConsent!.policyUrl}
+                      isBg={isBg}
+                      dark={dark}
+                    />
+                  )}
                   {contactError && <p className="text-sm text-red-600">{contactError}</p>}
                   <div className="flex gap-2">
                     <Button
                       className="flex-1"
                       onClick={handleSendContact}
-                      disabled={sending}
+                      disabled={sending || (needsConsent && !consentChecked)}
                       style={{ backgroundColor: accent }}
                     >
                       {sending ? (
@@ -372,6 +390,20 @@ export default function BusinessCardView({
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {card.tipsUrl && (
+            <div className="px-6 pb-4">
+              <a
+                href={card.tipsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block w-full py-3 rounded-xl text-center font-medium transition-opacity hover:opacity-90 border-2"
+                style={{ borderColor: accent, color: accent }}
+              >
+                {card.tipsLabel || "Оставить чаевые"}
+              </a>
             </div>
           )}
 

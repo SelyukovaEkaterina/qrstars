@@ -3,8 +3,10 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Sidebar from "@/components/dashboard/Sidebar";
+import OverviewTabs from "@/components/dashboard/OverviewTabs";
 import Link from "next/link";
 import { Crown } from "lucide-react";
+import { canAccessAnalytics, establishmentAccessWhere } from "@/lib/establishment-access";
 import EnhancedAnalytics from "@/components/dashboard/EnhancedAnalytics";
 import BasicAnalytics from "@/components/dashboard/BasicAnalytics";
 
@@ -14,25 +16,21 @@ export default async function AnalyticsPage() {
 
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const [establishments, subscription] = await Promise.all([
+  const [establishments, isPro] = await Promise.all([
     prisma.establishment.findMany({
-      where: { userId },
+      where: establishmentAccessWhere(userId),
       include: { reviews: true, qrcodes: true },
     }),
-    prisma.subscription.findFirst({
-      where: { userId, status: "ACTIVE" },
-      orderBy: { createdAt: "desc" },
-    }),
+    canAccessAnalytics(userId),
   ]);
-
-  const isPro = subscription?.plan === "PRO";
 
   if (isPro) {
     return (
       <div className="flex min-h-screen bg-gray-50">
         <Sidebar />
         <main className="flex-1 p-8">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-6xl mx-auto space-y-6">
+            <OverviewTabs />
             <EnhancedAnalytics />
           </div>
         </main>
@@ -65,6 +63,8 @@ export default async function AnalyticsPage() {
       <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-8">
+          <OverviewTabs />
+
           <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
@@ -80,7 +80,7 @@ export default async function AnalyticsPage() {
                 href="/dashboard/subscription"
                 className="bg-white text-indigo-600 px-6 py-2.5 rounded-lg font-semibold hover:bg-gray-50 transition-colors text-center shrink-0"
               >
-                Улучшить до PRO
+                Подключить PRO или Сеть
               </Link>
             </div>
           </div>

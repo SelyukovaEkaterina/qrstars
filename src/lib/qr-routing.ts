@@ -1,6 +1,6 @@
-export type RoutingGroup = "LANDING" | "SECTION" | "REDIRECT" | "FILE";
+export type RoutingGroup = "LANDING" | "SECTION" | "REDIRECT";
 
-export type BuiltinSectionTarget = "MENU" | "REVIEW" | "BUSINESS_CARD" | "WIFI";
+export type BuiltinSectionTarget = "MENU" | "REVIEW" | "BUSINESS_CARD" | "WIFI" | "TIPS";
 
 export type SectionTarget = BuiltinSectionTarget | `CUSTOM_${string}`;
 
@@ -12,13 +12,15 @@ export type QRMode =
   | "WIFI"
   | "FILE"
   | "MENU"
-  | "CUSTOM_SECTION";
+  | "CUSTOM_SECTION"
+  | "TIPS";
 
 const BUILTIN_SECTION_MODES: BuiltinSectionTarget[] = [
   "MENU",
   "REVIEW",
   "BUSINESS_CARD",
   "WIFI",
+  "TIPS",
 ];
 
 export function isBuiltinSection(s: string): s is BuiltinSectionTarget {
@@ -38,10 +40,11 @@ export function modeToRouting(mode: QRMode): {
   group: RoutingGroup;
   section?: SectionTarget;
   customSectionId?: string;
+  legacyFile?: boolean;
 } {
   if (mode === "LANDING") return { group: "LANDING" };
   if (mode === "REDIRECT") return { group: "REDIRECT" };
-  if (mode === "FILE") return { group: "FILE" };
+  if (mode === "FILE") return { group: "SECTION", legacyFile: true };
   if (mode === "CUSTOM_SECTION") return { group: "SECTION", section: undefined, customSectionId: undefined };
   if (BUILTIN_SECTION_MODES.includes(mode as BuiltinSectionTarget)) {
     return { group: "SECTION", section: mode as BuiltinSectionTarget };
@@ -56,7 +59,6 @@ export function routingToMode(
 ): QRMode {
   if (group === "LANDING") return "LANDING";
   if (group === "REDIRECT") return "REDIRECT";
-  if (group === "FILE") return "FILE";
   if (customSectionId) return "CUSTOM_SECTION";
   if (section && isBuiltinSection(section)) return section;
   return "REVIEW";
@@ -67,6 +69,7 @@ export const BUILTIN_SECTION_OPTIONS: { value: BuiltinSectionTarget; label: stri
   { value: "REVIEW", label: "Сбор отзывов" },
   { value: "BUSINESS_CARD", label: "Визитка" },
   { value: "WIFI", label: "Wi-Fi" },
+  { value: "TIPS", label: "Чаевые" },
 ];
 
 export const ROUTING_GROUPS: {
@@ -85,19 +88,13 @@ export const ROUTING_GROUPS: {
     id: "SECTION",
     emoji: "⚡",
     label: "Быстрый доступ к разделу",
-    desc: "Гость сразу попадёт в выбранный раздел, минуя главную страницу",
+    desc: "Гость сразу попадёт в выбранный раздел, минуя главную страницу. Работает даже если раздел скрыт на лендинге",
   },
   {
     id: "REDIRECT",
     emoji: "🔗",
     label: "Прямой редирект",
     desc: "Мгновенно перенаправить гостя на сторонний сайт (Instagram, доставка и т.д.)",
-  },
-  {
-    id: "FILE",
-    emoji: "📄",
-    label: "Скачать файл",
-    desc: "Гость сразу скачает PDF, прайс или презентацию",
   },
 ];
 
@@ -112,4 +109,5 @@ export const MODE_LABELS: Record<QRMode, string> = {
   FILE: "Файл",
   MENU: "QR-Меню",
   CUSTOM_SECTION: "Кастомная страница",
+  TIPS: "Чаевые",
 };

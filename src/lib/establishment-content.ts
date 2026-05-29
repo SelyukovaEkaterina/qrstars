@@ -24,21 +24,23 @@ type QRWithContent = QRCode & {
 
 export function resolveMenu(
   establishment: EstablishmentWithContent | null | undefined,
-  qrCode: QRWithContent
+  qrCode: QRWithContent | null | undefined
 ) {
-  return establishment?.menu ?? qrCode.menu ?? null;
+  return establishment?.menu ?? qrCode?.menu ?? null;
 }
 
 export function resolveBusinessCard(
   establishment: EstablishmentWithContent | null | undefined,
-  qrCode: QRWithContent
+  qrCode: QRWithContent | null | undefined
 ) {
-  return establishment?.businessCard ?? qrCode.businessCard ?? null;
+  return establishment?.businessCard ?? qrCode?.businessCard ?? null;
 }
 
 export function resolveWifiConfig(
   establishment: EstablishmentWithContent | null | undefined,
-  qrCode: QRWithContent
+  qrCode: QRWithContent | null | undefined
 ) {
-  return establishment?.wifiConfig ?? qrCode.wifiConfig ?? null;
+  return establishment?.wifiConfig ?? qrCode?.wifiConfig ?? null;
 }
+
+export { resolveTipsConfig } from "@/lib/tips-config";

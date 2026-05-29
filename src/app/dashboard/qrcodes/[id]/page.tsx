@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useParams } from "next/navigation";
 import Button from "@/components/ui/Button";
@@ -38,12 +38,20 @@ import {
   Upload,
   Crown,
   Layout,
+  ChevronDown,
+  Printer,
 } from "lucide-react";
 import Link from "next/link";
 import { generateQRWithCenter, type QRCenterOptions } from "@/lib/qr-generator";
 import { generatePDFFromLayout, generateQRForPDF } from "@/lib/pdf-generator";
 import { scanUrlForCode } from "@/lib/utils";
 import type { TemplateLayout } from "@/types/template";
+import {
+  renderSticker,
+  FORMATS,
+  DEFAULT_STICKER_CONFIG,
+  type StickerConfig,
+} from "@/components/dashboard/StickerDesigner";
 
 interface QRCodeData {
   id: string;
@@ -106,7 +114,10 @@ export default function QRCodeSettingsPage() {
   const [customSectionId, setCustomSectionId] = useState<string | null>(null);
   const [pageModules, setPageModules] = useState<PageModules>(parsePageModules(null));
   const [previewMenu, setPreviewMenu] = useState<MenuData | null>(null);
-  const [customPages, setCustomPages] = useState<{ id: string; menuItemLabel: string; enabled: boolean }[]>([]);
+  const [customPages, setCustomPages] = useState<
+    { id: string; menuItemLabel: string; enabled: boolean; type?: string }[]
+  >([]);
+  const [legacyFileMode, setLegacyFileMode] = useState(false);
 
   const [isPro, setIsPro] = useState(false);
   const [centerText, setCenterText] = useState("");
@@ -114,6 +125,8 @@ export default function QRCodeSettingsPage() {
   const [uploading, setUploading] = useState(false);
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [pdfHint, setPdfHint] = useState("");
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const generateQRImage = useCallback(async (code: string, centerOpts?: QRCenterOptions) => {
     const url = await generateQRWithCenter(
@@ -122,6 +135,10 @@ export default function QRCodeSettingsPage() {
       512
     );
     setQrImageUrl(url);
+  }, []);
+
+  useEffect(() => {
+    setShowWelcome(new URLSearchParams(window.location.search).get("welcome") === "1");
   }, []);
 
   useEffect(() => {
@@ -145,6 +162,7 @@ export default function QRCodeSettingsPage() {
         setMode(qrMode);
         const routing = modeToRouting(qrMode);
         setRoutingGroup(routing.group);
+        setLegacyFileMode(!!routing.legacyFile);
         if (routing.section && isBuiltinSection(routing.section)) {
           setSectionTarget(routing.section);
         }
@@ -179,10 +197,11 @@ export default function QRCodeSettingsPage() {
               if (res.establishment) {
                 setPageModules(parsePageModules(res.establishment.pageModules));
                 setPreviewMenu(res.establishment.menu ?? null);
-                setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean }) => ({
+                setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean; type?: string }) => ({
                   id: p.id,
                   menuItemLabel: p.menuItemLabel,
                   enabled: p.enabled,
+                  type: p.type,
                 })));
               }
             })
@@ -224,26 +243,45 @@ export default function QRCodeSettingsPage() {
 
     const tpl = templates.find((t) => t.id === templateId);
     if (!tpl?.layout) {
-      setPdfHint("Для скачивания таблички привяжите шаблон");
+      setPdfHint("Шаблон не найден");
       return;
     }
 
     setPdfDownloading(true);
     setPdfHint("");
     try {
-      const layout = tpl.layout;
-      const qrEl = layout.elements.find((e) => e.type === "qr");
-      const qrDataUrl = await generateQRForPDF(
-        scanUrlForCode(qrData.code),
-        qrEl?.qrColor || "#1e1b4b",
-        qrEl?.qrBgColor || "#ffffff",
-        {
-          isPro,
-          centerText: isPro ? centerText : null,
-          centerLogoUrl: isPro ? centerLogoUrl : null,
-        }
-      );
-      await generatePDFFromLayout(layout, qrDataUrl);
+      const layout = tpl.layout as { __type?: string; stickerConfig?: StickerConfig; elements?: unknown[] };
+
+      if (layout.__type === "sticker" && layout.stickerConfig) {
+        /* ── New sticker renderer ── */
+        const cfg: StickerConfig = { ...layout.stickerConfig, url: scanUrlForCode(qrData.code) };
+        const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
+        const canvas = document.createElement("canvas");
+        await renderSticker(canvas, cfg, fmt, false);
+        const imgData = canvas.toDataURL("image/png", 1.0);
+        const { jsPDF } = await import("jspdf");
+        const doc = new jsPDF({ unit: "mm", format: "a4" });
+        // single sticker + cut guides
+        const x = (210 - fmt.wMm) / 2;
+        const y = (297 - fmt.hMm) / 2;
+        doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
+        // dashed cut border
+        doc.setDrawColor(180, 180, 180);
+        doc.setLineDashPattern([2, 2], 0);
+        doc.rect(x - 2, y - 2, fmt.wMm + 4, fmt.hMm + 4);
+        doc.save(`sticker-${qrData.code}.pdf`);
+      } else {
+        /* ── Legacy layout renderer ── */
+        const legacyLayout = tpl.layout as TemplateLayout;
+        const qrEl = legacyLayout.elements?.find((e) => e.type === "qr");
+        const qrDataUrl = await generateQRForPDF(
+          scanUrlForCode(qrData.code),
+          qrEl?.qrColor || "#1e1b4b",
+          qrEl?.qrBgColor || "#ffffff",
+          { isPro, centerText: isPro ? centerText : null, centerLogoUrl: isPro ? centerLogoUrl : null }
+        );
+        await generatePDFFromLayout(legacyLayout, qrDataUrl);
+      }
     } catch {
       setPdfHint("Ошибка генерации PDF");
     } finally {
@@ -259,10 +297,11 @@ export default function QRCodeSettingsPage() {
         if (res.establishment) {
           setPageModules(parsePageModules(res.establishment.pageModules));
           setPreviewMenu(res.establishment.menu ?? null);
-          setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean }) => ({
+          setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean; type?: string }) => ({
             id: p.id,
             menuItemLabel: p.menuItemLabel,
             enabled: p.enabled,
+            type: p.type,
           })));
         }
       })
@@ -271,6 +310,7 @@ export default function QRCodeSettingsPage() {
 
   const applyRouting = (group: RoutingGroup, section?: SectionTarget, customPageId?: string | null) => {
     setRoutingGroup(group);
+    setLegacyFileMode(false);
     if (customPageId) {
       setCustomSectionId(customPageId);
       setSectionTarget(customSectionIdToTarget(customPageId));
@@ -290,10 +330,7 @@ export default function QRCodeSettingsPage() {
       setError("Укажите URL для редиректа");
       return;
     }
-    if (
-      (routingGroup === "LANDING" || routingGroup === "SECTION") &&
-      !establishmentId
-    ) {
+    if ((routingGroup === "LANDING" || routingGroup === "SECTION") && !establishmentId) {
       setError("Привяжите QR-код к заведению");
       return;
     }
@@ -313,6 +350,9 @@ export default function QRCodeSettingsPage() {
         templateId: templateId || null,
         centerText: isPro ? (centerText || null) : null,
         centerLogoUrl: isPro ? centerLogoUrl : null,
+        tipsType: null,
+        tipsPhone: null,
+        tipsBankName: null,
       };
 
       if (establishmentId && !qrData?.establishmentId) {
@@ -383,7 +423,8 @@ export default function QRCodeSettingsPage() {
         }),
       });
       setMode("FILE");
-      setRoutingGroup("FILE");
+      setRoutingGroup("SECTION");
+      setLegacyFileMode(true);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
@@ -456,6 +497,13 @@ export default function QRCodeSettingsPage() {
               </p>
             </div>
           </div>
+
+          {showWelcome && (
+            <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
+              <strong>QR готов к работе.</strong> Режим «Микро-лендинг» уже включён — гости увидят страницу
+              заведения с отзывами. Скачайте PNG или PDF таблички ниже и проверьте ссылку «Открыть как гость».
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-1 space-y-4">
@@ -542,44 +590,82 @@ export default function QRCodeSettingsPage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center gap-1">
-                      <Palette className="w-3 h-3" />
-                      Шаблон таблички
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
+                      <Printer className="w-3 h-3" />
+                      Шаблон для печати
                     </label>
-                    <select
-                      value={templateId}
-                      onChange={(e) => setTemplateId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+
+                    {/* Selected template preview or empty state */}
+                    {(() => {
+                      const selectedTpl = templates.find((t) => t.id === templateId);
+                      const stickerCfg = (selectedTpl?.layout as { stickerConfig?: StickerConfig } | undefined)?.stickerConfig;
+                      return (
+                        <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50 mb-2">
+                          {stickerCfg ? (
+                            <StickerMiniPreview cfg={stickerCfg} />
+                          ) : (
+                            <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs shrink-0">
+                              —
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {selectedTpl ? selectedTpl.name : "Шаблон не выбран"}
+                            </p>
+                            {stickerCfg && (
+                              <p className="text-xs text-gray-400 mt-0.5">
+                                {FORMATS.find((f) => f.id === stickerCfg.formatId)?.name || stickerCfg.formatId}
+                                {" · "}
+                                {stickerCfg.themeId}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setShowTemplatePicker(true)}
+                                className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-0.5"
+                              >
+                                {selectedTpl ? "Сменить" : "Выбрать"} <ChevronDown className="w-3 h-3" />
+                              </button>
+                              {selectedTpl && (
+                                <>
+                                  <span className="text-gray-300">·</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => router.push(`/dashboard/templates/${selectedTpl.id}`)}
+                                    className="text-xs text-gray-500 hover:text-indigo-600"
+                                  >
+                                    Редактировать
+                                  </button>
+                                  <span className="text-gray-300">·</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => setTemplateId("")}
+                                    className="text-xs text-gray-400 hover:text-red-500"
+                                  >
+                                    Убрать
+                                  </button>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      onClick={handleDownloadTablePDF}
+                      disabled={pdfDownloading || !templateId}
                     >
-                      <option value="">Без шаблона</option>
-                      {templates.map((tpl) => (
-                        <option key={tpl.id} value={tpl.id}>
-                          {tpl.name}
-                        </option>
-                      ))}
-                    </select>
-                    <div className="mt-2 flex flex-wrap items-center gap-3">
-                      {templateId && (
-                        <button
-                          type="button"
-                          onClick={() => router.push(`/dashboard/templates/${templateId}`)}
-                          className="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1"
-                        >
-                          <Palette className="w-3 h-3" />
-                          Открыть конструктор
-                        </button>
-                      )}
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleDownloadTablePDF}
-                        disabled={pdfDownloading}
-                      >
-                        <Download className="w-4 h-4 mr-1" />
-                        {pdfDownloading ? "Готовим PDF..." : "Скачать PDF табличку"}
-                      </Button>
-                    </div>
+                      <Download className="w-4 h-4 mr-1" />
+                      {pdfDownloading ? "Готовим PDF..." : "Скачать PDF табличку"}
+                    </Button>
+                    {!templateId && (
+                      <p className="mt-1 text-xs text-gray-400">Выберите шаблон, чтобы скачать PDF</p>
+                    )}
                     {pdfHint && (
                       <p className="mt-1 text-xs text-amber-700">{pdfHint}</p>
                     )}
@@ -792,11 +878,16 @@ export default function QRCodeSettingsPage() {
                     >
                       <optgroup label="Основные разделы">
                         {BUILTIN_SECTION_OPTIONS.map((opt) => {
-                          const moduleKey = opt.value.toLowerCase() === "business_card" ? "businessCard" : opt.value.toLowerCase();
-                          const disabled = !pageModules[moduleKey as keyof PageModules];
+                          const moduleKey =
+                            opt.value === "BUSINESS_CARD"
+                              ? "businessCard"
+                              : opt.value === "TIPS"
+                                ? "tips"
+                                : opt.value.toLowerCase();
+                          const hiddenOnLanding = !pageModules[moduleKey as keyof PageModules];
                           return (
                             <option key={opt.value} value={opt.value}>
-                              {opt.label}{disabled ? " (отключён)" : ""}
+                              {opt.label}{hiddenOnLanding ? " (скрыт на лендинге)" : ""}
                             </option>
                           );
                         })}
@@ -805,25 +896,37 @@ export default function QRCodeSettingsPage() {
                         <optgroup label="Кастомные страницы">
                           {customPages.map((cp) => (
                             <option key={cp.id} value={customSectionIdToTarget(cp.id)}>
-                              {cp.menuItemLabel}{!cp.enabled ? " (отключена)" : ""}
+                              {cp.menuItemLabel}
+                              {cp.type === "FILE" ? " · файл" : ""}
+                              {!cp.enabled ? " (скрыта на лендинге)" : ""}
                             </option>
                           ))}
                         </optgroup>
                       )}
                     </select>
-                    {!customSectionId && isBuiltinSection(sectionTarget) && (() => {
-                      const mk = sectionTarget.toLowerCase() === "business_card" ? "businessCard" : sectionTarget.toLowerCase();
-                      return !pageModules[mk as keyof PageModules];
-                    })() && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Этот раздел отключён на микро-лендинге. Гость не увидит контент.
-                      </p>
-                    )}
-                    {customSectionId && !customPages.find((p) => p.id === customSectionId)?.enabled && (
-                      <p className="text-xs text-amber-600 mt-1">
-                        Эта страница отключена. Гость не увидит контент.
-                      </p>
-                    )}
+                    {(() => {
+                      const hiddenBuiltin =
+                        !customSectionId &&
+                        isBuiltinSection(sectionTarget) &&
+                        (() => {
+                          const mk =
+                            sectionTarget === "BUSINESS_CARD"
+                              ? "businessCard"
+                              : sectionTarget === "TIPS"
+                                ? "tips"
+                                : sectionTarget.toLowerCase();
+                          return !pageModules[mk as keyof PageModules];
+                        })();
+                      const hiddenCustom =
+                        customSectionId &&
+                        !customPages.find((p) => p.id === customSectionId)?.enabled;
+                      if (!hiddenBuiltin && !hiddenCustom) return null;
+                      return (
+                        <p className="text-xs text-indigo-600 mt-1">
+                          Раздел скрыт на микро-лендинге, но откроется по этому QR-коду.
+                        </p>
+                      );
+                    })()}
                     <p className="text-xs text-gray-400 mt-2">
                       Контент раздела — в{" "}
                       <Link href="/dashboard/my-page" className="text-indigo-600 hover:underline">
@@ -844,8 +947,15 @@ export default function QRCodeSettingsPage() {
                   </div>
                 )}
 
-                {routingGroup === "FILE" && (
-                  <div className="mt-4">
+                {legacyFileMode && (
+                  <div className="mt-4 space-y-3">
+                    <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-sm text-amber-900">
+                      Режим «Скачать файл» устарел. Создайте страницу типа «Скачать файл» в{" "}
+                      <Link href="/dashboard/my-page" className="font-medium underline">
+                        Моей странице
+                      </Link>{" "}
+                      и выберите её в «Быстрый доступ».
+                    </div>
                     <FileAssetEditor
                       initialData={fileAssetData}
                       onSave={handleSaveFileAsset}
@@ -861,7 +971,7 @@ export default function QRCodeSettingsPage() {
                   </div>
                 )}
 
-                {routingGroup !== "FILE" && (
+                {!legacyFileMode && (
                   <div className="mt-6 flex items-center gap-3">
                     <Button onClick={handleSaveBasic} disabled={saving}>
                       {saving ? (
@@ -902,6 +1012,97 @@ export default function QRCodeSettingsPage() {
           </div>
         </div>
       </main>
+
+      {/* ── Template picker modal ── */}
+      {showTemplatePicker && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-5 border-b border-gray-100">
+              <h3 className="font-bold text-gray-900 text-lg">Выбрать шаблон</h3>
+              <button onClick={() => setShowTemplatePicker(false)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5">
+              {templates.filter((t) => (t.layout as { __type?: string }).__type === "sticker").length === 0 ? (
+                <div className="text-center py-10">
+                  <p className="text-gray-500 mb-3">Нет сохранённых шаблонов</p>
+                  <button
+                    onClick={() => { setShowTemplatePicker(false); router.push("/dashboard/templates"); }}
+                    className="text-indigo-600 hover:underline text-sm font-medium"
+                  >
+                    Создать первый шаблон →
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 gap-3">
+                  {/* No template option */}
+                  <button
+                    onClick={() => { setTemplateId(""); setShowTemplatePicker(false); }}
+                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                      !templateId ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">—</div>
+                    <span className="text-xs text-gray-600 font-medium">Без шаблона</span>
+                  </button>
+
+                  {templates
+                    .filter((t) => (t.layout as { __type?: string }).__type === "sticker")
+                    .map((t) => {
+                      const cfg = (t.layout as { stickerConfig?: StickerConfig }).stickerConfig || DEFAULT_STICKER_CONFIG;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => { setTemplateId(t.id); setShowTemplatePicker(false); }}
+                          className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                            templateId === t.id ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
+                          }`}
+                        >
+                          <div className="rounded-lg overflow-hidden shadow-sm">
+                            <StickerMiniPreview cfg={cfg} size={80} />
+                          </div>
+                          <span className="text-xs text-gray-700 font-medium text-center leading-tight line-clamp-2">{t.name}</span>
+                        </button>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-100 flex justify-between items-center">
+              <button
+                onClick={() => { setShowTemplatePicker(false); router.push("/dashboard/templates"); }}
+                className="text-sm text-indigo-600 hover:underline"
+              >
+                + Создать новый шаблон
+              </button>
+              <button onClick={() => setShowTemplatePicker(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
+                Закрыть
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+/* ── Mini canvas preview (shared helper) ── */
+function StickerMiniPreview({ cfg, size = 56 }: { cfg: StickerConfig; size?: number }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
+
+  useEffect(() => {
+    const c = ref.current;
+    if (!c) return;
+    const thumbFmt = { ...fmt, previewW: size, previewH: size, dpi: 72 };
+    renderSticker(c, cfg, thumbFmt, true).catch(() => {});
+  }, [cfg, fmt, size]);
+
+  return (
+    <canvas
+      ref={ref}
+      style={{ display: "block", width: size, height: size }}
+    />
   );
 }

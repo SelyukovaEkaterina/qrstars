@@ -11,7 +11,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get("limit") || "20");
   const skip = (page - 1) * limit;
 
-  const [subscriptions, total] = await Promise.all([
+  const [subscriptions, total, totalActivePro] = await Promise.all([
     prisma.subscription.findMany({
       skip,
       take: limit,
@@ -21,7 +21,15 @@ export async function GET(request: Request) {
       },
     }),
     prisma.subscription.count(),
+    prisma.subscription.count({ where: { plan: "PRO", status: "ACTIVE" } }),
   ]);
 
-  return NextResponse.json({ subscriptions, total, page, pages: Math.ceil(total / limit) });
+  return NextResponse.json({
+    subscriptions,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    totalActivePro,
+    totalRevenue: totalActivePro * 990,
+  });
 }

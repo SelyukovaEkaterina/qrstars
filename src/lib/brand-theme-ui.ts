@@ -106,7 +106,7 @@ export function primaryButtonStyle(isBg = false): CSSProperties {
     return { backgroundColor: "#ffffff", color: "#111827" };
   }
   return {
-    backgroundColor: "var(--brand-600)",
+    backgroundColor: "var(--brand-700)",
     color: "#ffffff",
   };
 }

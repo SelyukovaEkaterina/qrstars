@@ -1,9 +1,9 @@
 FROM node:22-alpine
-RUN apk add --no-cache libc6-compat curl
+RUN apk add --no-cache libc6-compat curl ttf-dejavu
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
 COPY . .
 

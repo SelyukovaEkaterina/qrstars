@@ -26,16 +26,34 @@ export function getAppBaseUrl(): string {
 }
 
 export function scanUrlForCode(code: string): string {
-  return `${getAppBaseUrl()}/scan/${code}`;
+  return `${getAppBaseUrl()}/q/${code}`;
 }
 
 export function generateQRCode(): string {
   const chars = "abcdefghijkmnopqrstuvwxyz23456789";
   let code = "";
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 6; i++) {
     code += chars[Math.floor(Math.random() * chars.length)];
   }
   return code;
+}
+
+export function generateSerialCode(): string {
+  const chars = "abcdefghijkmnopqrstuvwxyz23456789";
+  let code = "";
+  for (let i = 0; i < 5; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return code;
+}
+
+export function generateMasterCode(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let code = "";
+  for (let i = 0; i < 8; i++) {
+    code += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return `MC-${code.slice(0, 4)}-${code.slice(4)}`;
 }
 
 export function getPlatformUrl(

@@ -82,7 +82,7 @@ export default function LoginPage() {
             </a>
           </p>
           <p className="text-xs text-gray-400">
-            Или активируйте табличку, отсканировав QR-код
+            Без таблички — после регистрации настроите QR за 2 минуты
           </p>
         </div>
       </form>

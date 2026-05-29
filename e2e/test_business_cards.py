@@ -1,5 +1,7 @@
 import pytest
 
+from conftest import unique_code
+
 
 # --- Business Card CRUD ---
 
@@ -107,8 +109,9 @@ def test_update_business_card(owner_session, base_url):
 
     link_qr_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "bc_upd_link01", "mode": "BUSINESS_CARD"},
+        json={"code": unique_code("bcupd"), "mode": "BUSINESS_CARD"},
     )
+    assert link_qr_r.status_code == 200, f"Create QR failed: {link_qr_r.status_code} {link_qr_r.text}"
     qr_id = link_qr_r.json()["qrcode"]["id"]
 
     import requests
@@ -156,10 +159,12 @@ def test_business_card_contact_validation(owner_session, base_url):
     )
     card_id = create_r.json()["businessCard"]["id"]
 
+    code = unique_code("bccon")
     link_qr_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "bc_contact_val01", "mode": "BUSINESS_CARD"},
+        json={"code": code, "mode": "BUSINESS_CARD"},
     )
+    assert link_qr_r.status_code == 200, f"Create QR failed: {link_qr_r.status_code} {link_qr_r.text}"
     qr_id = link_qr_r.json()["qrcode"]["id"]
     qr_code = link_qr_r.json()["qrcode"]["code"]
 
@@ -175,19 +180,19 @@ def test_business_card_contact_validation(owner_session, base_url):
 
     r = owner_session.post(
         f"{base_url}/api/business-cards/contact",
-        json={"qrCode": qr_code, "guestName": "", "message": "Привет"},
+        json={"qrCode": code, "guestName": "", "message": "Привет"},
     )
     assert r.status_code == 400
 
     r = owner_session.post(
         f"{base_url}/api/business-cards/contact",
-        json={"qrCode": qr_code, "guestName": "Гость", "message": "x"},
+        json={"qrCode": code, "guestName": "Гость", "message": "x"},
     )
     assert r.status_code == 400
 
     r = owner_session.post(
         f"{base_url}/api/business-cards/contact",
-        json={"qrCode": qr_code, "guestName": "Гость", "message": "Тестовое сообщение"},
+        json={"qrCode": code, "guestName": "Гость", "message": "Тестовое сообщение"},
     )
     assert r.status_code == 503
 
@@ -199,20 +204,22 @@ def test_business_card_contact_disabled(owner_session, base_url):
     )
     card_id = create_r.json()["businessCard"]["id"]
 
+    code = unique_code("bccoff")
     link_qr_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "bc_contact_off01", "mode": "BUSINESS_CARD"},
+        json={"code": code, "mode": "BUSINESS_CARD"},
     )
-    qr_code = link_qr_r.json()["qrcode"]["code"]
+    assert link_qr_r.status_code == 200, f"Create QR failed: {link_qr_r.status_code} {link_qr_r.text}"
+    qr_id = link_qr_r.json()["qrcode"]["id"]
 
     owner_session.put(
         f"{base_url}/api/qrcodes",
-        json={"id": link_qr_r.json()["qrcode"]["id"], "businessCardId": card_id, "isActive": True},
+        json={"id": qr_id, "businessCardId": card_id, "isActive": True},
     )
 
     r = owner_session.post(
         f"{base_url}/api/business-cards/contact",
-        json={"qrCode": qr_code, "guestName": "Гость", "message": "Сообщение"},
+        json={"qrCode": code, "guestName": "Гость", "message": "Сообщение"},
     )
     assert r.status_code == 403
 
@@ -270,8 +277,9 @@ def test_update_business_card_theme_and_color(owner_session, base_url):
 
     link_qr_r = owner_session.post(
         f"{base_url}/api/qrcodes",
-        json={"code": "bc_theme_link01", "mode": "BUSINESS_CARD"},
+        json={"code": unique_code("bctheme"), "mode": "BUSINESS_CARD"},
     )
+    assert link_qr_r.status_code == 200, f"Create QR failed: {link_qr_r.status_code} {link_qr_r.text}"
     qr_id = link_qr_r.json()["qrcode"]["id"]
 
     owner_session.put(

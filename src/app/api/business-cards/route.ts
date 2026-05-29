@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { establishmentAccessWhere } from "@/lib/establishment-access";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -59,6 +60,9 @@ export async function POST(request: Request) {
     contactEnabled,
     contactMessengerId,
     establishmentId,
+    linkAsPrimary,
+    tipsUrl,
+    tipsLabel,
   } = body;
 
   if (contactMessengerId) {
@@ -91,13 +95,16 @@ export async function POST(request: Request) {
       accentColor: accentColor || "#4f46e5",
       contactEnabled: contactEnabled ?? false,
       ...(contactMessengerId ? { contactMessenger: { connect: { id: contactMessengerId } } } : {}),
+      tipsUrl: tipsUrl?.trim() || null,
+      tipsLabel: tipsLabel?.trim() || null,
+      estId: establishmentId || null,
     },
     include: { contactMessenger: true },
   });
 
-  if (establishmentId) {
+  if (establishmentId && linkAsPrimary !== false) {
     const est = await prisma.establishment.findFirst({
-      where: { id: establishmentId, userId },
+      where: { id: establishmentId, ...establishmentAccessWhere(userId) },
     });
     if (est) {
       await prisma.establishment.update({
@@ -134,6 +141,8 @@ export async function PUT(request: Request) {
     accentColor,
     contactEnabled,
     contactMessengerId,
+    tipsUrl,
+    tipsLabel,
   } = body;
 
   if (!id) {
@@ -145,13 +154,23 @@ export async function PUT(request: Request) {
       id,
       OR: [
         { userId },
-        { establishment: { userId } },
+        { establishment: establishmentAccessWhere(userId) },
+        { estId: { not: null } },
       ],
     },
   });
 
   if (!existing) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (existing.estId && existing.userId !== userId) {
+    const est = await prisma.establishment.findFirst({
+      where: { id: existing.estId, ...establishmentAccessWhere(userId) },
+    });
+    if (!est) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
   }
 
   if (contactMessengerId) {
@@ -184,9 +203,38 @@ export async function PUT(request: Request) {
           ? { connect: { id: contactMessengerId } }
           : { disconnect: true },
       }),
+      ...(tipsUrl !== undefined && { tipsUrl: tipsUrl?.trim() || null }),
+      ...(tipsLabel !== undefined && { tipsLabel: tipsLabel?.trim() || null }),
     },
     include: { contactMessenger: true },
   });
 
   return NextResponse.json({ businessCard });
+}
+
+export async function DELETE(request: Request) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userId = (session.user as Record<string, unknown>).id as string;
+  const { searchParams } = new URL(request.url);
+  const id = searchParams.get("id");
+
+  if (!id) {
+    return NextResponse.json({ error: "ID required" }, { status: 400 });
+  }
+
+  const card = await prisma.businessCard.findFirst({
+    where: { id, userId },
+  });
+
+  if (!card) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await prisma.businessCard.delete({ where: { id } });
+
+  return NextResponse.json({ ok: true });
 }

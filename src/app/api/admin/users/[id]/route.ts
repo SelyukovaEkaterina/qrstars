@@ -25,13 +25,11 @@ export async function PATCH(
   if (subscriptionPlan) {
     const existing = await prisma.subscription.findFirst({ where: { userId: id } });
     if (existing) {
-      await prisma.subscription.update({
-        where: { id: existing.id },
+      await prisma.subscription.updateMany({
+        where: { userId: id },
         data: {
           plan: subscriptionPlan,
           status: subscriptionStatus || existing.status,
-          currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         },
       });
     } else {

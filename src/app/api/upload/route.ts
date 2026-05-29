@@ -16,13 +16,17 @@ export async function POST(request: Request) {
   const userId = (session.user as Record<string, unknown>).id as string;
 
   const subscription = await prisma.subscription.findFirst({
-    where: { userId, status: "ACTIVE", plan: "PRO" },
+    where: {
+      userId,
+      status: "ACTIVE",
+      plan: { in: ["PRO", "NETWORK"] },
+    },
     orderBy: { createdAt: "desc" },
   });
 
   if (!subscription) {
     return NextResponse.json(
-      { error: "Загрузка логотипа доступна только на PRO-тарифе" },
+      { error: "Загрузка логотипа доступна на тарифах PRO и Сеть" },
       { status: 403 }
     );
   }

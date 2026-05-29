@@ -26,7 +26,7 @@ export default async function ActivatePage({ params }: ActivatePageProps) {
   }
 
   if (qrCode.isActive) {
-    redirect(`/scan/${id}`);
+    redirect(`/q/${id}`);
   }
 
   return <ActivateForm qrCodeId={qrCode.id} code={id} />;

@@ -11,15 +11,23 @@ import {
   Store,
   LogOut,
   Shield,
+  Package,
+  Wallet,
+  ShoppingCart,
+  Headphones,
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 
 const navItems = [
-  { href: "/admin", label: "Обзор", icon: LayoutDashboard },
-  { href: "/admin/users", label: "Пользователи", icon: Users },
-  { href: "/admin/payments", label: "Подписки", icon: CreditCard },
-  { href: "/admin/reviews", label: "Отзывы", icon: Star },
-  { href: "/admin/establishments", label: "Заведения", icon: Store },
+  { href: "/admin", label: "Обзор", icon: LayoutDashboard, tourId: "nav-overview" },
+  { href: "/admin/users", label: "Пользователи", icon: Users, tourId: "nav-users" },
+  { href: "/admin/payments", label: "Подписки", icon: CreditCard, tourId: "nav-payments" },
+  { href: "/admin/reviews", label: "Отзывы", icon: Star, tourId: "nav-reviews" },
+  { href: "/admin/orders", label: "Заказы", icon: ShoppingCart, tourId: "nav-orders" },
+  { href: "/admin/establishments", label: "Заведения", icon: Store, tourId: "nav-establishments" },
+  { href: "/admin/batches", label: "Наборы табличек", icon: Package, tourId: "nav-batches" },
+  { href: "/admin/partner-withdrawals", label: "Выводы партнёров", icon: Wallet, tourId: "nav-partner-withdrawals" },
+  { href: "/admin/support", label: "Support", icon: Headphones, tourId: "nav-support" },
 ];
 
 export default function AdminSidebar() {
@@ -42,6 +50,7 @@ export default function AdminSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              data-tour-id={item.tourId}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                 isActive

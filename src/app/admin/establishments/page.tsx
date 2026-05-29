@@ -10,6 +10,7 @@ import {
   ExternalLink,
   MapPin,
   Phone,
+  Search,
 } from "lucide-react";
 
 interface Establishment {
@@ -33,6 +34,7 @@ export default function AdminEstablishmentsPage() {
   const router = useRouter();
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/admin/login");
@@ -47,6 +49,17 @@ export default function AdminEstablishmentsPage() {
       .catch(() => setLoading(false));
   }, [status, router]);
 
+  const filtered = establishments.filter((e) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      e.name.toLowerCase().includes(q) ||
+      e.user.email.toLowerCase().includes(q) ||
+      (e.user.name || "").toLowerCase().includes(q) ||
+      (e.address || "").toLowerCase().includes(q)
+    );
+  });
+
   if (status !== "authenticated") {
     return (
       <div className="flex min-h-screen bg-gray-950 items-center justify-center">
@@ -57,11 +70,24 @@ export default function AdminEstablishmentsPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Заведения</h1>
-            <p className="text-gray-400 mt-1">
-              {establishments.length} заведений
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Заведения</h1>
+              <p className="text-gray-400 mt-1">
+                {filtered.length} из {establishments.length}
+              </p>
+            </div>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Поиск по названию, владельцу, адресу..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 bg-gray-900 border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            />
           </div>
 
           {loading ? (
@@ -70,7 +96,7 @@ export default function AdminEstablishmentsPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              {establishments.map((e) => (
+              {filtered.map((e) => (
                 <div
                   key={e.id}
                   className="bg-gray-900 border border-gray-800 rounded-xl p-5"
@@ -162,10 +188,10 @@ export default function AdminEstablishmentsPage() {
                   </div>
                 </div>
               ))}
-              {establishments.length === 0 && (
+              {filtered.length === 0 && (
                 <div className="text-center py-20 text-gray-500">
                   <Store className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  Заведений пока нет
+                  {search ? "Ничего не найдено" : "Заведений пока нет"}
                 </div>
               )}
         </div>

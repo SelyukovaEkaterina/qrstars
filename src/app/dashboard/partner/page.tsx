@@ -461,7 +461,7 @@ export default function PartnerPage() {
                     <DollarSign className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">Пример заработка</p>
-                      <p className="text-xs text-gray-500">10 рефералов × 990 ₽/мес × 15% = 1 485 ₽/мес пассивного дохода.</p>
+                      <p className="text-xs text-gray-500">10 рефералов × 690 ₽/мес × 15% = 1 035 ₽/мес пассивного дохода.</p>
                     </div>
                   </div>
                 </div>

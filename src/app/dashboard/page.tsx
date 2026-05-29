@@ -3,10 +3,16 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import Sidebar from "@/components/dashboard/Sidebar";
+import OverviewTabs from "@/components/dashboard/OverviewTabs";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Link from "next/link";
 import { Star, MessageSquare, QrCode, TrendingUp, TrendingDown, ArrowUpRight, BarChart3, Store } from "lucide-react";
+import {
+  establishmentAccessWhere,
+  canAccessAnalytics,
+} from "@/lib/establishment-access";
+import PlanBadge from "@/components/dashboard/PlanBadge";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -14,9 +20,9 @@ export default async function DashboardPage() {
 
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const [establishments, subscription] = await Promise.all([
+  const [establishments, subscription, analyticsAccess] = await Promise.all([
     prisma.establishment.findMany({
-      where: { userId },
+      where: establishmentAccessWhere(userId),
       include: {
         reviews: { orderBy: { createdAt: "desc" }, take: 5 },
         qrcodes: { select: { id: true, scansCount: true, label: true, isActive: true, code: true } },
@@ -27,9 +33,12 @@ export default async function DashboardPage() {
       where: { userId, status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
     }),
+    canAccessAnalytics(userId),
   ]);
 
-  const isPro = subscription?.plan === "PRO";
+  const plan =
+    subscription?.status === "ACTIVE" ? subscription.plan : "FREE";
+  const isPro = analyticsAccess;
 
   const totalScans = establishments.reduce(
     (acc, e) => acc + e.qrcodes.reduce((a, q) => a + q.scansCount, 0),
@@ -58,7 +67,7 @@ export default async function DashboardPage() {
   if (isPro) {
     const allReviewsFull = await prisma.review.findMany({
       where: {
-        establishment: { userId },
+        establishment: establishmentAccessWhere(userId),
       },
       orderBy: { createdAt: "desc" },
     });
@@ -117,23 +126,23 @@ export default async function DashboardPage() {
       <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-8">
+          <OverviewTabs />
+
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Дашборд</h1>
+              <h1 className="text-2xl font-bold text-gray-900">Сводка</h1>
               <p className="text-gray-500 mt-1">
                 Добро пожаловать, {session.user.name || "Владелец"}!
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <Badge variant={isPro ? "success" : "default"}>
-                {isPro ? "PRO" : "FREE"}
-              </Badge>
+              <PlanBadge plan={plan} showChangeLink />
               {!isPro && (
                 <Link
                   href="/dashboard/subscription"
                   className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
                 >
-                  Улучшить до PRO
+                  Сменить тариф
                 </Link>
               )}
             </div>
@@ -269,19 +278,33 @@ export default async function DashboardPage() {
                   className="flex items-center gap-2 text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
                 >
                   <BarChart3 className="w-5 h-5" />
-                  Расширенная аналитика &rarr;
+                  Подробная аналитика &rarr;
                 </Link>
               </Card>
             </div>
           )}
 
           {establishments.length === 0 ? (
-            <Card className="text-center py-12">
-              <div className="text-5xl mb-4">📋</div>
+            <Card className="text-center py-12 space-y-4">
+              <div className="text-5xl mb-2">📋</div>
               <h2 className="text-xl font-semibold text-gray-900">Пока нет заведений</h2>
-              <p className="text-gray-500 mt-2">
-                Создайте заведение или отсканируйте QR-код таблички для активации
+              <p className="text-gray-500 max-w-md mx-auto">
+                За пару минут создайте заведение и QR для сбора отзывов — без физической таблички.
               </p>
+              <div className="flex flex-wrap justify-center gap-3 pt-2">
+                <Link
+                  href="/dashboard/start"
+                  className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg bg-indigo-600 text-white text-sm font-medium hover:bg-indigo-700 transition-colors"
+                >
+                  Настроить первый QR
+                </Link>
+                <Link
+                  href="/dashboard/activate"
+                  className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Активировать табличку
+                </Link>
+              </div>
             </Card>
           ) : (
             <>

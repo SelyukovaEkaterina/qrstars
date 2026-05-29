@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import {
+  canAddEstablishment,
+  effectivePlan,
+  findActiveSubscription,
+  getUpgradeHint,
+} from "@/lib/subscription-utils";
+import {
+  establishmentAccessWhere,
+  requireEstablishmentAccess,
+} from "@/lib/establishment-access";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -12,7 +22,7 @@ export async function GET() {
   const userId = (session.user as Record<string, unknown>).id as string;
 
   const establishments = await prisma.establishment.findMany({
-    where: { userId },
+    where: establishmentAccessWhere(userId),
     include: {
       _count: { select: { qrcodes: true, reviews: true } },
       qrcodes: { select: { scansCount: true } },
@@ -22,6 +32,7 @@ export async function GET() {
 
   const result = establishments.map((e) => ({
     id: e.id,
+    isOwner: e.userId === userId,
     name: e.name,
     address: e.address,
     phone: e.phone,
@@ -55,6 +66,19 @@ export async function POST(request: Request) {
   }
 
   const existingCount = await prisma.establishment.count({ where: { userId } });
+  const subscription = await findActiveSubscription(userId);
+  const plan = effectivePlan(subscription);
+
+  if (!canAddEstablishment(plan, existingCount)) {
+    const hint = getUpgradeHint(plan, existingCount);
+    return NextResponse.json(
+      {
+        error: hint?.message || "Достигнут лимит заведений на текущем тарифе",
+        upgradeRequired: hint?.requiredPlan,
+      },
+      { status: 403 }
+    );
+  }
 
   const establishment = await prisma.establishment.create({
     data: {
@@ -103,11 +127,11 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "ID required" }, { status: 400 });
   }
 
-  const establishment = await prisma.establishment.findFirst({
-    where: { id, userId },
-  });
-
-  if (!establishment) {
+  const access = await requireEstablishmentAccess(userId, id, { ownerOnly: true });
+  if (!access.ok) {
+    if (access.error.type === "forbidden") {
+      return NextResponse.json({ error: access.error.message }, { status: 403 });
+    }
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

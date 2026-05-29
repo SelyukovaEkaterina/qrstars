@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import {
+  establishmentAccessWhere,
+  canAccessAnalytics,
+} from "@/lib/establishment-access";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -11,16 +15,13 @@ export async function GET(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const subscription = await prisma.subscription.findFirst({
-    where: { userId, status: "ACTIVE" },
-    orderBy: { createdAt: "desc" },
-  });
+  const { searchParams } = new URL(request.url);
+  const estIdParam = searchParams.get("establishmentId");
 
-  if (subscription?.plan !== "PRO") {
-    return NextResponse.json({ error: "PRO required" }, { status: 403 });
+  if (!(await canAccessAnalytics(userId, estIdParam))) {
+    return NextResponse.json({ error: "Требуется платный тариф PRO или Сеть" }, { status: 403 });
   }
 
-  const { searchParams } = new URL(request.url);
   const periodParam = searchParams.get("period") || "30d";
   const fromParam = searchParams.get("from");
   const toParam = searchParams.get("to");
@@ -63,7 +64,7 @@ export async function GET(request: Request) {
   const prevPeriodEnd = new Date(periodStart.getTime() - 1);
 
   const establishments = await prisma.establishment.findMany({
-    where: { userId },
+    where: establishmentAccessWhere(userId),
     include: {
       reviews: { orderBy: { createdAt: "desc" } },
       qrcodes: true,
@@ -83,10 +84,10 @@ export async function GET(request: Request) {
     e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId)
   );
   const totalScans = allQrs.reduce((a, q) => a + q.scansCount, 0);
-  const reviewScans = allQrs
-    .filter((q) => q.mode === "REVIEW")
+  const reviewCapableScans = allQrs
+    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
     .reduce((a, q) => a + q.scansCount, 0);
-  const otherScans = totalScans - reviewScans;
+  const otherScans = totalScans - reviewCapableScans;
 
   const currentReviews = allReviews.filter((r) => {
     const d = new Date(r.createdAt);
@@ -117,11 +118,11 @@ export async function GET(request: Request) {
           ).toFixed(1)
         : 0,
     totalScans,
-    reviewScans,
+    reviewCapableScans,
     otherScans,
     conversionRate:
-      reviewScans > 0
-        ? +((currentReviews.length / reviewScans) * 100).toFixed(1)
+      reviewCapableScans > 0
+        ? +((currentReviews.length / reviewCapableScans) * 100).toFixed(1)
         : 0,
   };
 
@@ -256,8 +257,8 @@ export async function GET(request: Request) {
   const establishmentScans = filteredEstablishments.map((e) => {
     const estQrs = e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId);
     const estScans = estQrs.reduce((a, q) => a + q.scansCount, 0);
-    const estReviewScans = estQrs
-      .filter((q) => q.mode === "REVIEW")
+    const estReviewCapableScans = estQrs
+      .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
       .reduce((a, q) => a + q.scansCount, 0);
     const estReviews = allReviews.filter((r) => r.establishmentId === e.id).length;
     return {
@@ -267,7 +268,7 @@ export async function GET(request: Request) {
       reviewsCount: estReviews,
       qrCount: estQrs.length,
       conversionRate:
-        estReviewScans > 0 ? +((estReviews / estReviewScans) * 100).toFixed(1) : 0,
+        estReviewCapableScans > 0 ? +((estReviews / estReviewCapableScans) * 100).toFixed(1) : 0,
     };
   });
 

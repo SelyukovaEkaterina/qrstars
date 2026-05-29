@@ -3,6 +3,8 @@
 import pytest
 import requests
 
+from conftest import unique_code
+
 
 def test_establishment_page_api_get(owner_session, base_url, owner_establishment_id):
     r = owner_session.get(
@@ -35,7 +37,7 @@ def test_create_qrcode_mode_landing(owner_session, base_url, owner_establishment
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
-            "code": "qrmode_land01",
+            "code": unique_code("qrland"),
             "establishmentId": owner_establishment_id,
             "mode": "LANDING",
         },

@@ -23,6 +23,7 @@ import {
   demo3PageModules,
   demo3ReviewScan,
   demo3RedirectUrl,
+  demoTipsConfig,
 } from "@/lib/demo-qrcodes";
 import { DEFAULT_REVIEW_ROUTING, parseReviewRouting, reviewRoutingToJson } from "@/lib/review-routing";
 
@@ -51,6 +52,7 @@ export async function GET(
           watermarkEnabled: demoReviewScan.watermarkEnabled,
           showPromo: demoReviewScan.showPromo,
           promoCode: demoReviewScan.promoCode,
+          tipsConfig: demoTipsConfig,
         });
       case "demo-review":
         return NextResponse.json({
@@ -248,7 +250,11 @@ export async function GET(
   }
 
   if (!qrCode.isActive) {
-    return NextResponse.json({ needsActivation: true, code: id });
+    return NextResponse.json({
+      needsActivation: true,
+      source: qrCode.source,
+      code: id,
+    });
   }
 
   if (qrCode.mode === "BUSINESS_CARD") {
@@ -308,13 +314,40 @@ export async function GET(
     });
   }
 
+  if (qrCode.mode === "TIPS") {
+    await prisma.qRCode.update({
+      where: { id: qrCode.id },
+      data: { scansCount: { increment: 1 } },
+    });
+    const { resolveTipsConfig } = await import("@/lib/tips-config");
+    const tips = resolveTipsConfig(qrCode.establishment, qrCode);
+    const tipsType = tips?.tipsType || "PHONE";
+    let employees = null;
+    if (tipsType === "EMPLOYEES" && qrCode.establishmentId) {
+      employees = await prisma.tipsEmployee.findMany({
+        where: { establishmentId: qrCode.establishmentId },
+        orderBy: { order: "asc" },
+        select: { id: true, name: true, photoUrl: true, paymentType: true, paymentUrl: true, phone: true, bankName: true },
+      });
+    }
+    return NextResponse.json({
+      needsActivation: false,
+      mode: "TIPS",
+      tipsType,
+      redirectUrl: tipsType === "REDIRECT" ? tips?.tipsUrl ?? null : null,
+      tipsPhone: tips?.tipsPhone ?? null,
+      tipsBankName: tips?.tipsBankName ?? null,
+      employees,
+    });
+  }
+
   if (!qrCode.establishment) {
     return NextResponse.json({ needsActivation: true, code: id });
   }
 
   const est = qrCode.establishment;
   const sub = est.user.subscriptions[0];
-  const isPro = sub?.plan === "PRO";
+  const isPro = sub?.plan === "PRO" || sub?.plan === "NETWORK";
 
   let promoCode: string | undefined;
   if (isPro && est.promocodes.length > 0) {

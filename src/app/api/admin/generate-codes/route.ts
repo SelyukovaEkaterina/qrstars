@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin-auth";
 import prisma from "@/lib/prisma";
 import { generateQRCode } from "@/lib/utils";
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const { error } = await requireAdmin();
+  if (error) return error;
 
   const body = await request.json();
   const { count = 10, prefix = "" } = body;
@@ -34,7 +31,7 @@ export async function POST(request: Request) {
   const created = await Promise.all(
     codes.map((code) =>
       prisma.qRCode.create({
-        data: { code },
+        data: { code, source: "MARKETPLACE" },
       })
     )
   );

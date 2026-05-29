@@ -99,10 +99,10 @@ export default function BasicAnalytics({ establishments }: Props) {
   );
 
   const totalScans = filteredQrs.reduce((a, q) => a + q.scansCount, 0);
-  const reviewScans = filteredQrs
-    .filter((q) => q.mode === "REVIEW")
+  const reviewCapableScans = filteredQrs
+    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
     .reduce((a, q) => a + q.scansCount, 0);
-  const otherScans = totalScans - reviewScans;
+  const otherScans = totalScans - reviewCapableScans;
 
   const ratingDistribution = [1, 2, 3, 4, 5].map((r) => ({
     rating: r,
@@ -117,8 +117,8 @@ export default function BasicAnalytics({ establishments }: Props) {
       : "—";
 
   const conversionRate =
-    reviewScans > 0
-      ? ((allReviews.length / reviewScans) * 100).toFixed(1)
+    reviewCapableScans > 0
+      ? ((allReviews.length / reviewCapableScans) * 100).toFixed(1)
       : "—";
 
   const last30Days = new Date();
@@ -407,8 +407,8 @@ export default function BasicAnalytics({ establishments }: Props) {
                   <MessageSquare className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{reviewScans}</p>
-                  <p className="text-sm text-gray-500">Сканы QR-отзывов</p>
+                  <p className="text-2xl font-bold">{reviewCapableScans}</p>
+                  <p className="text-sm text-gray-500">Сканы с отзывами</p>
                 </div>
               </div>
             </Card>
@@ -630,14 +630,14 @@ export default function BasicAnalytics({ establishments }: Props) {
                     ? est.qrcodes.filter((q) => q.id === filterQrId)
                     : est.qrcodes;
                   const estScans = estQrs.reduce((a, q) => a + q.scansCount, 0);
-                  const estReviewScans = estQrs
-                    .filter((q) => q.mode === "REVIEW")
+                  const estReviewCapableScans = estQrs
+                    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
                     .reduce((a, q) => a + q.scansCount, 0);
                   const estReviews = est.reviews.filter(
                     (r) => !filterQrId || r.qrCodeId === filterQrId
                   ).length;
-                  const estConv = estReviewScans > 0
-                    ? ((estReviews / estReviewScans) * 100).toFixed(1)
+                  const estConv = estReviewCapableScans > 0
+                    ? ((estReviews / estReviewCapableScans) * 100).toFixed(1)
                     : "—";
                   return (
                     <div

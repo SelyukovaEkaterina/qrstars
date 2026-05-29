@@ -38,6 +38,8 @@ interface BusinessCardData {
     MessengerContactItem,
     "id" | "provider" | "externalId" | "label"
   > | null;
+  tipsUrl?: string | null;
+  tipsLabel?: string | null;
 }
 
 const defaultCard: BusinessCardData = {
@@ -56,6 +58,8 @@ const defaultCard: BusinessCardData = {
   contactEnabled: false,
   contactMessengerId: null,
   contactMessenger: null,
+  tipsUrl: null,
+  tipsLabel: null,
 };
 
 const socialTypes = [
@@ -337,19 +341,26 @@ export default function BusinessCardConstructor({
         )}
       </Card>
 
-      {brandColor && (
-        <p className="text-xs text-gray-500 -mt-2 mb-4">
-          Цвет шапки и кнопок совпадает с{" "}
-          <span className="inline-flex items-center gap-1 font-medium text-gray-700">
-            <span
-              className="inline-block w-3 h-3 rounded-full border border-gray-200"
-              style={{ backgroundColor: brandColor }}
-            />
-            цветом бренда
-          </span>{" "}
-          в блоке выше.
+      <Card>
+        <h3 className="font-semibold text-gray-900 mb-1">Чаевые</h3>
+        <p className="text-sm text-gray-500 mb-4">
+          Добавьте ссылку на сервис чаевых. На визитке появится кнопка.
         </p>
-      )}
+        <div className="space-y-4">
+          <Input
+            label="Ссылка на чаевые"
+            value={card.tipsUrl || ""}
+            onChange={(e) => updateField("tipsUrl", e.target.value || null)}
+            placeholder="https://boosty.to/..."
+          />
+          <Input
+            label="Текст кнопки"
+            value={card.tipsLabel || ""}
+            onChange={(e) => updateField("tipsLabel", e.target.value || null)}
+            placeholder="Оставить чаевые"
+          />
+        </div>
+      </Card>
 
       <div className="flex items-center gap-3">
         <Button onClick={handleSave} disabled={saving}>

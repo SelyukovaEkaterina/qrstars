@@ -3,6 +3,20 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { createPayment } from "@/lib/yookassa";
+import {
+  calcSubscriptionAmount,
+  formatRub,
+  hasPaidFeatures,
+  PLANS,
+  type BillingPeriod,
+  type PlanId,
+} from "@/lib/plans";
+import {
+  buildSubscriptionContext,
+  countUserEstablishments,
+  findLatestSubscription,
+  findActiveSubscription,
+} from "@/lib/subscription-utils";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -11,13 +25,19 @@ export async function GET() {
   }
 
   const userId = (session.user as Record<string, unknown>).id as string;
+  const [activeSubscription, latestSubscription, establishmentCount] = await Promise.all([
+    findActiveSubscription(userId),
+    findLatestSubscription(userId),
+    countUserEstablishments(userId),
+  ]);
 
-  const subscription = await prisma.subscription.findFirst({
-    where: { userId },
-    orderBy: { createdAt: "desc" },
+  const ctx = buildSubscriptionContext(activeSubscription, establishmentCount);
+
+  return NextResponse.json({
+    subscription: activeSubscription ?? latestSubscription,
+    ...ctx,
+    plans: PLANS,
   });
-
-  return NextResponse.json({ subscription });
 }
 
 export async function POST(request: Request) {
@@ -28,43 +48,72 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { action } = body;
+  const { action, plan: targetPlan, billing: billingRaw } = body;
+  const billing: BillingPeriod =
+    billingRaw === "yearly" ? "yearly" : "monthly";
 
   if (action === "subscribe") {
-    const existing = await prisma.subscription.findFirst({
-      where: { userId, status: "ACTIVE", plan: "PRO" },
-    });
-
-    if (existing) {
-      return NextResponse.json({ error: "У вас уже есть Pro-подписка" }, { status: 400 });
+    const plan = targetPlan as "PRO" | "NETWORK";
+    if (plan !== "PRO" && plan !== "NETWORK") {
+      return NextResponse.json({ error: "Укажите тариф PRO или Сеть" }, { status: 400 });
     }
 
+    const existing = await findActiveSubscription(userId);
+    if (existing && hasPaidFeatures(existing.plan)) {
+      const isUpgrade = existing.plan === "PRO" && plan === "NETWORK";
+      if (!isUpgrade) {
+        return NextResponse.json(
+          { error: "У вас уже есть активная платная подписка" },
+          { status: 400 }
+        );
+      }
+      await prisma.subscription.update({
+        where: { id: existing.id },
+        data: { status: "CANCELED", cancelAtPeriodEnd: false },
+      });
+    }
+
+    const establishmentCount = await countUserEstablishments(userId);
+    const amount = calcSubscriptionAmount(plan, billing, establishmentCount);
+    const planLabel = plan === "PRO" ? "PRO" : "Сеть";
+    const periodLabel = billing === "yearly" ? "1 год" : "1 месяц";
+
     if (!process.env.YOOKASSA_SHOP_ID) {
+      const periodMs =
+        billing === "yearly" ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
       await prisma.subscription.upsert({
         where: { id: `mock-${userId}` },
-        update: { plan: "PRO", status: "ACTIVE" },
+        update: {
+          plan,
+          status: "ACTIVE",
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + periodMs),
+          cancelAtPeriodEnd: false,
+        },
         create: {
-          plan: "PRO",
+          id: `mock-${userId}`,
+          plan,
           status: "ACTIVE",
           user: { connect: { id: userId } },
           currentPeriodStart: new Date(),
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          currentPeriodEnd: new Date(Date.now() + periodMs),
         },
       });
 
-      return NextResponse.json({ success: true, mode: "mock" });
+      return NextResponse.json({ success: true, mode: "mock", plan });
     }
 
     const payment = await createPayment(
-      990,
-      "QrStars.ru Pro — подписка на 1 месяц",
+      amount,
+      `QrStars.ru ${planLabel} — подписка на ${periodLabel}`,
       userId,
-      { type: "subscription" }
+      { type: "subscription", plan, billing }
     );
 
     return NextResponse.json({
       paymentUrl: payment.confirmation?.confirmation_url,
       paymentId: payment.id,
+      amount,
     });
   }
 

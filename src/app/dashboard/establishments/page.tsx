@@ -20,10 +20,13 @@ import {
   MousePointerClick,
   X,
   Settings,
+  Crown,
 } from "lucide-react";
+import Link from "next/link";
 
 interface Establishment {
   id: string;
+  isOwner?: boolean;
   name: string;
   address: string | null;
   phone: string | null;
@@ -55,6 +58,8 @@ function EstablishmentsPageContent() {
   const [creating, setCreating] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [canAddEstablishment, setCanAddEstablishment] = useState(true);
+  const [upgradeRequired, setUpgradeRequired] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -72,10 +77,15 @@ function EstablishmentsPageContent() {
     Promise.all([
       fetch("/api/establishments").then((r) => r.json()),
       fetch("/api/qrcodes").then((r) => r.json()),
+      fetch("/api/subscription").then((r) => r.json()),
     ])
-      .then(([estData, qrData]) => {
+      .then(([estData, qrData, subData]) => {
         setEstablishments(estData.establishments || []);
         setQrcodes(qrData.qrcodes || []);
+        setCanAddEstablishment(subData.canAddEstablishment !== false);
+        setUpgradeRequired(
+          subData.upgradeHint?.requiredPlan || null
+        );
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -111,6 +121,10 @@ function EstablishmentsPageContent() {
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Ошибка");
+        if (data.upgradeRequired) {
+          setUpgradeRequired(data.upgradeRequired);
+          setCanAddEstablishment(false);
+        }
         return;
       }
 
@@ -188,11 +202,40 @@ function EstablishmentsPageContent() {
                 Управляйте вашими компаниями и их QR-кодами
               </p>
             </div>
-            <Button onClick={() => setShowCreate(true)}>
+            <Button
+              onClick={() => setShowCreate(true)}
+              disabled={!canAddEstablishment}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Добавить заведение
             </Button>
           </div>
+
+          {!canAddEstablishment && (
+            <Card className="border-amber-200 bg-amber-50/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <Crown className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-amber-900">
+                      Лимит заведений на текущем тарифе
+                    </p>
+                    <p className="text-sm text-amber-800 mt-0.5">
+                      {upgradeRequired === "NETWORK"
+                        ? "Для второй и следующих точек подключите тариф «Сеть»."
+                        : "На FREE и PRO доступно 1 заведение."}
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/dashboard/subscription"
+                  className="text-sm font-semibold text-indigo-600 hover:text-indigo-800 shrink-0"
+                >
+                  Сменить тариф →
+                </Link>
+              </div>
+            </Card>
+          )}
 
           <DashboardOnboardingBanner
             establishments={establishments.map((e) => ({ id: e.id, name: e.name }))}
@@ -241,7 +284,7 @@ function EstablishmentsPageContent() {
                   onChange={(e) =>
                     setForm({ ...form, name: e.target.value })
                   }
-                  placeholder="Кофейня «Бобр»"
+                  placeholder="Кафе, салон, клиника, автосервис…"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
@@ -330,6 +373,11 @@ function EstablishmentsPageContent() {
                         <h3 className="font-semibold text-gray-900 text-lg">
                           {est.name}
                         </h3>
+                        {est.isOwner === false && (
+                          <Badge variant="warning" className="text-xs">
+                            Совместный доступ
+                          </Badge>
+                        )}
                       </div>
                       {est.address && (
                         <p className="text-sm text-gray-500 mb-3">
@@ -362,17 +410,20 @@ function EstablishmentsPageContent() {
                       <Badge variant="info" className="text-xs">
                         {new Date(est.createdAt).toLocaleDateString("ru-RU")}
                       </Badge>
-                      <button
-                        onClick={() => handleDelete(est.id)}
-                        disabled={deleting === est.id}
-                        className="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
-                      >
-                        {deleting === est.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="w-4 h-4" />
-                        )}
-                      </button>
+                      {est.isOwner !== false && (
+                        <button
+                          onClick={() => handleDelete(est.id)}
+                          disabled={deleting === est.id}
+                          className="p-2 text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                          title="Удалить заведение"
+                        >
+                          {deleting === est.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      )}
                     </div>
                   </div>
                 </Card>

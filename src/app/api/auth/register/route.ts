@@ -1,9 +1,29 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { notifyNewUserRegistration } from "@/lib/telegram-support";
+import {
+  acceptInviteByToken,
+  acceptPendingInvitesForUser,
+  normalizeInviteEmail,
+} from "@/lib/establishment-access";
 
 export async function POST(request: Request) {
-  const { email, password, name, phone, consentPd, ref } = await request.json();
+  // Rate limit: 10 регистраций в час с одного IP (в e2e все запросы с одного IP)
+  if (process.env.DISABLE_REGISTER_RATE_LIMIT !== "true") {
+    const ip = getClientIp(request);
+    const rl = rateLimit(`register:${ip}`, 10, 60 * 60_000);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: "Слишком много попыток регистрации. Попробуйте позже." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+      );
+    }
+  }
+
+  const { email, password, name, phone, consentPd, ref, establishmentInvite } =
+    await request.json();
 
   if (!consentPd) {
     return NextResponse.json(
@@ -19,6 +39,8 @@ export async function POST(request: Request) {
     );
   }
 
+  const normalizedEmail = normalizeInviteEmail(email);
+
   if (password.length < 6) {
     return NextResponse.json(
       { error: "Пароль должен быть не менее 6 символов" },
@@ -26,7 +48,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
+  const existingUser = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (existingUser) {
     return NextResponse.json(
       { error: "Пользователь с таким email уже существует" },
@@ -39,20 +61,33 @@ export async function POST(request: Request) {
   let referredById: string | null = null;
   if (ref) {
     const referrer = await prisma.user.findUnique({ where: { referralCode: ref } });
-    if (referrer && referrer.email !== email) {
+    if (referrer && normalizeInviteEmail(referrer.email) !== normalizedEmail) {
       referredById = referrer.id;
     }
   }
 
   const user = await prisma.user.create({
     data: {
-      email,
+      email: normalizedEmail,
       name: name || null,
       phone: phone || null,
       hashedPassword,
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
     },
   });
+
+  if (typeof establishmentInvite === "string" && establishmentInvite) {
+    await acceptInviteByToken(establishmentInvite, user.id, normalizedEmail);
+  }
+  await acceptPendingInvitesForUser(user.id, normalizedEmail);
+
+  void notifyNewUserRegistration({
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    phone: user.phone,
+    referredById,
+  }).catch((err) => console.error("notifyNewUserRegistration:", err));
 
   return NextResponse.json({
     success: true,

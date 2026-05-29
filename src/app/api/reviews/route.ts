@@ -6,19 +6,57 @@ import { DEMO_ESTABLISHMENT_ID, demo2EstablishmentId } from "@/lib/demo-qrcodes"
 import { sendNegativeReviewNotification } from "@/lib/mailer";
 import { sendTelegramNotification } from "@/lib/telegram";
 import { sendMaxNotification } from "@/lib/max";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { establishmentAccessWhere } from "@/lib/establishment-access";
 
 export async function POST(request: Request) {
+  // Rate limit: 10 отзывов в минуту с одного IP
+  const ip = getClientIp(request);
+  const rl = rateLimit(`review:${ip}`, 10, 60_000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Слишком много запросов. Попробуйте позже." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSeconds) } }
+    );
+  }
+
   const body = await request.json();
-  const { establishmentId, qrCodeId, rating, comment, guestName, guestPhone, isNegative } = body;
+  const { establishmentId, qrCodeId, rating, comment, guestName, guestPhone, isNegative, pdConsentGiven } = body;
 
   if (!establishmentId || !rating) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  }
+
+  // Валидация rating
+  if (typeof rating !== "number" || rating < 1 || rating > 5) {
+    return NextResponse.json({ error: "Неверная оценка" }, { status: 400 });
   }
 
   if (establishmentId === DEMO_ESTABLISHMENT_ID || establishmentId === demo2EstablishmentId) {
     return NextResponse.json({ success: true, demo: true });
   }
 
+  // Проверяем что заведение существует (защита от спама на несуществующие ID)
+  const establishment = await prisma.establishment.findUnique({
+    where: { id: establishmentId },
+    select: { id: true },
+  });
+  if (!establishment) {
+    return NextResponse.json({ error: "Заведение не найдено" }, { status: 404 });
+  }
+
+  // Если передан qrCodeId — проверяем что он принадлежит этому заведению
+  if (qrCodeId) {
+    const qr = await prisma.qRCode.findFirst({
+      where: { id: qrCodeId, establishmentId },
+      select: { id: true },
+    });
+    if (!qr) {
+      return NextResponse.json({ error: "QR-код не найден" }, { status: 404 });
+    }
+  }
+
+  const consentIp = getClientIp(request);
   const review = await prisma.review.create({
     data: {
       establishment: { connect: { id: establishmentId } },
@@ -28,6 +66,7 @@ export async function POST(request: Request) {
       guestName: guestName || null,
       guestPhone: guestPhone || null,
       isNegative,
+      ...(pdConsentGiven && guestPhone ? { pdConsentAt: new Date(), pdConsentIp: consentIp } : {}),
     },
     include: { establishment: { include: { user: true } } },
   });
@@ -114,7 +153,7 @@ export async function GET(request: Request) {
 
   if (establishmentId) {
     const est = await prisma.establishment.findFirst({
-      where: { id: establishmentId, userId: session.user.id },
+      where: { id: establishmentId, ...establishmentAccessWhere(session.user.id) },
     });
     if (!est) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -122,7 +161,7 @@ export async function GET(request: Request) {
     establishmentIds = [establishmentId];
   } else {
     const userEstablishments = await prisma.establishment.findMany({
-      where: { userId: session.user.id },
+      where: establishmentAccessWhere(session.user.id),
       select: { id: true },
     });
     establishmentIds = userEstablishments.map((e) => e.id);
