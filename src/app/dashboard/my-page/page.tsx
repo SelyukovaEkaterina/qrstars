@@ -180,6 +180,16 @@ function apiFormToState(f: FormApiShape): FormEditState {
 
 type EditorTab = BuiltinModuleKey | "custom-new" | `custom-${string}` | `menu-${string}` | `bizcard-${string}` | `wifi-${string}` | `form-${string}` | "add-menu" | "add-bizcard" | "add-wifi";
 
+function editorTabToPreviewSection(
+  tab: EditorTab | null,
+  moduleTypes: ModuleTypes
+): string {
+  if (!tab || tab === "custom-new" || tab.startsWith("add-")) return "home";
+  if (isBuiltinModuleKey(tab)) return tab;
+  if (customModuleKeyToId(tab) || isTypedModuleKey(tab, moduleTypes)) return tab;
+  return "home";
+}
+
 export default function MyPageDashboard() {
   const { status } = useSession();
   const router = useRouter();
@@ -1178,6 +1188,8 @@ export default function MyPageDashboard() {
     return extraWifiConfigs.find((wc) => wc.id === id) ?? null;
   })();
 
+  const previewSection = editorTabToPreviewSection(activeEditor, moduleTypes);
+
   const isModuleOn = (key: string): boolean => {
     if (isBuiltinModuleKey(key)) return pageModules[key];
     const cId = customModuleKeyToId(key);
@@ -1918,7 +1930,6 @@ export default function MyPageDashboard() {
                       key={activeEditor === "custom-new" ? "new" : activeCustomPage?.id}
                       initialData={activeCustomPage}
                       onSave={handleSaveCustomPage}
-                      onDelete={deleteCustomPage}
                       saving={saving}
                     />
                   )}
@@ -1952,6 +1963,7 @@ export default function MyPageDashboard() {
                        establishmentName={establishmentName}
                        establishmentId={establishmentId}
                        qrCodeId="preview"
+                       syncSection={previewSection}
                        pageModules={pageModules}
                        moduleOrder={effectiveOrder}
                         moduleLabels={moduleLabels}

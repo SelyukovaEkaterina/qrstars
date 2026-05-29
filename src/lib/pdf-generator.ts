@@ -1,16 +1,28 @@
 import { TemplateLayout } from "@/types/template";
 import { generateQRWithCenter, type QRCenterOptions } from "./qr-generator";
+import { toSameOriginStorageUrl } from "@/lib/utils";
 
 const DPI = 300;
 const MM_TO_PX = DPI / 25.4;
 
 function loadImg(src: string): Promise<HTMLImageElement> {
+  const canvasSrc = toSameOriginStorageUrl(src);
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
+    img.onerror = () => {
+      if (canvasSrc !== src) {
+        const fallback = new Image();
+        fallback.crossOrigin = "anonymous";
+        fallback.onload = () => resolve(fallback);
+        fallback.onerror = reject;
+        fallback.src = src;
+        return;
+      }
+      reject(new Error("Failed to load image"));
+    };
+    img.src = canvasSrc;
   });
 }
 

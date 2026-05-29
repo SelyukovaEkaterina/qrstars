@@ -16,7 +16,7 @@ import {
   ShoppingCart,
   Headphones,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOutTo } from "@/lib/sign-out-client";
 
 const navItems = [
   { href: "/admin", label: "Обзор", icon: LayoutDashboard, tourId: "nav-overview" },
@@ -74,7 +74,7 @@ export default function AdminSidebar() {
           В пользовательскую панель
         </Link>
         <button
-          onClick={() => signOut({ callbackUrl: "/admin/login" })}
+          onClick={() => signOutTo("/admin/login")}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-400 hover:bg-gray-800 hover:text-white w-full transition-colors"
         >
           <LogOut className="w-5 h-5" />

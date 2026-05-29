@@ -22,7 +22,7 @@ import {
   Headphones,
   type LucideIcon,
 } from "lucide-react";
-import { signOut } from "next-auth/react";
+import { signOutTo } from "@/lib/sign-out-client";
 
 type NavLink = {
   href: string;
@@ -293,7 +293,7 @@ export default function Sidebar() {
           Помощь
         </button>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={() => signOutTo("/login")}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 w-full transition-colors"
         >
           <LogOut className="w-5 h-5" />

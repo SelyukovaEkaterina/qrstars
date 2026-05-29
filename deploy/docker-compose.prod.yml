@@ -64,6 +64,7 @@ services:
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-qrstars}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smartreview}?schema=public
       REDIS_URL: redis://valkey:6379
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-https://app.qrstars.ru}
     ports:
       - "127.0.0.1:3000:3000"
     depends_on:

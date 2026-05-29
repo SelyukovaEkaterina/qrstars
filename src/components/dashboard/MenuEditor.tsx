@@ -96,8 +96,10 @@ export default function MenuEditor({
   const [expandedItems, setExpandedItems] = useState<Set<number>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
   const [iikoPreviewMenu, setIikoPreviewMenu] = useState<MenuData | null>(null);
+  const [iikoTariffHint, setIikoTariffHint] = useState(false);
 
   const isIiko = menu.source === "IIKO";
+  const showIikoTariffUpsell = !isPro && (iikoTariffHint || isIiko);
 
   const updateField = (field: keyof MenuData, value: string | null) => {
     setMenu((prev) => ({ ...prev, [field]: value }));
@@ -345,7 +347,10 @@ export default function MenuEditor({
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setMenu((prev) => ({ ...prev, source: "MANUAL" }))}
+                  onClick={() => {
+                    setIikoTariffHint(false);
+                    setMenu((prev) => ({ ...prev, source: "MANUAL" }));
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
                     !isIiko ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-300"
                   }`}
@@ -354,18 +359,41 @@ export default function MenuEditor({
                 </button>
                 <button
                   type="button"
-                  disabled={!isPro}
-                  onClick={() => setMenu((prev) => ({ ...prev, source: "IIKO" }))}
+                  onClick={() => {
+                    if (!isPro) {
+                      setIikoTariffHint(true);
+                      return;
+                    }
+                    setIikoTariffHint(false);
+                    setMenu((prev) => ({ ...prev, source: "IIKO" }));
+                  }}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                    isIiko ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-300 disabled:opacity-50"
+                    isIiko ? "bg-indigo-600 text-white border-indigo-600" : "bg-white text-gray-700 border-gray-300"
                   }`}
                 >
                   iiko
                 </button>
               </div>
+              {showIikoTariffUpsell && (
+                <div className="mt-3 flex items-start gap-3 p-4 rounded-xl bg-amber-50 border border-amber-200">
+                  <Crown className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-900">Интеграция iiko — на PRO и Сеть</p>
+                    <p className="text-xs text-amber-800 mt-1">
+                      Подключите тариф PRO или «Сеть», чтобы загружать меню из iiko и принимать заказы в кассу.
+                    </p>
+                    <Link
+                      href="/dashboard/subscription"
+                      className="inline-block mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                    >
+                      Сменить тариф →
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {isIiko && (
+            {isIiko && isPro && (
               <IikoMenuSettings
                 menu={menu}
                 establishmentId={establishmentId}

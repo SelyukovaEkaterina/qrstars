@@ -25,6 +25,46 @@ export function getAppBaseUrl(): string {
   return "https://app.qrstars.ru";
 }
 
+const BEGET_S3_BUCKET = "1919a3d97e3e-qrstarsru";
+
+/** Extract object key from a public S3/CDN URL (e.g. `logos/user/abc.png`). */
+export function storageKeyFromMediaUrl(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.pathname.startsWith("/storage/")) {
+      return parsed.pathname.slice("/storage/".length);
+    }
+    if (parsed.hostname === "s3.qrstars.ru") {
+      return parsed.pathname.replace(/^\//, "");
+    }
+    if (parsed.hostname.includes("storage.beget.cloud")) {
+      const prefix = `/${BEGET_S3_BUCKET}/`;
+      if (parsed.pathname.startsWith(prefix)) {
+        return parsed.pathname.slice(prefix.length);
+      }
+      return parsed.pathname.replace(/^\//, "");
+    }
+    const bucket = process.env.S3_BUCKET || "qrwin-logos";
+    const pathPrefix = `/${bucket}/`;
+    if (parsed.pathname.startsWith(pathPrefix)) {
+      return parsed.pathname.slice(pathPrefix.length);
+    }
+  } catch {
+    // ignore invalid URLs
+  }
+  return null;
+}
+
+/**
+ * Same-origin URL for canvas/image loading (avoids CORS taint on s3.qrstars.ru).
+ * Production nginx proxies `/storage/*` → S3; dev uses next.config rewrites.
+ */
+export function toSameOriginStorageUrl(url: string): string {
+  const key = storageKeyFromMediaUrl(url);
+  if (!key) return url;
+  return `${getAppBaseUrl()}/storage/${key}`;
+}
+
 export function scanUrlForCode(code: string): string {
   return `${getAppBaseUrl()}/q/${code}`;
 }

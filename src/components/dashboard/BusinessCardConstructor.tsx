@@ -6,7 +6,7 @@ import { useSyncPropState } from "@/lib/sync-prop-state";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { Loader2, Plus, Trash2, Eye } from "lucide-react";
+import { Loader2, Plus, Trash2 } from "lucide-react";
 import {
   formatMessengerContactLabel,
   messengerProviderLabel,
@@ -76,7 +76,6 @@ const socialTypes = [
 ];
 
 interface BusinessCardConstructorProps {
-  qrId?: string;
   initialData?: BusinessCardData | null;
   brandColor?: string;
   onSave: (data: BusinessCardData) => Promise<void>;
@@ -84,7 +83,6 @@ interface BusinessCardConstructorProps {
 }
 
 export default function BusinessCardConstructor({
-  qrId,
   initialData,
   brandColor,
   onSave,
@@ -154,12 +152,6 @@ export default function BusinessCardConstructor({
       return;
     }
     onSave(card);
-  };
-
-  const openPreview = () => {
-    if (!qrId) return;
-    localStorage.setItem(`bc-draft-${qrId}`, JSON.stringify(card));
-    window.open(`/dashboard/qrcodes/${qrId}/preview`, "_blank");
   };
 
   const selectedContact = messengerContacts.find((c) => c.id === card.contactMessengerId);
@@ -362,22 +354,16 @@ export default function BusinessCardConstructor({
         </div>
       </Card>
 
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saving}>
-          {saving ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Сохранение...
-            </>
-          ) : (
-            "Сохранить визитку"
-          )}
-        </Button>
-        <Button variant="outline" onClick={openPreview}>
-          <Eye className="w-4 h-4 mr-2" />
-          Превью
-        </Button>
-      </div>
+      <Button onClick={handleSave} disabled={saving}>
+        {saving ? (
+          <>
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+            Сохранение...
+          </>
+        ) : (
+          "Сохранить визитку"
+        )}
+      </Button>
     </div>
   );
 }

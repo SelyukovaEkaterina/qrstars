@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Plus, Trash2, Loader2, Lock } from "lucide-react";
 import Button from "@/components/ui/Button";
 import {
@@ -37,12 +37,26 @@ interface FormEditorProps {
   onSave: (data: Partial<FormEditState> & { fields?: FormFieldEditState[] }) => Promise<void>;
 }
 
+function fieldOptionsKey(field: FormFieldEditState, idx: number): string {
+  return field.id ?? `new-${idx}`;
+}
+
+function parseOptionsText(raw: string): string[] | null {
+  const options = raw
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return options.length > 0 ? options : null;
+}
+
 export default function FormEditor({ initialData, isPro, saving, onSave }: FormEditorProps) {
   const [form, setForm] = useState<FormEditState>(initialData);
+  const [optionsDraft, setOptionsDraft] = useState<Record<string, string>>({});
   const initialFieldsCount = initialData.fields.length;
 
   useEffect(() => {
     setForm(initialData);
+    setOptionsDraft({});
   }, [initialData.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateField = (idx: number, patch: Partial<FormFieldEditState>) => {
@@ -83,14 +97,34 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
     }));
   };
 
+  const commitOptionsDraft = useCallback((idx: number, raw: string) => {
+    const options = parseOptionsText(raw);
+    setForm((prev) => ({
+      ...prev,
+      fields: prev.fields.map((f, i) => (i === idx ? { ...f, options } : f)),
+    }));
+  }, []);
+
+  const flushOptionsDrafts = useCallback((): FormFieldEditState[] => {
+    return form.fields.map((field, idx) => {
+      const key = fieldOptionsKey(field, idx);
+      const draft = optionsDraft[key];
+      if (draft === undefined) return field;
+      return { ...field, options: parseOptionsText(draft) };
+    });
+  }, [form.fields, optionsDraft]);
+
   const handleSave = async () => {
+    const fields = flushOptionsDrafts();
+    setForm((prev) => ({ ...prev, fields }));
+    setOptionsDraft({});
     await onSave({
       title: form.title,
       description: form.description,
       submitLabel: form.submitLabel,
       successMessage: form.successMessage,
       enabled: form.enabled,
-      fields: form.fields,
+      fields,
     });
   };
 
@@ -228,15 +262,23 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
                   </label>
                   <input
                     type="text"
-                    value={(field.options ?? []).join(", ")}
-                    onChange={(e) =>
-                      updateField(idx, {
-                        options: e.target.value
-                          .split(",")
-                          .map((s) => s.trim())
-                          .filter(Boolean),
-                      })
+                    value={
+                      optionsDraft[fieldOptionsKey(field, idx)] ??
+                      (field.options ?? []).join(", ")
                     }
+                    onChange={(e) => {
+                      const key = fieldOptionsKey(field, idx);
+                      setOptionsDraft((prev) => ({ ...prev, [key]: e.target.value }));
+                    }}
+                    onBlur={(e) => {
+                      const key = fieldOptionsKey(field, idx);
+                      commitOptionsDraft(idx, e.target.value);
+                      setOptionsDraft((prev) => {
+                        const next = { ...prev };
+                        delete next[key];
+                        return next;
+                      });
+                    }}
                     placeholder="Опция 1, Опция 2, Опция 3"
                     className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
                   />

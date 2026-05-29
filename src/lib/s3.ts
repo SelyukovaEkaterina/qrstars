@@ -18,6 +18,10 @@ const s3 = new S3Client({
 const BUCKET = process.env.S3_BUCKET || "qrwin-logos";
 
 export function getPublicUrl(key: string): string {
+  const appBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
+  if (appBase) {
+    return `${appBase}/storage/${key}`;
+  }
   const publicBase = process.env.S3_PUBLIC_URL?.replace(/\/$/, "");
   if (publicBase) {
     return `${publicBase}/${key}`;

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
 import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
-import { userNeedsSetupGuide } from "@/lib/setup-guide";
+import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
 
 export default async function DashboardLayout({
   children,
@@ -15,12 +15,13 @@ export default async function DashboardLayout({
   if (!session?.user) redirect("/login");
 
   const userId = (session.user as Record<string, unknown>).id as string;
-  const [user, needsSetup] = await Promise.all([
+  const [user, needsSetup, setupProfile] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { onboardingCompleted: true },
     }),
     userNeedsSetupGuide(userId),
+    getSetupProfile(userId),
   ]);
 
   return (
@@ -28,7 +29,10 @@ export default async function DashboardLayout({
       <SetupGuideRedirect />
       {children}
       {!needsSetup && (
-        <OnboardingTour completed={user?.onboardingCompleted ?? false} />
+        <OnboardingTour
+          completed={user?.onboardingCompleted ?? false}
+          setupProfile={setupProfile}
+        />
       )}
     </>
   );

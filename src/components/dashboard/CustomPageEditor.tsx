@@ -5,7 +5,7 @@ import Button from "@/components/ui/Button";
 import RichTextEditor from "@/components/dashboard/RichTextEditor";
 import FileAssetEditor, { type FileAssetData } from "@/components/dashboard/FileAssetEditor";
 import EmojiPicker from "@/components/ui/EmojiPicker";
-import { Loader2, Trash2, ExternalLink, FileText, Download } from "lucide-react";
+import { Loader2, ExternalLink, FileText, Download } from "lucide-react";
 
 export interface CustomPageData {
   id: string;
@@ -32,7 +32,6 @@ interface CustomPageEditorProps {
     icon?: string | null;
     fileAssetId?: string | null;
   }) => Promise<void>;
-  onDelete?: (id: string) => Promise<void>;
   saving: boolean;
 }
 
@@ -41,7 +40,6 @@ type PageType = "HTML" | "LINK" | "FILE";
 export default function CustomPageEditor({
   initialData,
   onSave,
-  onDelete,
   saving,
 }: CustomPageEditorProps) {
   const [menuItemLabel, setMenuItemLabel] = useState(initialData?.menuItemLabel ?? "");
@@ -66,8 +64,6 @@ export default function CustomPageEditor({
         }
       : null
   );
-  const [deleting, setDeleting] = useState(false);
-
   const handleSave = async () => {
     if (!menuItemLabel.trim()) return;
     if (pageType === "HTML" && !title.trim()) return;
@@ -83,17 +79,6 @@ export default function CustomPageEditor({
       icon,
       fileAssetId: pageType === "FILE" ? fileAsset?.id ?? null : null,
     });
-  };
-
-  const handleDelete = async () => {
-    if (!initialData?.id || !onDelete) return;
-    if (!window.confirm("Удалить эту страницу?")) return;
-    setDeleting(true);
-    try {
-      await onDelete(initialData.id);
-    } finally {
-      setDeleting(false);
-    }
   };
 
   const canSave =
@@ -253,25 +238,6 @@ export default function CustomPageEditor({
             "Создать страницу"
           )}
         </Button>
-
-        {initialData && onDelete && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleDelete}
-            disabled={deleting}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
-          >
-            {deleting ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <>
-                <Trash2 className="w-4 h-4 mr-1" />
-                Удалить
-              </>
-            )}
-          </Button>
-        )}
       </div>
     </div>
   );

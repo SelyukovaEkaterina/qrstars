@@ -92,17 +92,17 @@ export default function SetupStartWizard() {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 text-green-600 mb-2">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Готово! QR работает</h1>
-            <p className="text-gray-600">
+            <h1 className="text-2xl font-bold text-gray-900">Готово! QR-код успешно создан</h1>
+            <p className="text-gray-600 text-sm leading-relaxed">
               {isReviews ? (
                 <>
-                  QR сразу открывает сбор отзывов для «{result.establishment.name}». Оценки 1–3★ — жалоба
-                  вам, 4★ — 2GIS, 5★ — Яндекс.Карты. Меню, Wi‑Fi и визитку настроите в «Моя страница».
+                  Ваш QR-код для заведения <strong className="text-gray-950 font-semibold">«{result.establishment.name}»</strong> настроен на сбор отзывов. 
+                  Теперь при сканировании гости смогут поставить оценку: 5★ переведут их на Яндекс.Карты для публикации отзыва, а оценки 1–3★ отправятся в виде жалобы на вашу почту, не попадая в сеть.
                 </>
               ) : (
                 <>
-                  QR ведёт на страницу заведения «{result.establishment.name}». Какие блоки показывать
-                  (отзывы, меню, Wi‑Fi) — в «Моя страница».
+                  QR-код ведет на мобильный сайт-визитку заведения <strong className="text-gray-950 font-semibold">«{result.establishment.name}»</strong>. 
+                  Вы можете наполнить страницу (добавить меню, Wi-Fi, контакты) или настроить сценарии отзывов в разделе «Моя страница».
                 </>
               )}
             </p>
@@ -139,7 +139,7 @@ export default function SetupStartWizard() {
               className="w-full"
               onClick={() => router.push(`/dashboard/qrcodes/${result.qrcode.id}?welcome=1`)}
             >
-              Настроить QR и скачать табличку
+              Настроить дизайн и скачать QR-код
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
             <Button
@@ -148,7 +148,7 @@ export default function SetupStartWizard() {
               className="w-full"
               onClick={() => router.push("/dashboard/my-page")}
             >
-              Оформить страницу заведения
+              Оформить и наполнить сайт-визитку
             </Button>
             <p className="text-center text-sm text-gray-500">
               <button
@@ -159,8 +159,11 @@ export default function SetupStartWizard() {
                   router.push("/dashboard");
                 }}
               >
-                Перейти в обзор
+                Перейти в личный кабинет
               </button>
+            </p>
+            <p className="text-center text-xs text-gray-400 max-w-sm mx-auto">
+              Ошиблись со сценарием? Вы сможете легко переключить тип QR-кода, изменить ссылки или добавить новые разделы в любой момент из личного кабинета.
             </p>
           </div>
         </div>
@@ -171,19 +174,19 @@ export default function SetupStartWizard() {
   if (step === "intent") {
     return (
       <div className="min-h-screen bg-gradient-to-b from-indigo-50 via-white to-white flex items-center justify-center px-4 py-10">
-        <div className="max-w-lg w-full space-y-8">
+        <div className="max-w-xl w-full space-y-8">
           <div className="text-center space-y-3">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-800 text-sm font-medium">
               <Sparkles className="w-4 h-4" />
               Первый запуск
             </div>
-            <h1 className="text-3xl font-bold text-gray-900">Что хотите настроить?</h1>
-            <p className="text-gray-600 max-w-md mx-auto">
-              Выберите сценарий — поля на следующем шаге подстроятся под вашу задачу.
+            <h1 className="text-3xl font-bold text-gray-900">Что хотите настроить в первую очередь?</h1>
+            <p className="text-gray-600 max-w-md mx-auto text-sm leading-relaxed">
+              Выберите основной сценарий работы вашего QR-кода. Вы всегда сможете изменить настройки или объединить все функции позже в личном кабинете.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2">
             <button
               type="button"
               onClick={() => chooseIntent("reviews")}
@@ -193,10 +196,10 @@ export default function SetupStartWizard() {
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
                   <Star className="w-5 h-5" />
                 </span>
-                <span className="font-semibold text-gray-900">Сбор отзывов</span>
+                <span className="font-semibold text-gray-900">Умный сбор отзывов (QR-отзывик)</span>
               </div>
-              <p className="text-sm text-gray-600">
-                QR сразу на оценки 1–5★. Меню, Wi‑Fi и визитку добавите в личном кабинете.
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Защита от негатива и рост рейтинга на картах. Гости ставят оценки: пятёрки ведут на Яндекс/2GIS, а плохие отзывы отправляются лично вам на почту, минуя публичные платформы.
               </p>
             </button>
 
@@ -209,20 +212,13 @@ export default function SetupStartWizard() {
                 <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-100 text-indigo-700">
                   <LayoutGrid className="w-5 h-5" />
                 </span>
-                <span className="font-semibold text-gray-900">Страница заведения</span>
+                <span className="font-semibold text-gray-900">Сайт-визитка заведения</span>
               </div>
-              <p className="text-sm text-gray-600">
-                QR на общий лендинг. Отзывы, меню и блоки — настроите в «Моя страница».
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Электронное меню, контакты, социальные сети, подключение к Wi-Fi и сбор отзывов — всё в одном месте по одному QR-коду на удобной мобильной мультистранице.
               </p>
             </button>
           </div>
-
-          <p className="text-center text-sm text-gray-500">
-            Уже активировали табличку?{" "}
-            <Link href="/dashboard/activate" className="text-indigo-600 hover:text-indigo-800 font-medium">
-              Ввести мастер-код
-            </Link>
-          </p>
         </div>
       </div>
     );
@@ -239,12 +235,12 @@ export default function SetupStartWizard() {
             Первый запуск
           </div>
           <h1 className="text-3xl font-bold text-gray-900">
-            {isReviews ? "Запустите сбор отзывов" : "Создайте страницу заведения"}
+            {isReviews ? "Настройка сбора отзывов" : "Настройка сайта-визитки"}
           </h1>
-          <p className="text-gray-600 max-w-md mx-auto">
+          <p className="text-gray-600 max-w-md mx-auto text-sm leading-relaxed">
             {isReviews
-              ? "Название и ссылка на Яндекс.Карты — QR сразу откроет сбор отзывов для гостей."
-              : "Достаточно названия — QR на страницу заведения. Ссылки на карты и блоки — в личном кабинете."}
+              ? "Заполните данные вашего заведения, чтобы автоматически перенаправлять гостей с хорошими оценками на Яндекс.Карты, а плохие получать напрямую."
+              : "Введите название вашего заведения. Мы создадим для него персональную страницу и сгенерируем готовый к работе QR-код."}
           </p>
         </div>
 
@@ -253,21 +249,21 @@ export default function SetupStartWizard() {
             <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
               1
             </span>
-            Цель
+            Сценарий
           </span>
           <span className="text-gray-300">→</span>
           <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border border-indigo-200 text-indigo-700">
             <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">
               2
             </span>
-            Заведение
+            Информация
           </span>
           <span className="text-gray-300">→</span>
-          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border">
-            <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">
+          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border text-gray-400">
+            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
               3
             </span>
-            QR-код
+            Готовый QR
           </span>
         </div>
 
@@ -281,7 +277,7 @@ export default function SetupStartWizard() {
             className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition"
           >
             <ChevronLeft className="w-4 h-4" />
-            Изменить сценарий
+            Назад к выбору сценария
           </button>
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -294,7 +290,7 @@ export default function SetupStartWizard() {
                 label="Название заведения *"
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Кафе, салон, клиника, автосервис…"
+                placeholder="Например: Кафе «Аромат», Салон красоты «Престиж»…"
                 required
               />
             </div>
@@ -310,9 +306,9 @@ export default function SetupStartWizard() {
                     placeholder="https://yandex.ru/maps/org/..."
                     required
                   />
-                  <p className="text-xs text-gray-500 mt-1 flex items-start gap-1">
-                    <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-                    Гости с оценкой 5★ перейдут сюда оставить отзыв (на бесплатном тарифе — автоматически).
+                  <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
+                    <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-500" />
+                    Гости с оценкой 5★ перейдут по этой ссылке, чтобы оставить отзыв на Яндекс.Картах.
                   </p>
                 </div>
 
@@ -327,61 +323,59 @@ export default function SetupStartWizard() {
             )}
 
             <Input
-              label="Телефон заведения (необязательно)"
+              label="Номер телефона заведения (необязательно)"
               type="tel"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
-              placeholder="+7 (999) 123-45-67"
+              placeholder="Например: +7 (999) 123-45-67"
             />
 
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? (
-                "Создаём..."
-              ) : (
-                <>
-                  <QrCode className="w-5 h-5 mr-2" />
-                  Создать заведение и QR-код
-                </>
-              )}
-            </Button>
+            <div className="flex gap-3 pt-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setStep("intent");
+                  setError("");
+                }}
+                className="w-1/3"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1 inline shrink-0" />
+                Назад
+              </Button>
+              <Button type="submit" className="flex-1" disabled={loading}>
+                {loading ? (
+                  "Создаём..."
+                ) : (
+                  <>
+                    <QrCode className="w-5 h-5 mr-2" />
+                    Создать QR-код
+                  </>
+                )}
+              </Button>
+            </div>
           </form>
         </Card>
 
         <div className="rounded-xl border border-gray-200 bg-white/80 p-4 text-sm text-gray-600 space-y-2">
-          <p className="font-medium text-gray-900 flex items-center gap-2">
+          <p className="font-semibold text-gray-900 flex items-center gap-2">
             <Store className="w-4 h-4 text-indigo-600" />
-            Что получится
+            Что вы получите в результате:
           </p>
           {isReviews ? (
-            <ul className="list-disc list-inside space-y-1 text-gray-600">
-              <li>QR сразу открывает оценки 1–5★ (не общий лендинг)</li>
-              <li>Негативные оценки — жалоба вам на email (Telegram — в настройках)</li>
-              <li>Меню, Wi‑Fi и визитку на странице заведения — в «Моя страница»</li>
+            <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
+              <li>Готовый QR-код, который при сканировании сразу открывает умную форму оценки 1–5★</li>
+              <li>Автоматическую фильтрацию отзывов: 5★ перенаправляют на Яндекс, плохие оценки — на вашу почту</li>
+              <li>Возможность в любой момент добавить на страницу меню, контакты или Wi-Fi в личном кабинете</li>
             </ul>
           ) : (
-            <ul className="space-y-2 text-gray-600">
-              <li className="flex items-center gap-2">
-                <LayoutGrid className="w-4 h-4 text-indigo-500 shrink-0" />
-                QR на страницу заведения со всеми блоками
-              </li>
-              <li className="flex items-center gap-2">
-                <Star className="w-4 h-4 text-indigo-500 shrink-0" />
-                Отзывы, меню, Wi‑Fi — включите нужное в «Моя страница»
-              </li>
-              <li className="flex items-center gap-2">
-                <MapPin className="w-4 h-4 text-indigo-500 shrink-0" />
-                Ссылки на Яндекс и 2GIS — когда подключите отзывы
-              </li>
+            <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
+              <li>Персональную мобильную мультистраницу вашего заведения со всеми блоками</li>
+              <li>Простой визуальный редактор: легко добавить меню, Wi‑Fi, контакты и социальные сети</li>
+              <li>Уже встроенную форму сбора обратной связи и отзывов от ваших гостей</li>
             </ul>
           )}
         </div>
-
-        <p className="text-center text-sm text-gray-500">
-          Уже активировали табличку?{" "}
-          <Link href="/dashboard/activate" className="text-indigo-600 hover:text-indigo-800 font-medium">
-            Ввести мастер-код
-          </Link>
-        </p>
       </div>
     </div>
   );

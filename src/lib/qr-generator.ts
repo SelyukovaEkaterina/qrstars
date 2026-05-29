@@ -1,14 +1,26 @@
 import QRCodeLib from "qrcode";
+import { toSameOriginStorageUrl } from "@/lib/utils";
 
 const DEFAULT_WATERMARK = "qrstars.ru";
 
 function loadImage(src: string): Promise<HTMLImageElement> {
+  const canvasSrc = toSameOriginStorageUrl(src);
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = src;
+    img.onerror = () => {
+      if (canvasSrc !== src) {
+        const fallback = new Image();
+        fallback.crossOrigin = "anonymous";
+        fallback.onload = () => resolve(fallback);
+        fallback.onerror = reject;
+        fallback.src = src;
+        return;
+      }
+      reject(new Error("Failed to load image"));
+    };
+    img.src = canvasSrc;
   });
 }
 
@@ -105,7 +117,11 @@ export async function generateQRWithCenter(
 
       ctx.drawImage(img, cx - drawW / 2, cy - drawH / 2, drawW, drawH);
     } catch {
-      overlayText = overlayText || DEFAULT_WATERMARK;
+      if (options.isPro) {
+        overlayText = options.centerText || null;
+      } else {
+        overlayText = overlayText || DEFAULT_WATERMARK;
+      }
     }
   }
 

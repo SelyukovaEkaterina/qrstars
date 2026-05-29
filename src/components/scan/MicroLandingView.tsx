@@ -123,6 +123,8 @@ interface MicroLandingViewProps {
   promoCode?: string;
   pdConsent?: PdConsent;
   initialSection?: string;
+  /** When set (e.g. dashboard preview), section follows the active editor tab. */
+  syncSection?: string;
   embedded?: boolean;
   isDemo?: boolean;
   brandColor?: string | null;
@@ -175,6 +177,7 @@ export default function MicroLandingView({
   promoCode,
   pdConsent,
   initialSection,
+  syncSection,
   embedded,
   isDemo = false,
   brandColor,
@@ -188,7 +191,15 @@ export default function MicroLandingView({
   workingHours,
 }: MicroLandingViewProps) {
   const parsedHours = parseWorkingHours(workingHours);
-  const [section, setSectionState] = useState<string>(initialSection ?? "home");
+  const [section, setSectionState] = useState<string>(
+    syncSection ?? initialSection ?? "home"
+  );
+
+  useEffect(() => {
+    if (syncSection !== undefined) {
+      setSectionState(syncSection);
+    }
+  }, [syncSection]);
 
   useEffect(() => {
     if (!establishmentId) return;
@@ -264,9 +275,30 @@ export default function MicroLandingView({
   const extraWifiMap = new Map(extraWifiConfigs.map((wc) => [wc.id, wc]));
   const formsMap = new Map(forms.map((f) => [f.id, f]));
 
+  const hasContent: Record<string, boolean> = {
+    menu: menuHasLandingContent(menu),
+    review: true,
+    businessCard: !!businessCard,
+    wifi: !!wifiConfig,
+    tips: !!tipsConfig?.tipsType,
+  };
+  customPages.forEach((p) => {
+    hasContent[`custom-${p.id}`] =
+      p.type === "LINK" ? !!p.url : p.type === "FILE" ? !!p.fileAsset : !!p.content;
+  });
+  for (const [key, info] of Object.entries(moduleTypes)) {
+    if (info.type === "menu") {
+      hasContent[key] = menuHasLandingContent(extraMenuMap.get(info.instanceId) ?? null);
+    } else if (info.type === "businessCard") hasContent[key] = !!extraBcMap.get(info.instanceId);
+    else if (info.type === "wifi") hasContent[key] = !!extraWifiMap.get(info.instanceId);
+    else if (info.type === "form") hasContent[key] = !!formsMap.get(info.instanceId);
+  }
+
   const sectionContent: React.ReactNode = (() => {
-    if (section === "menu" && menu) {
-      return renderMenuSection(menu, true);
+    if (section !== "home" && !hasContent[section]) return null;
+
+    if (section === "menu" && menuHasLandingContent(menu)) {
+      return renderMenuSection(menu!, true);
     }
 
     if (section === "businessCard" && businessCard) {
@@ -330,7 +362,7 @@ export default function MicroLandingView({
     }
 
     const customId = customModuleKeyToId(section);
-    if (customId) {
+    if (customId && hasContent[section]) {
       const page = customPageMap.get(customId);
       if (page) {
         if (page.type === "FILE" && page.fileAsset) {
@@ -359,7 +391,7 @@ export default function MicroLandingView({
       if (info) {
         if (info.type === "menu") {
           const extraMenu = extraMenuMap.get(info.instanceId);
-          if (extraMenu) {
+          if (extraMenu && menuHasLandingContent(extraMenu)) {
             return renderMenuSection(extraMenu, true);
           }
         }
@@ -414,25 +446,7 @@ export default function MicroLandingView({
     moduleTypes
   );
 
-  const hasContent: Record<string, boolean> = {
-    menu: menuHasLandingContent(menu),
-    review: true,
-    businessCard: !!businessCard,
-    wifi: !!wifiConfig,
-    tips: !!tipsConfig?.tipsType,
-  };
-  customPages.forEach((p) => {
-    hasContent[`custom-${p.id}`] =
-      p.type === "LINK" ? !!p.url : p.type === "FILE" ? !!p.fileAsset : !!p.content;
-  });
-  for (const [key, info] of Object.entries(moduleTypes)) {
-    if (info.type === "menu") {
-      hasContent[key] = menuHasLandingContent(extraMenuMap.get(info.instanceId) ?? null);
-    }
-    else if (info.type === "businessCard") hasContent[key] = !!extraBcMap.get(info.instanceId);
-    else if (info.type === "wifi") hasContent[key] = !!extraWifiMap.get(info.instanceId);
-    else if (info.type === "form") hasContent[key] = !!formsMap.get(info.instanceId);
-  }
+  const visibleModules = enabledModules.filter((key) => hasContent[key]);
 
   const getLabel = (key: string): string => {
     if (isBuiltinModuleKey(key)) return getModuleLabel(key, moduleLabels);
@@ -577,11 +591,10 @@ export default function MicroLandingView({
         </div>
 
         <div className={`space-y-3 w-full ${embedded ? "mt-5" : "mt-8"}`}>
-          {enabledModules.map((key, idx) => {
+          {visibleModules.map((key, idx) => {
             const Icon = getIcon(key, idx);
             const emoji = getEmoji(key);
-            const ready = hasContent[key] !== false;
-            const isHero = idx === 0 && ready;
+            const isHero = idx === 0;
             const isLink = (() => {
               const cId = customModuleKeyToId(key);
               if (!cId) return false;
@@ -594,7 +607,6 @@ export default function MicroLandingView({
               return p?.type === "LINK" ? p.url : null;
             })();
             const handleClick = () => {
-              if (!ready) return;
               if (isLink && linkUrl) {
                 window.open(linkUrl, "_blank");
                 return;
@@ -620,12 +632,9 @@ export default function MicroLandingView({
                 key={key}
                 type="button"
                 onClick={handleClick}
-                disabled={!ready}
-                className={`w-full flex items-center gap-4 rounded-2xl border text-left transition-all backdrop-blur-md ${
+                className={`w-full flex items-center gap-4 rounded-2xl border text-left transition-all backdrop-blur-md hover:shadow-md hover:opacity-95 ${
                   isHero ? "shadow-lg" : "shadow-sm"
-                } ${embedded ? (isHero ? "p-3.5" : "p-3") : isHero ? "p-5" : "p-4"} ${
-                  ready ? "hover:shadow-md hover:opacity-95" : "opacity-50 cursor-not-allowed"
-                }`}
+                } ${embedded ? (isHero ? "p-3.5" : "p-3") : isHero ? "p-5" : "p-4"}`}
                 style={heroStyle}
               >
                 <div
@@ -649,18 +658,11 @@ export default function MicroLandingView({
                   >
                     {getLabel(key)}
                   </p>
-                  {!ready && (
-                    <p className="text-xs mt-0.5" style={{ color: submutedColor(isBg) }}>
-                      Раздел ещё не заполнен
-                    </p>
-                  )}
                 </div>
-                {ready && (
-                  <ChevronRight
-                    className="w-5 h-5 shrink-0"
-                    style={{ color: chevronColor }}
-                  />
-                )}
+                <ChevronRight
+                  className="w-5 h-5 shrink-0"
+                  style={{ color: chevronColor }}
+                />
               </button>
             );
           })}
