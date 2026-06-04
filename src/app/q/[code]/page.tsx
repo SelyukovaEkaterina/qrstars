@@ -1,6 +1,8 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
+import { recordQrScan } from "@/lib/record-qr-scan";
 import { renderDemoScan } from "@/lib/render-demo-scan";
 import {
   isDemoQrCode,
@@ -182,11 +184,18 @@ export default async function ScanPage({ params }: ScanPageProps) {
     redirect(`/activate/${code}`);
   }
 
+  const scanHeaders = await headers();
+
+  const incrementScan = () => {
+    recordQrScan({
+      qrCodeId: qrCode.id,
+      establishmentId: qrCode.establishmentId,
+      headers: scanHeaders,
+    });
+  };
+
   if (qrCode.mode === "REDIRECT" && qrCode.redirectUrl) {
-    prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    }).catch(() => {});
+    incrementScan();
     redirect(qrCode.redirectUrl);
   }
 
@@ -194,13 +203,6 @@ export default async function ScanPage({ params }: ScanPageProps) {
   const rawMenu = resolveMenu(est, qrCode);
   const businessCard = resolveBusinessCard(est, qrCode);
   const wifiConfig = resolveWifiConfig(est, qrCode);
-
-  const incrementScan = () => {
-    prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    }).catch(() => {});
-  };
 
   if (qrCode.mode === "FILE") {
     if (!qrCode.fileAsset) {

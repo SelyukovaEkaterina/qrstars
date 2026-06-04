@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { recordQrScan } from "@/lib/record-qr-scan";
 import {
   demoBusinessCard,
   demoFileAsset,
@@ -28,7 +29,7 @@ import {
 import { DEFAULT_REVIEW_ROUTING, parseReviewRouting, reviewRoutingToJson } from "@/lib/review-routing";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
@@ -257,14 +258,15 @@ export async function GET(
     });
   }
 
+  const logScan = (qrCodeId: string, establishmentId: string | null) => {
+    recordQrScan({ qrCodeId, establishmentId, headers: request.headers });
+  };
+
   if (qrCode.mode === "BUSINESS_CARD") {
     if (!qrCode.businessCard) {
       return NextResponse.json({ needsActivation: true, code: id });
     }
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
+    logScan(qrCode.id, qrCode.establishmentId);
     return NextResponse.json({
       needsActivation: false,
       mode: "BUSINESS_CARD",
@@ -276,10 +278,7 @@ export async function GET(
     if (!qrCode.fileAsset) {
       return NextResponse.json({ needsActivation: true, code: id });
     }
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
+    logScan(qrCode.id, qrCode.establishmentId);
     return NextResponse.json({
       needsActivation: false,
       mode: "FILE",
@@ -291,10 +290,7 @@ export async function GET(
     if (!qrCode.wifiConfig) {
       return NextResponse.json({ needsActivation: true, code: id });
     }
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
+    logScan(qrCode.id, qrCode.establishmentId);
     return NextResponse.json({
       needsActivation: false,
       mode: "WIFI",
@@ -303,10 +299,7 @@ export async function GET(
   }
 
   if (qrCode.mode === "REDIRECT" && qrCode.redirectUrl) {
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
+    logScan(qrCode.id, qrCode.establishmentId);
     return NextResponse.json({
       needsActivation: false,
       mode: "REDIRECT",
@@ -315,10 +308,7 @@ export async function GET(
   }
 
   if (qrCode.mode === "TIPS") {
-    await prisma.qRCode.update({
-      where: { id: qrCode.id },
-      data: { scansCount: { increment: 1 } },
-    });
+    logScan(qrCode.id, qrCode.establishmentId);
     const { resolveTipsConfig } = await import("@/lib/tips-config");
     const tips = resolveTipsConfig(qrCode.establishment, qrCode);
     const tipsType = tips?.tipsType || "PHONE";

@@ -1,7 +1,18 @@
 import type { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
 import { hasPaidFeatures } from "@/lib/plans";
+import {
+  ORPHAN_ESTABLISHMENT_FILTER,
+  ORPHAN_ESTABLISHMENT_LABEL,
+  isOrphanEstablishmentFilter,
+} from "@/lib/orphan-establishment-filter";
 import { findActiveSubscription, userHasPaidFeatures } from "@/lib/subscription-utils";
+
+export {
+  ORPHAN_ESTABLISHMENT_FILTER,
+  ORPHAN_ESTABLISHMENT_LABEL,
+  isOrphanEstablishmentFilter,
+};
 
 export const MAX_ESTABLISHMENT_MEMBERS = 10;
 export const INVITE_RATE_LIMIT_USER = 10;
@@ -47,6 +58,14 @@ export function qrcodeAccessWhere(userId: string): Prisma.QRCodeWhereInput {
         establishment: establishmentAccessWhere(userId),
       },
     ],
+  };
+}
+
+/** QR-коды пользователя без привязки к заведению */
+export function orphanQrcodeWhere(userId: string): Prisma.QRCodeWhereInput {
+  return {
+    userId,
+    establishmentId: null,
   };
 }
 

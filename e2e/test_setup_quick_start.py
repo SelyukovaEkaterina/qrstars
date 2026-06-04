@@ -81,5 +81,67 @@ def test_quick_start_landing_page_without_yandex(base_url):
     page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
     assert page.status_code == 200
     modules = page.json().get("pageModules", {})
-    assert modules.get("review") is True
+    assert modules.get("review") is False
     assert modules.get("menu") is True
+
+
+def test_quick_start_landing_with_yandex_enables_reviews(base_url):
+    email = unique_email("qs3b")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = login(base_url, email, password)
+    yandex = "https://yandex.ru/maps/org/test/456/"
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "landing",
+            "name": "Landing With Reviews",
+            "yandexMapsUrl": yandex,
+        },
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["qrcode"]["mode"] == "LANDING"
+
+    ests = session.get(f"{base_url}/api/establishments")
+    est_list = ests.json().get("establishments", [])
+    assert est_list[0]["yandexMapsUrl"] == yandex
+
+    page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
+    assert page.status_code == 200
+    modules = page.json().get("pageModules", {})
+    assert modules.get("review") is True
+
+
+def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
+    email = unique_email("qs4")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "name": "Redirect Only", "consentPd": True},
+    )
+    session = login(base_url, email, password)
+
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "redirect",
+            "redirectUrl": "https://example.com/promo",
+        },
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["intent"] == "redirect"
+    assert data["qrcode"]["mode"] == "REDIRECT"
+    assert "establishment" not in data
+
+    ests = session.get(f"{base_url}/api/establishments")
+    assert ests.status_code == 200
+    assert len(ests.json().get("establishments", [])) == 0
+
+    status = session.get(f"{base_url}/api/setup/status")
+    assert status.status_code == 200
+    assert status.json().get("needsSetup") is False

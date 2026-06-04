@@ -73,6 +73,7 @@ export async function POST(request: Request) {
       submitLabel: preset.submitLabel,
       successMessage: preset.successMessage,
       preset: preset.id,
+      enabled: false,
       fields: {
         create: preset.fields.map((f, idx) => ({
           label: f.label,

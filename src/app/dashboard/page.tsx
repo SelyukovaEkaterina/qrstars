@@ -11,6 +11,7 @@ import { Star, MessageSquare, QrCode, TrendingUp, TrendingDown, ArrowUpRight, Ba
 import {
   establishmentAccessWhere,
   canAccessAnalytics,
+  orphanQrcodeWhere,
 } from "@/lib/establishment-access";
 import PlanBadge from "@/components/dashboard/PlanBadge";
 
@@ -20,7 +21,7 @@ export default async function DashboardPage() {
 
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const [establishments, subscription, analyticsAccess] = await Promise.all([
+  const [establishments, orphanQrcodes, subscription, analyticsAccess] = await Promise.all([
     prisma.establishment.findMany({
       where: establishmentAccessWhere(userId),
       include: {
@@ -28,6 +29,11 @@ export default async function DashboardPage() {
         qrcodes: { select: { id: true, scansCount: true, label: true, isActive: true, code: true } },
         _count: { select: { reviews: true } },
       },
+    }),
+    prisma.qRCode.findMany({
+      where: orphanQrcodeWhere(userId),
+      select: { id: true, scansCount: true, label: true, isActive: true, code: true },
+      orderBy: { createdAt: "desc" },
     }),
     prisma.subscription.findFirst({
       where: { userId, status: "ACTIVE" },
@@ -40,10 +46,12 @@ export default async function DashboardPage() {
     subscription?.status === "ACTIVE" ? subscription.plan : "FREE";
   const isPro = analyticsAccess;
 
-  const totalScans = establishments.reduce(
+  const establishmentScans = establishments.reduce(
     (acc, e) => acc + e.qrcodes.reduce((a, q) => a + q.scansCount, 0),
     0
   );
+  const orphanScans = orphanQrcodes.reduce((a, q) => a + q.scansCount, 0);
+  const totalScans = establishmentScans + orphanScans;
   const totalReviews = establishments.reduce((acc, e) => acc + e._count.reviews, 0);
 
   const recentReviews = establishments.flatMap((e) =>
@@ -284,7 +292,7 @@ export default async function DashboardPage() {
             </div>
           )}
 
-          {establishments.length === 0 ? (
+          {establishments.length === 0 && orphanQrcodes.length === 0 ? (
             <Card className="text-center py-12 space-y-4">
               <div className="text-5xl mb-2">📋</div>
               <h2 className="text-xl font-semibold text-gray-900">Пока нет заведений</h2>
@@ -298,16 +306,11 @@ export default async function DashboardPage() {
                 >
                   Настроить первый QR
                 </Link>
-                <Link
-                  href="/dashboard/activate"
-                  className="inline-flex items-center justify-center px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors"
-                >
-                  Активировать табличку
-                </Link>
               </div>
             </Card>
           ) : (
             <>
+              {establishments.length > 0 && (
               <div>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Заведения</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -365,6 +368,59 @@ export default async function DashboardPage() {
                   ))}
                 </div>
               </div>
+              )}
+
+              {orphanQrcodes.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900 mb-4">QR без заведения</h2>
+                  <Card>
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <QrCode className="w-5 h-5 text-indigo-600" />
+                        <h3 className="font-semibold text-gray-900">Отдельные QR-коды</h3>
+                      </div>
+                      <Link
+                        href="/dashboard/qrcodes"
+                        className="text-indigo-600 hover:text-indigo-800"
+                      >
+                        <ArrowUpRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-center mb-3">
+                      <div>
+                        <p className="text-lg font-bold text-gray-900">{orphanScans}</p>
+                        <p className="text-xs text-gray-500">Сканирований</p>
+                      </div>
+                      <div>
+                        <p className="text-lg font-bold text-gray-900">
+                          {orphanQrcodes.filter((q) => q.isActive).length}/{orphanQrcodes.length}
+                        </p>
+                        <p className="text-xs text-gray-500">QR-кодов</p>
+                      </div>
+                    </div>
+                    <div className="pt-3 border-t border-gray-100">
+                      <p className="text-xs text-gray-400 mb-2">QR-коды:</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {orphanQrcodes.map((q) => (
+                          <span
+                            key={q.id}
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs ${
+                              q.isActive
+                                ? "bg-green-50 text-green-700"
+                                : "bg-gray-50 text-gray-500"
+                            }`}
+                          >
+                            {q.label || q.code}
+                            <span className="text-[10px] opacity-70">
+                              ({q.scansCount})
+                            </span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+              )}
 
               {recentReviews.length > 0 && (
                 <div>

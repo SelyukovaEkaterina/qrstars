@@ -9,17 +9,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
-    img.onerror = () => {
-      if (canvasSrc !== src) {
-        const fallback = new Image();
-        fallback.crossOrigin = "anonymous";
-        fallback.onload = () => resolve(fallback);
-        fallback.onerror = reject;
-        fallback.src = src;
-        return;
-      }
-      reject(new Error("Failed to load image"));
-    };
+    img.onerror = reject;
     img.src = canvasSrc;
   });
 }

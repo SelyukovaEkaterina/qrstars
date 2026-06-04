@@ -5,7 +5,19 @@ import prisma from "@/lib/prisma";
 import {
   establishmentAccessWhere,
   canAccessAnalytics,
+  orphanQrcodeWhere,
+  isOrphanEstablishmentFilter,
+  ORPHAN_ESTABLISHMENT_FILTER,
+  ORPHAN_ESTABLISHMENT_LABEL,
 } from "@/lib/establishment-access";
+
+/** Ключ даты YYYY-MM-DD в локальной TZ сервера (совпадает с графиками в UI). */
+function localDateKey(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -18,7 +30,12 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const estIdParam = searchParams.get("establishmentId");
 
-  if (!(await canAccessAnalytics(userId, estIdParam))) {
+  if (
+    !(await canAccessAnalytics(
+      userId,
+      isOrphanEstablishmentFilter(estIdParam) ? null : estIdParam
+    ))
+  ) {
     return NextResponse.json({ error: "Требуется платный тариф PRO или Сеть" }, { status: 403 });
   }
 
@@ -71,22 +88,64 @@ export async function GET(request: Request) {
     },
   });
 
-  const filteredEstablishments = estId
-    ? establishments.filter((e) => e.id === estId)
-    : establishments;
+  const orphanQrcodes = await prisma.qRCode.findMany({
+    where: orphanQrcodeWhere(userId),
+    orderBy: { createdAt: "desc" },
+  });
+
+  const isOrphanFilter = isOrphanEstablishmentFilter(estId);
+  const isAllFilter = !estId;
+
+  const filteredEstablishments = isOrphanFilter
+    ? []
+    : estId
+      ? establishments.filter((e) => e.id === estId)
+      : establishments;
+
+  const filteredOrphanQrs = isOrphanFilter || isAllFilter
+    ? orphanQrcodes.filter((q) => !qrCodeId || q.id === qrCodeId)
+    : [];
 
   const allReviews = filteredEstablishments.flatMap((e) =>
     qrCodeId
       ? e.reviews.filter((r) => r.qrCodeId === qrCodeId)
       : e.reviews
   );
-  const allQrs = filteredEstablishments.flatMap((e) =>
-    e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId)
-  );
-  const totalScans = allQrs.reduce((a, q) => a + q.scansCount, 0);
-  const reviewCapableScans = allQrs
-    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
-    .reduce((a, q) => a + q.scansCount, 0);
+  const allQrs = [
+    ...filteredEstablishments.flatMap((e) =>
+      e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId)
+    ),
+    ...filteredOrphanQrs,
+  ];
+  const filteredQrIds = allQrs.map((q) => q.id);
+
+  const [periodScanRecords, prevPeriodScanCount] = await Promise.all([
+    filteredQrIds.length > 0
+      ? prisma.qRScan.findMany({
+          where: {
+            qrCodeId: { in: filteredQrIds },
+            createdAt: { gte: periodStart, lte: periodEnd },
+          },
+          orderBy: { createdAt: "desc" },
+          include: {
+            qrCode: { select: { code: true, label: true, mode: true } },
+          },
+        })
+      : Promise.resolve([]),
+    filteredQrIds.length > 0
+      ? prisma.qRScan.count({
+          where: {
+            qrCodeId: { in: filteredQrIds },
+            createdAt: { gte: prevPeriodStart, lte: prevPeriodEnd },
+          },
+        })
+      : Promise.resolve(0),
+  ]);
+
+  const totalScans = periodScanRecords.length;
+  const reviewCapableScans = periodScanRecords.filter(
+    (s) => s.qrCode.mode === "REVIEW" || s.qrCode.mode === "LANDING"
+  ).length;
   const otherScans = totalScans - reviewCapableScans;
 
   const currentReviews = allReviews.filter((r) => {
@@ -152,12 +211,12 @@ export async function GET(request: Request) {
   for (let i = 0; i <= days; i++) {
     const d = new Date(periodStart);
     d.setDate(d.getDate() + i);
-    const key = d.toISOString().split("T")[0];
+    const key = localDateKey(d);
     if (!dailyMap[key])
       dailyMap[key] = { count: 0, negative: 0, ratingSum: 0 };
   }
   currentReviews.forEach((r) => {
-    const day = new Date(r.createdAt).toISOString().split("T")[0];
+    const day = localDateKey(new Date(r.createdAt));
     if (!dailyMap[day])
       dailyMap[day] = { count: 0, negative: 0, ratingSum: 0 };
     dailyMap[day].count++;
@@ -173,6 +232,40 @@ export async function GET(request: Request) {
       negative: d.negative,
       avgRating: d.count > 0 ? +(d.ratingSum / d.count).toFixed(1) : 0,
     }));
+
+  const dailyScanMap: Record<string, number> = {};
+  for (let i = 0; i <= days; i++) {
+    const d = new Date(periodStart);
+    d.setDate(d.getDate() + i);
+    dailyScanMap[localDateKey(d)] = 0;
+  }
+  periodScanRecords.forEach((s) => {
+    const day = localDateKey(s.createdAt);
+    dailyScanMap[day] = (dailyScanMap[day] ?? 0) + 1;
+  });
+  const dailyScans = Object.entries(dailyScanMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, count]) => ({ date, count }));
+
+  const scanDayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
+  const scanDowMap: Record<number, number> = {};
+  const scanHourMap: Record<number, number> = {};
+  periodScanRecords.forEach((s) => {
+    const dow = s.createdAt.getDay();
+    const dowIdx = dow === 0 ? 6 : dow - 1;
+    scanDowMap[dowIdx] = (scanDowMap[dowIdx] || 0) + 1;
+    const hour = s.createdAt.getHours();
+    scanHourMap[hour] = (scanHourMap[hour] || 0) + 1;
+  });
+  const scanDayOfWeekStats = scanDayNames.map((day, i) => ({
+    day,
+    count: scanDowMap[i] || 0,
+  }));
+  const scanHourStats = Array.from({ length: 24 }, (_, hour) => ({
+    hour,
+    label: `${String(hour).padStart(2, "0")}:00`,
+    count: scanHourMap[hour] || 0,
+  }));
 
   const ratingDistribution = [1, 2, 3, 4, 5].map((r) => ({
     rating: r,
@@ -211,7 +304,7 @@ export async function GET(request: Request) {
     .filter((e) => e.reviews > 0)
     .sort((a, b) => b.reviews - a.reviews);
 
-  const recentReviews = currentReviews.slice(0, 20).map((r) => {
+  const recentReviews = currentReviews.slice(0, 50).map((r) => {
     const est = filteredEstablishments.find((e) => e.id === r.establishmentId);
     return {
       id: r.id,
@@ -224,85 +317,206 @@ export async function GET(request: Request) {
     };
   });
 
-  const qrcodes = filteredEstablishments.flatMap((e) =>
-    e.qrcodes
-      .filter((q) => !qrCodeId || q.id === qrCodeId)
-      .map((q) => ({
-        id: q.id,
-        code: q.code,
-        label: q.label,
-        mode: q.mode,
-        establishmentId: e.id,
-        establishmentName: e.name,
-        scansCount: q.scansCount,
-      }))
-  );
+  const periodReviews = currentReviews.map((r) => {
+    const est = filteredEstablishments.find((e) => e.id === r.establishmentId);
+    return {
+      id: r.id,
+      rating: r.rating,
+      comment: r.comment,
+      guestName: r.guestName,
+      isNegative: r.isNegative,
+      createdAt: r.createdAt.toISOString(),
+      establishmentName: est?.name || "",
+    };
+  });
+
+  const qrcodes = [
+    ...filteredEstablishments.flatMap((e) =>
+      e.qrcodes
+        .filter((q) => !qrCodeId || q.id === qrCodeId)
+        .map((q) => ({
+          id: q.id,
+          code: q.code,
+          label: q.label,
+          mode: q.mode,
+          establishmentId: e.id,
+          establishmentName: e.name,
+        }))
+    ),
+    ...filteredOrphanQrs.map((q) => ({
+      id: q.id,
+      code: q.code,
+      label: q.label,
+      mode: q.mode,
+      establishmentId: ORPHAN_ESTABLISHMENT_FILTER,
+      establishmentName: ORPHAN_ESTABLISHMENT_LABEL,
+    })),
+  ];
+
+  const qrMeta = new Map(qrcodes.map((q) => [q.id, q]));
+
+  const qrScanCounts: Record<string, number> = {};
+  periodScanRecords.forEach((s) => {
+    qrScanCounts[s.qrCodeId] = (qrScanCounts[s.qrCodeId] || 0) + 1;
+  });
 
   const qrReviewCounts: Record<string, number> = {};
-  allReviews.forEach((r) => {
+  currentReviews.forEach((r) => {
     if (r.qrCodeId) {
       qrReviewCounts[r.qrCodeId] = (qrReviewCounts[r.qrCodeId] || 0) + 1;
     }
   });
 
-  const qrcodesWithStats = qrcodes.map((q) => ({
-    ...q,
-    reviewsCount: qrReviewCounts[q.id] || 0,
-    conversionRate:
-      q.scansCount > 0
-        ? +(((qrReviewCounts[q.id] || 0) / q.scansCount) * 100).toFixed(1)
-        : 0,
-  }));
-
-  const establishmentScans = filteredEstablishments.map((e) => {
-    const estQrs = e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId);
-    const estScans = estQrs.reduce((a, q) => a + q.scansCount, 0);
-    const estReviewCapableScans = estQrs
-      .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
-      .reduce((a, q) => a + q.scansCount, 0);
-    const estReviews = allReviews.filter((r) => r.establishmentId === e.id).length;
+  const qrcodesWithStats = qrcodes.map((q) => {
+    const scansCount = qrScanCounts[q.id] || 0;
+    const reviewsCount = qrReviewCounts[q.id] || 0;
     return {
-      id: e.id,
-      name: e.name,
-      scansCount: estScans,
-      reviewsCount: estReviews,
-      qrCount: estQrs.length,
+      ...q,
+      scansCount,
+      reviewsCount,
       conversionRate:
-        estReviewCapableScans > 0 ? +((estReviews / estReviewCapableScans) * 100).toFixed(1) : 0,
+        scansCount > 0 && (q.mode === "REVIEW" || q.mode === "LANDING")
+          ? +((reviewsCount / scansCount) * 100).toFixed(1)
+          : 0,
     };
   });
 
+  const establishmentScans = [
+    ...filteredEstablishments.map((e) => {
+      const estQrs = e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId);
+      const estQrIds = new Set(estQrs.map((q) => q.id));
+      const estPeriodScans = periodScanRecords.filter((s) => estQrIds.has(s.qrCodeId));
+      const estScans = estPeriodScans.length;
+      const estReviewCapableScans = estPeriodScans.filter(
+        (s) => s.qrCode.mode === "REVIEW" || s.qrCode.mode === "LANDING"
+      ).length;
+      const estReviews = currentReviews.filter((r) => r.establishmentId === e.id).length;
+      return {
+        id: e.id,
+        name: e.name,
+        scansCount: estScans,
+        reviewsCount: estReviews,
+        qrCount: estQrs.length,
+        conversionRate:
+          estReviewCapableScans > 0
+            ? +((estReviews / estReviewCapableScans) * 100).toFixed(1)
+            : 0,
+      };
+    }),
+    ...(filteredOrphanQrs.length > 0
+      ? [
+          {
+            id: ORPHAN_ESTABLISHMENT_FILTER,
+            name: ORPHAN_ESTABLISHMENT_LABEL,
+            scansCount: periodScanRecords.filter((s) =>
+              filteredOrphanQrs.some((q) => q.id === s.qrCodeId)
+            ).length,
+            reviewsCount: 0,
+            qrCount: filteredOrphanQrs.length,
+            conversionRate: 0,
+          },
+        ]
+      : []),
+  ];
+
   const modeLabels: Record<string, string> = {
+    LANDING: "Микро-лендинг",
     REVIEW: "Отзывы",
+    MENU: "Меню",
     REDIRECT: "Редирект",
     BUSINESS_CARD: "Визитка",
     WIFI: "Wi-Fi",
     FILE: "Файл",
+    TIPS: "Чаевые",
+    FORM: "Форма",
+    CUSTOM_SECTION: "Раздел",
   };
-  const scansByMode = allQrs.reduce<Record<string, { mode: string; label: string; scans: number; qrCount: number }>>((acc, q) => {
-    if (!acc[q.mode]) {
-      acc[q.mode] = { mode: q.mode, label: modeLabels[q.mode] || q.mode, scans: 0, qrCount: 0 };
+  const scansByMode = periodScanRecords.reduce<
+    Record<string, { mode: string; label: string; scans: number; qrCount: number }>
+  >((acc, s) => {
+    const mode = s.qrCode.mode;
+    if (!acc[mode]) {
+      acc[mode] = {
+        mode,
+        label: modeLabels[mode] || mode,
+        scans: 0,
+        qrCount: 0,
+      };
     }
-    acc[q.mode].scans += q.scansCount;
-    acc[q.mode].qrCount++;
+    acc[mode].scans++;
     return acc;
   }, {});
+  for (const q of allQrs) {
+    if (!scansByMode[q.mode]) {
+      scansByMode[q.mode] = {
+        mode: q.mode,
+        label: modeLabels[q.mode] || q.mode,
+        scans: 0,
+        qrCount: 0,
+      };
+    }
+    scansByMode[q.mode].qrCount++;
+  }
+
+  const aggregateField = (field: "device" | "browser" | "region") => {
+    const map: Record<string, number> = {};
+    periodScanRecords.forEach((s) => {
+      const value = (s[field] || "Неизвестно").trim() || "Неизвестно";
+      map[value] = (map[value] || 0) + 1;
+    });
+    return Object.entries(map)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+  };
+
+  const periodScans = periodScanRecords.map((s) => {
+    const meta = qrMeta.get(s.qrCodeId);
+    return {
+      id: s.id,
+      createdAt: s.createdAt.toISOString(),
+      qrCodeId: s.qrCodeId,
+      qrCode: s.qrCode.code,
+      qrLabel: s.qrCode.label,
+      mode: s.qrCode.mode,
+      establishmentName: meta?.establishmentName || "",
+      device: s.device || "Неизвестно",
+      browser: s.browser || "Неизвестно",
+      region: s.region || "Не определён",
+    };
+  });
 
   return NextResponse.json({
     period: { label: fromParam && toParam ? "custom" : periodParam, days },
     stats,
-    previousPeriod: prevStats,
+    previousPeriod: {
+      ...prevStats,
+      totalScans: prevPeriodScanCount,
+    },
     dailyReviews,
+    dailyScans,
+    scanDayOfWeekStats,
+    scanHourStats,
     ratingDistribution,
     dayOfWeekStats,
     topEstablishments,
     recentReviews,
+    periodReviews,
+    periodScans,
+    deviceStats: aggregateField("device"),
+    browserStats: aggregateField("browser"),
+    regionStats: aggregateField("region"),
     qrcodes: qrcodesWithStats,
     establishmentScans,
     scansByMode: Object.values(scansByMode).sort((a, b) => b.scans - a.scans),
-    establishments: filteredEstablishments.map((e) => ({
-      id: e.id,
-      name: e.name,
-    })),
+    establishments: [
+      ...establishments.map((e) => ({
+        id: e.id,
+        name: e.name,
+      })),
+      ...(orphanQrcodes.length > 0
+        ? [{ id: ORPHAN_ESTABLISHMENT_FILTER, name: ORPHAN_ESTABLISHMENT_LABEL }]
+        : []),
+    ],
   });
 }

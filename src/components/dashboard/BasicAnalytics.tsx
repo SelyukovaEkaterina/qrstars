@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Card from "@/components/ui/Card";
 import {
+  ORPHAN_ESTABLISHMENT_FILTER,
+  ORPHAN_ESTABLISHMENT_LABEL,
+  isOrphanEstablishmentFilter,
+} from "@/lib/orphan-establishment-filter";
+import {
   Star,
   MessageSquare,
   MousePointerClick,
@@ -35,8 +40,17 @@ interface Establishment {
   }[];
 }
 
+interface OrphanQrcode {
+  id: string;
+  code: string;
+  label: string | null;
+  mode: string;
+  scansCount: number;
+}
+
 interface Props {
   establishments: Establishment[];
+  orphanQrcodes?: OrphanQrcode[];
 }
 
 type Tab = "reviews" | "scans";
@@ -75,18 +89,30 @@ function ModeBadge({ mode }: { mode: string }) {
   );
 }
 
-export default function BasicAnalytics({ establishments }: Props) {
+export default function BasicAnalytics({ establishments, orphanQrcodes = [] }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("reviews");
   const [filterEstId, setFilterEstId] = useState<string>("");
   const [filterQrId, setFilterQrId] = useState<string>("");
 
-  const filteredEst = filterEstId
+  const filteredEst = filterEstId && !isOrphanEstablishmentFilter(filterEstId)
     ? establishments.filter((e) => e.id === filterEstId)
-    : establishments;
+    : isOrphanEstablishmentFilter(filterEstId)
+      ? []
+      : establishments;
 
-  const qrcodes = filteredEst.flatMap((e) =>
-    e.qrcodes.map((q) => ({ ...q, establishmentId: e.id, establishmentName: e.name }))
-  );
+  const orphanForFilter =
+    !filterEstId || isOrphanEstablishmentFilter(filterEstId) ? orphanQrcodes : [];
+
+  const qrcodes = [
+    ...filteredEst.flatMap((e) =>
+      e.qrcodes.map((q) => ({ ...q, establishmentId: e.id, establishmentName: e.name }))
+    ),
+    ...orphanForFilter.map((q) => ({
+      ...q,
+      establishmentId: ORPHAN_ESTABLISHMENT_FILTER,
+      establishmentName: ORPHAN_ESTABLISHMENT_LABEL,
+    })),
+  ];
 
   const filteredQrs = filterQrId
     ? qrcodes.filter((q) => q.id === filterQrId)
@@ -99,10 +125,6 @@ export default function BasicAnalytics({ establishments }: Props) {
   );
 
   const totalScans = filteredQrs.reduce((a, q) => a + q.scansCount, 0);
-  const reviewCapableScans = filteredQrs
-    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
-    .reduce((a, q) => a + q.scansCount, 0);
-  const otherScans = totalScans - reviewCapableScans;
 
   const ratingDistribution = [1, 2, 3, 4, 5].map((r) => ({
     rating: r,
@@ -116,6 +138,9 @@ export default function BasicAnalytics({ establishments }: Props) {
       ? (allReviews.reduce((a, r) => a + r.rating, 0) / allReviews.length).toFixed(1)
       : "—";
 
+  const reviewCapableScans = filteredQrs
+    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
+    .reduce((a, q) => a + q.scansCount, 0);
   const conversionRate =
     reviewCapableScans > 0
       ? ((allReviews.length / reviewCapableScans) * 100).toFixed(1)
@@ -158,9 +183,8 @@ export default function BasicAnalytics({ establishments }: Props) {
     scansByMode[q.mode].qrCount++;
   });
   const scansByModeList = Object.values(scansByMode).sort((a, b) => b.scans - a.scans);
-
-  const reviewQrs = filteredQrs.filter((q) => q.mode === "REVIEW");
-  const otherQrs = filteredQrs.filter((q) => q.mode !== "REVIEW");
+  const activeQrCount = filteredQrs.filter((q) => q.scansCount > 0).length;
+  const topScanMode = scansByModeList.find((m) => m.scans > 0);
 
   return (
     <>
@@ -201,10 +225,15 @@ export default function BasicAnalytics({ establishments }: Props) {
               }}
               className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
             >
-              <option value="">Все заведения</option>
+              <option value="">Все</option>
               {establishments.map((est) => (
                 <option key={est.id} value={est.id}>{est.name}</option>
               ))}
+              {orphanQrcodes.length > 0 && (
+                <option value={ORPHAN_ESTABLISHMENT_FILTER}>
+                  {ORPHAN_ESTABLISHMENT_LABEL}
+                </option>
+              )}
             </select>
           </div>
           <div className="hidden sm:block w-px h-8 bg-gray-200" />
@@ -403,36 +432,36 @@ export default function BasicAnalytics({ establishments }: Props) {
             </Card>
             <Card>
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  <MessageSquare className="w-5 h-5 text-indigo-600" />
+                <div className="p-2 bg-teal-50 rounded-lg">
+                  <QrCodeIcon className="w-5 h-5 text-teal-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{reviewCapableScans}</p>
-                  <p className="text-sm text-gray-500">Сканы с отзывами</p>
+                  <p className="text-2xl font-bold">{activeQrCount}</p>
+                  <p className="text-sm text-gray-500">Активных QR-кодов</p>
                 </div>
               </div>
             </Card>
             <Card>
-              <div className="p-2 bg-gray-50 rounded-lg">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-gray-50 rounded-lg">
-                    <QrCodeIcon className="w-5 h-5 text-gray-600" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold">{otherScans}</p>
-                    <p className="text-sm text-gray-500">Прочие сканы</p>
-                  </div>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gray-50 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-gray-600" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold truncate max-w-[120px]">
+                    {topScanMode ? MODE_LABELS[topScanMode.mode] || topScanMode.mode : "—"}
+                  </p>
+                  <p className="text-sm text-gray-500">Популярный тип</p>
                 </div>
               </div>
             </Card>
             <Card>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-blue-50 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-blue-600" />
+                  <MousePointerClick className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{conversionRate}%</p>
-                  <p className="text-sm text-gray-500">Конверсия в отзыв</p>
+                  <p className="text-2xl font-bold">{filteredQrs.length}</p>
+                  <p className="text-sm text-gray-500">QR-кодов в выборке</p>
                 </div>
               </div>
             </Card>
@@ -489,86 +518,10 @@ export default function BasicAnalytics({ establishments }: Props) {
             </Card>
           )}
 
-          {reviewQrs.length > 0 && (
+          {filteredQrs.length > 0 && (
             <Card>
               <h3 className="font-semibold text-gray-900 mb-4">
-                QR-коды отзывов
-              </h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
-                        QR-код
-                      </th>
-                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
-                        Заведение
-                      </th>
-                      <th className="text-right py-2 px-3 text-gray-500 font-medium">
-                        Сканирований
-                      </th>
-                      <th className="text-right py-2 px-3 text-gray-500 font-medium">
-                        Отзывов
-                      </th>
-                      <th className="text-right py-2 px-3 text-gray-500 font-medium">
-                        Конверсия
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {reviewQrs
-                      .sort((a, b) => b.scansCount - a.scansCount)
-                      .map((q) => {
-                        const reviews = qrReviewCounts[q.id] || 0;
-                        const conv = q.scansCount > 0
-                          ? ((reviews / q.scansCount) * 100).toFixed(1)
-                          : "—";
-                        return (
-                          <tr key={q.id} className="border-b border-gray-50">
-                            <td className="py-2 px-3">
-                              <div className="flex items-center gap-2">
-                                <QrCodeIcon className="w-4 h-4 text-gray-400" />
-                                <span className="font-medium">{q.code}</span>
-                                {q.label && (
-                                  <span className="text-gray-400">({q.label})</span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="py-2 px-3 text-gray-600">
-                              {q.establishmentName}
-                            </td>
-                            <td className="text-right py-2 px-3 font-medium">
-                              {q.scansCount}
-                            </td>
-                            <td className="text-right py-2 px-3">
-                              {reviews}
-                            </td>
-                            <td className="text-right py-2 px-3">
-                              <span className={`font-medium ${
-                                conv !== "—" && Number(conv) >= 30
-                                  ? "text-green-600"
-                                  : conv !== "—" && Number(conv) >= 15
-                                    ? "text-yellow-600"
-                                    : conv !== "—"
-                                      ? "text-red-600"
-                                      : "text-gray-400"
-                              }`}>
-                                {conv !== "—" ? `${conv}%` : conv}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          )}
-
-          {otherQrs.length > 0 && (
-            <Card>
-              <h3 className="font-semibold text-gray-900 mb-4">
-                Прочие QR-коды
+                Сканирования по QR-кодам
               </h3>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -589,7 +542,7 @@ export default function BasicAnalytics({ establishments }: Props) {
                     </tr>
                   </thead>
                   <tbody>
-                    {otherQrs
+                    {filteredQrs
                       .sort((a, b) => b.scansCount - a.scansCount)
                       .map((q) => (
                         <tr key={q.id} className="border-b border-gray-50">
@@ -623,22 +576,13 @@ export default function BasicAnalytics({ establishments }: Props) {
             <h3 className="font-semibold text-gray-900 mb-4">
               Сканирования по заведениям
             </h3>
-            {filteredEst.length > 0 ? (
+            {filteredEst.length > 0 || orphanForFilter.length > 0 ? (
               <div className="space-y-4">
                 {filteredEst.map((est) => {
                   const estQrs = filterQrId
                     ? est.qrcodes.filter((q) => q.id === filterQrId)
                     : est.qrcodes;
                   const estScans = estQrs.reduce((a, q) => a + q.scansCount, 0);
-                  const estReviewCapableScans = estQrs
-                    .filter((q) => q.mode === "REVIEW" || q.mode === "LANDING")
-                    .reduce((a, q) => a + q.scansCount, 0);
-                  const estReviews = est.reviews.filter(
-                    (r) => !filterQrId || r.qrCodeId === filterQrId
-                  ).length;
-                  const estConv = estReviewCapableScans > 0
-                    ? ((estReviews / estReviewCapableScans) * 100).toFixed(1)
-                    : "—";
                   return (
                     <div
                       key={est.id}
@@ -651,17 +595,9 @@ export default function BasicAnalytics({ establishments }: Props) {
                             {est.name}
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-gray-500">
-                            {estScans} скан.
-                          </span>
-                          <span className="text-gray-500">
-                            {estReviews} отзыв.
-                          </span>
-                          <span className="font-medium">
-                            {estConv !== "—" ? `${estConv}%` : estConv}
-                          </span>
-                        </div>
+                        <span className="text-sm text-gray-500">
+                          {estScans} скан.
+                        </span>
                       </div>
                       <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                         <div
@@ -686,10 +622,43 @@ export default function BasicAnalytics({ establishments }: Props) {
                     </div>
                   );
                 })}
+                {orphanForFilter.length > 0 && (() => {
+                  const estQrs = filterQrId
+                    ? orphanForFilter.filter((q) => q.id === filterQrId)
+                    : orphanForFilter;
+                  const estScans = estQrs.reduce((a, q) => a + q.scansCount, 0);
+                  return (
+                    <div className="border-b border-gray-50 pb-4 last:border-0 last:pb-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <QrCodeIcon className="w-4 h-4 text-gray-400" />
+                          <span className="font-medium text-gray-900">
+                            {ORPHAN_ESTABLISHMENT_LABEL}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-4 text-sm">
+                          <span className="text-gray-500">
+                            {estScans} скан.
+                          </span>
+                          <span className="text-gray-500">0 отзыв.</span>
+                          <span className="font-medium text-gray-400">—</span>
+                        </div>
+                      </div>
+                      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div
+                          className="h-full rounded-full bg-indigo-500 transition-all"
+                          style={{
+                            width: `${totalScans > 0 ? (estScans / totalScans) * 100 : 0}%`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
-                Нет заведений
+                Нет данных
               </div>
             )}
           </Card>

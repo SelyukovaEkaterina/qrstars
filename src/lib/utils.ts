@@ -29,6 +29,10 @@ const BEGET_S3_BUCKET = "1919a3d97e3e-qrstarsru";
 
 /** Extract object key from a public S3/CDN URL (e.g. `logos/user/abc.png`). */
 export function storageKeyFromMediaUrl(url: string): string | null {
+  if (url.startsWith("/storage/")) {
+    return url.slice("/storage/".length);
+  }
+
   try {
     const parsed = new URL(url);
     if (parsed.pathname.startsWith("/storage/")) {
@@ -55,14 +59,20 @@ export function storageKeyFromMediaUrl(url: string): string | null {
   return null;
 }
 
+/** Normalize any stored media URL to a same-origin `/storage/…` path. */
+export function normalizeMediaUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  const key = storageKeyFromMediaUrl(url);
+  if (key) return `/storage/${key}`;
+  return url;
+}
+
 /**
  * Same-origin URL for canvas/image loading (avoids CORS taint on s3.qrstars.ru).
  * Production nginx proxies `/storage/*` → S3; dev uses next.config rewrites.
  */
 export function toSameOriginStorageUrl(url: string): string {
-  const key = storageKeyFromMediaUrl(url);
-  if (!key) return url;
-  return `${getAppBaseUrl()}/storage/${key}`;
+  return normalizeMediaUrl(url) ?? url;
 }
 
 export function scanUrlForCode(code: string): string {

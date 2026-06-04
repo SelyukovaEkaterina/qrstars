@@ -241,7 +241,7 @@ function EstablishmentsPageContent() {
             establishments={establishments.map((e) => ({ id: e.id, name: e.name }))}
             qrcodes={qrcodes}
             onCreateEstablishment={() => setShowCreate(true)}
-            onCreateQr={(estId) => router.push(`/dashboard/qrcodes?est=${estId}`)}
+            onCreateQr={(estId) => router.push(`/dashboard/qrcodes/new?est=${estId}`)}
             onLinkQr={(estId) =>
               router.push(`/dashboard/qrcodes?linkEst=${estId}`)
             }

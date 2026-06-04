@@ -3,13 +3,15 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
-import { generateQRCode } from "@/lib/utils";
+import { generateQRCode, normalizeMediaUrl } from "@/lib/utils";
 import { userHasPaidFeatures } from "@/lib/subscription-utils";
 import {
   qrcodeAccessWhere,
   establishmentAccessWhere,
   establishmentHasPaidFeatures,
 } from "@/lib/establishment-access";
+import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
+import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
 
 export async function GET(request: Request) {
   try {
@@ -40,6 +42,7 @@ export async function GET(request: Request) {
       },
     },
     template: { select: { id: true, name: true } },
+    qrStyleTemplate: { select: { id: true, name: true, layout: true } },
     businessCard: { include: { contactMessenger: true } },
     wifiConfig: true,
     fileAsset: true,
@@ -64,7 +67,10 @@ export async function GET(request: Request) {
     const isPro = qrcode.establishmentId
       ? await establishmentHasPaidFeatures(qrcode.establishmentId)
       : await userHasPaidFeatures(userId);
-    return NextResponse.json({ qrcode, isPro });
+    return NextResponse.json({
+      qrcode: { ...qrcode, centerLogoUrl: normalizeMediaUrl(qrcode.centerLogoUrl) },
+      isPro,
+    });
   }
 
   const where: Record<string, unknown> = { ...qrcodeAccessWhere(userId) };
@@ -81,6 +87,7 @@ export async function GET(request: Request) {
     include: {
       establishment: { select: { name: true } },
       template: { select: { id: true, name: true } },
+    qrStyleTemplate: { select: { id: true, name: true, layout: true } },
       businessCard: { include: { contactMessenger: true } },
       wifiConfig: true,
       fileAsset: true,
@@ -89,7 +96,13 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({ qrcodes, isPro });
+  return NextResponse.json({
+    qrcodes: qrcodes.map((q) => ({
+      ...q,
+      centerLogoUrl: normalizeMediaUrl(q.centerLogoUrl),
+    })),
+    isPro,
+  });
   } catch (e) {
     console.error("QR GET error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -178,7 +191,7 @@ export async function PUT(request: Request) {
 
     const userId = (session.user as Record<string, unknown>).id as string;
     const body = await request.json();
-    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId, tipsType, tipsPhone, tipsBankName } = body;
+    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, qrStyleTemplateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId, tipsType, tipsPhone, tipsBankName } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID required" }, { status: 400 });
@@ -220,6 +233,16 @@ export async function PUT(request: Request) {
         data.template = { disconnect: true };
       }
     }
+    if (qrStyleTemplateId !== undefined) {
+      if (qrStyleTemplateId) {
+        if (isBuiltInQrStyleTemplateId(qrStyleTemplateId)) {
+          await ensureQrStylePresets();
+        }
+        data.qrStyleTemplate = { connect: { id: qrStyleTemplateId } };
+      } else {
+        data.qrStyleTemplate = { disconnect: true };
+      }
+    }
     if (businessCardId !== undefined) {
       if (businessCardId) {
         data.businessCard = { connect: { id: businessCardId } };
@@ -249,7 +272,9 @@ export async function PUT(request: Request) {
       }
     }
     if (centerText !== undefined) data.centerText = centerText || null;
-    if (centerLogoUrl !== undefined) data.centerLogoUrl = centerLogoUrl || null;
+    if (centerLogoUrl !== undefined) {
+      data.centerLogoUrl = centerLogoUrl ? normalizeMediaUrl(centerLogoUrl) : null;
+    }
     if (tipsType !== undefined) data.tipsType = tipsType || null;
     if (tipsPhone !== undefined) data.tipsPhone = tipsPhone || null;
     if (tipsBankName !== undefined) data.tipsBankName = tipsBankName || null;

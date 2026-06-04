@@ -443,7 +443,8 @@ export default function MicroLandingView({
     pageModules,
     customPages,
     moduleOrder,
-    moduleTypes
+    moduleTypes,
+    forms
   );
 
   const visibleModules = enabledModules.filter((key) => hasContent[key]);
@@ -492,7 +493,7 @@ export default function MicroLandingView({
   };
 
   const wrapperClass = embedded
-    ? "rounded-2xl overflow-hidden relative"
+    ? "overflow-hidden relative"
     : "min-h-screen relative";
 
   const isBg = !!coverUrl;

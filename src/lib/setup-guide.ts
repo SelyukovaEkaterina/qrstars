@@ -2,14 +2,13 @@ import prisma from "@/lib/prisma";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
 
 /** Профиль онбординга по первому QR после мастера «первый запуск». */
-export type SetupProfile = "reviews" | "landing";
+export type SetupProfile = "reviews" | "landing" | "redirect";
 
 export async function getSetupProfile(userId: string): Promise<SetupProfile | null> {
   const qr = await prisma.qRCode.findFirst({
     where: {
       userId,
       isActive: true,
-      establishmentId: { not: null },
       source: "DASHBOARD",
     },
     orderBy: { createdAt: "asc" },
@@ -18,20 +17,19 @@ export async function getSetupProfile(userId: string): Promise<SetupProfile | nu
   if (!qr) return null;
   if (qr.mode === "REVIEW") return "reviews";
   if (qr.mode === "LANDING") return "landing";
+  if (qr.mode === "REDIRECT") return "redirect";
   return null;
 }
 
-/** Нужен мастер «первый запуск» — нет своих заведений и нет доступа как участник команды. */
+/**
+ * Нужен мастер «первый запуск» — нет заведений и нет своих QR (в т.ч. без привязки к заведению).
+ */
 export async function userNeedsSetupGuide(userId: string): Promise<boolean> {
-  const [ownedCount, activeMembershipCount, accessibleCount] = await Promise.all([
-    prisma.establishment.count({ where: { userId } }),
-    prisma.establishmentMember.count({
-      where: { userId, status: "ACTIVE" },
+  const [accessibleCount, ownedQrCount] = await Promise.all([
+    prisma.establishment.count({
+      where: establishmentAccessWhere(userId),
     }),
-    prisma.establishment.count({ where: establishmentAccessWhere(userId) }),
+    prisma.qRCode.count({ where: { userId } }),
   ]);
-
-  if (accessibleCount > 0) return false;
-  if (activeMembershipCount > 0) return false;
-  return ownedCount === 0;
+  return accessibleCount === 0 && ownedQrCount === 0;
 }

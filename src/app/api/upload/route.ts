@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { uploadLogo } from "@/lib/s3";
+import { normalizeMediaUrl } from "@/lib/utils";
 import prisma from "@/lib/prisma";
 
 const ALLOWED_TYPES = ["image/png", "image/jpeg", "image/webp", "image/svg+xml"];
@@ -57,7 +58,7 @@ export async function POST(request: Request) {
   const ext = file.name.split(".").pop() || "png";
   const key = `logos/${userId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  const logoUrl = await uploadLogo(key, buffer, file.type);
+  const logoUrl = normalizeMediaUrl(await uploadLogo(key, buffer, file.type))!;
 
   if (qrId) {
     const qr = await prisma.qRCode.findFirst({

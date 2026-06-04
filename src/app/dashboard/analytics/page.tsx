@@ -6,7 +6,7 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import OverviewTabs from "@/components/dashboard/OverviewTabs";
 import Link from "next/link";
 import { Crown } from "lucide-react";
-import { canAccessAnalytics, establishmentAccessWhere } from "@/lib/establishment-access";
+import { canAccessAnalytics, establishmentAccessWhere, orphanQrcodeWhere } from "@/lib/establishment-access";
 import EnhancedAnalytics from "@/components/dashboard/EnhancedAnalytics";
 import BasicAnalytics from "@/components/dashboard/BasicAnalytics";
 
@@ -16,10 +16,14 @@ export default async function AnalyticsPage() {
 
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const [establishments, isPro] = await Promise.all([
+  const [establishments, orphanQrcodes, isPro] = await Promise.all([
     prisma.establishment.findMany({
       where: establishmentAccessWhere(userId),
       include: { reviews: true, qrcodes: true },
+    }),
+    prisma.qRCode.findMany({
+      where: orphanQrcodeWhere(userId),
+      orderBy: { createdAt: "desc" },
     }),
     canAccessAnalytics(userId),
   ]);
@@ -58,6 +62,14 @@ export default async function AnalyticsPage() {
     })),
   }));
 
+  const serializedOrphanQrcodes = orphanQrcodes.map((q) => ({
+    id: q.id,
+    code: q.code,
+    label: q.label,
+    mode: q.mode,
+    scansCount: q.scansCount,
+  }));
+
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
@@ -89,7 +101,10 @@ export default async function AnalyticsPage() {
             Базовая аналитика
           </h1>
 
-          <BasicAnalytics establishments={serializedEstablishments} />
+          <BasicAnalytics
+            establishments={serializedEstablishments}
+            orphanQrcodes={serializedOrphanQrcodes}
+          />
         </div>
       </main>
     </div>

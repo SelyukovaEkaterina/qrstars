@@ -38,6 +38,7 @@ import {
   getModuleType,
   typedModuleKeyToInstanceId,
   removeModuleType,
+  isTypedModuleLandingEnabled,
   type PageModules,
   type BuiltinModuleKey,
   type ModuleKey,
@@ -80,7 +81,6 @@ import {
   Star,
   ClipboardList,
   Banknote,
-  EyeOff,
   ChevronRight,
   Cloud,
 } from "lucide-react";
@@ -540,6 +540,37 @@ export default function MyPageDashboard() {
     }
   };
 
+  const toggleTypedModuleLanding = async (key: string) => {
+    const info = moduleTypes[key];
+    if (!info) return;
+    const currentlyOn = isTypedModuleLandingEnabled(
+      key,
+      moduleTypes,
+      info.type === "form"
+        ? forms.find((f) => f.id === info.instanceId)?.enabled
+        : undefined
+    );
+    if (info.type === "form") {
+      const res = await fetch("/api/forms", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: info.instanceId, enabled: !currentlyOn }),
+      });
+      if (res.ok) {
+        const { form } = await res.json();
+        setForms((prev) =>
+          prev.map((f) => (f.id === info.instanceId ? apiFormToState(form) : f))
+        );
+      }
+      return;
+    }
+    const newTypes: ModuleTypes = {
+      ...moduleTypes,
+      [key]: { ...info, landingEnabled: !currentlyOn },
+    };
+    await saveModuleTypes(newTypes);
+  };
+
   const deleteCustomPage = async (id: string) => {
     const res = await fetch(`/api/custom-pages?id=${id}`, { method: "DELETE" });
     if (res.ok) {
@@ -978,7 +1009,10 @@ export default function MyPageDashboard() {
       }
       const { menu } = await res.json();
       const key = menuModuleKey(menu.id);
-      const newTypes = { ...moduleTypes, [key]: { type: "menu" as const, instanceId: menu.id } };
+      const newTypes = {
+        ...moduleTypes,
+        [key]: { type: "menu" as const, instanceId: menu.id, landingEnabled: false },
+      };
       setExtraMenus((prev) => [...prev, menu]);
       const order = getEffectiveOrder();
       const newOrder = [...order, key as ModuleKey];
@@ -1010,7 +1044,10 @@ export default function MyPageDashboard() {
       }
       const { businessCard } = await res.json();
       const key = bizcardModuleKey(businessCard.id);
-      const newTypes = { ...moduleTypes, [key]: { type: "businessCard" as const, instanceId: businessCard.id } };
+      const newTypes = {
+        ...moduleTypes,
+        [key]: { type: "businessCard" as const, instanceId: businessCard.id, landingEnabled: false },
+      };
       setExtraBusinessCards((prev) => [...prev, { ...businessCard }]);
       const order = getEffectiveOrder();
       const newOrder = [...order, key as ModuleKey];
@@ -1052,7 +1089,10 @@ export default function MyPageDashboard() {
       }
       const { wifiConfig } = await res.json();
       const key = wifiModuleKey(wifiConfig.id);
-      const newTypes = { ...moduleTypes, [key]: { type: "wifi" as const, instanceId: wifiConfig.id } };
+      const newTypes = {
+        ...moduleTypes,
+        [key]: { type: "wifi" as const, instanceId: wifiConfig.id, landingEnabled: false },
+      };
       setExtraWifiConfigs((prev) => [...prev, wifiConfig]);
       const order = getEffectiveOrder();
       const newOrder = [...order, key as ModuleKey];
@@ -1103,10 +1143,9 @@ export default function MyPageDashboard() {
         return;
       }
       const { form } = await res.json();
-      const state = apiFormToState(form);
       const key = formModuleKey(form.id);
       const newTypes = { ...moduleTypes, [key]: { type: "form" as const, instanceId: form.id } };
-      setForms((prev) => [...prev, state]);
+      setForms((prev) => [...prev, apiFormToState(form)]);
       const order = getEffectiveOrder();
       const newOrder = [...order, key as ModuleKey];
       await saveModuleOrder(newOrder);
@@ -1194,6 +1233,14 @@ export default function MyPageDashboard() {
     if (isBuiltinModuleKey(key)) return pageModules[key];
     const cId = customModuleKeyToId(key);
     if (cId) return customPages.find((p) => p.id === cId)?.enabled ?? false;
+    if (isTypedModuleKey(key, moduleTypes)) {
+      const info = moduleTypes[key];
+      const formEnabled =
+        info.type === "form"
+          ? forms.find((f) => f.id === info.instanceId)?.enabled
+          : undefined;
+      return isTypedModuleLandingEnabled(key, moduleTypes, formEnabled);
+    }
     return true;
   };
 
@@ -1309,11 +1356,12 @@ export default function MyPageDashboard() {
                     >
                       qrstars.ru/a/{shortSlug}
                     </a>
+                    . Используйте её как мобильный сайт заведения — ссылку можно добавить в соцсетях, мессенджерах, объявлениях и где угодно.
                   </p>
                 )}
                 {!shortSlug && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Необязательно. Задайте короткий адрес — латинские буквы, цифры, дефис или подчёркивание.
+                    Необязательно. Задайте короткий адрес — латинские буквы, цифры, дефис или подчёркивание. Его можно публиковать как мобильный сайт заведения — в соцсетях, мессенджерах, объявлениях и где угодно.
                   </p>
                 )}
               </div>
@@ -1769,17 +1817,11 @@ export default function MyPageDashboard() {
                             <button
                               type="button"
                               onClick={() => setActiveEditor(key as EditorTab)}
-                              className={`flex-1 text-left text-sm font-medium transition-colors truncate flex items-center gap-1.5 ${
+                              className={`flex-1 text-left text-sm font-medium transition-colors truncate ${
                                 isActive ? "text-indigo-700" : "text-gray-800 hover:text-indigo-600"
                               } ${!isOn ? "text-gray-400" : ""}`}
                             >
                               <span className="truncate">{label}</span>
-                              {!isOn && (
-                                <span className="inline-flex items-center gap-0.5 text-[10px] uppercase tracking-wide text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
-                                  <EyeOff className="w-3 h-3" />
-                                  скрыт
-                                </span>
-                              )}
                             </button>
                           )}
 
@@ -1794,15 +1836,22 @@ export default function MyPageDashboard() {
                             </button>
                           )}
 
-                          <input
-                            type="checkbox"
-                            checked={isOn}
-                            onChange={() => {
-                              if (isBuiltinModuleKey(key)) toggleModule(key);
-                              else if (isCustom) toggleCustomPage(customModuleKeyToId(key)!);
-                            }}
-                            className="w-4 h-4 text-indigo-600 rounded shrink-0"
-                          />
+                          <div className="flex flex-col items-center gap-0.5 shrink-0">
+                            {!isOn && (
+                              <span className="text-[10px] text-gray-400 leading-none">скрыто</span>
+                            )}
+                            <input
+                              type="checkbox"
+                              checked={isOn}
+                              onChange={() => {
+                                if (isBuiltinModuleKey(key)) toggleModule(key);
+                                else if (isCustom) toggleCustomPage(customModuleKeyToId(key)!);
+                                else if (isTyped) toggleTypedModuleLanding(key);
+                              }}
+                              className="w-4 h-4 text-indigo-600 rounded"
+                              title={isOn ? "Скрыть на лендинге" : "Показать на лендинге"}
+                            />
+                          </div>
 
                           {(isCustom || isTyped) && (
                             <button
@@ -1958,7 +2007,7 @@ export default function MyPageDashboard() {
                       <div className="bg-gray-900 h-5 flex items-center justify-center">
                         <div className="w-16 h-1 bg-gray-700 rounded-full" />
                       </div>
-                      <div className="bg-white rounded-b-[1.5rem] overflow-hidden max-h-[640px] overflow-y-auto">
+                      <div className="overflow-hidden max-h-[640px] overflow-y-auto overscroll-contain">
                     <MicroLandingView
                        establishmentName={establishmentName}
                        establishmentId={establishmentId}

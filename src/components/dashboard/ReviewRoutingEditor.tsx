@@ -535,7 +535,7 @@ function ProUpsellBanner() {
       <div>
         <p className="text-sm font-medium text-amber-900">Доступно на PRO-тарифе</p>
         <p className="text-xs text-amber-800 mt-1">
-          На бесплатном тарифе: 1–3★ — жалоба владельцу, 4★ — 2GIS, 5★ — Яндекс.Карты. Свои сценарии — в PRO.
+          На бесплатном тарифе: 1–3★ — жалоба владельцу, 4–5★ — Яндекс.Карты. Свои сценарии — в PRO.
         </p>
         <Link
           href="/dashboard/subscription"

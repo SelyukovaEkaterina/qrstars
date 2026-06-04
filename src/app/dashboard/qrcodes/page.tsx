@@ -23,11 +23,11 @@ import {
   Link2,
   Copy,
   Check,
-  Package,
 } from "lucide-react";
-import { generateQRWithCenter } from "@/lib/qr-generator";
+import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
 import { scanUrlForCode } from "@/lib/utils";
+import type { QrStyleTemplateSource } from "@/lib/qr-code-templates";
 
 interface QRCodeItem {
   id: string;
@@ -38,8 +38,8 @@ interface QRCodeItem {
   redirectUrl: string | null;
   scansCount: number;
   establishmentId: string | null;
-  centerText: string | null;
-  centerLogoUrl: string | null;
+  qrStyleTemplateId: string | null;
+  qrStyleTemplate: QrStyleTemplateSource | null;
   source: "DASHBOARD" | "MARKETPLACE";
   serialCode: string | null;
   batch: { id: string; masterCode: string; status: string } | null;
@@ -60,23 +60,14 @@ function QRCodesPageContent() {
   const [qrcodes, setQrcodes] = useState<QRCodeItem[]>([]);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [filterEstId, setFilterEstId] = useState<string>("all");
-  const [showAdd, setShowAdd] = useState(false);
   const [showCreateEst, setShowCreateEst] = useState(false);
   const [showLinkQr, setShowLinkQr] = useState(false);
   const [linkEstId, setLinkEstId] = useState("");
   const [selectedLinkQrId, setSelectedLinkQrId] = useState("");
-  const [adding, setAdding] = useState(false);
   const [creatingEst, setCreatingEst] = useState(false);
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
-
-  const [form, setForm] = useState({
-    label: "",
-    establishmentId: "",
-    mode: "LANDING",
-    redirectUrl: "",
-  });
 
   const [estForm, setEstForm] = useState({
     name: "",
@@ -89,13 +80,23 @@ function QRCodesPageContent() {
 
   const unlinkedQrcodes = qrcodes.filter((q) => !q.establishmentId);
 
-  const generateQRImage = useCallback(async (text: string, isPro: boolean, centerText?: string | null, centerLogoUrl?: string | null) => {
-    return generateQRWithCenter(text, {
-      isPro,
-      centerText,
-      centerLogoUrl,
-    }, 256);
-  }, []);
+  const generateQRImage = useCallback(
+    async (
+      text: string,
+      isPro: boolean,
+      qrStyleTemplateId?: string | null,
+      qrStyleTemplate?: QrStyleTemplateSource | null,
+    ) => {
+      const templates = qrStyleTemplate ? [qrStyleTemplate] : [];
+      return qrPreviewDataUrl(text, {
+        qrStyleTemplateId,
+        qrStyleTemplates: templates,
+        isPro,
+        size: 256,
+      });
+    },
+    [],
+  );
 
   const fetchQRCodes = useCallback(
     async (estId?: string) => {
@@ -113,8 +114,8 @@ function QRCodesPageContent() {
           imageUrl: await generateQRImage(
             scanUrlForCode(q.code),
             pro,
-            q.centerText,
-            q.centerLogoUrl
+            q.qrStyleTemplateId,
+            q.qrStyleTemplate,
           ),
         }))
       );
@@ -154,10 +155,9 @@ function QRCodesPageContent() {
     }
     const est = searchParams.get("est");
     if (est) {
-      setForm((prev) => ({ ...prev, establishmentId: est }));
-      setShowAdd(true);
+      router.replace(`/dashboard/qrcodes/new?est=${est}`);
     }
-  }, [searchParams, qrcodes]);
+  }, [searchParams, qrcodes, router]);
 
   const handleFilterChange = async (estId: string) => {
     setFilterEstId(estId);
@@ -252,57 +252,12 @@ function QRCodesPageContent() {
   };
 
   const openCreateQr = (establishmentId: string) => {
-    setForm((prev) => ({ ...prev, establishmentId }));
-    setShowAdd(true);
     setError("");
-  };
-
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAdding(true);
-    setError("");
-
-    try {
-      const payload: Record<string, unknown> = {
-        label: form.label || undefined,
-        mode: form.mode,
-      };
-
-      if (form.establishmentId) {
-        payload.establishmentId = form.establishmentId;
-      }
-
-      if (form.mode === "REDIRECT") {
-        if (!form.redirectUrl) {
-          setError("Укажите URL для редиректа");
-          setAdding(false);
-          return;
-        }
-        payload.redirectUrl = form.redirectUrl;
-      }
-
-      const res = await fetch("/api/qrcodes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Ошибка");
-        return;
-      }
-      setShowAdd(false);
-      setForm({ label: "", establishmentId: "", mode: "LANDING", redirectUrl: "" });
-      if (data.qrcode?.id) {
-        router.push(`/dashboard/qrcodes/${data.qrcode.id}`);
-        return;
-      }
-      await refreshData();
-    } catch {
-      setError("Ошибка соединения");
-    } finally {
-      setAdding(false);
-    }
+    router.push(
+      establishmentId
+        ? `/dashboard/qrcodes/new?est=${establishmentId}`
+        : "/dashboard/qrcodes/new",
+    );
   };
 
   if (loading) {
@@ -329,16 +284,10 @@ function QRCodesPageContent() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <Link href="/dashboard/activate">
-                <Button variant="outline">
-                  <Package className="w-4 h-4 mr-2" />
-                  Активировать табличку
-                </Button>
-              </Link>
               <Button
                 onClick={() => {
-                  setShowAdd(true);
                   setError("");
+                  router.push("/dashboard/qrcodes/new");
                 }}
               >
                 <Plus className="w-4 h-4 mr-2" />
@@ -525,131 +474,6 @@ function QRCodesPageContent() {
             </div>
           </Card>
 
-          {showAdd && (
-            <Card>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">
-                  Новый QR-код
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowAdd(false);
-                    setError("");
-                  }}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <form onSubmit={handleAdd} className="space-y-4">
-                {error && (
-                  <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
-                    {error}
-                  </div>
-                )}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Тип QR-кода
-                  </label>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {[
-                      { value: "LANDING", label: "Лендинг", desc: "Страница заведения · рекомендуем" },
-                      { value: "REVIEW", label: "Отзывы", desc: "Сразу сбор отзывов" },
-                      { value: "REDIRECT", label: "Редирект", desc: "Ссылка на любой сайт" },
-                      { value: "MENU", label: "Меню", desc: "Меню заведения" },
-                      { value: "BUSINESS_CARD", label: "Визитка", desc: "Цифровая визитка" },
-                      { value: "WIFI", label: "Wi-Fi", desc: "Подключение к сети" },
-                    ].map((opt) => (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() => setForm({ ...form, mode: opt.value })}
-                        className={`p-3 rounded-lg border text-left transition-colors ${
-                          form.mode === opt.value
-                            ? "border-indigo-600 bg-indigo-50 text-indigo-700"
-                            : "border-gray-200 hover:border-gray-300 text-gray-700"
-                        }`}
-                      >
-                        <div className="font-medium text-sm">{opt.label}</div>
-                        <div className="text-xs text-gray-400 mt-0.5">{opt.desc}</div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {form.mode === "REDIRECT" && (
-                  <Input
-                    label="URL для перехода *"
-                    type="url"
-                    value={form.redirectUrl}
-                    onChange={(e) => setForm({ ...form, redirectUrl: e.target.value })}
-                    placeholder="https://example.com"
-                  />
-                )}
-
-                {form.mode !== "REDIRECT" && establishments.length === 0 && (
-                  <div className="bg-amber-50 border border-amber-200 text-amber-800 px-4 py-3 rounded-lg text-sm">
-                    Для этого режима нужно заведение.{" "}
-                    <button
-                      type="button"
-                      className="underline font-medium"
-                      onClick={() => { setShowAdd(false); setShowCreateEst(true); setError(""); }}
-                    >
-                      Создать заведение
-                    </button>
-                    {" "}или создайте QR сейчас и привяжите заведение в настройках.
-                  </div>
-                )}
-
-                <Input
-                  label="Метка (необязательно)"
-                  value={form.label}
-                  onChange={(e) =>
-                    setForm({ ...form, label: e.target.value })
-                  }
-                  placeholder="Стол 1, Бар, Вход..."
-                />
-                {establishments.length > 0 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Заведение
-                    </label>
-                    <select
-                      value={form.establishmentId}
-                      onChange={(e) =>
-                        setForm({ ...form, establishmentId: e.target.value })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    >
-                      <option value="">Без привязки (настроить потом)</option>
-                      {establishments.map((est) => (
-                        <option key={est.id} value={est.id}>
-                          {est.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-                <div className="flex gap-3">
-                  <Button type="submit" disabled={adding}>
-                    {adding ? "Создаём..." : "Создать QR-код"}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowAdd(false);
-                      setForm({ label: "", establishmentId: "", mode: "LANDING", redirectUrl: "" });
-                      setError("");
-                    }}
-                  >
-                    Отмена
-                  </Button>
-                </div>
-              </form>
-            </Card>
-          )}
-
           {qrcodes.length === 0 ? (
             <Card className="text-center py-12">
               <QrCode className="w-12 h-12 text-gray-300 mx-auto mb-4" />
@@ -667,7 +491,7 @@ function QRCodesPageContent() {
                       <img
                         src={qr.imageUrl}
                         alt={`QR ${qr.code}`}
-                        className="w-48 h-48 rounded-lg"
+                        className="max-w-48 max-h-56 w-auto h-auto rounded-lg object-contain"
                       />
                     </div>
                     <div>

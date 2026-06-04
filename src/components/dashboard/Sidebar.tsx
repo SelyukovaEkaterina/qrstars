@@ -17,7 +17,6 @@ import {
   Layout,
   Users,
   HelpCircle,
-  Package,
   Inbox,
   Headphones,
   type LucideIcon,
@@ -89,13 +88,6 @@ const navSections: NavSection[] = [
         icon: QrCode,
         tourId: "tour-nav-qrcodes",
       },
-      {
-        href: "/dashboard/activate",
-        label: "Активировать табличку",
-        icon: Package,
-        sub: true,
-        isActive: (p) => p === "/dashboard/activate",
-      },
     ],
   },
   {
@@ -146,6 +138,7 @@ const navSections: NavSection[] = [
         href: "/dashboard/support",
         label: "Поддержка",
         icon: Headphones,
+        tourId: "tour-nav-support",
         badgeKey: "support",
       },
     ],
@@ -286,6 +279,7 @@ export default function Sidebar() {
           <PlanBadge plan={currentPlan} showChangeLink compact />
         </div>
         <button
+          id="tour-nav-help"
           onClick={handleHelpClick}
           className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 w-full transition-colors"
         >

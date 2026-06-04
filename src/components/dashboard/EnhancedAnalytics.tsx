@@ -35,6 +35,9 @@ import {
   FileText,
   ArrowRightCircle,
   CreditCard,
+  Smartphone,
+  Globe,
+  Monitor,
 } from "lucide-react";
 
 interface AnalyticsData {
@@ -52,6 +55,7 @@ interface AnalyticsData {
     totalReviews: number;
     avgRating: number;
     negativePercent: number;
+    totalScans?: number;
   };
   dailyReviews: {
     date: string;
@@ -59,6 +63,9 @@ interface AnalyticsData {
     negative: number;
     avgRating: number;
   }[];
+  dailyScans: { date: string; count: number }[];
+  scanDayOfWeekStats: { day: string; count: number }[];
+  scanHourStats: { hour: number; label: string; count: number }[];
   ratingDistribution: { rating: number; count: number }[];
   dayOfWeekStats: { day: string; count: number }[];
   topEstablishments: {
@@ -76,6 +83,30 @@ interface AnalyticsData {
     createdAt: string;
     establishmentName: string;
   }[];
+  periodReviews: {
+    id: string;
+    rating: number;
+    comment: string | null;
+    guestName: string | null;
+    isNegative: boolean;
+    createdAt: string;
+    establishmentName: string;
+  }[];
+  periodScans: {
+    id: string;
+    createdAt: string;
+    qrCodeId: string;
+    qrCode: string;
+    qrLabel: string | null;
+    mode: string;
+    establishmentName: string;
+    device: string;
+    browser: string;
+    region: string;
+  }[];
+  deviceStats: { name: string; count: number }[];
+  browserStats: { name: string; count: number }[];
+  regionStats: { name: string; count: number }[];
   qrcodes: {
     id: string;
     code: string;
@@ -110,14 +141,20 @@ interface AnalyticsData {
 type Tab = "reviews" | "scans";
 
 const MODE_LABELS: Record<string, string> = {
+  LANDING: "Микро-лендинг",
   REVIEW: "Отзывы",
+  MENU: "Меню",
   REDIRECT: "Редирект",
   BUSINESS_CARD: "Визитка",
   WIFI: "Wi-Fi",
   FILE: "Файл",
+  TIPS: "Чаевые",
+  FORM: "Форма",
+  CUSTOM_SECTION: "Раздел",
 };
 
 const MODE_COLORS: Record<string, string> = {
+  LANDING: "bg-teal-100 text-teal-700",
   REVIEW: "bg-indigo-100 text-indigo-700",
   REDIRECT: "bg-orange-100 text-orange-700",
   BUSINESS_CARD: "bg-purple-100 text-purple-700",
@@ -126,6 +163,7 @@ const MODE_COLORS: Record<string, string> = {
 };
 
 const MODE_PIE_COLORS: Record<string, string> = {
+  LANDING: "#14b8a6",
   REVIEW: "#6366f1",
   REDIRECT: "#f97316",
   BUSINESS_CARD: "#a855f7",
@@ -134,6 +172,7 @@ const MODE_PIE_COLORS: Record<string, string> = {
 };
 
 const MODE_ICONS: Record<string, React.ElementType> = {
+  LANDING: Store,
   REVIEW: MessageSquare,
   REDIRECT: ArrowRightCircle,
   BUSINESS_CARD: CreditCard,
@@ -159,6 +198,16 @@ const PRESETS = [
 ];
 
 const RATING_COLORS = ["#ef4444", "#f97316", "#eab308", "#84cc16", "#22c55e"];
+
+function fmtDateTime(dateStr: string) {
+  return new Date(dateStr).toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 function fmtDate(dateStr: string) {
   return new Date(dateStr).toLocaleDateString("ru-RU", {
@@ -210,7 +259,7 @@ function TrendBadge({
 }
 
 export default function EnhancedAnalytics() {
-  const [activeTab, setActiveTab] = useState<Tab>("reviews");
+  const [activeTab, setActiveTab] = useState<Tab>("scans");
   const [queryStr, setQueryStr] = useState("period=30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
@@ -259,6 +308,41 @@ export default function EnhancedAnalytics() {
 
   const exportCSV = useCallback(() => {
     if (!data) return;
+
+    if (activeTab === "scans") {
+      const headers = [
+        "Дата и время",
+        "QR-код",
+        "Метка",
+        "Тип QR",
+        "Заведение",
+        "Устройство",
+        "Браузер",
+        "Регион",
+      ];
+      const rows = (data.periodScans || []).map((s) => [
+        fmtDateTime(s.createdAt),
+        s.qrCode,
+        `"${(s.qrLabel || "").replace(/"/g, '""')}"`,
+        MODE_LABELS[s.mode] || s.mode,
+        `"${s.establishmentName.replace(/"/g, '""')}"`,
+        s.device,
+        s.browser,
+        `"${s.region.replace(/"/g, '""')}"`,
+      ]);
+      const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const blob = new Blob(["\ufeff" + csv], {
+        type: "text/csv;charset=utf-8",
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `scans_${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      return;
+    }
+
     const headers = [
       "Дата",
       "Заведение",
@@ -267,7 +351,7 @@ export default function EnhancedAnalytics() {
       "Имя гостя",
       "Тип",
     ];
-    const rows = data.recentReviews.map((r) => [
+    const rows = (data.periodReviews || data.recentReviews).map((r) => [
       new Date(r.createdAt).toLocaleDateString("ru-RU"),
       `"${r.establishmentName}"`,
       r.rating,
@@ -275,19 +359,17 @@ export default function EnhancedAnalytics() {
       r.guestName || "",
       r.isNegative ? "Негатив" : "Позитив",
     ]);
-    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join(
-      "\n"
-    );
+    const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob(["\ufeff" + csv], {
       type: "text/csv;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `analytics_${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `reviews_${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [data]);
+  }, [data, activeTab]);
 
   if (loading || !data) {
     return (
@@ -305,10 +387,17 @@ export default function EnhancedAnalytics() {
     stats,
     previousPeriod,
     dailyReviews,
+    dailyScans,
+    scanDayOfWeekStats,
+    scanHourStats,
     ratingDistribution,
     dayOfWeekStats,
     topEstablishments,
     recentReviews,
+    periodScans,
+    deviceStats,
+    browserStats,
+    regionStats,
   } = data;
 
   const scanPieData = (data.scansByMode || []).map((m) => ({
@@ -317,10 +406,10 @@ export default function EnhancedAnalytics() {
     fill: MODE_PIE_COLORS[m.mode] || "#9ca3af",
   }));
 
-  const reviewCapableScans = (data.scansByMode || [])
-    .filter((m) => m.mode === "REVIEW" || m.mode === "LANDING")
-    .reduce((a, m) => a + m.scans, 0);
-  const otherScans = stats.totalScans - reviewCapableScans;
+  const activeQrCount = filteredQrs.filter((q) => q.scansCount > 0).length;
+  const periodDayCount = Math.max(1, (dailyScans || []).length);
+  const avgScansPerDay = +(stats.totalScans / periodDayCount).toFixed(1);
+  const topScanMode = (data.scansByMode || []).find((m) => m.scans > 0);
 
   return (
     <div className="space-y-6">
@@ -332,17 +421,6 @@ export default function EnhancedAnalytics() {
             </h1>
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
-                onClick={() => setActiveTab("reviews")}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
-                  activeTab === "reviews"
-                    ? "bg-white text-indigo-700 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                <MessageSquare className="w-3.5 h-3.5" />
-                Отзывы
-              </button>
-              <button
                 onClick={() => setActiveTab("scans")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
                   activeTab === "scans"
@@ -353,6 +431,17 @@ export default function EnhancedAnalytics() {
                 <MousePointerClick className="w-3.5 h-3.5" />
                 Сканирования
               </button>
+              <button
+                onClick={() => setActiveTab("reviews")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                  activeTab === "reviews"
+                    ? "bg-white text-indigo-700 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                Отзывы
+              </button>
             </div>
           </div>
           <button
@@ -360,7 +449,7 @@ export default function EnhancedAnalytics() {
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors shrink-0"
           >
             <Download className="w-4 h-4" />
-            CSV
+            {activeTab === "scans" ? "CSV сканирований" : "CSV отзывов"}
           </button>
         </div>
 
@@ -376,7 +465,7 @@ export default function EnhancedAnalytics() {
                 }}
                 className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
               >
-                <option value="">Все заведения</option>
+                <option value="">Все</option>
                 {data?.establishments.map((est) => (
                   <option key={est.id} value={est.id}>{est.name}</option>
                 ))}
@@ -797,50 +886,39 @@ export default function EnhancedAnalytics() {
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Все типы QR-кодов
+                За выбранный период
               </p>
+              <div className="mt-2">
+                <TrendBadge
+                  current={stats.totalScans}
+                  previous={previousPeriod.totalScans ?? 0}
+                />
+              </div>
             </Card>
 
             <Card>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">QR-отзывы</p>
+                  <p className="text-sm text-gray-500">Активных QR-кодов</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {reviewCapableScans}
+                    {activeQrCount}
                   </p>
                 </div>
-                <div className="p-2 bg-indigo-50 rounded-lg">
-                  <MessageSquare className="w-5 h-5 text-indigo-600" />
+                <div className="p-2 bg-teal-50 rounded-lg">
+                  <QrCode className="w-5 h-5 text-teal-600" />
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Сканы QR-кодов типа «Отзывы»
+                С хотя бы одним сканом за период
               </p>
             </Card>
 
             <Card>
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-500">Прочие сканы</p>
+                  <p className="text-sm text-gray-500">В среднем в день</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {otherScans}
-                  </p>
-                </div>
-                <div className="p-2 bg-gray-50 rounded-lg">
-                  <QrCode className="w-5 h-5 text-gray-600" />
-                </div>
-              </div>
-              <p className="text-xs text-gray-400 mt-2">
-                Wi-Fi, визитки, редиректы
-              </p>
-            </Card>
-
-            <Card>
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">Конверсия</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {stats.conversionRate}%
+                    {avgScansPerDay}
                   </p>
                 </div>
                 <div className="p-2 bg-blue-50 rounded-lg">
@@ -848,7 +926,33 @@ export default function EnhancedAnalytics() {
                 </div>
               </div>
               <p className="text-xs text-gray-400 mt-2">
-                Отзывы / сканы QR-отзывов
+                На весь выбранный период
+              </p>
+            </Card>
+
+            <Card>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-500">Популярный тип</p>
+                  <p className="text-2xl font-bold text-gray-900 truncate max-w-[140px]">
+                    {topScanMode ? topScanMode.label : "—"}
+                  </p>
+                </div>
+                <div className="p-2 bg-gray-50 rounded-lg">
+                  {topScanMode ? (
+                    (() => {
+                      const Icon = MODE_ICONS[topScanMode.mode] || QrCode;
+                      return <Icon className="w-5 h-5 text-gray-600" />;
+                    })()
+                  ) : (
+                    <QrCode className="w-5 h-5 text-gray-600" />
+                  )}
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-2">
+                {topScanMode
+                  ? `${topScanMode.scans} скан.`
+                  : "Нет сканирований"}
               </p>
             </Card>
           </div>
@@ -856,11 +960,17 @@ export default function EnhancedAnalytics() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <h3 className="font-semibold text-gray-900 mb-4">
-                Конверсия по дням
+                Сканирования по дням
               </h3>
-              {dailyReviews.some((d) => d.count > 0) ? (
+              {(dailyScans || []).some((d) => d.count > 0) ? (
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={dailyReviews}>
+                  <AreaChart data={dailyScans || []}>
+                    <defs>
+                      <linearGradient id="gradScans" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                     <XAxis
                       dataKey="date"
@@ -873,26 +983,20 @@ export default function EnhancedAnalytics() {
                       tick={{ fontSize: 11 }}
                       tickLine={false}
                     />
-                    <Tooltip
-                      labelFormatter={(label) => fmtDate(String(label))}
-                    />
-                    <Bar
+                    <Tooltip labelFormatter={(label) => fmtDate(String(label))} />
+                    <Area
+                      type="monotone"
                       dataKey="count"
-                      fill="#6366f1"
-                      radius={[4, 4, 0, 0]}
-                      name="Отзывы"
+                      stroke="#6366f1"
+                      fill="url(#gradScans)"
+                      strokeWidth={2}
+                      name="Сканирования"
                     />
-                    <Bar
-                      dataKey="negative"
-                      fill="#ef4444"
-                      radius={[4, 4, 0, 0]}
-                      name="Негативные"
-                    />
-                  </BarChart>
+                  </AreaChart>
                 </ResponsiveContainer>
               ) : (
                 <div className="flex items-center justify-center h-[300px] text-gray-400 text-sm">
-                  Нет данных за выбранный период
+                  Нет сканирований за выбранный период
                 </div>
               )}
             </Card>
@@ -933,6 +1037,77 @@ export default function EnhancedAnalytics() {
               ) : (
                 <div className="flex items-center justify-center h-[220px] text-gray-400 text-sm">
                   Нет данных
+                </div>
+              )}
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <h3 className="font-semibold text-gray-900 mb-4">
+                По дням недели
+              </h3>
+              {(scanDayOfWeekStats || []).some((d) => d.count > 0) ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={scanDayOfWeekStats || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="day"
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <Tooltip />
+                    <Bar
+                      dataKey="count"
+                      fill="#6366f1"
+                      radius={[4, 4, 0, 0]}
+                      name="Сканирования"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">
+                  Нет сканирований за выбранный период
+                </div>
+              )}
+            </Card>
+
+            <Card>
+              <h3 className="font-semibold text-gray-900 mb-4">
+                По времени суток
+              </h3>
+              {(scanHourStats || []).some((h) => h.count > 0) ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={scanHourStats || []}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 10 }}
+                      tickLine={false}
+                      interval={2}
+                    />
+                    <YAxis
+                      allowDecimals={false}
+                      tick={{ fontSize: 11 }}
+                      tickLine={false}
+                    />
+                    <Tooltip />
+                    <Bar
+                      dataKey="count"
+                      fill="#14b8a6"
+                      radius={[4, 4, 0, 0]}
+                      name="Сканирования"
+                    />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-[260px] text-gray-400 text-sm">
+                  Нет сканирований за выбранный период
                 </div>
               )}
             </Card>
@@ -982,6 +1157,147 @@ export default function EnhancedAnalytics() {
             </Card>
           )}
 
+          {(deviceStats?.length || browserStats?.length || regionStats?.length) ? (
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card>
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Smartphone className="w-4 h-4 text-gray-400" />
+                  Устройства
+                </h3>
+                {deviceStats && deviceStats.length > 0 ? (
+                  <div className="space-y-2">
+                    {deviceStats.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{item.name}</span>
+                        <span className="font-medium">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">Нет данных</p>
+                )}
+              </Card>
+              <Card>
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Monitor className="w-4 h-4 text-gray-400" />
+                  Браузеры
+                </h3>
+                {browserStats && browserStats.length > 0 ? (
+                  <div className="space-y-2">
+                    {browserStats.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between text-sm">
+                        <span className="text-gray-700">{item.name}</span>
+                        <span className="font-medium">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">Нет данных</p>
+                )}
+              </Card>
+              <Card>
+                <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-gray-400" />
+                  Регионы
+                </h3>
+                {regionStats && regionStats.length > 0 ? (
+                  <div className="space-y-2">
+                    {regionStats.map((item) => (
+                      <div key={item.name} className="flex items-center justify-between text-sm gap-3">
+                        <span className="text-gray-700 truncate">{item.name}</span>
+                        <span className="font-medium shrink-0">{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-400">Нет данных</p>
+                )}
+              </Card>
+            </div>
+          ) : null}
+
+          <Card>
+            <h3 className="font-semibold text-gray-900 mb-4">
+              Сканирования за период
+              {periodScans?.length ? (
+                <span className="ml-2 text-sm font-normal text-gray-400">
+                  ({periodScans.length})
+                </span>
+              ) : null}
+            </h3>
+            {periodScans && periodScans.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        Дата и время
+                      </th>
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        QR-код
+                      </th>
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        Тип
+                      </th>
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        Заведение
+                      </th>
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        Устройство
+                      </th>
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        Браузер
+                      </th>
+                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                        Регион
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {periodScans.map((scan) => (
+                      <tr
+                        key={scan.id}
+                        className="border-b border-gray-50 hover:bg-gray-50"
+                      >
+                        <td className="py-2 px-3 text-gray-600 whitespace-nowrap">
+                          {fmtDateTime(scan.createdAt)}
+                        </td>
+                        <td className="py-2 px-3">
+                          <div className="flex items-center gap-2">
+                            <QrCode className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span className="font-medium">{scan.qrCode}</span>
+                            {scan.qrLabel && (
+                              <span className="text-gray-400">({scan.qrLabel})</span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="py-2 px-3">
+                          <ModeBadge mode={scan.mode} />
+                        </td>
+                        <td className="py-2 px-3 text-gray-600">
+                          {scan.establishmentName || "—"}
+                        </td>
+                        <td className="py-2 px-3 text-gray-600">
+                          {scan.device}
+                        </td>
+                        <td className="py-2 px-3 text-gray-600">
+                          {scan.browser}
+                        </td>
+                        <td className="py-2 px-3 text-gray-600 max-w-[200px] truncate">
+                          {scan.region}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
+                Нет сканирований за выбранный период. Новые сканы будут появляться здесь автоматически.
+              </div>
+            )}
+          </Card>
+
           <Card>
             <h3 className="font-semibold text-gray-900 mb-4">
               Сканирования по QR-кодам
@@ -1003,16 +1319,6 @@ export default function EnhancedAnalytics() {
                       <th className="text-right py-2 px-3 text-gray-500 font-medium">
                         Сканирований
                       </th>
-                      {filteredQrs.some((q) => q.mode === "REVIEW") && (
-                        <>
-                          <th className="text-right py-2 px-3 text-gray-500 font-medium">
-                            Отзывов
-                          </th>
-                          <th className="text-right py-2 px-3 text-gray-500 font-medium">
-                            Конверсия
-                          </th>
-                        </>
-                      )}
                     </tr>
                   </thead>
                   <tbody>
@@ -1041,28 +1347,6 @@ export default function EnhancedAnalytics() {
                           <td className="text-right py-2 px-3 font-medium">
                             {q.scansCount}
                           </td>
-                          {filteredQrs.some((qr) => qr.mode === "REVIEW") && (
-                            <>
-                              <td className="text-right py-2 px-3">
-                                {q.mode === "REVIEW" ? q.reviewsCount : "—"}
-                              </td>
-                              <td className="text-right py-2 px-3">
-                                {q.mode === "REVIEW" && q.scansCount > 0 ? (
-                                  <span className={`font-medium ${
-                                    q.conversionRate >= 30
-                                      ? "text-green-600"
-                                      : q.conversionRate >= 15
-                                        ? "text-yellow-600"
-                                        : "text-red-600"
-                                  }`}>
-                                    {q.conversionRate}%
-                                  </span>
-                                ) : (
-                                  <span className="text-gray-400">—</span>
-                                )}
-                              </td>
-                            </>
-                          )}
                         </tr>
                       ))}
                   </tbody>
@@ -1098,25 +1382,14 @@ export default function EnhancedAnalytics() {
                             ({est.qrCount} QR)
                           </span>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-gray-500">
-                            {est.scansCount} скан.
-                          </span>
-                          <span className="text-gray-500">
-                            {est.reviewsCount} отзыв.
-                          </span>
-                          <span className={`font-medium ${
-                            est.conversionRate >= 30
-                              ? "text-green-600"
-                              : est.conversionRate >= 15
-                                ? "text-yellow-600"
-                                : est.scansCount > 0
-                                  ? "text-red-600"
-                                  : "text-gray-400"
-                          }`}>
-                            {est.scansCount > 0 ? `${est.conversionRate}%` : "—"}
-                          </span>
-                        </div>
+                        <span className="text-sm text-gray-500">
+                          {est.scansCount}{" "}
+                          {est.scansCount === 1
+                            ? "сканирование"
+                            : est.scansCount < 5
+                              ? "сканирования"
+                              : "сканирований"}
+                        </span>
                       </div>
                       <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
                         <div

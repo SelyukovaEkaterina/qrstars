@@ -105,6 +105,7 @@ export async function POST(request: Request) {
       type: pageType,
       url: pageType === "LINK" ? String(url) : null,
       icon: typeof icon === "string" ? icon : null,
+      enabled: false,
       ...(pageType === "FILE" && fileAssetId
         ? { fileAsset: { connect: { id: fileAssetId } } }
         : {}),

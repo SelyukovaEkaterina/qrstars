@@ -110,22 +110,10 @@ function defaultStep(star: StarRating): ReviewStarStep {
       ctaLabel: "Отправить",
     };
   }
-  if (star === 4) {
-    return {
-      action: "TWO_GIS",
-      platformList: [{ type: "TWO_GIS" }],
-      emoji: DEFAULT_STAR_EMOJIS[4],
-      promptTitle: "Спасибо! Оставьте отзыв на карте?",
-      promptSubtitle: "Это поможет нам стать лучше!",
-      thanksTitle: "Спасибо за вашу оценку!",
-      thanksSubtitle: "Будем рады, если поделитесь впечатлением на карте.",
-      ctaLabel: "Оставить отзыв в 2GIS",
-    };
-  }
   return {
     action: "YANDEX",
     platformList: [{ type: "YANDEX" }],
-    emoji: DEFAULT_STAR_EMOJIS[5],
+    emoji: DEFAULT_STAR_EMOJIS[star],
     promptTitle: "Спасибо! Оставьте отзыв на карте?",
     promptSubtitle: "Это поможет нам стать лучше!",
     thanksTitle: "Спасибо за вашу оценку!",

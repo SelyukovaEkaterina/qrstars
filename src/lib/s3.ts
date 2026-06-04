@@ -17,17 +17,9 @@ const s3 = new S3Client({
 
 const BUCKET = process.env.S3_BUCKET || "qrwin-logos";
 
+/** Public URL for uploaded files — always relative, resolved by browser/nginx to same origin. */
 export function getPublicUrl(key: string): string {
-  const appBase = process.env.NEXT_PUBLIC_BASE_URL?.replace(/\/$/, "");
-  if (appBase) {
-    return `${appBase}/storage/${key}`;
-  }
-  const publicBase = process.env.S3_PUBLIC_URL?.replace(/\/$/, "");
-  if (publicBase) {
-    return `${publicBase}/${key}`;
-  }
-  const endpoint = (process.env.S3_ENDPOINT || "http://localhost:9000").replace(/\/$/, "");
-  return `${endpoint}/${BUCKET}/${key}`;
+  return `/storage/${key}`;
 }
 
 export async function ensureBucket(): Promise<void> {

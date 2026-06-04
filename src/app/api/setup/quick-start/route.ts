@@ -11,9 +11,13 @@ import {
   getUpgradeHint,
 } from "@/lib/subscription-utils";
 import { userNeedsSetupGuide } from "@/lib/setup-guide";
-import { DEFAULT_PAGE_MODULES, pageModulesToJson } from "@/lib/page-modules";
+import {
+  DEFAULT_PAGE_MODULES,
+  GUEST_PAGE_MODULES,
+  pageModulesToJson,
+} from "@/lib/page-modules";
 
-export type SetupIntent = "reviews" | "landing";
+export type SetupIntent = "reviews" | "landing" | "redirect";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -23,20 +27,33 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { name, yandexMapsUrl, twoGisUrl, phone, intent: rawIntent } = body as {
+  const { name, yandexMapsUrl, twoGisUrl, phone, redirectUrl, intent: rawIntent } = body as {
     name?: string;
     yandexMapsUrl?: string;
     twoGisUrl?: string;
     phone?: string;
+    redirectUrl?: string;
     intent?: string;
   };
 
-  const intent: SetupIntent = rawIntent === "landing" ? "landing" : "reviews";
+  const intent: SetupIntent = rawIntent === "redirect" ? "redirect" : rawIntent === "landing" ? "landing" : "reviews";
   const trimmedName = name?.trim();
   const trimmedYandex = yandexMapsUrl?.trim();
+  const trimmedRedirect = redirectUrl?.trim();
 
-  if (!trimmedName) {
-    return NextResponse.json({ error: "Укажите название заведения" }, { status: 400 });
+  if (intent === "redirect") {
+    if (!trimmedRedirect) {
+      return NextResponse.json({ error: "Укажите ссылку для перенаправления" }, { status: 400 });
+    }
+    try {
+      new URL(trimmedRedirect);
+    } catch {
+      return NextResponse.json({ error: "Некорректная ссылка для перенаправления" }, { status: 400 });
+    }
+  } else {
+    if (!trimmedName) {
+      return NextResponse.json({ error: "Укажите название заведения" }, { status: 400 });
+    }
   }
 
   if (intent === "reviews") {
@@ -76,13 +93,13 @@ export async function POST(request: Request) {
     }
   }
 
-  const qrMode = intent === "reviews" ? "REVIEW" : "LANDING";
-  const qrLabel = intent === "reviews" ? "Отзывы" : "Основной";
+  const qrMode = intent === "reviews" ? "REVIEW" : intent === "redirect" ? "REDIRECT" : "LANDING";
+  const qrLabel = intent === "reviews" ? "Отзывы" : intent === "redirect" ? "Редирект" : "Основной";
 
   const needsGuide = await userNeedsSetupGuide(userId);
   const ownedCount = await prisma.establishment.count({ where: { userId } });
 
-  if (!needsGuide && ownedCount > 0) {
+  if (intent !== "redirect" && !needsGuide && ownedCount > 0) {
     return NextResponse.json(
       { error: "У вас уже есть заведение. Создайте QR в разделе «QR-коды»." },
       { status: 400 }
@@ -118,14 +135,49 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Не удалось сгенерировать QR-код" }, { status: 500 });
   }
 
-  const result = await prisma.$transaction(async (tx) => {
+  if (intent === "redirect") {
+    const qrcode = await prisma.$transaction(async (tx) => {
+      const qr = await tx.qRCode.create({
+        data: {
+          code,
+          mode: qrMode,
+          label: qrLabel,
+          redirectUrl: trimmedRedirect,
+          isActive: true,
+          source: "DASHBOARD",
+          user: { connect: { id: userId } },
+        },
+      });
+
+      await tx.user.update({
+        where: { id: userId },
+        data: { onboardingCompleted: false },
+      });
+
+      return qr;
+    });
+
+    return NextResponse.json({
+      intent,
+      qrcode: {
+        id: qrcode.id,
+        code: qrcode.code,
+        mode: qrcode.mode,
+      },
+    });
+  }
+
+  const pageModules =
+    intent === "landing" && !trimmedYandex ? GUEST_PAGE_MODULES : DEFAULT_PAGE_MODULES;
+
+  const { establishment, qrcode } = await prisma.$transaction(async (tx) => {
     const establishment = await tx.establishment.create({
       data: {
-        name: trimmedName,
+        name: trimmedName!,
         phone: phone?.trim() || null,
         yandexMapsUrl: trimmedYandex || null,
         twoGisUrl: twoGisUrl?.trim() || null,
-        pageModules: pageModulesToJson(DEFAULT_PAGE_MODULES),
+        pageModules: pageModulesToJson(pageModules),
         user: { connect: { id: userId } },
       },
     });
@@ -153,13 +205,13 @@ export async function POST(request: Request) {
   return NextResponse.json({
     intent,
     establishment: {
-      id: result.establishment.id,
-      name: result.establishment.name,
+      id: establishment.id,
+      name: establishment.name,
     },
     qrcode: {
-      id: result.qrcode.id,
-      code: result.qrcode.code,
-      mode: result.qrcode.mode,
+      id: qrcode.id,
+      code: qrcode.code,
+      mode: qrcode.mode,
     },
   });
 }

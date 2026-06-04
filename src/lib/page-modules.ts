@@ -114,8 +114,10 @@ export function resolveEnabledModuleOrder(
   pageModules: PageModules,
   customPages: { id: string; enabled: boolean }[],
   moduleOrder: ModuleKey[] | null,
-  moduleTypes: ModuleTypes
+  moduleTypes: ModuleTypes,
+  forms?: { id: string; enabled: boolean }[]
 ): ModuleKey[] {
+  const formEnabledById = new Map(forms?.map((f) => [f.id, f.enabled]) ?? []);
   const valid = new Set<ModuleKey>();
   LANDING_BUILTIN_MODULE_KEYS.forEach((k) => {
     if (pageModules[k]) valid.add(k);
@@ -124,7 +126,10 @@ export function resolveEnabledModuleOrder(
     if (p.enabled) valid.add(`custom-${p.id}`);
   });
   (Object.keys(moduleTypes) as ModuleKey[]).forEach((k) => {
-    valid.add(k);
+    const info = moduleTypes[k];
+    const formEnabled =
+      info?.type === "form" ? formEnabledById.get(info.instanceId) : undefined;
+    if (isTypedModuleLandingEnabled(k, moduleTypes, formEnabled)) valid.add(k);
   });
 
   if (moduleOrder && moduleOrder.length > 0) {
@@ -140,7 +145,12 @@ export function resolveEnabledModuleOrder(
   const custom = customPages
     .filter((p) => p.enabled)
     .map((p) => `custom-${p.id}` as ModuleKey);
-  const typed = Object.keys(moduleTypes) as ModuleKey[];
+  const typed = (Object.keys(moduleTypes) as ModuleKey[]).filter((k) => {
+    const info = moduleTypes[k];
+    const formEnabled =
+      info?.type === "form" ? formEnabledById.get(info.instanceId) : undefined;
+    return isTypedModuleLandingEnabled(k, moduleTypes, formEnabled);
+  });
   return [...builtin, ...typed, ...custom];
 }
 
@@ -158,6 +168,8 @@ export type TypedModuleType = "menu" | "businessCard" | "wifi" | "form";
 export interface ModuleTypeInfo {
   type: TypedModuleType;
   instanceId: string;
+  /** false — блок скрыт на микро-лендинге (по умолчанию при создании). undefined — виден (старые записи). */
+  landingEnabled?: boolean;
 }
 
 export type ModuleTypes = Record<string, ModuleTypeInfo>;
@@ -170,11 +182,28 @@ export function parseModuleTypes(raw: unknown): ModuleTypes {
     if (val && typeof val === "object") {
       const v = val as Record<string, unknown>;
       if (typeof v.type === "string" && typeof v.instanceId === "string") {
-        result[key] = { type: v.type as TypedModuleType, instanceId: v.instanceId };
+        result[key] = {
+          type: v.type as TypedModuleType,
+          instanceId: v.instanceId,
+          ...(v.landingEnabled === false ? { landingEnabled: false } : {}),
+          ...(v.landingEnabled === true ? { landingEnabled: true } : {}),
+        };
       }
     }
   }
   return result;
+}
+
+/** Включён ли типовой блок на микро-лендинге (меню / визитка / Wi‑Fi / форма). */
+export function isTypedModuleLandingEnabled(
+  key: string,
+  moduleTypes: ModuleTypes,
+  formLandingEnabled?: boolean
+): boolean {
+  const info = moduleTypes[key];
+  if (!info) return false;
+  if (info.type === "form") return formLandingEnabled ?? false;
+  return info.landingEnabled !== false;
 }
 
 export function moduleTypesToJson(types: ModuleTypes): ModuleTypes {
