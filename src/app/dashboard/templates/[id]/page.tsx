@@ -39,7 +39,14 @@ export default function TemplateEditorPage() {
         if (!r.ok) throw new Error("not found");
         return r.json();
       })
-      .then((d) => { setTpl(d.template); setLoading(false); })
+      .then((d) => {
+        if (d.template?.readOnly) {
+          router.replace("/dashboard/templates?tab=table-tent");
+          return;
+        }
+        setTpl(d.template);
+        setLoading(false);
+      })
       .catch(() => { setError("Шаблон не найден"); setLoading(false); });
   }, [status, templateId]);
 

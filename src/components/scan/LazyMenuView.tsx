@@ -152,6 +152,7 @@ export interface LazyMenuViewProps extends BrandThemeScanProps {
   qrLabel?: string;
   isDemo?: boolean;
   pdConsent?: PdConsent;
+  watermarkEnabled?: boolean;
   /** Начать загрузку сразу (для QR-режима «только меню»). */
   loadImmediately?: boolean;
   /** Активна ли секция (для лендинга — грузим при открытии). */
@@ -172,6 +173,7 @@ export default function LazyMenuView({
   qrLabel,
   isDemo,
   pdConsent,
+  watermarkEnabled = true,
   loadImmediately = false,
   active = true,
   prefetch = false,
@@ -227,6 +229,7 @@ export default function LazyMenuView({
         qrLabel={qrLabel}
         isDemo={isDemo}
         pdConsent={pdConsent}
+        watermarkEnabled={watermarkEnabled}
       />
     );
   }

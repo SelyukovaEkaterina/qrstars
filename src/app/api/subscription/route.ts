@@ -17,6 +17,7 @@ import {
   findLatestSubscription,
   findActiveSubscription,
 } from "@/lib/subscription-utils";
+import { notifyPaymentAttempt } from "@/lib/telegram-support";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -109,6 +110,17 @@ export async function POST(request: Request) {
       userId,
       { type: "subscription", plan, billing }
     );
+
+    void notifyPaymentAttempt({
+      userId,
+      email: session.user.email ?? "—",
+      name: session.user.name ?? null,
+      plan,
+      billing,
+      amount,
+      establishmentCount,
+      paymentId: payment.id,
+    }).catch((err) => console.error("notifyPaymentAttempt:", err));
 
     return NextResponse.json({
       paymentUrl: payment.confirmation?.confirmation_url,

@@ -11,7 +11,9 @@ import {
   establishmentHasPaidFeatures,
 } from "@/lib/establishment-access";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
+import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
+import { isBuiltInStickerTemplateId } from "@/lib/builtin-sticker-templates";
 
 export async function GET(request: Request) {
   try {
@@ -228,6 +230,9 @@ export async function PUT(request: Request) {
     }
     if (templateId !== undefined) {
       if (templateId) {
+        if (isBuiltInStickerTemplateId(templateId)) {
+          await ensureStickerPresets();
+        }
         data.template = { connect: { id: templateId } };
       } else {
         data.template = { disconnect: true };

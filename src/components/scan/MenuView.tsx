@@ -31,6 +31,8 @@ interface MenuViewProps extends BrandThemeScanProps {
   qrLabel?: string;
   isDemo?: boolean;
   pdConsent?: PdConsent;
+  /** false на PRO/«Сеть» при включённом white-label */
+  watermarkEnabled?: boolean;
 }
 
 interface CartItem {
@@ -297,6 +299,7 @@ export default function MenuView({
   qrLabel,
   isDemo = false,
   pdConsent,
+  watermarkEnabled = true,
 }: MenuViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
@@ -636,7 +639,7 @@ export default function MenuView({
         )}
       </div>
 
-      {!embedded && (
+      {!embedded && watermarkEnabled && (
         <div className={`text-center mt-8 ${cartEnabled && totalCount > 0 ? "pb-24" : "pb-4"}`}>
           <p className="text-xs" style={{ color: submutedColor(isBg) }}>
             Сделано в QrStars.ru

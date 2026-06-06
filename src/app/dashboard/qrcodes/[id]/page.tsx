@@ -62,6 +62,13 @@ import {
   type QRTemplateConfig,
   type QrStyleTemplateSource,
 } from "@/lib/qr-code-templates";
+import {
+  BUILTIN_STICKER_TEMPLATES,
+  builtinStickerTemplateRows,
+  isBuiltInStickerTemplateId,
+  resolveStickerTemplate,
+  stickerPresetTemplateId,
+} from "@/lib/builtin-sticker-templates";
 
 interface QRCodeData {
   id: string;
@@ -238,10 +245,8 @@ export default function QRCodeSettingsPage() {
             establishment: estMatch ? { id: estMatch.id, name: estMatch.name } : null,
             fileAsset: null,
           });
-          const defaultSticker = tplList.find(
-            (t) => (t.layout as { __type?: string }).__type === "sticker",
-          );
-          if (defaultSticker) setTemplateId(defaultSticker.id);
+          const defaultSticker = stickerPresetTemplateId(BUILTIN_STICKER_TEMPLATES[0].id);
+          setTemplateId(defaultSticker);
           generateQRImage(CREATE_PREVIEW_CODE, "", tplList);
           setLoading(false);
         })
@@ -351,12 +356,23 @@ export default function QRCodeSettingsPage() {
     return () => clearTimeout(timer);
   }, [qrStyleTemplateId, isPro, qrData, templates, generateQRImage]);
 
-  const stickerTemplates = templates.filter(
-    (t) => (t.layout as { __type?: string }).__type === "sticker"
-  );
+  const stickerTemplates = [
+    ...builtinStickerTemplateRows(),
+    ...templates.filter(
+      (t) =>
+        (t.layout as { __type?: string }).__type === "sticker"
+        && !isBuiltInStickerTemplateId(t.id),
+    ),
+  ];
   const qrStyleTemplates = templates.filter(
     (t) => (t.layout as { __type?: string }).__type === "qr-style"
   );
+
+  const getEnhancedStickerConfig = useCallback((baseCfg: StickerConfig): StickerConfig => {
+    const qrStyle = resolveQrStyleConfig(qrStyleTemplateId, qrStyleTemplates);
+    if (!qrStyle) return baseCfg;
+    return { ...baseCfg, qrStyleConfig: qrStyle };
+  }, [qrStyleTemplateId, qrStyleTemplates]);
   const userQrStyleTemplates = qrStyleTemplates.filter((t) => !t.id.startsWith("qr-preset-"));
 
   const handleDownloadQR = async () => {
@@ -401,8 +417,8 @@ export default function QRCodeSettingsPage() {
       return;
     }
 
-    const tpl = stickerTemplates.find((t) => t.id === templateId);
-    if (!tpl?.layout) {
+    const resolved = resolveStickerTemplate(templateId, templates);
+    if (!resolved?.layout) {
       setPdfHint("Шаблон не найден");
       return;
     }
@@ -410,29 +426,70 @@ export default function QRCodeSettingsPage() {
     setPdfDownloading(true);
     setPdfHint("");
     try {
-      const layout = tpl.layout as { __type?: string; stickerConfig?: StickerConfig; elements?: unknown[] };
+      const layout = resolved.layout as { __type?: string; stickerConfig?: StickerConfig; elements?: unknown[] };
 
       if (layout.__type === "sticker" && layout.stickerConfig) {
         /* ── New sticker renderer ── */
-        const cfg: StickerConfig = { ...layout.stickerConfig, url: scanUrlForCode(qrData.code) };
+        const baseCfg: StickerConfig = { ...layout.stickerConfig, url: scanUrlForCode(qrData.code) };
+        const cfg = getEnhancedStickerConfig(baseCfg);
         const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
         const canvas = document.createElement("canvas");
         await renderSticker(canvas, cfg, fmt, false);
         const imgData = canvas.toDataURL("image/png", 1.0);
         const { jsPDF } = await import("jspdf");
         const doc = new jsPDF({ unit: "mm", format: "a4" });
-        // single sticker + cut guides
-        const x = (210 - fmt.wMm) / 2;
-        const y = (297 - fmt.hMm) / 2;
-        doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
-        // dashed cut border
-        doc.setDrawColor(180, 180, 180);
-        doc.setLineDashPattern([2, 2], 0);
-        doc.rect(x - 2, y - 2, fmt.wMm + 4, fmt.hMm + 4);
+
+        // Calculate grid layout dynamically to fill A4 sheet (210 x 297 mm)
+        let cols = 1;
+        let rows = 1;
+        let spacing = 5;
+        let marginX = 10;
+        let marginY = 10;
+
+        if (fmt.id === "a6p") {
+          cols = 2;
+          rows = 2;
+          spacing = 0;
+          marginX = 0;
+          marginY = 0.5;
+        } else if (fmt.id === "a6l") {
+          cols = 1;
+          rows = 2;
+          spacing = 2;
+          marginX = (210 - fmt.wMm) / 2;
+          marginY = (297 - (rows * fmt.hMm + (rows - 1) * spacing)) / 2;
+        } else {
+          cols = Math.floor((210 - 10 + spacing) / (fmt.wMm + spacing));
+          rows = Math.floor((297 - 10 + spacing) / (fmt.hMm + spacing));
+          if (cols < 1) cols = 1;
+          if (rows < 1) rows = 1;
+
+          // Center the grid on the page
+          const totalGridW = cols * fmt.wMm + (cols - 1) * spacing;
+          const totalGridH = rows * fmt.hMm + (rows - 1) * spacing;
+          marginX = (210 - totalGridW) / 2;
+          marginY = (297 - totalGridH) / 2;
+        }
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            const x = marginX + c * (fmt.wMm + spacing);
+            const y = marginY + r * (fmt.hMm + spacing);
+
+            // Add sticker image
+            doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
+
+            // Draw dashed cut border
+            doc.setDrawColor(180, 180, 180);
+            doc.setLineDashPattern([2, 2], 0);
+            doc.rect(x, y, fmt.wMm, fmt.hMm);
+          }
+        }
+
         doc.save(`sticker-${qrData.code}.pdf`);
       } else {
         /* ── Legacy layout renderer ── */
-        const legacyLayout = tpl.layout as TemplateLayout;
+        const legacyLayout = resolved.layout as unknown as TemplateLayout;
         const qrEl = legacyLayout.elements?.find((e) => e.type === "qr");
         const qrDataUrl = await generateQRForPDF(
           scanUrlForCode(qrData.code),
@@ -878,7 +935,7 @@ export default function QRCodeSettingsPage() {
                         return (
                           <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50 mb-2">
                             {stickerCfg ? (
-                              <StickerMiniPreview cfg={stickerCfg} />
+                              <StickerMiniPreview cfg={getEnhancedStickerConfig({ ...stickerCfg, url: scanUrlForCode(qrData.code) })} />
                             ) : (
                               <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs shrink-0">
                                 —
@@ -1276,29 +1333,17 @@ export default function QRCodeSettingsPage() {
               </button>
             </div>
             <div className="overflow-y-auto p-5">
-              {stickerTemplates.length === 0 ? (
-                <div className="text-center py-10">
-                  <p className="text-gray-500 mb-3">Нет сохранённых шаблонов таблички</p>
-                  <Link
-                    href="/dashboard/templates?tab=table-tent"
-                    onClick={() => setShowTableTemplatePicker(false)}
-                    className="text-indigo-600 hover:underline text-sm font-medium"
-                  >
-                    Создать шаблон таблички →
-                  </Link>
-                </div>
-              ) : (
-                <div className="grid grid-cols-3 gap-3">
-                  <button
-                    onClick={() => { void persistTableTemplate(""); setShowTableTemplatePicker(false); }}
-                    className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                      !templateId ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
-                    }`}
-                  >
-                    <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">—</div>
-                    <span className="text-xs text-gray-600 font-medium">Без шаблона</span>
-                  </button>
-                  {stickerTemplates.map((t) => {
+              <div className="grid grid-cols-3 gap-3">
+                <button
+                  onClick={() => { void persistTableTemplate(""); setShowTableTemplatePicker(false); }}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
+                    !templateId ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">—</div>
+                  <span className="text-xs text-gray-600 font-medium">Без шаблона</span>
+                </button>
+                {stickerTemplates.map((t) => {
                     const cfg = (t.layout as { stickerConfig?: StickerConfig }).stickerConfig || DEFAULT_STICKER_CONFIG;
                     return (
                       <button
@@ -1309,14 +1354,13 @@ export default function QRCodeSettingsPage() {
                         }`}
                       >
                         <div className="rounded-lg overflow-hidden shadow-sm">
-                          <StickerMiniPreview cfg={cfg} size={80} />
+                          <StickerMiniPreview cfg={getEnhancedStickerConfig({ ...cfg, url: scanUrlForCode(qrData?.code || "demo") })} size={80} />
                         </div>
                         <span className="text-xs text-gray-700 font-medium text-center leading-tight line-clamp-2">{t.name}</span>
                       </button>
                     );
                   })}
-                </div>
-              )}
+              </div>
             </div>
             <div className="p-4 border-t border-gray-100 flex justify-between items-center">
               <Link

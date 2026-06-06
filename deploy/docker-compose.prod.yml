@@ -53,13 +53,15 @@ services:
       timeout: 3s
       retries: 10
 
-  app:
+  # Blue-green: only one slot serves traffic at a time (see deploy/deploy.sh).
+  app_blue: &app
     build:
       context: ..
       dockerfile: Dockerfile
       args:
         NEXT_PUBLIC_BASE_URL: ${NEXT_PUBLIC_BASE_URL:-https://app.qrstars.ru}
     restart: unless-stopped
+    container_name: deploy-app-blue
     env_file: .env
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-qrstars}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-smartreview}?schema=public
@@ -72,6 +74,24 @@ services:
         condition: service_healthy
       valkey:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/auth/csrf"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 90s
+
+  app_green:
+    <<: *app
+    container_name: deploy-app-green
+    ports:
+      - "127.0.0.1:3001:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://127.0.0.1:3000/api/auth/csrf"]
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 90s
 
 volumes:
   pgdata:

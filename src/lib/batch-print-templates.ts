@@ -84,7 +84,7 @@ export const BATCH_PRINT_TEMPLATES: BatchPrintTemplate[] = [
     name: "Стикер 7×7 — Sunset",
     description: "Квадратный стикер 7×7 см, тёплый градиент, бейдж-макет",
     config: {
-      headline: "ОЦЕНИТЕ!",
+      headline: "ОЦЕНИТЕ НАС",
       ctaText: "Наведите камеру",
       labels: ["★★★★★"],
       formatId: "7x7",
@@ -152,7 +152,7 @@ export const BATCH_PRINT_TEMPLATES: BatchPrintTemplate[] = [
     name: "Стикер 7×7 — Bauhaus",
     description: "Квадратный стикер 7×7 см, геометрия Bauhaus",
     config: {
-      headline: "ОЦЕНИТЕ",
+      headline: "ОЦЕНИТЕ НАС",
       ctaText: "Наведите камеру",
       labels: ["★★★★★"],
       formatId: "7x7",

@@ -85,7 +85,7 @@ function RegisterForm() {
     }
 
     const result = await signIn("credentials", {
-      email,
+      email: data.user?.email ?? email.trim().toLowerCase(),
       password,
       redirect: false,
     });

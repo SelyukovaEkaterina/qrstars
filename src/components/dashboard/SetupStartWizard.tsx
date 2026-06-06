@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
@@ -8,6 +8,13 @@ import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import { generateQRWithCenter } from "@/lib/qr-generator";
 import { scanUrlForCode } from "@/lib/utils";
+import { trackEvent } from "@/lib/track-event";
+import {
+  renderSticker,
+  FORMATS,
+  type StickerConfig,
+} from "@/components/dashboard/StickerDesigner";
+import { BUILTIN_STICKER_TEMPLATES } from "@/lib/builtin-sticker-templates";
 import {
   Store,
   MapPin,
@@ -22,10 +29,62 @@ import {
   LayoutGrid,
   ChevronLeft,
   ArrowUpRight,
+  Printer,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
 export type SetupIntent = "reviews" | "landing" | "redirect";
+
+const ONBOARDING_TEMPLATES = BUILTIN_STICKER_TEMPLATES.map((preset) => ({
+  id: preset.id,
+  name: preset.shortName,
+  size: preset.sizeLabel,
+  desc: preset.description,
+  formatId: preset.stickerConfig.formatId,
+  config: {
+    url: "",
+    ...preset.stickerConfig,
+  } as StickerConfig,
+}));
+
+function StickerOnboardingPreview({
+  cfg,
+  code,
+}: {
+  cfg: StickerConfig;
+  code: string;
+}) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
+
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+
+    const previewFmt = {
+      ...fmt,
+      previewW: 180,
+      previewH: 180,
+      dpi: 72,
+    };
+
+    const url = scanUrlForCode(code);
+    const renderCfg = { ...cfg, url };
+
+    renderSticker(canvas, renderCfg, previewFmt, true).catch(() => {});
+  }, [cfg, code, fmt]);
+
+  return (
+    <div className="flex items-center justify-center p-3 bg-slate-50 border border-slate-100 rounded-2xl shadow-inner max-w-[200px] mx-auto">
+      <canvas
+        ref={ref}
+        className="rounded-lg shadow-md max-w-full h-auto object-contain"
+        style={{ width: "160px", height: "160px" }}
+      />
+    </div>
+  );
+}
 
 const INTENT_OPTIONS: {
   id: SetupIntent;
@@ -70,8 +129,8 @@ const INTENT_OPTIONS: {
   },
   {
     id: "redirect",
-    title: "Редирект на мой сайт",
-    tagline: "Одна ссылка — без лишних страниц",
+    title: "Редирект на URL",
+    tagline: "Перенаправление на произвольный URL",
     icon: ArrowUpRight,
     accent: "hover:border-emerald-300 hover:shadow-emerald-100/80 group-hover:ring-emerald-200",
     iconWrap: "bg-gradient-to-br from-emerald-100 to-teal-50 text-emerald-700 ring-emerald-200/60",
@@ -170,9 +229,17 @@ export default function SetupStartWizard() {
     intent: SetupIntent;
   } | null>(null);
 
+  const intentViewedSent = useRef(false);
+  useEffect(() => {
+    if (intentViewedSent.current) return;
+    intentViewedSent.current = true;
+    trackEvent("setup.intent_viewed");
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!intent) return;
+    trackEvent("setup.form_submitted", { intent });
     setLoading(true);
     setError("");
 
@@ -189,6 +256,11 @@ export default function SetupStartWizard() {
       }
 
       setResult({ ...data, intent });
+      trackEvent("setup.completed", {
+        intent,
+        qrCodeId: data.qrcode.id,
+        establishmentId: data.establishment?.id,
+      });
       const img = await generateQRWithCenter(scanUrlForCode(data.qrcode.code), { isPro: false }, 320);
       setQrImageUrl(img);
       setStep("success");
@@ -200,9 +272,119 @@ export default function SetupStartWizard() {
   };
 
   const chooseIntent = (value: SetupIntent) => {
+    trackEvent("setup.intent_selected", { intent: value });
     setIntent(value);
     setError("");
     setStep("form");
+  };
+
+  const downloadQrPng = () => {
+    if (!result || !qrImageUrl) return;
+    trackEvent("setup.qr_downloaded", {
+      intent: result.intent,
+      qrCodeId: result.qrcode.id,
+    });
+    const link = document.createElement("a");
+    link.href = qrImageUrl;
+    link.download = `qr-${result.qrcode.code}.png`;
+    link.click();
+  };
+
+  const openGuestPreview = (scanUrl: string) => {
+    if (!result) return;
+    trackEvent("setup.preview_opened", {
+      intent: result.intent,
+      qrCodeId: result.qrcode.id,
+    });
+    window.open(scanUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const goNextStep = (destination: string, href: string) => {
+    if (result) {
+      trackEvent("setup.next_step_clicked", {
+        intent: result.intent,
+        destination,
+      });
+    }
+    router.push(href);
+  };
+
+  const [downloadType, setDownloadType] = useState<"pdf" | "png">("pdf");
+  const [selectedPresetId, setSelectedPresetId] = useState("universal-a6");
+  const [pdfDownloading, setPdfDownloading] = useState(false);
+
+  const downloadTablePDF = async () => {
+    if (!result) return;
+    const preset = ONBOARDING_TEMPLATES.find((p) => p.id === selectedPresetId) || ONBOARDING_TEMPLATES[0];
+    setPdfDownloading(true);
+    try {
+      trackEvent("setup.pdf_downloaded", {
+        intent: result.intent,
+        qrCodeId: result.qrcode.id,
+        presetId: preset.id,
+      });
+
+      const cfg: StickerConfig = { ...preset.config, url: scanUrlForCode(result.qrcode.code) };
+      const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
+      const canvas = document.createElement("canvas");
+      await renderSticker(canvas, cfg, fmt, false);
+      const imgData = canvas.toDataURL("image/png", 1.0);
+      const { jsPDF } = await import("jspdf");
+      const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+      // Calculate grid layout dynamically to fill A4 sheet (210 x 297 mm)
+      let cols = 1;
+      let rows = 1;
+      let spacing = 5;
+      let marginX = 10;
+      let marginY = 10;
+
+      if (fmt.id === "a6p") {
+        cols = 2;
+        rows = 2;
+        spacing = 0;
+        marginX = 0;
+        marginY = 0.5;
+      } else if (fmt.id === "a6l") {
+        cols = 1;
+        rows = 2;
+        spacing = 2;
+        marginX = (210 - fmt.wMm) / 2;
+        marginY = (297 - (rows * fmt.hMm + (rows - 1) * spacing)) / 2;
+      } else {
+        cols = Math.floor((210 - 10 + spacing) / (fmt.wMm + spacing));
+        rows = Math.floor((297 - 10 + spacing) / (fmt.hMm + spacing));
+        if (cols < 1) cols = 1;
+        if (rows < 1) rows = 1;
+
+        // Center the grid on the page
+        const totalGridW = cols * fmt.wMm + (cols - 1) * spacing;
+        const totalGridH = rows * fmt.hMm + (rows - 1) * spacing;
+        marginX = (210 - totalGridW) / 2;
+        marginY = (297 - totalGridH) / 2;
+      }
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const x = marginX + c * (fmt.wMm + spacing);
+          const y = marginY + r * (fmt.hMm + spacing);
+
+          // Add sticker image
+          doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
+
+          // Draw dashed cut border
+          doc.setDrawColor(180, 180, 180);
+          doc.setLineDashPattern([2, 2], 0);
+          doc.rect(x, y, fmt.wMm, fmt.hMm);
+        }
+      }
+
+      doc.save(`sticker-${result.qrcode.code}.pdf`);
+    } catch {
+      alert("Ошибка генерации PDF. Попробуйте еще раз.");
+    } finally {
+      setPdfDownloading(false);
+    }
   };
 
   if (step === "success" && result) {
@@ -216,7 +398,7 @@ export default function SetupStartWizard() {
             <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 text-green-600 mb-2">
               <CheckCircle2 className="w-8 h-8" />
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">Готово! QR-код успешно создан</h1>
+            <h1 className="text-2xl font-bold text-gray-900 font-sans tracking-tight">Готово! QR-код успешно создан</h1>
             <p className="text-gray-600 text-sm leading-relaxed">
               {isReviews ? (
                 <>
@@ -237,30 +419,124 @@ export default function SetupStartWizard() {
             </p>
           </div>
 
-          <Card className="text-center space-y-4">
-            {qrImageUrl && (
-              <img
-                src={qrImageUrl}
-                alt="QR-код"
-                className="max-w-56 max-h-64 w-auto h-auto mx-auto rounded-xl border border-gray-100 shadow-sm object-contain"
-              />
-            )}
-            <p className="font-mono text-sm text-gray-500">{result.qrcode.code}</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              <a href={qrImageUrl} download={`qr-${result.qrcode.code}.png`}>
-                <Button variant="outline" size="sm">
-                  <Download className="w-4 h-4 mr-1" />
-                  Скачать PNG
-                </Button>
-              </a>
-              <a href={scanUrl} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm">
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  Открыть как гость
-                </Button>
-              </a>
+          <Card className="p-6 space-y-6">
+            <div>
+              <label className="block text-sm font-bold text-gray-800 text-center mb-3">
+                Как вы планируете разместить QR-код?
+              </label>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setDownloadType("pdf")}
+                  className={`py-2.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    downloadType === "pdf"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <FileText className="w-4 h-4" />
+                  Готовая табличка (PDF)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDownloadType("png")}
+                  className={`py-2.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                    downloadType === "png"
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-500 hover:text-gray-700"
+                  }`}
+                >
+                  <QrCode className="w-4 h-4" />
+                  Одиночный QR (PNG)
+                </button>
+              </div>
             </div>
+
+            {downloadType === "pdf" ? (
+              <div className="space-y-4">
+                <div className="text-center text-xs text-gray-500 leading-relaxed">
+                  Мы подготовили 4 готовых формата табличек и стикеров. Выберите подходящий и скачайте лист А4, целиком заполненный вашими QR-кодами!
+                </div>
+                
+                {/* 4 Presets Selection */}
+                <div className="grid grid-cols-2 gap-2">
+                  {ONBOARDING_TEMPLATES.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => setSelectedPresetId(p.id)}
+                      className={`p-3 text-left rounded-xl border transition-all text-xs flex flex-col justify-between h-[100px] ${
+                        selectedPresetId === p.id
+                          ? "border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600/25"
+                          : "border-gray-200 bg-white hover:bg-gray-50"
+                      }`}
+                    >
+                      <div>
+                        <div className="font-bold text-gray-950 leading-tight mb-1">{p.name}</div>
+                        <div className="text-[10px] text-gray-400 font-semibold">{p.size}</div>
+                      </div>
+                      <div className="text-[10px] text-gray-500 truncate w-full">{p.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Preview Selected Preset */}
+                {(() => {
+                  const activePreset = ONBOARDING_TEMPLATES.find((p) => p.id === selectedPresetId) || ONBOARDING_TEMPLATES[0];
+                  return (
+                    <div className="space-y-4 pt-1">
+                      <StickerOnboardingPreview cfg={activePreset.config} code={result.qrcode.code} />
+                      
+                      <Button
+                        onClick={downloadTablePDF}
+                        disabled={pdfDownloading}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2"
+                        size="lg"
+                      >
+                        <Printer className="w-5 h-5" />
+                        {pdfDownloading ? "Генерация PDF..." : `Скачать А4 лист с табличками`}
+                      </Button>
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="space-y-4 text-center">
+                <div className="text-center text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
+                  Скачайте чистый QR-код высокого разрешения без оформления для использования в собственных рекламных материалах или буклетах.
+                </div>
+                {qrImageUrl && (
+                  <img
+                    src={qrImageUrl}
+                    alt="QR-код"
+                    className="max-w-44 max-h-44 w-auto h-auto mx-auto rounded-xl border border-gray-100 shadow-sm object-contain"
+                  />
+                )}
+                <p className="font-mono text-xs text-gray-400">{result.qrcode.code}</p>
+                <div className="flex justify-center gap-2">
+                  <Button variant="outline" size="sm" onClick={downloadQrPng} disabled={!qrImageUrl}>
+                    <Download className="w-4 h-4 mr-1" />
+                    Скачать PNG
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => openGuestPreview(scanUrl)}>
+                    <ExternalLink className="w-4 h-4 mr-1" />
+                    Открыть как гость
+                  </Button>
+                </div>
+              </div>
+            )}
           </Card>
+
+          {/* Customization Note */}
+          <div className="bg-amber-50/80 border border-amber-200/50 rounded-xl p-4 text-xs text-amber-950 leading-relaxed space-y-1">
+            <p className="font-bold flex items-center gap-1 text-amber-900">
+              <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              💡 Вы сможете изменить всё позже в личном кабинете!
+            </p>
+            <p>
+              Вы выбрали стартовый макет, но это не предел. В личном кабинете вы в любой момент сможете полностью изменить дизайн таблички: настроить цвета бренда, выбрать другие шрифты, добавить рамки в 1 клик, загрузить логотип заведения или поменять фоны.
+            </p>
+          </div>
 
           <div className="space-y-3">
             {isRedirect ? (
@@ -268,7 +544,7 @@ export default function SetupStartWizard() {
                 size="lg"
                 className="w-full"
                 onClick={() =>
-                  router.push(`/dashboard/templates?tab=qr&bindQr=${result.qrcode.id}`)
+                  goNextStep("templates", `/dashboard/templates?tab=qr&bindQr=${result.qrcode.id}`)
                 }
               >
                 Оформить дизайн QR-кода
@@ -278,7 +554,7 @@ export default function SetupStartWizard() {
               <Button
                 size="lg"
                 className="w-full"
-                onClick={() => router.push("/dashboard/my-page")}
+                onClick={() => goNextStep("my-page", "/dashboard/my-page")}
               >
                 Оформить и наполнить сайт-визитку
                 <ArrowRight className="w-4 h-4 ml-2" />
@@ -289,9 +565,11 @@ export default function SetupStartWizard() {
                 size="lg"
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push(`/dashboard/qrcodes/${result.qrcode.id}?welcome=1`)}
+                onClick={() =>
+                  goNextStep("qrcode-settings", `/dashboard/qrcodes/${result.qrcode.id}?welcome=1`)
+                }
               >
-                Настройки редиректа и маршрутизация
+                Настройки редиректа
               </Button>
             )}
             {!isRedirect && (
@@ -299,7 +577,9 @@ export default function SetupStartWizard() {
                 size="lg"
                 variant="outline"
                 className="w-full"
-                onClick={() => router.push(`/dashboard/qrcodes/${result.qrcode.id}?welcome=1`)}
+                onClick={() =>
+                  goNextStep("qrcode-settings", `/dashboard/qrcodes/${result.qrcode.id}?welcome=1`)
+                }
               >
                 Настроить дизайн и скачать QR-код
               </Button>
@@ -309,6 +589,10 @@ export default function SetupStartWizard() {
                 type="button"
                 className="text-indigo-600 hover:text-indigo-800 font-medium"
                 onClick={() => {
+                  trackEvent("setup.next_step_clicked", {
+                    intent: result.intent,
+                    destination: "dashboard",
+                  });
                   router.refresh();
                   router.push("/dashboard");
                 }}

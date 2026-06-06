@@ -71,6 +71,7 @@ interface BusinessCardViewProps extends BrandThemeScanProps {
   showContactForm?: boolean;
   isBg?: boolean;
   pdConsent?: PdConsent;
+  watermarkEnabled?: boolean;
 }
 
 export default function BusinessCardView({
@@ -81,6 +82,7 @@ export default function BusinessCardView({
   pageAppearance,
   isBg,
   pdConsent,
+  watermarkEnabled = true,
 }: BusinessCardViewProps) {
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
   const accent = "var(--brand-600)";
@@ -419,9 +421,11 @@ export default function BusinessCardView({
           </div>
         </div>
 
-        <p className="text-center text-xs mt-6 relative z-10" style={{ color: submutedColor(isBg) }}>
-          QrStars.ru
-        </p>
+        {watermarkEnabled && (
+          <p className="text-center text-xs mt-6 relative z-10" style={{ color: submutedColor(isBg) }}>
+            QrStars.ru
+          </p>
+        )}
       </div>
     </div>
   );

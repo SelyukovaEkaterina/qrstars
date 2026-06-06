@@ -227,6 +227,7 @@ export default function MicroLandingView({
       isBg: !!coverUrl,
       brandColor,
       pageAppearance,
+      watermarkEnabled,
     };
     if (menuNeedsDeferredLoad(menuData) && menuData.id) {
       return (
@@ -303,12 +304,12 @@ export default function MicroLandingView({
 
     if (section === "businessCard" && businessCard) {
       return (
-        <BusinessCardView card={businessCard} qrCode="" showContactForm={false} pdConsent={pdConsent} brandColor={brandColor} pageAppearance={pageAppearance} isBg={!!coverUrl} />
+        <BusinessCardView card={businessCard} qrCode="" showContactForm={false} pdConsent={pdConsent} brandColor={brandColor} pageAppearance={pageAppearance} isBg={!!coverUrl} watermarkEnabled={watermarkEnabled} />
       );
     }
 
     if (section === "wifi" && wifiConfig) {
-      return <WifiConnect wifiConfig={wifiConfig} {...themeProps} isBg={!!coverUrl} />;
+      return <WifiConnect wifiConfig={wifiConfig} {...themeProps} isBg={!!coverUrl} watermarkEnabled={watermarkEnabled} />;
     }
 
     if (section === "review") {
@@ -399,14 +400,14 @@ export default function MicroLandingView({
           const extraBc = extraBcMap.get(info.instanceId);
           if (extraBc) {
             return (
-              <BusinessCardView card={extraBc} qrCode="" showContactForm={false} pdConsent={pdConsent} brandColor={brandColor} pageAppearance={pageAppearance} isBg={!!coverUrl} />
+              <BusinessCardView card={extraBc} qrCode="" showContactForm={false} pdConsent={pdConsent} brandColor={brandColor} pageAppearance={pageAppearance} isBg={!!coverUrl} watermarkEnabled={watermarkEnabled} />
             );
           }
         }
         if (info.type === "wifi") {
           const extraWc = extraWifiMap.get(info.instanceId);
           if (extraWc) {
-            return <WifiConnect wifiConfig={extraWc} {...themeProps} isBg={!!coverUrl} />;
+            return <WifiConnect wifiConfig={extraWc} {...themeProps} isBg={!!coverUrl} watermarkEnabled={watermarkEnabled} />;
           }
         }
         if (info.type === "form") {
@@ -669,7 +670,7 @@ export default function MicroLandingView({
           })}
         </div>
 
-        {!embedded && (
+        {!embedded && watermarkEnabled && (
           <div className="mt-auto pt-8 pb-2 w-full">
             <p className="text-center text-xs" style={{ color: submutedColor(isBg) }}>
               Сделано в QrStars.ru

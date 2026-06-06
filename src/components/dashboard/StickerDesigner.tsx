@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Plus, X, Download, FileText, RotateCcw } from "lucide-react";
+import type { QRTemplateConfig } from "@/lib/qr-code-templates";
 
 /* ════════════════════════════════════════════════════════════════
    TYPES
@@ -28,6 +29,12 @@ export interface StickerConfig {
   eyeStyle: EyeStyle;
   showWatermark: boolean;
   pdfCount: number;
+  qrFg?: string;
+  qrBg?: string;
+  qrDotStyle?: DotStyle;
+  qrEyeStyle?: EyeStyle;
+  /** Full QR style from «Шаблон QR-кода» — used when embedding into table tent */
+  qrStyleConfig?: QRTemplateConfig;
 }
 
 export type LayoutId =
@@ -94,8 +101,8 @@ export const FORMATS: Format[] = [
   { id: "5x5",     name: "5 × 5 см",     sub: "стикер",     wMm: 50,  hMm: 50,  dpi: 300, previewW: 320, previewH: 320 },
   { id: "7x7",     name: "7 × 7 см",     sub: "стикер",     wMm: 70,  hMm: 70,  dpi: 300, previewW: 360, previewH: 360 },
   { id: "8x8",     name: "8 × 8 см",     sub: "стикер",     wMm: 80,  hMm: 80,  dpi: 300, previewW: 380, previewH: 380 },
-  { id: "a6p",     name: "A6 портрет",   sub: "105 × 148 мм", wMm: 105, hMm: 148, dpi: 150, previewW: 260, previewH: 368 },
-  { id: "a6l",     name: "A6 лежачий",   sub: "148 × 105 мм (тент)", wMm: 148, hMm: 105, dpi: 150, previewW: 368, previewH: 260 },
+  { id: "a6p",     name: "A6 вертикальный",   sub: "105 × 148 мм", wMm: 105, hMm: 148, dpi: 150, previewW: 260, previewH: 368 },
+  { id: "a6l",     name: "A6 горизонтальный", sub: "148 × 105 мм (тейбл-тент)", wMm: 148, hMm: 105, dpi: 150, previewW: 368, previewH: 260 },
 ];
 
 /* ════════════════════════════════════════════════════════════════
@@ -104,11 +111,11 @@ export const FORMATS: Format[] = [
 const SERIF = "'Georgia', 'Times New Roman', serif";
 
 const DOT_LABELS: Record<DotStyle, string> = {
-  squares: "Квадраты", rounded: "Скруглён.", dots: "Точки", diamond: "Ромбы",
-  cross: "Крестики",  hex: "Соты",         bars: "Бары",  star: "Звёзды",
+  squares: "Квадраты", rounded: "Скруглённые", dots: "Точки", diamond: "Ромбы",
+  cross: "Крестики",  hex: "Соты",         bars: "Полоски",  star: "Звёзды",
 };
 const EYE_LABELS: Record<EyeStyle, string> = {
-  square: "Квадрат", rounded: "Скруглён.", dot: "Точка",
+  square: "Квадрат", rounded: "Скруглённый", dot: "Точка",
   circle: "Круг",    leaf: "Лист",         corners: "Уголок",
 };
 
@@ -328,7 +335,7 @@ const BUSINESS_PRESETS = [
   { id: "hotel",      name: "🏨 Отель",          labels: ["ЧЕК-ИН", "МЕНЮ", "ОТЗЫВЫ"] },
   { id: "beauty",     name: "💇 Салон",          labels: ["ЗАПИСЬ", "ОТЗЫВЫ", "АКЦИИ"] },
   { id: "auto",       name: "🚗 Автосервис",     labels: ["ЗАПИСЬ", "ОТЗЫВЫ", "ПРАЙС"] },
-  { id: "clinic",     name: "🏥 Клиника",        labels: ["ЗАПИСАТЬСЯ", "ОТЗЫВЫ", "УСЛУГИ"] },
+  { id: "clinic",     name: "🏥 Клиника",        labels: ["ЗАПИСЬ", "ОТЗЫВЫ", "УСЛУГИ"] },
   { id: "shop",       name: "🛍 Магазин",        labels: ["КАТАЛОГ", "ОТЗЫВЫ", "АКЦИИ"] },
   { id: "fitness",    name: "💪 Фитнес",         labels: ["РАСПИСАНИЕ", "ОТЗЫВЫ", "АКЦИИ"] },
   { id: "custom",     name: "✏️ Свой",           labels: [] },
@@ -339,15 +346,15 @@ const BUSINESS_PRESETS = [
 ════════════════════════════════════════════════════════════════ */
 export const DEFAULT_STICKER_CONFIG: StickerConfig = {
   url: "https://qrstars.ru",
-  headline: "МЕНЮ",
+  headline: "ОТЗЫВ",
   ctaText: "Наведите камеру",
-  labels: ["МЕНЮ", "ОТЗЫВЫ", "ЧАЕВЫЕ"],
-  formatId: "5x5",
-  layoutId: "standard",
-  paletteId: "light",
+  labels: ["★★★★★"],
+  formatId: "7x7",
+  layoutId: "compact",
+  paletteId: "sunset",
   brandColor: "#4F46E5",
   dotStyle: "rounded",
-  eyeStyle: "rounded",
+  eyeStyle: "circle",
   showWatermark: true,
   pdfCount: 10,
 };
@@ -580,6 +587,30 @@ async function drawQR(
   drawFinder(ctx, ox,                      oy + (size - 7) * cellSize, cellSize, eyeStyle, fg, bg || "#fff");
 }
 
+async function drawQRInArea(
+  ctx: CanvasRenderingContext2D,
+  x: number, y: number, w: number, h: number,
+  cfg: StickerConfig,
+  themeFg: string, themeBg: string | null,
+) {
+  if (cfg.qrStyleConfig) {
+    const { renderQRTemplate, normalizeQRTemplateConfig } = await import("@/lib/qr-code-templates");
+    const size = Math.max(Math.round(Math.max(w, h) * 4), 512);
+    const off = document.createElement("canvas");
+    await renderQRTemplate(off, normalizeQRTemplateConfig(cfg.qrStyleConfig), cfg.url, size);
+    const scale = Math.min(w / off.width, h / off.height);
+    const dw = off.width * scale;
+    const dh = off.height * scale;
+    ctx.drawImage(off, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+    return;
+  }
+
+  await drawQR(
+    ctx, cfg.url, x, y, w, h,
+    cfg.dotStyle, cfg.eyeStyle, themeFg, themeBg,
+  );
+}
+
 /* ════════════════════════════════════════════════════════════════
    BACKGROUND DRAW
 ════════════════════════════════════════════════════════════════ */
@@ -598,6 +629,107 @@ function fillBg(ctx: CanvasRenderingContext2D, W: number, H: number, bg: ThemeBg
     ctx.fillStyle = bg.color;
   }
   ctx.fillRect(0, 0, W, H);
+}
+
+type FontBuilder = (size: number) => string;
+
+function fitFontSize(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  startSize: number,
+  minSize: number,
+  fontBuilder: FontBuilder,
+): number {
+  let fs = startSize;
+  while (fs >= minSize) {
+    ctx.font = fontBuilder(fs);
+    if (ctx.measureText(text).width <= maxWidth) return fs;
+    fs -= 0.5;
+  }
+  return minSize;
+}
+
+function drawFittedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  startSize: number,
+  minSize: number,
+  fontBuilder: FontBuilder,
+  align: CanvasTextAlign = "center",
+  baseline: CanvasTextBaseline = "middle",
+): number {
+  const fs = fitFontSize(ctx, text, maxWidth, startSize, minSize, fontBuilder);
+  ctx.font = fontBuilder(fs);
+  ctx.textAlign = align;
+  ctx.textBaseline = baseline;
+  ctx.fillText(text, x, y);
+  return fs;
+}
+
+function wrapTextLines(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxLines: number,
+  fontBuilder: FontBuilder,
+  startSize: number,
+  minSize: number,
+): { lines: string[]; fontSize: number } {
+  let fs = startSize;
+  while (fs >= minSize) {
+    ctx.font = fontBuilder(fs);
+    const words = text.split(/\s+/);
+    const lines: string[] = [];
+    let cur = "";
+    for (const w of words) {
+      const test = cur ? `${cur} ${w}` : w;
+      if (ctx.measureText(test).width > maxWidth && cur) {
+        lines.push(cur);
+        cur = w;
+      } else {
+        cur = test;
+      }
+    }
+    if (cur) lines.push(cur);
+
+    let candidate = lines;
+    if (lines.length > maxLines) {
+      candidate = [lines[0], lines.slice(1).join(" ")].slice(0, maxLines);
+    }
+    const fits = candidate.length <= maxLines
+      && candidate.every((l) => ctx.measureText(l).width <= maxWidth);
+    if (fits) return { lines: candidate, fontSize: fs };
+    fs -= 0.5;
+  }
+  ctx.font = fontBuilder(minSize);
+  return { lines: [text], fontSize: minSize };
+}
+
+function drawWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  startSize: number,
+  minSize: number,
+  maxLines: number,
+  fontBuilder: FontBuilder,
+  align: CanvasTextAlign = "center",
+  lineHeight = 1.15,
+): number {
+  const { lines, fontSize } = wrapTextLines(ctx, text, maxWidth, maxLines, fontBuilder, startSize, minSize);
+  ctx.font = fontBuilder(fontSize);
+  ctx.textAlign = align;
+  ctx.textBaseline = "top";
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, y + i * fontSize * lineHeight);
+  }
+  return fontSize * (1 + (lines.length - 1) * lineHeight);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -626,18 +758,21 @@ async function renderStandard(
 
   // headline (skip if empty)
   const headline = (cfg.headline || "").trim();
-  const hlFs = isSquare ? W * 0.082 : W * 0.065;
+  const maxTextW = W * 0.88;
+  const hlStartFs = isSquare ? W * 0.082 : W * 0.065;
   if (headline) {
     const hlFamily = theme.headlineFamily || "Arial, sans-serif";
+    const display = theme.headlineCaps ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
-    ctx.font = `${theme.headlineItalic ? "italic " : ""}bold ${hlFs}px ${hlFamily}`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const hlY = qrY / 2;
-    ctx.fillText(theme.headlineCaps ? headline.toUpperCase() : headline, W / 2, hlY);
+    const hlFs = drawFittedText(
+      ctx, display, W / 2, qrY / 2, maxTextW,
+      hlStartFs, Math.max(6, hlStartFs * 0.45),
+      (s) => `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${hlFamily}`,
+    );
 
     // accent line under headline
-    const lineW = W * 0.25;
+    const hlY = qrY / 2;
+    const lineW = Math.min(W * 0.25, ctx.measureText(display).width * 0.6);
     const lineY = hlY + hlFs * 0.75;
     ctx.strokeStyle = theme.accentLine;
     ctx.lineWidth = Math.max(1, H * 0.004);
@@ -657,8 +792,7 @@ async function renderStandard(
     ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   }
 
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSize, qrSize,
-    cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.cardBg ? null : theme.qrLight);
+  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
 
   // CTA + separator (skip both if empty)
   const cta = (cfg.ctaText || "").trim();
@@ -671,12 +805,15 @@ async function renderStandard(
     const sepPad = W * 0.12;
     ctx.beginPath(); ctx.moveTo(sepPad, sepY); ctx.lineTo(W - sepPad, sepY); ctx.stroke();
 
-    const ctaFs = W * 0.058;
+    const ctaStartFs = isSquare ? W * 0.048 : W * 0.058;
     ctaY = sepY + H * 0.052;
     ctx.fillStyle = theme.text2;
-    ctx.font = `600 ${ctaFs}px Arial, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(cta, W / 2, ctaY);
+    const ctaBlockH = drawWrappedText(
+      ctx, cta, W / 2, ctaY - ctaStartFs * 0.5, maxTextW,
+      ctaStartFs, Math.max(5, ctaStartFs * 0.55), isSquare ? 2 : 1,
+      (s) => `600 ${s}px Arial, sans-serif`,
+    );
+    ctaY += ctaBlockH * 0.35;
   }
 
   // labels
@@ -735,11 +872,13 @@ async function renderEditorial(
 
     // cta
     if (cta) {
-      const ctaFs = H * 0.045;
       ctx.fillStyle = theme.text2;
-      ctx.font = `${ctaFs}px Arial, sans-serif`;
-      ctx.textAlign = "left"; ctx.textBaseline = "top";
-      ctx.fillText(cta, W * 0.07, ty);
+      drawWrappedText(
+        ctx, cta, W * 0.07, ty, titleW * 0.86,
+        H * 0.045, Math.max(5, H * 0.028), 2,
+        (s) => `${s}px Arial, sans-serif`,
+        "left",
+      );
     }
 
     // separator line vertical
@@ -747,7 +886,7 @@ async function renderEditorial(
     ctx.beginPath(); ctx.moveTo(titleW, H * 0.12); ctx.lineTo(titleW, H * 0.88); ctx.stroke();
     ctx.globalAlpha = 1;
 
-    await drawQR(ctx, cfg.url, qrX, qrY, qrSz, qrSz, cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.qrLight);
+    await drawQRInArea(ctx, qrX, qrY, qrSz, qrSz, cfg, theme.qrDark, theme.qrLight);
 
     // bottom labels
     if (cfg.labels.length) {
@@ -806,16 +945,17 @@ async function renderEditorial(
 
     const qrY = Math.max(ty + H * 0.04, H * 0.22);
 
-    await drawQR(ctx, cfg.url, qrX, qrY, qrSz, qrSz, cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.qrLight);
+    await drawQRInArea(ctx, qrX, qrY, qrSz, qrSz, cfg, theme.qrDark, theme.qrLight);
 
     let belowY = qrY + qrSz + H * 0.025;
     if (cta) {
-      const ctaFs = W * 0.05;
-      ctx.font = `${ctaFs}px Arial, sans-serif`;
       ctx.fillStyle = theme.text2;
-      ctx.textAlign = "center"; ctx.textBaseline = "top";
-      ctx.fillText(cta, W / 2, belowY);
-      belowY += ctaFs * 1.2;
+      const ctaH = drawWrappedText(
+        ctx, cta, W / 2, belowY, W * 0.86,
+        W * 0.05, Math.max(5, W * 0.032), 2,
+        (s) => `${s}px Arial, sans-serif`,
+      );
+      belowY += ctaH * 0.85;
     }
 
     if (cfg.labels.length) {
@@ -868,27 +1008,30 @@ async function renderBauhaus(
   const headline = (cfg.headline || "").trim();
   const cta = (cfg.ctaText || "").trim();
   if (headline) {
-    const hlFs = m * 0.085;
+    const display = headline.toUpperCase();
     ctx.fillStyle = theme.text1;
-    ctx.font = `900 ${hlFs}px Arial, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(headline.toUpperCase(), W / 2, H * 0.18);
+    drawFittedText(
+      ctx, display, W / 2, H * 0.18, m * 0.88,
+      m * 0.085, Math.max(6, m * 0.042),
+      (s) => `900 ${s}px Arial, sans-serif`,
+    );
   }
 
   // QR
   const qrSz = m * 0.54;
   const qrX  = (W - qrSz) / 2;
   const qrY  = headline ? H * 0.28 : H * 0.22;
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSz, qrSz, cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.qrLight);
+  await drawQRInArea(ctx, qrX, qrY, qrSz, qrSz, cfg, theme.qrDark, theme.qrLight);
 
   let belowY = qrY + qrSz + H * 0.03;
   if (cta) {
-    const ctaFs = m * 0.052;
-    ctx.font = `bold ${ctaFs}px Arial, sans-serif`;
     ctx.fillStyle = theme.text2;
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(cta, W / 2, belowY);
-    belowY += ctaFs * 1.6;
+    const ctaH = drawWrappedText(
+      ctx, cta, W / 2, belowY, m * 0.88,
+      m * 0.052, Math.max(5, m * 0.032), 2,
+      (s) => `bold ${s}px Arial, sans-serif`,
+    );
+    belowY += ctaH * 0.85;
   }
 
   // Labels
@@ -926,14 +1069,13 @@ async function renderRound(
   const headline = (cfg.headline || "").trim();
   const cta = (cfg.ctaText || "").trim();
   if (headline) {
-    const hlFs = R * 0.15;
+    const display = theme.headlineCaps !== false ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
     const family = theme.headlineFamily || "Arial, sans-serif";
-    ctx.font = `900 ${hlFs}px ${family}`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(
-      theme.headlineCaps !== false ? headline.toUpperCase() : headline,
-      cx, cy - R * 0.66
+    drawFittedText(
+      ctx, display, cx, cy - R * 0.66, R * 1.5,
+      R * 0.15, Math.max(6, R * 0.07),
+      (s) => `900 ${s}px ${family}`,
     );
   }
 
@@ -952,16 +1094,16 @@ async function renderRound(
     ctx.shadowColor = "transparent"; ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
   }
 
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSz, qrSz, cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.cardBg ? null : theme.qrLight);
+  await drawQRInArea(ctx, qrX, qrY, qrSz, qrSz, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
 
   // CTA below QR (skip if empty)
   if (cta) {
-    const ctaFs = R * 0.065;
-    ctx.font = `600 ${ctaFs}px Arial, sans-serif`;
     ctx.fillStyle = theme.text2;
-    const ctaY = qrY + qrSz + R * 0.10;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(cta, cx, ctaY);
+    drawFittedText(
+      ctx, cta, cx, qrY + qrSz + R * 0.10, R * 1.35,
+      R * 0.065, Math.max(5, R * 0.035),
+      (s) => `600 ${s}px Arial, sans-serif`,
+    );
   }
 
   // Labels — limit width by chord at labY so pills stay inside circle
@@ -1024,16 +1166,17 @@ async function renderBadge(
     ctx.fillStyle = theme.cardBg;
     rrPath(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, W * 0.03); ctx.fill();
   }
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSize, qrSize,
-    cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.cardBg ? null : theme.qrLight);
+  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
 
   let belowY = qrY + qrSize + H * 0.04;
   if (cta) {
     ctx.fillStyle = theme.text2;
-    ctx.font = `600 ${W * 0.05}px Arial, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(cta, W / 2, belowY);
-    belowY += W * 0.075;
+    const ctaH = drawWrappedText(
+      ctx, cta, W / 2, belowY, W * 0.88,
+      W * 0.05, Math.max(5, W * 0.032), 2,
+      (s) => `600 ${s}px Arial, sans-serif`,
+    );
+    belowY += ctaH * 0.9;
   }
 
   if (cfg.labels.length) {
@@ -1086,11 +1229,13 @@ async function renderTicket(
 
   // headline
   if (headline) {
-    const fs = W * 0.075;
+    const display = theme.headlineCaps ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
-    ctx.font = `${theme.headlineItalic ? "italic " : ""}bold ${fs}px ${family}`;
-    ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.fillText(theme.headlineCaps ? headline.toUpperCase() : headline, W / 2, H * 0.10);
+    drawFittedText(
+      ctx, display, W / 2, H * 0.10, W * 0.88,
+      W * 0.075, Math.max(6, W * 0.038),
+      (s) => `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${family}`,
+    );
   }
 
   // QR
@@ -1102,17 +1247,18 @@ async function renderTicket(
     ctx.fillStyle = theme.cardBg;
     rrPath(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, W * 0.03); ctx.fill();
   }
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSize, qrSize,
-    cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.cardBg ? null : theme.qrLight);
+  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
 
   // Below perforation: cta + labels
   let belowY = perfY + H * 0.05;
   if (cta) {
     ctx.fillStyle = theme.text2;
-    ctx.font = `600 ${W * 0.052}px Arial, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(cta, W / 2, belowY);
-    belowY += W * 0.078;
+    const ctaH = drawWrappedText(
+      ctx, cta, W / 2, belowY, W * 0.86,
+      W * 0.052, Math.max(5, W * 0.034), 2,
+      (s) => `600 ${s}px Arial, sans-serif`,
+    );
+    belowY += ctaH * 0.85;
   }
   if (cfg.labels.length) {
     renderLabels(ctx, W, H, belowY + H * 0.015, cfg.labels, theme);
@@ -1158,11 +1304,14 @@ async function renderStripe(
 
   // headline
   if (headline) {
-    const fs = W * 0.075;
+    const display = theme.headlineCaps ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
-    ctx.font = `${theme.headlineItalic ? "italic " : ""}bold ${fs}px ${family}`;
-    ctx.textAlign = "left"; ctx.textBaseline = "top";
-    ctx.fillText(theme.headlineCaps ? headline.toUpperCase() : headline, W * 0.07, H * 0.09);
+    drawFittedText(
+      ctx, display, W * 0.07, H * 0.09, W * 0.86,
+      W * 0.075, Math.max(6, W * 0.038),
+      (s) => `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${family}`,
+      "left", "top",
+    );
   }
 
   // QR
@@ -1174,16 +1323,17 @@ async function renderStripe(
     ctx.fillStyle = theme.cardBg;
     rrPath(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, W * 0.03); ctx.fill();
   }
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSize, qrSize,
-    cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.cardBg ? null : theme.qrLight);
+  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
 
   let belowY = qrY + qrSize + H * 0.04;
   if (cta) {
     ctx.fillStyle = theme.text2;
-    ctx.font = `600 ${W * 0.05}px Arial, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(cta, W / 2, belowY);
-    belowY += W * 0.075;
+    const ctaH = drawWrappedText(
+      ctx, cta, W / 2, belowY, W * 0.88,
+      W * 0.05, Math.max(5, W * 0.032), 2,
+      (s) => `600 ${s}px Arial, sans-serif`,
+    );
+    belowY += ctaH * 0.9;
   }
   if (cfg.labels.length) {
     renderLabels(ctx, W, H, belowY + H * 0.02, cfg.labels, theme);
@@ -1206,6 +1356,9 @@ async function renderCompact(
   const headline = (cfg.headline || "").trim();
   const cta = (cfg.ctaText || "").trim();
   const family = theme.headlineFamily || "Arial, sans-serif";
+  const padX = W * 0.07;
+  const maxTextW = W - padX * 2;
+  const isGradient = theme.bg.type === "gradient";
 
   // subtle border
   if (theme.borderColor) {
@@ -1215,39 +1368,95 @@ async function renderCompact(
     ctx.stroke();
   }
 
-  // tiny headline at top
+  // decorative inner frame on gradient palettes
+  if (isGradient) {
+    ctx.strokeStyle = theme.accentLine;
+    ctx.globalAlpha = 0.35;
+    ctx.lineWidth = Math.max(1, W * 0.003);
+    rrPath(ctx, W * 0.04, W * 0.04, W * 0.92, H * 0.92, W * 0.05);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // headline at top — auto-fit
+  let topUsed = H * 0.055;
   if (headline) {
-    const fs = W * 0.045;
-    ctx.fillStyle = theme.text2;
-    ctx.font = `${theme.headlineItalic ? "italic " : ""}600 ${fs}px ${family}`;
-    ctx.textAlign = "center"; ctx.textBaseline = "top";
-    ctx.fillText(theme.headlineCaps !== false ? headline.toUpperCase() : headline, W / 2, H * 0.07);
-  }
-
-  // Huge QR
-  const qrSize = Math.min(W * 0.78, H * 0.70);
-  const qrX = (W - qrSize) / 2;
-  const qrY = (H - qrSize) / 2 - H * 0.02;
-  if (theme.cardBg) {
-    const pad = qrSize * 0.04;
-    ctx.fillStyle = theme.cardBg;
-    rrPath(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, W * 0.035); ctx.fill();
-  }
-  await drawQR(ctx, cfg.url, qrX, qrY, qrSize, qrSize,
-    cfg.dotStyle, cfg.eyeStyle, theme.qrDark, theme.cardBg ? null : theme.qrLight);
-
-  if (cta) {
+    const display = theme.headlineCaps !== false ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
-    ctx.font = `bold ${W * 0.05}px Arial, sans-serif`;
-    ctx.textAlign = "center"; ctx.textBaseline = "bottom";
-    ctx.fillText(cta, W / 2, H - H * (cfg.labels.length ? 0.13 : 0.07));
+    const hlFs = drawFittedText(
+      ctx, display, W / 2, topUsed, maxTextW,
+      W * 0.052, Math.max(5, W * 0.028),
+      (s) => `${theme.headlineItalic ? "italic " : ""}800 ${s}px ${family}`,
+      "center", "top",
+    );
+    topUsed += hlFs * 1.35;
+
+    ctx.strokeStyle = theme.accentLine;
+    ctx.globalAlpha = 0.45;
+    ctx.lineWidth = Math.max(1, W * 0.0025);
+    const uw = Math.min(maxTextW * 0.55, ctx.measureText(display).width * 0.7);
+    ctx.beginPath();
+    ctx.moveTo(W / 2 - uw / 2, topUsed - hlFs * 0.15);
+    ctx.lineTo(W / 2 + uw / 2, topUsed - hlFs * 0.15);
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // bottom CTA bar
+  const barH = cta ? Math.max(H * 0.125, W * 0.105) : 0;
+  const barGap = cta ? H * 0.035 : H * 0.05;
+
+  // QR card — sized to fit between headline and CTA bar
+  const qrAreaTop = topUsed + H * 0.018;
+  const qrAreaBottom = H - barH - barGap;
+  const qrAreaH = Math.max(0, qrAreaBottom - qrAreaTop);
+  const qrSize = Math.min(W * 0.74, qrAreaH, maxTextW);
+  const qrX = (W - qrSize) / 2;
+  const qrY = qrAreaTop + (qrAreaH - qrSize) / 2;
+
+  const cardPad = qrSize * 0.045;
+  const cardBg = theme.cardBg || (isGradient ? "#ffffff" : theme.qrLight);
+  ctx.fillStyle = cardBg;
+  ctx.shadowColor = "rgba(0,0,0,0.18)";
+  ctx.shadowBlur = W * 0.022;
+  ctx.shadowOffsetY = W * 0.006;
+  rrPath(ctx, qrX - cardPad, qrY - cardPad, qrSize + cardPad * 2, qrSize + cardPad * 2, W * 0.04);
+  ctx.fill();
+  ctx.shadowColor = "transparent";
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
+
+  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, null);
+
+  // CTA pill bar at bottom
+  if (cta) {
+    const barW = W * 0.88;
+    const barX = (W - barW) / 2;
+    const barY = H - barH - barGap * 0.65;
+    const barR = barH * 0.42;
+
+    const barFill = isGradient
+      ? "rgba(255,255,255,0.92)"
+      : (theme.cardBg ? theme.accentLine : rgba(theme.text1, 0.08));
+    ctx.fillStyle = barFill;
+    rrPath(ctx, barX, barY, barW, barH, barR);
+    ctx.fill();
+
+    const ctaColor = isGradient || theme.cardBg ? theme.qrDark : theme.text1;
+    ctx.fillStyle = ctaColor;
+    drawFittedText(
+      ctx, cta, W / 2, barY + barH / 2, barW * 0.9,
+      barH * 0.42, Math.max(5, barH * 0.22),
+      (s) => `700 ${s}px Arial, sans-serif`,
+    );
   }
 
   if (cfg.labels.length) {
-    renderLabels(ctx, W, H, H - H * 0.06, cfg.labels, theme);
+    const labY = cta ? H - barGap * 0.25 : H - H * 0.06;
+    renderLabels(ctx, W, H, labY, cfg.labels, theme, { fontScale: 0.038 });
   }
 
-  if (cfg.showWatermark && !cfg.labels.length) {
+  if (cfg.showWatermark && !cfg.labels.length && !cta) {
     ctx.font = `${W * 0.025}px Arial, sans-serif`;
     ctx.fillStyle = theme.text3; ctx.globalAlpha = 0.5;
     ctx.textAlign = "center"; ctx.textBaseline = "bottom";
@@ -1315,7 +1524,7 @@ function renderLabels(
     // dot separated, slightly tracked-out
     const barText = labels.join("   ·   ");
     ctx.fillStyle = theme.text3;
-    ctx.fillText(barText, cX, y);
+    drawFittedText(ctx, barText, cX, y, maxW * 0.96, labFs, Math.max(4, labFs * 0.55), (s) => `${s}px Arial, sans-serif`);
   } else if (theme.labelMode === "sides" && labels.length >= 2) {
     // Two bottom corners + dot separator
     ctx.textAlign = "left";
@@ -1334,7 +1543,7 @@ function renderLabels(
     const dotText = labels.join("   ·   ");
     ctx.fillStyle = theme.text3;
     ctx.globalAlpha = 0.85;
-    ctx.fillText(dotText, cX, y);
+    drawFittedText(ctx, dotText, cX, y, maxW * 0.96, labFs, Math.max(4, labFs * 0.55), (s) => `${s}px Arial, sans-serif`);
     ctx.globalAlpha = 1;
   }
 }
@@ -1370,15 +1579,21 @@ export async function renderSticker(
 
   fillBg(ctx, W, H, theme.bg);
 
+  const mutableCfg = { ...cfg };
+  if (cfg.qrFg) theme.qrDark = cfg.qrFg;
+  if (cfg.qrBg) theme.qrLight = cfg.qrBg;
+  if (cfg.qrDotStyle) mutableCfg.dotStyle = cfg.qrDotStyle;
+  if (cfg.qrEyeStyle) mutableCfg.eyeStyle = cfg.qrEyeStyle;
+
   switch (theme.kind) {
-    case "editorial": await renderEditorial(ctx, W, H, theme, cfg); break;
-    case "bauhaus":   await renderBauhaus(ctx, W, H, theme, cfg);   break;
-    case "round":     await renderRound(ctx, W, H, theme, cfg);     break;
-    case "badge":     await renderBadge(ctx, W, H, theme, cfg);     break;
-    case "ticket":    await renderTicket(ctx, W, H, theme, cfg);    break;
-    case "stripe":    await renderStripe(ctx, W, H, theme, cfg);    break;
-    case "compact":   await renderCompact(ctx, W, H, theme, cfg);   break;
-    default:          await renderStandard(ctx, W, H, theme, cfg);  break;
+    case "editorial": await renderEditorial(ctx, W, H, theme, mutableCfg); break;
+    case "bauhaus":   await renderBauhaus(ctx, W, H, theme, mutableCfg);   break;
+    case "round":     await renderRound(ctx, W, H, theme, mutableCfg);     break;
+    case "badge":     await renderBadge(ctx, W, H, theme, mutableCfg);     break;
+    case "ticket":    await renderTicket(ctx, W, H, theme, mutableCfg);    break;
+    case "stripe":    await renderStripe(ctx, W, H, theme, mutableCfg);    break;
+    case "compact":   await renderCompact(ctx, W, H, theme, mutableCfg);   break;
+    default:          await renderStandard(ctx, W, H, theme, mutableCfg);  break;
   }
 
   if (theme.shape === "circle") ctx.restore();
@@ -1693,11 +1908,11 @@ export default function StickerDesigner({
       <div className="lg:w-[380px] flex-shrink-0 space-y-4">
 
         {/* URL */}
-        <Panel title={isTemplate ? "Ссылка для предпросмотра" : "Ссылка QR-кода"}>
+        <Panel title={isTemplate ? "Ссылка для предпросмотра" : "Ссылка для QR-кода"}>
           {isTemplate && (
             <p className="text-xs text-gray-500 mb-2 leading-relaxed">
-              В предпросмотре генерируется <strong className="font-medium text-gray-700">статический QR-код</strong> по этой ссылке.
-              После привязки шаблона к динамическому QR-коду в печати подставится его реальная ссылка.
+              В предпросмотре отображается <strong className="font-medium text-gray-700">статический QR-код</strong> для этой ссылки.
+              После привязки шаблона к динамическому QR-коду при печати будет подставляться его реальный адрес.
             </p>
           )}
           <input
@@ -1723,7 +1938,7 @@ export default function StickerDesigner({
         <Panel title="Подписи и текст">
           {/* chips */}
           <div className="flex flex-wrap gap-1.5 min-h-[28px] mb-3">
-            {cfg.labels.length === 0 && <span className="text-xs text-gray-400 italic self-center">Нет подписей</span>}
+            {cfg.labels.length === 0 && <span className="text-xs text-gray-400 italic self-center">Нет меток</span>}
             {cfg.labels.map(l => (
               <span key={l} className="flex items-center gap-1 px-2.5 py-0.5 bg-gray-100 rounded-full text-xs font-medium text-gray-700">
                 {l}
@@ -1737,7 +1952,7 @@ export default function StickerDesigner({
             <div className="flex gap-2 mb-3">
               <input type="text" value={newLabel} onChange={e => setNewLabel(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter") { const v = newLabel.trim().toUpperCase(); if (v && !cfg.labels.includes(v)) { up("labels", [...cfg.labels, v]); setNewLabel(""); } }}}
-                placeholder="Добавить (Enter)" maxLength={18}
+                placeholder="Добавить метку (Enter)" maxLength={18}
                 className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
               />
               <button onClick={() => { const v = newLabel.trim().toUpperCase(); if (v && !cfg.labels.includes(v)) { up("labels", [...cfg.labels, v]); setNewLabel(""); }}}
@@ -1748,7 +1963,7 @@ export default function StickerDesigner({
           )}
           <div className="space-y-2.5">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Заголовок (крупный)</label>
+              <label className="block text-xs text-gray-500 mb-1">Главный заголовок</label>
               <div className="flex gap-1.5">
                 <input type="text" value={cfg.headline} onChange={e => up("headline", e.target.value)} maxLength={24}
                   className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
@@ -1756,7 +1971,7 @@ export default function StickerDesigner({
               </div>
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Призыв под QR</label>
+              <label className="block text-xs text-gray-500 mb-1">Текст под QR-кодом</label>
               <input type="text" value={cfg.ctaText} onChange={e => up("ctaText", e.target.value)} maxLength={30}
                 className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
@@ -1839,7 +2054,7 @@ export default function StickerDesigner({
         </Panel>
 
         {/* QR dot style */}
-        <Panel title="Стиль точек QR">
+        <Panel title="Форма точек QR">
           <div className="grid grid-cols-4 gap-2">
             {(["squares", "rounded", "dots", "diamond", "cross", "hex", "bars", "star"] as DotStyle[]).map(s => (
               <div key={s} className="flex flex-col items-center gap-1">
@@ -1850,7 +2065,7 @@ export default function StickerDesigner({
           </div>
 
           <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-xs text-gray-500 mb-2">Стиль глазков</p>
+            <p className="text-xs text-gray-500 mb-2">Форма угловых рамок (глазков)</p>
             <div className="grid grid-cols-3 gap-2">
               {(["square", "rounded", "dot", "circle", "leaf", "corners"] as EyeStyle[]).map(s => (
                 <div key={s} className="flex flex-col items-center gap-1">
@@ -1867,15 +2082,15 @@ export default function StickerDesigner({
           <label className="flex items-center gap-2 cursor-pointer mb-3">
             <input type="checkbox" checked={cfg.showWatermark} onChange={e => up("showWatermark", e.target.checked)}
               className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-            <span className="text-sm text-gray-700">Показывать «qrstars.ru»</span>
+            <span className="text-sm text-gray-700">Отображать ссылку «qrstars.ru»</span>
           </label>
           {isTemplate ? (
             <p className="text-xs text-gray-500 leading-relaxed">
-              Шаблон можно использовать и с <strong className="font-medium text-gray-700">динамическими QR-кодами</strong> — выберите его в настройках QR и скачайте PDF табличку оттуда.
+              Этот шаблон также можно использовать с <strong className="font-medium text-gray-700">динамическими QR-кодами</strong>: выберите его в настройках конкретного QR-кода и скачайте готовый PDF-макет оттуда.
             </p>
           ) : (
             <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-700 whitespace-nowrap">Кол-во для PDF:</span>
+              <span className="text-sm text-gray-700 whitespace-nowrap">Количество копий в PDF:</span>
               <input type="number" value={cfg.pdfCount} min={1} max={200}
                 onChange={e => up("pdfCount", Math.max(1, Math.min(200, Number(e.target.value))))}
                 className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />

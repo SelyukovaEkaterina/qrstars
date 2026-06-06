@@ -407,6 +407,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
         qrCode={code}
         showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
         pdConsent={pdConsent}
+        watermarkEnabled={reviewProps.watermarkEnabled}
         {...brandProps}
       />
     );
@@ -427,6 +428,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
       qrCodeId: qrCode.id,
       qrLabel: qrCode.label?.trim() || qrCode.code,
       pdConsent,
+      watermarkEnabled: reviewProps.watermarkEnabled,
       ...brandProps,
     };
     if (menuNeedsDeferredLoad(menuStub)) {
@@ -443,7 +445,13 @@ export default async function ScanPage({ params }: ScanPageProps) {
     }
     incrementScan();
     const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
-    return <WifiConnect wifiConfig={JSON.parse(JSON.stringify(wifiConfig))} {...brandProps} />;
+    return (
+      <WifiConnect
+        wifiConfig={JSON.parse(JSON.stringify(wifiConfig))}
+        watermarkEnabled={reviewProps.watermarkEnabled}
+        {...brandProps}
+      />
+    );
   }
 
   if (qrCode.mode === "TIPS") {

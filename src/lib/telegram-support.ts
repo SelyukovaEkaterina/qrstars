@@ -294,6 +294,46 @@ function extractTelegramAttachment(message: {
   return null;
 }
 
+/** Попытка оплаты подписки → сообщение в общий канал (только production). */
+export async function notifyPaymentAttempt(params: {
+  userId: string;
+  email: string;
+  name: string | null;
+  plan: "PRO" | "NETWORK";
+  billing: "monthly" | "yearly";
+  amount: number;
+  establishmentCount: number;
+  paymentId?: string;
+}): Promise<void> {
+  if (!shouldNotifySupportTelegram()) return;
+
+  const groupId = GROUP_ID()!;
+  const planLabel = params.plan === "PRO" ? "PRO" : "Сеть";
+  const periodLabel = params.billing === "yearly" ? "1 год" : "1 месяц";
+
+  const dashboardUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/users`
+    : "";
+
+  await tgApi("sendMessage", {
+    chat_id: groupId,
+    parse_mode: "HTML",
+    text:
+      `<b>Попытка оплаты подписки</b>\n\n` +
+      `<b>Имя:</b> ${escapeHtml(params.name || "—")}\n` +
+      `<b>Email:</b> ${escapeHtml(params.email)}\n` +
+      `<b>Тариф:</b> ${escapeHtml(planLabel)}\n` +
+      `<b>Период:</b> ${escapeHtml(periodLabel)}\n` +
+      `<b>Сумма:</b> ${params.amount.toLocaleString("ru-RU")} ₽\n` +
+      `<b>Заведений:</b> ${params.establishmentCount}\n` +
+      (params.paymentId
+        ? `<b>Payment ID:</b> <code>${escapeHtml(params.paymentId)}</code>\n`
+        : "") +
+      `<b>User ID:</b> <code>${escapeHtml(params.userId)}</code>` +
+      (dashboardUrl ? `\n\n<a href="${escapeHtml(dashboardUrl)}">Пользователи в админке</a>` : ""),
+  });
+}
+
 /** Новая регистрация → сообщение в общий канал (только production). */
 export async function notifyNewUserRegistration(user: {
   id: string;

@@ -19,6 +19,10 @@ import {
   type QRTemplateConfig,
   type QRTemplatePreset,
 } from "@/lib/qr-code-templates";
+import {
+  BUILTIN_STICKER_TEMPLATES,
+  isBuiltInStickerTemplateId,
+} from "@/lib/builtin-sticker-templates";
 import QRTemplateEditor from "@/components/dashboard/QRTemplateEditor";
 import { Loader2, Plus, Pencil, Trash2, X, QrCode, LayoutTemplate } from "lucide-react";
 
@@ -138,7 +142,11 @@ export default function TemplatesPage() {
       const r = await fetch("/api/templates");
       const d = await r.json();
       const all: TemplateRow[] = d.templates || [];
-      setStickerTemplates(all.filter((t) => t.layout?.__type === "sticker"));
+      setStickerTemplates(
+        all.filter(
+          (t) => t.layout?.__type === "sticker" && !isBuiltInStickerTemplateId(t.id),
+        ),
+      );
       setQrStyleTemplates(
         all.filter(
           (t) => t.layout?.__type === "qr-style" && !t.id.startsWith("qr-preset-")
@@ -410,22 +418,21 @@ export default function TemplatesPage() {
               <p className="text-sm text-gray-500 mb-4">
                 Таблички и стикеры для печати с QR-кодом. Привяжите к динамическому QR-коду в его настройках.
               </p>
-              {stickerTemplates.length === 0 && (
-                <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-12 text-center">
-                  <div className="text-5xl mb-4">🖨️</div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Нет шаблонов таблички</h3>
-                  <p className="text-gray-500 text-sm mb-5">Создайте дизайн стикера или таблички и привяжите к QR-коду</p>
+
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Мои шаблоны</h3>
+              {stickerTemplates.length === 0 ? (
+                <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center mb-8">
+                  <p className="text-gray-500 text-sm mb-3">Пока нет своих шаблонов</p>
                   <button
                     onClick={() => { setNewName(""); setShowCreate(true); }}
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
                   >
                     <Plus size={16} />
-                    Создать первый шаблон
+                    Создать свой шаблон
                   </button>
                 </div>
-              )}
-              {stickerTemplates.length > 0 && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              ) : (
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
                   {stickerTemplates.map((tpl) => {
                     const cfg = tpl.layout?.stickerConfig || DEFAULT_STICKER_CONFIG;
                     const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
@@ -477,6 +484,31 @@ export default function TemplatesPage() {
                   })}
                 </div>
               )}
+
+              <h3 className="text-sm font-semibold text-gray-700 mb-3">Готовые макеты</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+                {BUILTIN_STICKER_TEMPLATES.map((preset) => {
+                  const cfg = { url: "https://qrstars.ru", ...preset.stickerConfig } as StickerConfig;
+                  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
+                  return (
+                    <div
+                      key={preset.id}
+                      className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all"
+                    >
+                      <div className="bg-gray-50 flex items-center justify-center p-3" style={{ minHeight: 160 }}>
+                        <div className="rounded-lg overflow-hidden shadow-sm">
+                          <StickerThumb cfg={cfg} />
+                        </div>
+                      </div>
+                      <div className="p-3 border-t border-gray-100">
+                        <p className="font-medium text-gray-900 text-sm mb-1">{preset.shortName}</p>
+                        <p className="text-xs text-gray-500 line-clamp-2 mb-2">{preset.description}</p>
+                        <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">{fmt.name}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>

@@ -15,12 +15,14 @@ import {
   Wallet,
   ShoppingCart,
   Headphones,
+  GitBranch,
 } from "lucide-react";
 import { signOutTo } from "@/lib/sign-out-client";
 
 const navItems = [
   { href: "/admin", label: "Обзор", icon: LayoutDashboard, tourId: "nav-overview" },
   { href: "/admin/users", label: "Пользователи", icon: Users, tourId: "nav-users" },
+  { href: "/admin/funnel", label: "Воронка", icon: GitBranch, tourId: "nav-funnel" },
   { href: "/admin/payments", label: "Подписки", icon: CreditCard, tourId: "nav-payments" },
   { href: "/admin/reviews", label: "Отзывы", icon: Star, tourId: "nav-reviews" },
   { href: "/admin/orders", label: "Заказы", icon: ShoppingCart, tourId: "nav-orders" },

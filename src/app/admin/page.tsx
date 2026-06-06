@@ -236,6 +236,7 @@ export default async function AdminDashboardPage() {
               <div className="grid grid-cols-2 gap-3">
                 {[
                   { href: "/admin/users", label: "Пользователи", icon: Users },
+                  { href: "/admin/funnel", label: "Воронка", icon: TrendingUp },
                   { href: "/admin/payments", label: "Подписки", icon: CreditCard },
                   { href: "/admin/reviews", label: "Отзывы", icon: Star },
                   { href: "/admin/establishments", label: "Заведения", icon: Store },

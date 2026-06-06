@@ -28,8 +28,10 @@ import {
   type QRDotStyle,
   type QREyeStyle,
   COLOR_PRESETS,
+  CENTER_TEXT_FONTS,
   LOGO_PRESETS,
   SCATTER_SHAPES,
+  parseCenterTextLines,
   renderQRTemplate,
   downloadQRTemplateAsPNG,
   downloadQRTemplateAsJPG,
@@ -184,6 +186,7 @@ export default function QRTemplateEditor({
   }, [bindQrId]);
 
   useEffect(() => {
+    if (cfg.centerMode === "text") return;
     let cancelled = false;
     (async () => {
       try {
@@ -224,11 +227,30 @@ export default function QRTemplateEditor({
       ? scanUrlForCode(selectedQr.code)
       : buildQRPayload(content);
 
+  const centerLineSlots = (): [string, string, string] => {
+    const parts = (cfg.centerText ?? "").split("\n");
+    return [parts[0] ?? "", parts[1] ?? "", parts[2] ?? ""];
+  };
+
+  const setCenterLineSlot = (index: 0 | 1 | 2, value: string) => {
+    const slots = centerLineSlots();
+    slots[index] = value;
+    up("centerText", slots.join("\n"));
+  };
+
+  const switchCenterMode = (mode: "image" | "text") => {
+    if (mode === cfg.centerMode) return;
+    up("centerMode", mode);
+    if (mode === "text") clearLogo();
+    else up("centerText", "");
+  };
+
   const redraw = useCallback(async () => {
     const canvas = previewRef.current;
     if (!canvas || !payload) return;
+    const logoForRender = cfg.centerMode === "text" ? null : logoImage;
     try {
-      await renderQRTemplate(canvas, cfg, payload, 600, photoImage, logoImage);
+      await renderQRTemplate(canvas, cfg, payload, 600, photoImage, logoForRender);
       if (photoImage) {
         setPhotoWarning(true);
       } else {
@@ -252,6 +274,8 @@ export default function QRTemplateEditor({
       setActiveLogoKey(p.src || p.emoji || String(idx));
       setCfg((prev) => ({
         ...prev,
+        centerMode: "image",
+        centerText: "",
         logoPreset: p.emoji || null,
         logoSrc: p.src || null,
         logoDataUrl: null,
@@ -285,6 +309,8 @@ export default function QRTemplateEditor({
         setActiveLogoKey("custom");
         setCfg((prev) => ({
           ...prev,
+          centerMode: "image",
+          centerText: "",
           logoPreset: null,
           logoSrc: null,
           logoDataUrl: dataUrl,
@@ -351,13 +377,21 @@ export default function QRTemplateEditor({
 
   const configForSave = (): QRTemplateConfig => {
     const base = { ...cfg };
+    if (base.centerMode === "text") {
+      return {
+        ...base,
+        logoPreset: null,
+        logoSrc: null,
+        logoDataUrl: null,
+      };
+    }
     if (logoImage && activeLogoKey === "custom" && cfg.logoDataUrl) {
-      return base;
+      return { ...base, centerText: "" };
     }
     if (!logoImage) {
-      return { ...base, logoPreset: null, logoSrc: null, logoDataUrl: null };
+      return { ...base, logoPreset: null, logoSrc: null, logoDataUrl: null, centerText: "" };
     }
-    return base;
+    return { ...base, centerText: "" };
   };
 
   const bindTemplateToQr = async (templateId: string, qrId: string) => {
@@ -401,7 +435,7 @@ export default function QRTemplateEditor({
         setTimeout(() => setSaved(false), 2000);
         onSaved?.(d.template.id, name.trim(), configForSave());
       }
-      const bindTarget = options?.bindToQrId ?? (bindQrId ? selectedQrId : null);
+      const bindTarget = options?.bindToQrId ?? selectedQrId;
       if (templateId && bindTarget) {
         await bindTemplateToQr(templateId, bindTarget);
       }
@@ -414,7 +448,8 @@ export default function QRTemplateEditor({
   const renderAtSize = async (size: number) => {
     if (!payload) return null;
     const c = document.createElement("canvas");
-    await renderQRTemplate(c, cfg, payload, size, photoImage, logoImage);
+    const logoForRender = cfg.centerMode === "text" ? null : logoImage;
+    await renderQRTemplate(c, cfg, payload, size, photoImage, logoForRender);
     return c;
   };
 
@@ -440,15 +475,22 @@ export default function QRTemplateEditor({
     }
   };
 
-  const handleBindOnly = async () => {
-    if (!selectedQrId || !existingId) return;
-    setBusy(true);
-    try {
-      await bindTemplateToQr(existingId, selectedQrId);
-    } finally {
-      setBusy(false);
+  const applyToQr = () => {
+    if (existingId) {
+      void handleSave(saveName, { bindToQrId: selectedQrId });
+      return;
     }
+    setShowSaveName(true);
   };
+
+  const saveLabel =
+    selectedQrId || bindQrId
+      ? existingId
+        ? "Применить к QR"
+        : "Сохранить и применить к QR"
+      : existingId
+        ? "Сохранить изменения"
+        : "Сохранить в библиотеку";
 
   return (
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-start justify-center p-2 sm:p-4 overflow-y-auto">
@@ -475,14 +517,6 @@ export default function QRTemplateEditor({
             )}
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              onClick={handleRandomize}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-indigo-600 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors"
-            >
-              <Shuffle size={14} />
-              <span className="hidden sm:inline">Случайное</span>
-            </button>
             <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 p-1">
               <X size={20} />
             </button>
@@ -493,8 +527,8 @@ export default function QRTemplateEditor({
           <div className="xl:flex-1 p-4 sm:p-5 space-y-5 max-h-[75vh] overflow-y-auto border-b xl:border-b-0 xl:border-r border-gray-100">
             {bindQrId && selectedQr && (
               <div className="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-sm text-indigo-900">
-                Оформите QR-код <strong>«{qrDisplayName(selectedQr)}»</strong> — стиль сохранится и привяжется к вашему
-                динамическому коду для скачивания PNG.
+                Оформите QR-код <strong>«{qrDisplayName(selectedQr)}»</strong> и нажмите «Применить к QR» — стиль сохранится
+                в библиотеке и будет использоваться для скачивания PNG.
               </div>
             )}
 
@@ -743,6 +777,15 @@ export default function QRTemplateEditor({
               </Panel>
             )}
 
+            <button
+              type="button"
+              onClick={handleRandomize}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-sm font-medium text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
+            >
+              <Shuffle size={16} />
+              Случайный дизайн
+            </button>
+
             <Panel title="Стиль точек">
               <div className="grid grid-cols-2 gap-2">
                 {DOT_STYLES.map((s) => (
@@ -915,50 +958,140 @@ export default function QRTemplateEditor({
               )}
             </Panel>
 
-            <Panel title="Картинка в центре">
-              <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 mb-2 max-h-32 overflow-y-auto">
-                {LOGO_PRESETS.map((l, i) => {
-                  const key = l.src || l.emoji || String(i);
-                  const active = activeLogoKey === key;
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      title={l.name}
-                      onClick={() => selectLogoPreset(i)}
-                      className={`aspect-square flex items-center justify-center rounded-lg border-2 text-lg transition-all overflow-hidden ${active ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"}`}
-                      style={
-                        l.src
-                          ? {
-                              backgroundImage: `url(${l.src})`,
-                              backgroundSize: "contain",
-                              backgroundPosition: "center",
-                              backgroundRepeat: "no-repeat",
-                            }
-                          : undefined
-                      }
-                    >
-                      {l.emoji || null}
-                    </button>
-                  );
-                })}
+            <Panel title="Картинка или текст в центре">
+              <div className="flex rounded-lg border border-gray-200 p-0.5 mb-3">
+                <button
+                  type="button"
+                  onClick={() => switchCenterMode("image")}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition ${cfg.centerMode === "image" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  Картинка
+                </button>
+                <button
+                  type="button"
+                  onClick={() => switchCenterMode("text")}
+                  className={`flex-1 py-1.5 text-xs font-medium rounded-md transition ${cfg.centerMode === "text" ? "bg-indigo-600 text-white" : "text-gray-600 hover:bg-gray-50"}`}
+                >
+                  Текст
+                </button>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => logoFileRef.current?.click()}
-                  className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:border-indigo-400"
-                >
-                  <ImageIcon size={14} />
-                  Загрузить свой
-                </button>
-                <button
-                  type="button"
-                  onClick={clearLogo}
-                  className="px-2 py-2 text-xs rounded-lg border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200"
-                >
-                  Убрать
-                </button>
+
+              {cfg.centerMode === "image" ? (
+                <>
+                  <div className="grid grid-cols-6 sm:grid-cols-8 gap-1 mb-2 max-h-32 overflow-y-auto">
+                    {LOGO_PRESETS.map((l, i) => {
+                      const key = l.src || l.emoji || String(i);
+                      const active = activeLogoKey === key;
+                      return (
+                        <button
+                          key={key}
+                          type="button"
+                          title={l.name}
+                          onClick={() => selectLogoPreset(i)}
+                          className={`aspect-square flex items-center justify-center rounded-lg border-2 text-lg transition-all overflow-hidden ${active ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"}`}
+                          style={
+                            l.src
+                              ? {
+                                  backgroundImage: `url(${l.src})`,
+                                  backgroundSize: "contain",
+                                  backgroundPosition: "center",
+                                  backgroundRepeat: "no-repeat",
+                                }
+                              : undefined
+                          }
+                        >
+                          {l.emoji || null}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => logoFileRef.current?.click()}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:border-indigo-400"
+                    >
+                      <ImageIcon size={14} />
+                      Загрузить свой
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearLogo}
+                      className="px-2 py-2 text-xs rounded-lg border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-200"
+                    >
+                      Убрать
+                    </button>
+                  </div>
+                  <input ref={logoFileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+                </>
+              ) : (
+                <div className="space-y-2 mb-2">
+                  {(["Строка 1", "Строка 2 (необяз.)", "Строка 3 (необяз.)"] as const).map((label, idx) => {
+                    const slots = centerLineSlots();
+                    return (
+                      <div key={label}>
+                        <label className="text-[10px] text-gray-500 mb-0.5 block">{label}</label>
+                        <input
+                          type="text"
+                          value={slots[idx]}
+                          onChange={(e) => setCenterLineSlot(idx as 0 | 1 | 2, e.target.value)}
+                          maxLength={24}
+                          placeholder={idx === 0 ? "Например: WELCOME" : ""}
+                          className="w-full border border-gray-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                        />
+                      </div>
+                    );
+                  })}
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-0.5 block">Шрифт</label>
+                      <select
+                        value={cfg.centerTextFont}
+                        onChange={(e) => up("centerTextFont", e.target.value as QRTemplateConfig["centerTextFont"])}
+                        className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs bg-white"
+                      >
+                        {CENTER_TEXT_FONTS.map((f) => (
+                          <option key={f.id} value={f.id}>
+                            {f.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 mb-0.5 block">Цвет текста</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={cfg.centerTextColor}
+                          onChange={(e) => up("centerTextColor", e.target.value)}
+                          className="w-9 h-9 rounded border border-gray-200 cursor-pointer"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => up("centerTextColor", cfg.fg)}
+                          className="text-[10px] text-indigo-600 hover:underline"
+                        >
+                          Как у точек
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={cfg.centerTextBold !== false}
+                      onChange={(e) => up("centerTextBold", e.target.checked)}
+                      className="rounded border-gray-300 text-indigo-600"
+                    />
+                    Жирный шрифт
+                  </label>
+                  {parseCenterTextLines(cfg.centerText).length === 0 && (
+                    <p className="text-[10px] text-amber-700">Введите хотя бы одну строку — она появится в центре QR.</p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 mt-2 pt-2 border-t border-gray-100">
                 <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer">
                   <input
                     type="checkbox"
@@ -966,7 +1099,7 @@ export default function QRTemplateEditor({
                     onChange={(e) => up("logoFill", e.target.checked)}
                     className="rounded border-gray-300 text-indigo-600"
                   />
-                  Точки под логотипом
+                  {cfg.centerMode === "text" ? "Точки под надписью" : "Точки под логотипом"}
                 </label>
                 <div className="flex items-center gap-2 ml-auto">
                   <span className="text-xs text-gray-500">Размер</span>
@@ -980,7 +1113,6 @@ export default function QRTemplateEditor({
                   />
                 </div>
               </div>
-              <input ref={logoFileRef} type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
             </Panel>
 
             <Panel title="Фото-режим">
@@ -1147,6 +1279,11 @@ export default function QRTemplateEditor({
             )}
 
             <div className="mt-4 space-y-2">
+              {(selectedQrId || bindQrId) && !showSaveName && (
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Оформление сохранится в библиотеке и будет использоваться для PNG/JPG и печати выбранного QR.
+                </p>
+              )}
               {showSaveName ? (
                 <div className="space-y-2">
                   <input
@@ -1154,7 +1291,7 @@ export default function QRTemplateEditor({
                     type="text"
                     value={saveName}
                     onChange={(e) => setSaveName(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && saveName.trim() && handleSave(saveName)}
+                    onKeyDown={(e) => e.key === "Enter" && saveName.trim() && handleSave(saveName, { bindToQrId: selectedQrId })}
                     placeholder="Название шаблона"
                     className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     maxLength={60}
@@ -1171,38 +1308,22 @@ export default function QRTemplateEditor({
                       type="button"
                       onClick={() => handleSave(saveName, { bindToQrId: selectedQrId })}
                       disabled={busy || !saveName.trim()}
-                      className="flex-1 flex items-center justify-center gap-2 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50"
+                      className="flex-1 inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium disabled:opacity-50 min-w-0"
                     >
-                      <Save size={14} />
-                      {busy ? "Сохранение…" : bindQrId || selectedQrId ? "Сохранить и привязать" : "Сохранить"}
+                      <Save className="w-4 h-4 shrink-0" aria-hidden />
+                      <span className="truncate">{busy ? "Сохранение…" : saveLabel}</span>
                     </button>
                   </div>
                 </div>
               ) : (
                 <button
                   type="button"
-                  onClick={() => setShowSaveName(true)}
+                  onClick={applyToQr}
                   disabled={busy}
-                  className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-medium disabled:opacity-50"
                 >
-                  <Save size={16} />
-                  {bindQrId || selectedQrId
-                    ? existingId
-                      ? "Сохранить и привязать к QR"
-                      : "Сохранить шаблон и привязать"
-                    : existingId
-                      ? "Сохранить изменения"
-                      : "Сохранить шаблон"}
-                </button>
-              )}
-              {existingId && selectedQrId && !bindQrId && (
-                <button
-                  type="button"
-                  onClick={handleBindOnly}
-                  disabled={busy}
-                  className="w-full py-2.5 border border-indigo-200 text-indigo-700 rounded-lg text-sm font-medium hover:bg-indigo-50 disabled:opacity-50"
-                >
-                  Привязать к выбранному QR без сохранения
+                  <Save className="w-4 h-4 shrink-0" aria-hidden />
+                  {busy ? "Сохранение…" : saveLabel}
                 </button>
               )}
               <div className="grid grid-cols-2 gap-2">

@@ -5,6 +5,8 @@ export type QREyeStyle = "square" | "rounded" | "circle" | "leaf" | "dot";
 export type QRGradientType = "linear-tb" | "linear-lr" | "linear-diag" | "radial";
 export type QRFrameStyle = "bottom" | "rounded" | "ribbon";
 export type QRScatterShape = "square" | "circle" | "star" | "diamond" | "hexagon" | "heart" | "cross" | "octagon" | "triangle";
+export type QRCenterMode = "image" | "text";
+export type QRCenterTextFont = "inter" | "sans" | "serif" | "mono" | "display";
 
 export interface QRTemplateConfig {
   dotStyle: QRDotStyle;
@@ -24,6 +26,12 @@ export interface QRTemplateConfig {
   logoDataUrl: string | null;
   logoFill: boolean;
   logoSize: number;
+  centerMode: QRCenterMode;
+  /** До 3 строк, разделитель — перевод строки */
+  centerText: string;
+  centerTextFont: QRCenterTextFont;
+  centerTextColor: string;
+  centerTextBold: boolean;
   frame: boolean;
   frameText: string;
   frameStyle: QRFrameStyle;
@@ -52,6 +60,11 @@ function defaultCfg(): Omit<QRTemplateConfig, "dotStyle" | "eyeStyle" | "fg" | "
     logoDataUrl: null,
     logoFill: true,
     logoSize: 22,
+    centerMode: "image",
+    centerText: "",
+    centerTextFont: "inter",
+    centerTextColor: "#1e293b",
+    centerTextBold: true,
     frame: false,
     frameText: "СКАНИРУЙ МЕНЯ",
     frameStyle: "bottom",
@@ -379,7 +392,11 @@ export const COLOR_PRESETS = [
   { name: "Золото", gradient: true, grad1: "#ca8a04", grad2: "#fbbf24", gradType: "linear-tb" as QRGradientType, fg: "#ca8a04", bg: "#1c1917" },
 ];
 
-export { FREE_LOGO_PRESETS as LOGO_PRESETS } from "@/lib/qr-free-generator";
+export {
+  CENTER_TEXT_FONTS,
+  FREE_LOGO_PRESETS as LOGO_PRESETS,
+  parseCenterTextLines,
+} from "@/lib/qr-free-generator";
 
 export const SCATTER_SHAPES: { id: QRScatterShape; label: string }[] = [
   { id: "square", label: "Квадрат" },
@@ -394,13 +411,30 @@ export const SCATTER_SHAPES: { id: QRScatterShape; label: string }[] = [
 ];
 
 /** Backfill new logo fields for templates saved before logoSrc/logoFill */
+function hasCenterTextContent(text: string | undefined): boolean {
+  return (text ?? "")
+    .split("\n")
+    .some((l) => l.trim().length > 0);
+}
+
 export function normalizeQRTemplateConfig(cfg: QRTemplateConfig): QRTemplateConfig {
+  const hasLogo = !!(cfg.logoPreset || cfg.logoSrc || cfg.logoDataUrl);
+  const hasText = hasCenterTextContent(cfg.centerText);
+  let centerMode: QRCenterMode = cfg.centerMode ?? "image";
+  if (centerMode === "image" && !hasLogo && hasText) centerMode = "text";
+  if (centerMode === "text" && !hasText && hasLogo) centerMode = "image";
+
   return {
     ...defaultCfg(),
     ...cfg,
     logoSrc: cfg.logoSrc ?? null,
     logoDataUrl: cfg.logoDataUrl ?? null,
     logoFill: cfg.logoFill ?? true,
+    centerMode,
+    centerText: cfg.centerText ?? "",
+    centerTextFont: cfg.centerTextFont ?? "inter",
+    centerTextColor: cfg.centerTextColor ?? "#1e293b",
+    centerTextBold: cfg.centerTextBold ?? true,
   };
 }
 
@@ -462,6 +496,11 @@ export function randomizeQRConfig(): QRTemplateConfig {
     scatter: hasScatter,
     scatterDensity: 2 + Math.floor(Math.random() * 5),
     scatterShape: pick(scatterShapes),
+    centerMode: hasLogo ? "image" : "image",
+    centerText: "",
+    centerTextFont: "inter",
+    centerTextColor: pick(COLOR_PRESETS).fg,
+    centerTextBold: true,
   };
 }
 

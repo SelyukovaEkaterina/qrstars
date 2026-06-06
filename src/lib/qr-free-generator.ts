@@ -2,6 +2,7 @@
  * Free QR generator — render & payload logic aligned with qrwin-landing free-qr-generator.astro
  */
 import type {
+  QRCenterTextFont,
   QRDotStyle,
   QREyeStyle,
   QRFrameStyle,
@@ -9,6 +10,26 @@ import type {
   QRScatterShape,
   QRTemplateConfig,
 } from "@/lib/qr-code-templates";
+
+export const CENTER_TEXT_FONTS: { id: QRCenterTextFont; label: string; stack: string }[] = [
+  { id: "inter", label: "Inter", stack: "Inter, system-ui, sans-serif" },
+  { id: "sans", label: "Без засечек", stack: "system-ui, -apple-system, BlinkMacSystemFont, sans-serif" },
+  { id: "serif", label: "С засечками", stack: 'Georgia, "Times New Roman", serif' },
+  { id: "mono", label: "Моноширинный", stack: 'ui-monospace, "Courier New", monospace' },
+  { id: "display", label: "Акцидент", stack: 'Impact, "Arial Black", sans-serif' },
+];
+
+export function parseCenterTextLines(text: string): string[] {
+  return text
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .slice(0, 3);
+}
+
+export function centerTextFontStack(id: QRCenterTextFont | undefined): string {
+  return CENTER_TEXT_FONTS.find((f) => f.id === id)?.stack ?? CENTER_TEXT_FONTS[0].stack;
+}
 
 export type QRContentType = "url" | "wifi" | "text" | "email" | "phone" | "vcard" | "sms";
 
@@ -506,6 +527,66 @@ function drawLogo(
   ctx.restore();
 }
 
+function drawCenterText(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  qrLeft: number,
+  qrTop: number,
+  qrSize: number,
+  bgColor: string,
+  sizePct: number,
+  fillBehind: boolean,
+  textColor: string,
+  fontStack: string,
+  bold: boolean,
+) {
+  if (lines.length === 0) return;
+  const logoSize = qrSize * (sizePct / 100);
+  const padding = qrSize * 0.02;
+  const boxSize = logoSize + padding * 2;
+  const cx = qrLeft + qrSize / 2;
+  const cy = qrTop + qrSize / 2;
+  const boxX = cx - boxSize / 2;
+  const boxY = cy - boxSize / 2;
+  const padX = boxSize * 0.1;
+  const maxW = boxSize - padX * 2;
+  const lineCount = lines.length;
+  const weight = bold ? "800" : "600";
+
+  ctx.save();
+  if (!fillBehind) {
+    ctx.fillStyle = bgColor;
+    roundRect(ctx, boxX, boxY, boxSize, boxSize, boxSize * 0.18);
+  }
+
+  let fontSize = Math.round((boxSize / lineCount) * 0.38);
+  const minFont = Math.max(7, Math.round(boxSize * 0.08));
+  const lineGap = 1.15;
+
+  const fits = (size: number) => {
+    ctx.font = `${weight} ${size}px ${fontStack}`;
+    const tooWide = lines.some((line) => ctx.measureText(line).width > maxW);
+    const lineH = size * lineGap;
+    const totalH = lineCount * lineH - (lineGap - 1) * size;
+    return !tooWide && totalH <= boxSize * 0.88;
+  };
+
+  while (fontSize > minFont && !fits(fontSize)) fontSize -= 1;
+
+  ctx.fillStyle = textColor;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `${weight} ${fontSize}px ${fontStack}`;
+  const lineH = fontSize * lineGap;
+  const totalH = lineCount * lineH - (lineGap - 1) * fontSize;
+  let y = cy - totalH / 2 + lineH / 2;
+  for (const line of lines) {
+    ctx.fillText(line, cx, y);
+    y += lineH;
+  }
+  ctx.restore();
+}
+
 function isInsideScatterShape(
   dx: number,
   dy: number,
@@ -720,18 +801,38 @@ export async function renderFreeQR(
   drawFinderPattern(ctx, 0, count - 7, cellSize, offX, offY, cfg.eyeStyle, eyeBgForHole);
   drawFinderPattern(ctx, count - 7, 0, cellSize, offX, offY, cfg.eyeStyle, eyeBgForHole);
 
-  const logoImage = options.logoImage ?? (await resolveLogoImage(cfg));
-  if (logoImage) {
-    drawLogo(
-      ctx,
-      logoImage,
-      qrLeft,
-      qrTop,
-      qrSize,
-      cfg.bgTransparent ? "#ffffff" : cfg.bg,
-      cfg.logoSize,
-      cfg.logoFill !== false,
-    );
+  const bgForCenter = cfg.bgTransparent ? "#ffffff" : cfg.bg;
+  if (cfg.centerMode === "text") {
+    const lines = parseCenterTextLines(cfg.centerText);
+    if (lines.length > 0) {
+      drawCenterText(
+        ctx,
+        lines,
+        qrLeft,
+        qrTop,
+        qrSize,
+        bgForCenter,
+        cfg.logoSize,
+        cfg.logoFill !== false,
+        cfg.centerTextColor || cfg.fg,
+        centerTextFontStack(cfg.centerTextFont),
+        cfg.centerTextBold !== false,
+      );
+    }
+  } else {
+    const logoImage = options.logoImage ?? (await resolveLogoImage(cfg));
+    if (logoImage) {
+      drawLogo(
+        ctx,
+        logoImage,
+        qrLeft,
+        qrTop,
+        qrSize,
+        bgForCenter,
+        cfg.logoSize,
+        cfg.logoFill !== false,
+      );
+    }
   }
 
   if (hasFrame) {

@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
+import {
+  isBuiltInStickerTemplateId,
+  resolveStickerTemplate,
+} from "@/lib/builtin-sticker-templates";
+import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 
 export async function GET(
   _request: Request,
@@ -13,6 +19,26 @@ export async function GET(
   }
 
   const { id } = await params;
+
+  if (isBuiltInStickerTemplateId(id)) {
+    await ensureStickerPresets();
+    const resolved = resolveStickerTemplate(id);
+    if (!resolved) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+    return NextResponse.json({
+      template: {
+        id: resolved.id,
+        name: resolved.name,
+        description: null,
+        width: resolved.layout.width,
+        height: resolved.layout.height,
+        layout: resolved.layout,
+        isPublic: true,
+        readOnly: true,
+      },
+    });
+  }
 
   const template = await prisma.template.findFirst({
     where: {
@@ -42,6 +68,11 @@ export async function PUT(
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const { id } = await params;
+
+  if (isBuiltInStickerTemplateId(id) || isBuiltInQrStyleTemplateId(id)) {
+    return NextResponse.json({ error: "Built-in template cannot be modified" }, { status: 403 });
+  }
+
   const body = await request.json();
 
   const existing = await prisma.template.findFirst({
@@ -79,6 +110,10 @@ export async function DELETE(
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const { id } = await params;
+
+  if (isBuiltInStickerTemplateId(id) || isBuiltInQrStyleTemplateId(id)) {
+    return NextResponse.json({ error: "Built-in template cannot be deleted" }, { status: 403 });
+  }
 
   const existing = await prisma.template.findFirst({
     where: { id, userId },

@@ -3,6 +3,7 @@ import crypto from "crypto";
 import prisma from "@/lib/prisma";
 import { sendPasswordResetEmail } from "@/lib/mailer";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { normalizeInviteEmail } from "@/lib/establishment-access";
 
 export async function POST(request: Request) {
   // Rate limit: 5 запросов в 10 минут с одного IP
@@ -21,7 +22,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email обязателен" }, { status: 400 });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = normalizeInviteEmail(email);
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
 
   if (!user) {
     return NextResponse.json({ success: true });

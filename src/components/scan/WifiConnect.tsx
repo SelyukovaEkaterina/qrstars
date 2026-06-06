@@ -60,7 +60,8 @@ export default function WifiConnect({
   brandColor,
   pageAppearance,
   isBg,
-}: { wifiConfig: WifiConfigData } & BrandThemeScanProps & { isBg?: boolean }) {
+  watermarkEnabled = true,
+}: { wifiConfig: WifiConfigData } & BrandThemeScanProps & { isBg?: boolean; watermarkEnabled?: boolean }) {
   const [copied, setCopied] = useState<"password" | "ssid" | null>(null);
   const [copyError, setCopyError] = useState(false);
 
@@ -240,9 +241,11 @@ export default function WifiConnect({
           </div>
         </div>
 
-        <p className="text-xs text-center" style={{ color: submutedColor(isBg) }}>
-          QrStars.ru
-        </p>
+        {watermarkEnabled && (
+          <p className="text-xs text-center" style={{ color: submutedColor(isBg) }}>
+            QrStars.ru
+          </p>
+        )}
       </div>
     </div>
   );

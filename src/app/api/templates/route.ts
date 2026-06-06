@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { ensureDefaultTemplate } from "@/lib/ensure-default-template";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
+import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -14,7 +14,7 @@ export async function GET() {
   const userId = (session.user as Record<string, unknown>).id as string;
 
   await ensureQrStylePresets();
-  await ensureDefaultTemplate(userId);
+  await ensureStickerPresets();
 
   const templates = await prisma.template.findMany({
     where: {

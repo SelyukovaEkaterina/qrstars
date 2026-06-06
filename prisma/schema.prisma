@@ -40,6 +40,19 @@ model User {
   earningsAsReferral PartnerEarning[]  @relation("EarningReferral")
   withdrawals      PartnerWithdrawal[]
   passwordResetTokens PasswordResetToken[]
+  userEvents         UserEvent[]
+}
+
+model UserEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event     String
+  props     Json?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([event, createdAt])
 }
 
 model Establishment {

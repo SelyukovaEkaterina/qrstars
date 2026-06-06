@@ -24,6 +24,27 @@ def test_register_success(base_url):
     assert data["user"]["email"] == email
 
 
+def test_register_mixed_case_email_then_login(base_url):
+    from conftest import login
+
+    raw_email = f"MixedCase-{uuid.uuid4().hex[:8]}@Test.EXAMPLE.com"
+    r = req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={
+            "email": raw_email,
+            "password": "secure123",
+            "name": "Mixed Case User",
+            "consentPd": True,
+        },
+    )
+    assert r.status_code == 200
+    stored_email = r.json()["user"]["email"]
+    assert stored_email == raw_email.lower()
+
+    s = req_lib.Session()
+    login(s, base_url, raw_email, "secure123")
+
+
 def test_register_without_consent(base_url):
     r = req_lib.post(
         f"{base_url}/api/auth/register",
