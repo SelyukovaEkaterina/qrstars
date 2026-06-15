@@ -8,6 +8,7 @@ import { sendTelegramNotification } from "@/lib/telegram";
 import { sendMaxNotification } from "@/lib/max";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
+import { getEmailTargets, getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 
 export async function POST(request: Request) {
   // Rate limit: 10 отзывов в минуту с одного IP
@@ -75,17 +76,24 @@ export async function POST(request: Request) {
     const { establishment } = review;
     const owner = establishment.user;
 
-    if (establishment.notificationEmailEnabled && establishment.notificationEmail) {
+    const notifyFields = {
+      userId: establishment.userId,
+      notificationTelegramEnabled: establishment.notificationTelegramEnabled,
+      notificationTelegramRequestsEnabled: establishment.notificationTelegramRequestsEnabled,
+      notificationTelegramChatId: establishment.notificationTelegramChatId,
+      notificationMaxEnabled: establishment.notificationMaxEnabled,
+      notificationMaxRequestsEnabled: establishment.notificationMaxRequestsEnabled,
+      notificationMaxUserId: establishment.notificationMaxUserId,
+      notificationEmailEnabled: establishment.notificationEmailEnabled,
+      notificationEmailRequestsEnabled: establishment.notificationEmailRequestsEnabled,
+      notificationEmail: establishment.notificationEmail,
+    };
+
+    const emailTargets = await getEmailTargets(notifyFields, "reviews");
+    const emailTo = emailTargets[0] ?? owner.email;
+    if (emailTo) {
       await sendNegativeReviewNotification(
-        establishment.notificationEmail,
-        establishment.name,
-        rating,
-        comment || "",
-        guestName || undefined
-      );
-    } else {
-      await sendNegativeReviewNotification(
-        owner.email,
+        emailTo,
         establishment.name,
         rating,
         comment || "",
@@ -93,9 +101,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (establishment.notificationTelegramEnabled && establishment.notificationTelegramChatId) {
+    for (const chatId of await getTelegramTargets(notifyFields, "reviews")) {
       await sendTelegramNotification(
-        establishment.notificationTelegramChatId,
+        chatId,
         establishment.name,
         rating,
         comment || "",
@@ -103,9 +111,9 @@ export async function POST(request: Request) {
       );
     }
 
-    if (establishment.notificationMaxEnabled && establishment.notificationMaxUserId) {
+    for (const maxUserId of await getMaxTargets(notifyFields, "reviews")) {
       await sendMaxNotification(
-        establishment.notificationMaxUserId,
+        maxUserId,
         establishment.name,
         rating,
         comment || "",

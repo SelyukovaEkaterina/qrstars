@@ -96,7 +96,7 @@ export async function POST(request: Request) {
 
   if (qrCodeId && existingCount === 0) {
     const qr = await prisma.qRCode.findFirst({
-      where: { id: qrCodeId, establishmentId: null, isActive: false, userId },
+      where: { id: qrCodeId, establishmentId: null, source: "DASHBOARD", userId },
     });
     if (qr) {
       await prisma.qRCode.update({

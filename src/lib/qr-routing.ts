@@ -27,6 +27,11 @@ export function isBuiltinSection(s: string): s is BuiltinSectionTarget {
   return BUILTIN_SECTION_MODES.includes(s as BuiltinSectionTarget);
 }
 
+/** QR ведёт на сбор отзывов (прямой раздел или микро-лендинг). */
+export function isReviewCapableQrMode(mode: string): boolean {
+  return mode === "REVIEW" || mode === "LANDING";
+}
+
 export function customSectionIdToTarget(pageId: string): `CUSTOM_${string}` {
   return `CUSTOM_${pageId}`;
 }
@@ -66,7 +71,7 @@ export function routingToMode(
 
 export const BUILTIN_SECTION_OPTIONS: { value: BuiltinSectionTarget; label: string }[] = [
   { value: "MENU", label: "QR-Меню" },
-  { value: "REVIEW", label: "Сбор отзывов" },
+  { value: "REVIEW", label: "Оставить отзыв" },
   { value: "BUSINESS_CARD", label: "Визитка" },
   { value: "WIFI", label: "Wi-Fi" },
   { value: "TIPS", label: "Чаевые" },

@@ -42,6 +42,7 @@ import {
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { generatePDFFromLayout, generateQRForPDF } from "@/lib/pdf-generator";
+import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
 import { scanUrlForCode } from "@/lib/utils";
 import type { TemplateLayout } from "@/types/template";
 import {
@@ -55,13 +56,13 @@ import {
   renderQRTemplate,
   canvasDisplaySize,
   normalizeQRTemplateConfig,
-  downloadQRTemplateAsPNG,
   qrStylePresetTemplateId,
   resolveQrStyleConfig,
   resolveQrStyleName,
   type QRTemplateConfig,
   type QrStyleTemplateSource,
 } from "@/lib/qr-code-templates";
+import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
 import {
   BUILTIN_STICKER_TEMPLATES,
   builtinStickerTemplateRows,
@@ -69,6 +70,7 @@ import {
   resolveStickerTemplate,
   stickerPresetTemplateId,
 } from "@/lib/builtin-sticker-templates";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 
 interface QRCodeData {
   id: string;
@@ -375,7 +377,7 @@ export default function QRCodeSettingsPage() {
   }, [qrStyleTemplateId, qrStyleTemplates]);
   const userQrStyleTemplates = qrStyleTemplates.filter((t) => !t.id.startsWith("qr-preset-"));
 
-  const handleDownloadQR = async () => {
+  const handleDownloadQR = async (format: "png" | "svg") => {
     if (!qrData) return;
     if (isCreateMode) {
       setQrHint("Сначала создайте QR-код");
@@ -385,21 +387,12 @@ export default function QRCodeSettingsPage() {
     setQrHint("");
     try {
       const payload = scanUrlForCode(qrData.code);
-      const config = resolveQrStyleConfig(qrStyleTemplateId, qrStyleTemplates);
-      if (config) {
-        const canvas = document.createElement("canvas");
-        await renderQRTemplate(canvas, normalizeQRTemplateConfig(config), payload, 1200);
-        downloadQRTemplateAsPNG(canvas, `qr-${qrData.code}`);
-        return;
-      }
-      if (qrImageUrl) {
-        const a = document.createElement("a");
-        a.href = qrImageUrl;
-        a.download = `qr-${qrData.code}.png`;
-        a.click();
-        return;
-      }
-      setQrHint("Не удалось сформировать изображение");
+      await downloadQrCode(format, payload, `qr-${qrData.code}`, {
+        qrStyleTemplateId,
+        qrStyleTemplates,
+        isPro,
+        size: QR_EXPORT_SIZE,
+      });
     } catch {
       setQrHint("Ошибка генерации QR-кода");
     } finally {
@@ -437,39 +430,9 @@ export default function QRCodeSettingsPage() {
         await renderSticker(canvas, cfg, fmt, false);
         const imgData = canvas.toDataURL("image/png", 1.0);
         const { jsPDF } = await import("jspdf");
-        const doc = new jsPDF({ unit: "mm", format: "a4" });
-
-        // Calculate grid layout dynamically to fill A4 sheet (210 x 297 mm)
-        let cols = 1;
-        let rows = 1;
-        let spacing = 5;
-        let marginX = 10;
-        let marginY = 10;
-
-        if (fmt.id === "a6p") {
-          cols = 2;
-          rows = 2;
-          spacing = 0;
-          marginX = 0;
-          marginY = 0.5;
-        } else if (fmt.id === "a6l") {
-          cols = 1;
-          rows = 2;
-          spacing = 2;
-          marginX = (210 - fmt.wMm) / 2;
-          marginY = (297 - (rows * fmt.hMm + (rows - 1) * spacing)) / 2;
-        } else {
-          cols = Math.floor((210 - 10 + spacing) / (fmt.wMm + spacing));
-          rows = Math.floor((297 - 10 + spacing) / (fmt.hMm + spacing));
-          if (cols < 1) cols = 1;
-          if (rows < 1) rows = 1;
-
-          // Center the grid on the page
-          const totalGridW = cols * fmt.wMm + (cols - 1) * spacing;
-          const totalGridH = rows * fmt.hMm + (rows - 1) * spacing;
-          marginX = (210 - totalGridW) / 2;
-          marginY = (297 - totalGridH) / 2;
-        }
+        const grid = calcA4StickerGrid(fmt.id, fmt.wMm, fmt.hMm);
+        const doc = new jsPDF({ unit: "mm", format: "a4", orientation: grid.orientation });
+        const { cols, rows, marginX, marginY, spacing } = grid;
 
         for (let r = 0; r < rows; r++) {
           for (let c = 0; c < cols; c++) {
@@ -618,9 +581,7 @@ export default function QRCodeSettingsPage() {
         tipsBankName: null,
       };
 
-      if (establishmentId && !qrData?.establishmentId) {
-        payload.isActive = true;
-      }
+      payload.isActive = true;
 
       const res = await fetch("/api/qrcodes", {
         method: "PUT",
@@ -897,7 +858,7 @@ export default function QRCodeSettingsPage() {
                                 )}
                                 <span className="text-gray-300">·</span>
                                 <Link
-                                  href="/dashboard/templates?tab=qr"
+                                  href={TEMPLATE_ROUTES.qr}
                                   className="text-xs text-gray-500 hover:text-indigo-600"
                                 >
                                   Шаблоны QR-кода →
@@ -907,16 +868,26 @@ export default function QRCodeSettingsPage() {
                           </div>
                         );
                       })()}
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <Button
                           type="button"
                           size="sm"
                           variant="ghost"
-                          onClick={handleDownloadQR}
+                          onClick={() => void handleDownloadQR("png")}
                           disabled={qrDownloading}
                         >
                           <Download className="w-4 h-4 mr-1" />
-                          {qrDownloading ? "Готовим..." : "Скачать QR-код"}
+                          {qrDownloading ? "Готовим..." : "PNG"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => void handleDownloadQR("svg")}
+                          disabled={qrDownloading}
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          SVG
                         </Button>
                       </div>
                       {qrHint && (
@@ -982,7 +953,7 @@ export default function QRCodeSettingsPage() {
                                 )}
                                 <span className="text-gray-300">·</span>
                                 <Link
-                                  href="/dashboard/templates?tab=table-tent"
+                                  href={TEMPLATE_ROUTES.tableTents}
                                   className="text-xs text-gray-500 hover:text-indigo-600"
                                 >
                                   Шаблоны таблички →
@@ -1308,7 +1279,7 @@ export default function QRCodeSettingsPage() {
             </div>
             <div className="p-4 border-t border-gray-100 flex justify-between items-center">
               <Link
-                href="/dashboard/templates?tab=qr"
+                href={TEMPLATE_ROUTES.qr}
                 onClick={() => setShowQrStyleTemplatePicker(false)}
                 className="text-sm text-indigo-600 hover:underline"
               >
@@ -1364,7 +1335,7 @@ export default function QRCodeSettingsPage() {
             </div>
             <div className="p-4 border-t border-gray-100 flex justify-between items-center">
               <Link
-                href="/dashboard/templates?tab=table-tent"
+                href={TEMPLATE_ROUTES.tableTents}
                 onClick={() => setShowTableTemplatePicker(false)}
                 className="text-sm text-indigo-600 hover:underline"
               >

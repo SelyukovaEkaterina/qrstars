@@ -41,43 +41,14 @@ export function parseUserAgent(ua: string | null): { browser: string; device: st
   return { browser, device };
 }
 
-export async function getGeoRegion(ip: string): Promise<string> {
-  if (
-    ip === "unknown" ||
-    ip === "::1" ||
-    ip.startsWith("127.") ||
-    ip.startsWith("10.") ||
-    ip.startsWith("192.168.")
-  ) {
-    return "Локальная сеть";
-  }
-
-  try {
-    const res = await fetch(
-      `http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city&lang=ru`,
-      { signal: AbortSignal.timeout(3000) }
-    );
-    const data = (await res.json()) as {
-      status?: string;
-      city?: string;
-      regionName?: string;
-      country?: string;
-    };
-    if (data.status === "success") {
-      return [data.city, data.regionName, data.country].filter(Boolean).join(", ") || "Не определён";
-    }
-  } catch {
-    // geo lookup is best-effort
-  }
-
-  return "Не определён";
-}
+export { lookupGeoRegion as getGeoRegion } from "@/lib/geoip";
+import { lookupGeoRegion } from "@/lib/geoip";
 
 export async function collectClientInfo(request: Request): Promise<ClientInfo> {
   const ip = getClientIp(request);
   const ua = request.headers.get("user-agent");
   const { browser, device } = parseUserAgent(ua);
-  const region = await getGeoRegion(ip);
+  const region = await lookupGeoRegion(ip);
 
   return { ip, region, browser, device };
 }

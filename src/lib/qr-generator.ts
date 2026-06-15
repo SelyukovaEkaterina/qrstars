@@ -39,6 +39,8 @@ export interface QRCenterOptions {
   centerText?: string | null;
   centerLogoUrl?: string | null;
   isPro: boolean;
+  /** No center overlay on FREE (default shows qrstars.ru watermark). */
+  skipWatermark?: boolean;
 }
 
 export async function generateQRWithCenter(
@@ -75,7 +77,7 @@ export async function generateQRWithCenter(
     } else if (options.centerText) {
       overlayText = options.centerText;
     }
-  } else {
+  } else if (!options.skipWatermark) {
     overlayText = DEFAULT_WATERMARK;
   }
 
@@ -144,6 +146,94 @@ export async function generateQRWithCenter(
   }
 
   return canvas.toDataURL("image/png");
+}
+
+async function imageToDataUrl(src: string): Promise<string> {
+  const img = await loadImage(src);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.width;
+  canvas.height = img.height;
+  canvas.getContext("2d")!.drawImage(img, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+function svgRoundRect(cx: number, cy: number, w: number, h: number, r: number): string {
+  const x = cx - w / 2;
+  const y = cy - h / 2;
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${r}" ry="${r}" fill="#ffffff"/>`;
+}
+
+export async function generateQRSvg(
+  text: string,
+  options: QRCenterOptions,
+  size: number = 512,
+  darkColor: string = "#1e1b4b",
+  lightColor: string = "#ffffff",
+): Promise<string> {
+  let svg = await QRCodeLib.toString(text, {
+    type: "svg",
+    width: size,
+    margin: 2,
+    color: { dark: darkColor, light: lightColor },
+    errorCorrectionLevel: "H",
+  });
+
+  const centerSize = size * 0.22;
+  const cx = size / 2;
+  const cy = size / 2;
+  const r = centerSize * 0.12;
+
+  let overlayText: string | null = null;
+  let overlayLogoUrl: string | null = null;
+
+  if (options.isPro) {
+    if (options.centerLogoUrl) {
+      overlayLogoUrl = options.centerLogoUrl;
+    } else if (options.centerText) {
+      overlayText = options.centerText;
+    }
+  } else if (!options.skipWatermark) {
+    overlayText = DEFAULT_WATERMARK;
+  }
+
+  const overlayParts: string[] = [];
+
+  if (overlayLogoUrl) {
+    try {
+      const logoData = await imageToDataUrl(overlayLogoUrl);
+      const padding = centerSize * 0.15;
+      const logoSize = centerSize - padding * 2;
+      overlayParts.push(svgRoundRect(cx, cy, centerSize, centerSize, r));
+      overlayParts.push(
+        `<image href="${logoData}" x="${cx - logoSize / 2}" y="${cy - logoSize / 2}" width="${logoSize}" height="${logoSize}" preserveAspectRatio="xMidYMid meet"/>`,
+      );
+    } catch {
+      if (options.isPro) {
+        overlayText = options.centerText || null;
+      } else {
+        overlayText = overlayText || DEFAULT_WATERMARK;
+      }
+    }
+  }
+
+  if (overlayText) {
+    const isWatermark = overlayText === DEFAULT_WATERMARK;
+    const fontSize = isWatermark ? centerSize * 0.22 : centerSize * 0.32;
+    const escaped = overlayText
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+    overlayParts.push(svgRoundRect(cx, cy, centerSize, centerSize, r));
+    overlayParts.push(
+      `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" fill="${darkColor}" font-family="Inter, system-ui, sans-serif" font-weight="bold" font-size="${fontSize}">${escaped}</text>`,
+    );
+  }
+
+  if (overlayParts.length > 0) {
+    svg = svg.replace("</svg>", `${overlayParts.join("")}</svg>`);
+  }
+
+  return svg;
 }
 
 export async function generateQRForPdfWithCenter(

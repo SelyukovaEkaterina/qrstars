@@ -269,11 +269,11 @@ function EstablishmentsPageContent() {
                     {error}
                   </div>
                 )}
-                {establishments.length === 0 && qrcodes.filter((q) => !q.establishmentId && !q.isActive).length === 1 && (
+                {establishments.length === 0 && qrcodes.filter((q) => !q.establishmentId).length === 1 && (
                   <div className="bg-indigo-50 text-indigo-800 px-4 py-3 rounded-lg text-sm">
                     Найден непривязанный QR-код{" "}
                     <span className="font-mono">
-                      {qrcodes.find((q) => !q.establishmentId && !q.isActive)?.code}
+                      {qrcodes.find((q) => !q.establishmentId)?.code}
                     </span>{" "}
                     — после создания заведения он будет привязан автоматически
                   </div>

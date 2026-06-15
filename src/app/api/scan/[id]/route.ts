@@ -250,7 +250,7 @@ export async function GET(
     return NextResponse.json({ error: "QR-код не найден" }, { status: 404 });
   }
 
-  if (!qrCode.isActive) {
+  if (!qrCode.isActive && qrCode.source !== "DASHBOARD") {
     return NextResponse.json({
       needsActivation: true,
       source: qrCode.source,

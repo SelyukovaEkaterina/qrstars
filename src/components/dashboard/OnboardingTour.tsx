@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useCallback, useMemo } from "react";
+import { usePathname } from "next/navigation";
 import { driver, type Driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
 import type { SetupProfile } from "@/lib/setup-guide";
+import { isSetupWizardPath } from "@/lib/setup-wizard-path";
 
 const popoverRight = { side: "right" as const };
 
@@ -113,11 +115,20 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
       },
     },
     {
-      element: "#tour-nav-templates",
+      element: "#tour-nav-templates-qr",
       popover: {
-        title: "Шаблоны",
+        title: "Шаблоны QR-кода",
         description:
           "Готовые оформления QR-кодов (цвет, логотип, фон) — применяйте к кодам одним кликом. Свои пресеты сохраняются для всех QR заведения.",
+        ...popoverRight,
+      },
+    },
+    {
+      element: "#tour-nav-templates-table-tents",
+      popover: {
+        title: "Шаблоны табличек",
+        description:
+          "Макеты табличек и стикеров для печати с QR-кодом. Выберите готовый или создайте свой и привяжите к динамическому QR в настройках кода.",
         ...popoverRight,
       },
     },
@@ -126,7 +137,7 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
       popover: {
         title: "Настройки",
         description:
-          "Профиль и пароль, каналы уведомлений (Telegram, MAX, email), white-label на PRO. Сюда же — подключение мессенджеров для жалоб и формы «Связь» на визитке.",
+          "Профиль и пароль, каналы уведомлений (Telegram, MAX, email). Сюда же — подключение мессенджеров для жалоб и формы «Связь» на визитке.",
         ...popoverRight,
       },
     },
@@ -181,6 +192,7 @@ interface OnboardingTourProps {
 }
 
 export function OnboardingTour({ completed, setupProfile = null }: OnboardingTourProps) {
+  const pathname = usePathname();
   const driverRef = useRef<Driver | null>(null);
   const steps = useMemo(() => buildSteps(setupProfile), [setupProfile]);
 
@@ -208,14 +220,14 @@ export function OnboardingTour({ completed, setupProfile = null }: OnboardingTou
   }, [steps]);
 
   useEffect(() => {
-    if (completed) return;
+    if (completed || isSetupWizardPath(pathname)) return;
 
     const timer = setTimeout(() => {
       startTour();
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [completed, startTour]);
+  }, [completed, pathname, startTour]);
 
   useEffect(() => {
     const handler = () => startTour();

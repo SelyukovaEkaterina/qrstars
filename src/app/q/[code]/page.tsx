@@ -84,20 +84,28 @@ export async function generateMetadata({ params }: ScanPageProps): Promise<Metad
     };
   }
 
-  const qrCode = await prisma.qRCode.findUnique({
-    where: { code },
-    select: {
-      mode: true,
-      establishment: {
-        select: {
-          name: true,
-          landingSubtitle: true,
-          coverUrl: true,
-          logoUrl: true,
+  // Try Redis cache first — avoids a DB query on cache hit
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const cachedMeta: any = await getScanCache(code);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let qrCode: any = cachedMeta?.qr ?? null;
+
+  if (!qrCode) {
+    qrCode = await prisma.qRCode.findUnique({
+      where: { code },
+      select: {
+        mode: true,
+        establishment: {
+          select: {
+            name: true,
+            landingSubtitle: true,
+            coverUrl: true,
+            logoUrl: true,
+          },
         },
       },
-    },
-  });
+    });
+  }
 
   if (!qrCode?.establishment) {
     return { title: "QR Stars" };
@@ -140,6 +148,121 @@ const establishmentContentInclude = {
   tipsEmployees: { orderBy: { order: "asc" as const } },
 } as const;
 
+// ─── Mode-optimised includes (#3) ───────────────────────────────────────────
+// Only load relations actually needed for the QR's mode.
+// REDIRECT skips the second query entirely (handled separately).
+
+/** Minimal scalar select — determines mode/activation before loading relations. */
+const qrMinimalSelect = {
+  id: true,
+  code: true,
+  label: true,
+  mode: true,
+  isActive: true,
+  source: true,
+  batchId: true,
+  establishmentId: true,
+  userId: true,
+  redirectUrl: true,
+  tipsType: true,
+  tipsPhone: true,
+  tipsBankName: true,
+} as const;
+
+/** Relations shared by all non-REDIRECT render modes. */
+const estCommonInclude = {
+  promocodes: { where: { isActive: true }, take: 1 },
+  user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
+} as const;
+
+/** Full include for LANDING mode (kitchen-sink: everything the landing needs). */
+const landingQrInclude = {
+  establishment: { include: establishmentContentInclude },
+  businessCard: true,
+  wifiConfig: true,
+  menu: { include: { items: { orderBy: { order: "asc" as const } } } },
+  tipsEmployees: { orderBy: { order: "asc" as const } },
+} as const;
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function buildScanInclude(mode: string): any {
+  switch (mode) {
+    case "WIFI":
+      return {
+        wifiConfig: true,
+        establishment: { include: { ...estCommonInclude, wifiConfig: true } },
+      };
+    case "BUSINESS_CARD":
+      return {
+        businessCard: true,
+        establishment: { include: { ...estCommonInclude, businessCard: true } },
+      };
+    case "MENU":
+      return {
+        menu: { include: { items: { orderBy: { order: "asc" as const } } } },
+        establishment: {
+          include: {
+            ...estCommonInclude,
+            menu: { include: { items: { orderBy: { order: "asc" as const } } } },
+          },
+        },
+      };
+    case "FILE":
+      return {
+        fileAsset: true,
+        establishment: { include: estCommonInclude },
+      };
+    case "FORM":
+      return {
+        form: { include: { fields: { orderBy: { order: "asc" as const } } } },
+        establishment: { include: estCommonInclude },
+      };
+    case "CUSTOM_SECTION":
+      return {
+        customPage: { include: { fileAsset: true } },
+        establishment: { include: estCommonInclude },
+      };
+    case "TIPS":
+      return {
+        tipsEmployees: { orderBy: { order: "asc" as const } },
+        establishment: {
+          include: { ...estCommonInclude, tipsEmployees: { orderBy: { order: "asc" as const } } },
+        },
+      };
+    case "LANDING":
+      return landingQrInclude;
+    default:
+      // REVIEW and any future mode
+      return { establishment: { include: estCommonInclude } };
+  }
+}
+
+/**
+ * Extra-module queries for LANDING mode (multi-menu, multi-card, multi-wifi).
+ * Computed once and cached inside `scan:{code}` payload (#2).
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function computeLandingExtras(qrCode: any) {
+  const moduleTypes = parseModuleTypes(qrCode.establishment?.moduleTypes);
+  const extraMenuIds = Object.values(moduleTypes).filter((m) => m.type === "menu").map((m) => m.instanceId);
+  const extraBcIds = Object.values(moduleTypes).filter((m) => m.type === "businessCard").map((m) => m.instanceId);
+  const extraWifiIds = Object.values(moduleTypes).filter((m) => m.type === "wifi").map((m) => m.instanceId);
+
+  const [menus, businessCards, wifis] = await Promise.all([
+    extraMenuIds.length > 0
+      ? prisma.qRMenu.findMany({ where: { id: { in: extraMenuIds } }, include: { items: { orderBy: { order: "asc" as const } } } })
+      : Promise.resolve([]),
+    extraBcIds.length > 0
+      ? prisma.businessCard.findMany({ where: { id: { in: extraBcIds } } })
+      : Promise.resolve([]),
+    extraWifiIds.length > 0
+      ? prisma.wifiConfig.findMany({ where: { id: { in: extraWifiIds } } })
+      : Promise.resolve([]),
+  ]);
+
+  return { menus, businessCards, wifis };
+}
+
 export default async function ScanPage({ params }: ScanPageProps) {
   const { code } = await params;
 
@@ -148,28 +271,48 @@ export default async function ScanPage({ params }: ScanPageProps) {
     return demoPage;
   }
 
+  // ─── Step 1: resolve QR data (cache → minimal → mode-specific) ───────────
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let qrCode: any = await getScanCache(code);
+  const cached: any = await getScanCache(code);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let qrCode: any = cached?.qr ?? null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cachedExtras: any = cached?.extras ?? null;
+
   if (!qrCode) {
+    // Cache miss — minimal scalar lookup first (indexed, ~0.1ms)
     qrCode = await prisma.qRCode.findUnique({
       where: { code },
-      include: {
-        establishment: { include: establishmentContentInclude },
-        businessCard: true,
-        wifiConfig: true,
-        fileAsset: true,
-        customPage: { include: { fileAsset: true } },
-        tipsEmployees: { orderBy: { order: "asc" as const } },
-        form: { include: { fields: { orderBy: { order: "asc" } } } },
-        menu: {
-          include: {
-            items: { orderBy: { order: "asc" } },
-          },
-        },
-      },
+      select: qrMinimalSelect,
     });
-    if (qrCode?.isActive) {
-      setScanCache(code, qrCode, qrCode.establishmentId).catch(() => {});
+
+    if (!qrCode) {
+      return <QrNotActivated code={code} variant="not-found" />;
+    }
+
+    // For active non-REDIRECT modes, load relations matching the mode
+    if (
+      qrCode.isActive &&
+      !(qrCode.mode === "REDIRECT" && qrCode.redirectUrl)
+    ) {
+      const fullQr = await prisma.qRCode.findUnique({
+        where: { code },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        include: buildScanInclude(qrCode.mode) as any,
+      });
+      if (!fullQr) {
+        return <QrNotActivated code={code} variant="not-found" />;
+      }
+
+      // Pre-compute LANDING extra-module queries so they are cached too (#2)
+      if (fullQr.mode === "LANDING" && fullQr.establishment) {
+        cachedExtras = await computeLandingExtras(fullQr);
+      }
+
+      qrCode = fullQr;
+      if (qrCode.isActive) {
+        setScanCache(code, { qr: qrCode, extras: cachedExtras }, qrCode.establishmentId).catch(() => {});
+      }
     }
   }
 
@@ -181,7 +324,9 @@ export default async function ScanPage({ params }: ScanPageProps) {
     if (qrCode.source === "MARKETPLACE" && qrCode.batchId) {
       return <QrNotActivated code={code} variant="marketplace" />;
     }
-    redirect(`/activate/${code}`);
+    if (qrCode.source !== "DASHBOARD") {
+      redirect(`/activate/${code}`);
+    }
   }
 
   const scanHeaders = await headers();
@@ -194,6 +339,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     });
   };
 
+  // REDIRECT: fast path — no relations loaded, just bounce
   if (qrCode.mode === "REDIRECT" && qrCode.redirectUrl) {
     incrementScan();
     redirect(qrCode.redirectUrl);
@@ -291,23 +437,14 @@ export default async function ScanPage({ params }: ScanPageProps) {
         }
       : null;
 
-    const extraMenuIds = Object.values(moduleTypes).filter(m => m.type === "menu").map(m => m.instanceId);
-    const extraBcIds = Object.values(moduleTypes).filter(m => m.type === "businessCard").map(m => m.instanceId);
-    const extraWifiIds = Object.values(moduleTypes).filter(m => m.type === "wifi").map(m => m.instanceId);
+    // Use cached extras when available (#2), otherwise compute now
+    const extras = cachedExtras ?? await computeLandingExtras(qrCode);
+    const extraMenusRaw = extras.menus;
+    const extraBusinessCards = extras.businessCards;
+    const extraWifiConfigs = extras.wifis;
 
-    const [extraMenusRaw, extraBusinessCards, extraWifiConfigs] = await Promise.all([
-      extraMenuIds.length > 0
-        ? prisma.qRMenu.findMany({ where: { id: { in: extraMenuIds } }, include: { items: { orderBy: { order: "asc" } } } })
-        : Promise.resolve([]),
-      extraBcIds.length > 0
-        ? prisma.businessCard.findMany({ where: { id: { in: extraBcIds } } })
-        : Promise.resolve([]),
-      extraWifiIds.length > 0
-        ? prisma.wifiConfig.findMany({ where: { id: { in: extraWifiIds } } })
-        : Promise.resolve([]),
-    ]);
-
-    const extraMenus = extraMenusRaw.map((m) =>
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const extraMenus = extraMenusRaw.map((m: any) =>
       JSON.parse(JSON.stringify(sanitizeMenuForClient(m)))
     );
     const menuStub = rawMenu

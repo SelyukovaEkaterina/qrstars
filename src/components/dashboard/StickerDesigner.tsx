@@ -1,8 +1,34 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { Plus, X, Download, FileText, RotateCcw } from "lucide-react";
-import type { QRTemplateConfig } from "@/lib/qr-code-templates";
+import {
+  QR_CODE_TEMPLATES,
+  resolveQrStyleConfig,
+  resolveQrStyleName,
+  qrStylePresetTemplateId,
+  type QRTemplateConfig,
+  type QrStyleTemplateSource,
+} from "@/lib/qr-code-templates";
+import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
+import { scanUrlForCode } from "@/lib/utils";
+
+type UserQR = {
+  id: string;
+  code: string;
+  label: string | null;
+  mode: string;
+  qrStyleTemplateId?: string | null;
+  establishment?: { name: string } | null;
+  qrStyleTemplate?: { id: string; name?: string; layout?: unknown } | null;
+};
+
+function qrDisplayName(qr: UserQR): string {
+  if (qr.label?.trim()) return qr.label.trim();
+  if (qr.establishment?.name) return qr.establishment.name;
+  return qr.code;
+}
 
 /* ════════════════════════════════════════════════════════════════
    TYPES
@@ -119,29 +145,10 @@ const EYE_LABELS: Record<EyeStyle, string> = {
   circle: "Круг",    leaf: "Лист",         corners: "Уголок",
 };
 
-export const LAYOUTS: LayoutDef[] = [
-  {
-    id: "standard", name: "Стандарт", kind: "standard", shape: "rect",
-    labelMode: "dots", headlineCaps: true,
-  },
-  {
-    id: "editorial", name: "Editorial", kind: "editorial", shape: "rect",
-    labelMode: "bars", headlineFamily: SERIF,
-  },
+/** Скрытые макеты — только для рендера уже сохранённых шаблонов */
+const DEPRECATED_LAYOUTS: LayoutDef[] = [
   {
     id: "bauhaus", name: "Bauhaus", kind: "bauhaus", shape: "rect",
-    labelMode: "dots", headlineCaps: true,
-  },
-  {
-    id: "round", name: "Круглый", kind: "round", shape: "circle",
-    labelMode: "pills", headlineCaps: true,
-  },
-  {
-    id: "badge", name: "Бейдж", kind: "badge", shape: "rect",
-    labelMode: "pills", headlineCaps: true,
-  },
-  {
-    id: "ticket", name: "Тикет", kind: "ticket", shape: "rect",
     labelMode: "dots", headlineCaps: true,
   },
   {
@@ -152,7 +159,32 @@ export const LAYOUTS: LayoutDef[] = [
     id: "compact", name: "Компакт", kind: "compact", shape: "rect",
     labelMode: "dots", headlineCaps: true,
   },
+  {
+    id: "badge", name: "Бейдж", kind: "badge", shape: "rect",
+    labelMode: "pills", headlineCaps: true,
+  },
 ];
+
+export const LAYOUTS: LayoutDef[] = [
+  {
+    id: "standard", name: "Стандарт", kind: "standard", shape: "rect",
+    labelMode: "dots", headlineCaps: true,
+  },
+  {
+    id: "editorial", name: "Editorial", kind: "editorial", shape: "rect",
+    labelMode: "bars", headlineFamily: SERIF,
+  },
+  {
+    id: "round", name: "Круглый", kind: "round", shape: "circle",
+    labelMode: "pills", headlineCaps: true,
+  },
+  {
+    id: "ticket", name: "Тикет", kind: "ticket", shape: "rect",
+    labelMode: "dots", headlineCaps: true,
+  },
+];
+
+const ALL_LAYOUTS: LayoutDef[] = [...LAYOUTS, ...DEPRECATED_LAYOUTS];
 
 export const PALETTES: PaletteDef[] = [
   {
@@ -308,7 +340,7 @@ const LEGACY_THEME_MAP: Record<string, { layoutId: LayoutId; paletteId: PaletteI
 };
 function resolveLayoutAndPalette(cfg: StickerConfig): { layout: LayoutDef; palette: PaletteDef } {
   // 1. explicit fields win
-  const explicitL = cfg.layoutId && LAYOUTS.find(l => l.id === cfg.layoutId);
+  const explicitL = cfg.layoutId && ALL_LAYOUTS.find(l => l.id === cfg.layoutId);
   let explicitP: PaletteDef | undefined;
   if (cfg.paletteId === "custom" && cfg.brandColor) {
     explicitP = paletteFromBrand(cfg.brandColor);
@@ -317,7 +349,7 @@ function resolveLayoutAndPalette(cfg: StickerConfig): { layout: LayoutDef; palet
   }
   // 2. fall back to legacy themeId
   const legacy = cfg.themeId ? LEGACY_THEME_MAP[cfg.themeId] : undefined;
-  const layout = explicitL || (legacy && LAYOUTS.find(l => l.id === legacy.layoutId)) || LAYOUTS[0];
+  const layout = explicitL || (legacy && ALL_LAYOUTS.find(l => l.id === legacy.layoutId)) || LAYOUTS[0];
   const palette = explicitP || (legacy && PALETTES.find(p => p.id === legacy.paletteId)) || PALETTES[0];
   return { layout, palette };
 }
@@ -350,7 +382,7 @@ export const DEFAULT_STICKER_CONFIG: StickerConfig = {
   ctaText: "Наведите камеру",
   labels: ["★★★★★"],
   formatId: "7x7",
-  layoutId: "compact",
+  layoutId: "standard",
   paletteId: "sunset",
   brandColor: "#4F46E5",
   dotStyle: "rounded",
@@ -732,6 +764,20 @@ function drawWrappedText(
   return fontSize * (1 + (lines.length - 1) * lineHeight);
 }
 
+/** Small square stickers (5×5, 7×7, 8×8) — tighter layout budgets */
+function isCompactSticker(W: number, H: number): boolean {
+  return Math.min(W, H) <= 390;
+}
+
+function isSquareSticker(W: number, H: number): boolean {
+  return Math.abs(W - H) < 6;
+}
+
+/** Reserve space for optional watermark at the bottom */
+function bottomSafeY(H: number, showWatermark: boolean): number {
+  return showWatermark ? H - H * 0.058 : H - H * 0.028;
+}
+
 /* ════════════════════════════════════════════════════════════════
    LAYOUT RENDERERS
 ════════════════════════════════════════════════════════════════ */
@@ -739,10 +785,11 @@ async function renderStandard(
   ctx: CanvasRenderingContext2D, W: number, H: number,
   theme: Theme, cfg: StickerConfig
 ) {
-  const isSquare = W === H;
-  const topFrac  = 0.11;
-  const qrFrac   = 0.58;
-  const midFrac  = 0.06;
+  const compact = isCompactSticker(W, H);
+  const isSquare = isSquareSticker(W, H);
+  const topFrac  = compact ? 0.10 : 0.11;
+  const qrFrac   = compact ? (cfg.labels.length >= 3 ? 0.52 : 0.54) : 0.58;
+  const midFrac  = compact ? 0.04 : 0.06;
   const qrSize   = Math.min(W, H) * qrFrac;
   const qrX      = (W - qrSize) / 2;
   const qrY      = H * topFrac;
@@ -759,26 +806,36 @@ async function renderStandard(
   // headline (skip if empty)
   const headline = (cfg.headline || "").trim();
   const maxTextW = W * 0.88;
-  const hlStartFs = isSquare ? W * 0.082 : W * 0.065;
+  const hlStartFs = compact
+    ? W * 0.062
+    : isSquare ? W * 0.082 : W * 0.065;
   if (headline) {
     const hlFamily = theme.headlineFamily || "Arial, sans-serif";
     const display = theme.headlineCaps ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
-    const hlFs = drawFittedText(
-      ctx, display, W / 2, qrY / 2, maxTextW,
-      hlStartFs, Math.max(6, hlStartFs * 0.45),
-      (s) => `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${hlFamily}`,
-    );
-
-    // accent line under headline
-    const hlY = qrY / 2;
-    const lineW = Math.min(W * 0.25, ctx.measureText(display).width * 0.6);
-    const lineY = hlY + hlFs * 0.75;
-    ctx.strokeStyle = theme.accentLine;
-    ctx.lineWidth = Math.max(1, H * 0.004);
-    ctx.globalAlpha = 0.35;
-    ctx.beginPath(); ctx.moveTo(W / 2 - lineW / 2, lineY); ctx.lineTo(W / 2 + lineW / 2, lineY); ctx.stroke();
-    ctx.globalAlpha = 1;
+    const hlMinFs = Math.max(5, hlStartFs * (compact ? 0.38 : 0.45));
+    const hlBuilder = (s: number) =>
+      `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${hlFamily}`;
+    const useWrap = compact && (display.length > 12 || display.includes("·"));
+    if (useWrap) {
+      drawWrappedText(
+        ctx, display, W / 2, H * 0.035, maxTextW,
+        hlStartFs, hlMinFs, 2, hlBuilder,
+      );
+    } else {
+      drawFittedText(
+        ctx, display, W / 2, qrY / 2, maxTextW,
+        hlStartFs, hlMinFs, hlBuilder,
+      );
+      const hlY = qrY / 2;
+      const lineW = Math.min(W * 0.25, ctx.measureText(display).width * 0.6);
+      const lineY = hlY + hlStartFs * 0.75;
+      ctx.strokeStyle = theme.accentLine;
+      ctx.lineWidth = Math.max(1, H * 0.004);
+      ctx.globalAlpha = 0.35;
+      ctx.beginPath(); ctx.moveTo(W / 2 - lineW / 2, lineY); ctx.lineTo(W / 2 + lineW / 2, lineY); ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
   }
 
   // QR card
@@ -818,8 +875,13 @@ async function renderStandard(
 
   // labels
   if (cfg.labels.length > 0) {
-    const labY = (cta ? ctaY + H * 0.08 : sepY + H * 0.04);
-    renderLabels(ctx, W, H, labY, cfg.labels, theme);
+    const labY = (cta ? ctaY + H * (compact ? 0.05 : 0.08) : sepY + H * 0.04);
+    const labelScale = compact
+      ? (cfg.labels.length >= 3 ? 0.034 : 0.038)
+      : 0.044;
+    renderLabels(ctx, W, H, Math.min(labY, bottomSafeY(H, cfg.showWatermark) - H * 0.04), cfg.labels, theme, {
+      fontScale: labelScale,
+    });
   }
 
   // watermark
@@ -850,9 +912,6 @@ async function renderEditorial(
     const headline = (cfg.headline || "").trim();
     const cta = (cfg.ctaText || "").trim();
     let ty = H * 0.15;
-    let fs = H * 0.20;
-
-    // tiny eyebrow above title (only if there's a headline)
     if (headline) {
       ctx.fillStyle = theme.text3;
       const ebFs = H * 0.028;
@@ -860,14 +919,14 @@ async function renderEditorial(
       ctx.textAlign = "left"; ctx.textBaseline = "top";
       ctx.fillText("— SCAN ME", W * 0.07, H * 0.09);
 
-      // big title
       ctx.fillStyle = theme.text1;
-      ctx.font = `bold ${fs}px ${family}`;
-      while (ctx.measureText(headline).width > titleW * 0.82 && fs > 8) {
-        fs -= 1; ctx.font = `bold ${fs}px ${family}`;
-      }
-      ctx.fillText(headline, W * 0.07, ty);
-      ty += fs * 1.05;
+      const headBlockH = drawWrappedText(
+        ctx, headline, W * 0.07, ty, titleW * 0.86,
+        H * 0.20, Math.max(8, H * 0.10), 2,
+        (s) => `bold ${s}px ${family}`,
+        "left",
+      );
+      ty += headBlockH * 1.05;
     }
 
     // cta
@@ -903,68 +962,61 @@ async function renderEditorial(
     }
   } else {
     // A6 / square portrait editorial
-    const qrSz   = W * 0.56;
+    const compact = isCompactSticker(W, H);
+    const square = isSquareSticker(W, H);
+    const qrSz   = compact ? W * 0.50 : W * 0.56;
     const qrX    = (W - qrSz) / 2;
 
     const headline = (cfg.headline || "").trim();
     const cta = (cfg.ctaText || "").trim();
-    let ty = H * 0.10;
-    let lineFs = W * 0.14;
+    let ty = H * (compact ? 0.08 : 0.10);
+    let lineFs = square && compact ? W * 0.082 : compact ? W * 0.10 : W * 0.14;
 
     if (headline) {
       // eyebrow
-      const ebFs = H * 0.025;
+      const ebFs = H * (compact ? 0.022 : 0.025);
       ctx.font = `${ebFs}px Arial, sans-serif`;
       ctx.fillStyle = theme.text3;
       ctx.textAlign = "left"; ctx.textBaseline = "top";
-      ctx.fillText("— SCAN ME", W * 0.07, H * 0.06);
+      ctx.fillText("— SCAN ME", W * 0.07, H * (compact ? 0.05 : 0.06));
 
       // wrap headline into ≤2 lines
-      const words = headline.split(/\s+/);
-      ctx.font = `bold ${lineFs}px ${family}`;
-      while (ctx.measureText(headline).width > W * 0.86 && lineFs > 8) {
-        lineFs -= 1; ctx.font = `bold ${lineFs}px ${family}`;
-      }
-      const lines: string[] = [];
-      let cur = "";
-      for (const w of words) {
-        const test = cur ? `${cur} ${w}` : w;
-        if (ctx.measureText(test).width > W * 0.86 && cur) {
-          lines.push(cur); cur = w;
-        } else { cur = test; }
-      }
-      if (cur) lines.push(cur);
-      if (lines.length > 2) { lines[1] = lines.slice(1).join(" "); lines.length = 2; }
-
-      ctx.fillStyle = theme.text1; ctx.textAlign = "left"; ctx.textBaseline = "top";
-      for (const line of lines) {
-        ctx.fillText(line, W * 0.07, ty);
-        ty += lineFs * 1.05;
-      }
+      ctx.fillStyle = theme.text1;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      const headBlockH = drawWrappedText(
+        ctx, headline, W * 0.07, ty, W * 0.86,
+        lineFs, Math.max(6, lineFs * 0.45), 2,
+        (s) => `bold ${s}px ${family}`,
+        "left",
+      );
+      ty += headBlockH * 1.02;
     }
 
-    const qrY = Math.max(ty + H * 0.04, H * 0.22);
+    const qrY = Math.max(ty + H * (compact ? 0.03 : 0.04), H * (compact ? 0.18 : 0.22));
 
     await drawQRInArea(ctx, qrX, qrY, qrSz, qrSz, cfg, theme.qrDark, theme.qrLight);
 
-    let belowY = qrY + qrSz + H * 0.025;
+    let belowY = qrY + qrSz + H * (compact ? 0.018 : 0.025);
     if (cta) {
       ctx.fillStyle = theme.text2;
       const ctaH = drawWrappedText(
         ctx, cta, W / 2, belowY, W * 0.86,
-        W * 0.05, Math.max(5, W * 0.032), 2,
+        compact ? W * 0.042 : W * 0.05, Math.max(5, W * 0.028), compact ? 1 : 2,
         (s) => `${s}px Arial, sans-serif`,
       );
-      belowY += ctaH * 0.85;
+      belowY += ctaH * (compact ? 0.7 : 0.85);
     }
 
     if (cfg.labels.length) {
-      // separator
-      const sepY = belowY + H * 0.02;
+      const sepY = belowY + H * (compact ? 0.012 : 0.02);
       ctx.strokeStyle = theme.accentLine; ctx.lineWidth = 1; ctx.globalAlpha = 0.22;
       ctx.beginPath(); ctx.moveTo(W * 0.07, sepY); ctx.lineTo(W * 0.93, sepY); ctx.stroke();
       ctx.globalAlpha = 1;
-      renderLabels(ctx, W, H, sepY + H * 0.04, cfg.labels, theme);
+      const labY = Math.min(sepY + H * (compact ? 0.028 : 0.04), bottomSafeY(H, cfg.showWatermark) - H * 0.035);
+      renderLabels(ctx, W, H, labY, cfg.labels, theme, {
+        fontScale: compact ? (cfg.labels.length >= 3 ? 0.032 : 0.036) : 0.044,
+      });
     }
 
     if (cfg.showWatermark) {
@@ -1055,6 +1107,7 @@ async function renderRound(
   // circle is already clipped by caller
   const cx = W / 2, cy = H / 2;
   const R  = Math.min(W, H) / 2;
+  const compact = isCompactSticker(W, H);
 
   // inner thin ring (decorative)
   ctx.strokeStyle = theme.accentLine;
@@ -1068,21 +1121,23 @@ async function renderRound(
   // headline — placed in top arc (skip if empty)
   const headline = (cfg.headline || "").trim();
   const cta = (cfg.ctaText || "").trim();
+  const headY = cy - R * (compact ? 0.62 : 0.66);
   if (headline) {
     const display = theme.headlineCaps !== false ? headline.toUpperCase() : headline;
     ctx.fillStyle = theme.text1;
     const family = theme.headlineFamily || "Arial, sans-serif";
+    const headMaxW = R * (compact ? 1.35 : 1.5);
     drawFittedText(
-      ctx, display, cx, cy - R * 0.66, R * 1.5,
-      R * 0.15, Math.max(6, R * 0.07),
+      ctx, display, cx, headY, headMaxW,
+      R * (compact ? 0.10 : 0.15), Math.max(5, R * 0.045),
       (s) => `900 ${s}px ${family}`,
     );
   }
 
-  // QR — smaller, centered, with white card
-  const qrSz = R * 0.72;
+  // QR — centered, with optional white card
+  const qrSz = R * (compact ? 0.78 : 0.72);
   const qrX  = cx - qrSz / 2;
-  const qrY  = cy - qrSz / 2 - (headline ? R * 0.04 : 0);
+  const qrY  = cy - qrSz / 2 - (headline ? R * (compact ? 0.02 : 0.04) : 0);
 
   if (theme.cardBg) {
     const pad = qrSz * 0.07;
@@ -1100,28 +1155,31 @@ async function renderRound(
   if (cta) {
     ctx.fillStyle = theme.text2;
     drawFittedText(
-      ctx, cta, cx, qrY + qrSz + R * 0.10, R * 1.35,
-      R * 0.065, Math.max(5, R * 0.035),
+      ctx, cta, cx, qrY + qrSz + R * (compact ? 0.07 : 0.10), R * 1.25,
+      R * (compact ? 0.055 : 0.065), Math.max(5, R * 0.032),
       (s) => `600 ${s}px Arial, sans-serif`,
     );
   }
 
   // Labels — limit width by chord at labY so pills stay inside circle
   if (cfg.labels.length) {
-    const labY    = cta ? cy + R * 0.62 : cy + R * 0.55;
-    // half-chord at distance d from center: sqrt(R^2 - d^2)
+    const labY    = cta ? cy + R * (compact ? 0.54 : 0.58) : cy + R * 0.50;
     const d       = Math.abs(labY - cy);
     const halfCh  = Math.sqrt(Math.max(0, R * R - d * d));
-    const maxW    = Math.max(20, halfCh * 2 * 0.88);
+    const maxW    = Math.max(20, halfCh * 2 * 0.90);
+    const labelScale = compact
+      ? (cfg.labels.length >= 3 ? 0.026 : 0.030)
+      : 0.034;
     renderLabels(ctx, W, H, labY, cfg.labels, theme, {
-      centerX: cx, maxWidth: maxW, fontScale: 0.034,
+      centerX: cx, maxWidth: maxW, fontScale: labelScale,
     });
   }
 
   if (cfg.showWatermark) {
-    ctx.font = `${R * 0.05}px Arial, sans-serif`;
+    ctx.font = `${R * (compact ? 0.042 : 0.05)}px Arial, sans-serif`;
     ctx.fillStyle = theme.text3; ctx.globalAlpha = 0.7;
-    ctx.fillText("qrstars.ru", cx, cy + R * 0.82);
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText("qrstars.ru", cx, cy + R * (compact ? 0.78 : 0.82));
     ctx.globalAlpha = 1;
   }
 }
@@ -1200,22 +1258,77 @@ async function renderTicket(
   const headline = (cfg.headline || "").trim();
   const cta = (cfg.ctaText || "").trim();
   const family = theme.headlineFamily || "Arial, sans-serif";
-
-  // Perforation cutouts ≈ 62% from top: two semi-circles on left/right edges
-  // We "cut" them by filling with a slightly darker tint of bg — gives ticket vibe
-  const perfY = H * 0.66;
+  const compact = isCompactSticker(W, H);
   const perfR = Math.min(W, H) * 0.05;
   const bgColor = theme.bg.type === "solid" ? theme.bg.color : theme.bg.from;
-  // shadow tint
+  const hlStart = compact ? W * 0.058 : W * 0.075;
+  const hlMin = Math.max(5, hlStart * 0.38);
+  const hlBuilder = (s: number) =>
+    `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${family}`;
+
+  // Measure headline block height (no draw yet)
+  let headBottom = H * (compact ? 0.06 : 0.08);
+  let headWrap = false;
+  if (headline) {
+    const display = theme.headlineCaps ? headline.toUpperCase() : headline;
+    headWrap = compact && display.length > 14;
+    if (headWrap) {
+      const { fontSize, lines } = wrapTextLines(ctx, display, W * 0.88, 2, hlBuilder, hlStart, hlMin);
+      headBottom = H * 0.05 + fontSize * (1 + (lines.length - 1) * 1.15);
+    } else {
+      const fs = fitFontSize(ctx, display, W * 0.88, hlStart, hlMin, hlBuilder);
+      headBottom = H * (compact ? 0.09 : 0.10) + fs * 0.55;
+    }
+  }
+
+  const bottomNeed = (cta ? H * 0.12 : H * 0.04)
+    + (cfg.labels.length ? H * 0.08 : 0)
+    + (cfg.showWatermark ? H * 0.06 : H * 0.02)
+    + perfR * 2.2;
+  const maxQrByHeight = H - headBottom - H * 0.04 - bottomNeed;
+  const qrSize = Math.max(20, Math.min(
+    W * (compact ? 0.48 : 0.52),
+    maxQrByHeight,
+    H * (compact ? 0.38 : 0.42),
+  ));
+  const qrX = (W - qrSize) / 2;
+  const qrY = headBottom + H * 0.02;
+  const qrBottom = qrY + qrSize;
+
+  const minBottom = bottomNeed + H * 0.02;
+  const perfY = Math.min(
+    Math.max(qrBottom + H * 0.04, H * (compact ? 0.58 : 0.62)),
+    H - minBottom,
+  );
+
+  // Headline
+  if (headline) {
+    const display = theme.headlineCaps ? headline.toUpperCase() : headline;
+    ctx.fillStyle = theme.text1;
+    if (headWrap) {
+      drawWrappedText(ctx, display, W / 2, H * 0.05, W * 0.88, hlStart, hlMin, 2, hlBuilder);
+    } else {
+      drawFittedText(
+        ctx, display, W / 2, H * (compact ? 0.09 : 0.10), W * 0.88,
+        hlStart, hlMin, hlBuilder,
+      );
+    }
+  }
+
+  if (theme.cardBg) {
+    const pad = qrSize * 0.05;
+    ctx.fillStyle = theme.cardBg;
+    rrPath(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, W * 0.03); ctx.fill();
+  }
+  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
+
+  // Perforation cutouts + dashed line
   ctx.fillStyle = `${theme.text1}10`;
   ctx.beginPath(); ctx.arc(0, perfY, perfR, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(W, perfY, perfR, 0, Math.PI * 2); ctx.fill();
-  // bg-color disc on top to "cut" cleanly
   ctx.fillStyle = bgColor;
   ctx.beginPath(); ctx.arc(0, perfY, perfR * 0.92, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(W, perfY, perfR * 0.92, 0, Math.PI * 2); ctx.fill();
-
-  // dashed perforation line
   ctx.strokeStyle = theme.text3;
   ctx.globalAlpha = 0.5;
   ctx.lineWidth = Math.max(1, H * 0.003);
@@ -1227,41 +1340,21 @@ async function renderTicket(
   ctx.setLineDash([]);
   ctx.globalAlpha = 1;
 
-  // headline
-  if (headline) {
-    const display = theme.headlineCaps ? headline.toUpperCase() : headline;
-    ctx.fillStyle = theme.text1;
-    drawFittedText(
-      ctx, display, W / 2, H * 0.10, W * 0.88,
-      W * 0.075, Math.max(6, W * 0.038),
-      (s) => `${theme.headlineItalic ? "italic " : ""}bold ${s}px ${family}`,
-    );
-  }
-
-  // QR
-  const qrSize = Math.min(W * 0.52, H * 0.42);
-  const qrX = (W - qrSize) / 2;
-  const qrY = (headline ? H * 0.17 : H * 0.10);
-  if (theme.cardBg) {
-    const pad = qrSize * 0.05;
-    ctx.fillStyle = theme.cardBg;
-    rrPath(ctx, qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, W * 0.03); ctx.fill();
-  }
-  await drawQRInArea(ctx, qrX, qrY, qrSize, qrSize, cfg, theme.qrDark, theme.cardBg ? null : theme.qrLight);
-
   // Below perforation: cta + labels
-  let belowY = perfY + H * 0.05;
+  let belowY = perfY + perfR * 1.5 + H * 0.012;
   if (cta) {
     ctx.fillStyle = theme.text2;
     const ctaH = drawWrappedText(
       ctx, cta, W / 2, belowY, W * 0.86,
-      W * 0.052, Math.max(5, W * 0.034), 2,
+      compact ? W * 0.044 : W * 0.052, Math.max(5, W * 0.028), compact ? 1 : 2,
       (s) => `600 ${s}px Arial, sans-serif`,
     );
-    belowY += ctaH * 0.85;
+    belowY += ctaH + H * 0.012;
   }
   if (cfg.labels.length) {
-    renderLabels(ctx, W, H, belowY + H * 0.015, cfg.labels, theme);
+    renderLabels(ctx, W, H, Math.min(belowY + H * 0.008, bottomSafeY(H, cfg.showWatermark) - H * 0.035), cfg.labels, theme, {
+      fontScale: compact ? (cfg.labels.length >= 3 ? 0.032 : 0.036) : 0.044,
+    });
   }
 
   if (cfg.showWatermark) {
@@ -1599,15 +1692,6 @@ export async function renderSticker(
   if (theme.shape === "circle") ctx.restore();
 }
 
-/* ════════════════════════════════════════════════════════════════
-   A4 PDF GRID
-════════════════════════════════════════════════════════════════ */
-function calcA4Grid(wMm: number, hMm: number) {
-  const margin = 10, gap = 5;
-  const cols = Math.floor((210 - 2 * margin + gap) / (wMm + gap));
-  const rows = Math.floor((297 - 2 * margin + gap) / (hMm + gap));
-  return { cols, rows, perPage: cols * rows, margin, gap };
-}
 
 /* ════════════════════════════════════════════════════════════════
    THUMBNAILS — Layout schematic + Palette swatch
@@ -1816,9 +1900,17 @@ function EyeBtn({ style, active, onClick }: { style: EyeStyle; active: boolean; 
 /* ════════════════════════════════════════════════════════════════
    MAIN COMPONENT
 ════════════════════════════════════════════════════════════════ */
+export type SaveAndApplyPayload = {
+  cfg: StickerConfig;
+  qrId: string;
+  qrStyleTemplateId: string | null;
+};
+
 interface Props {
   initialConfig?: Partial<StickerConfig>;
   onSave?: (cfg: StickerConfig) => Promise<void>;
+  /** Сохранить шаблон таблички и привязать его + дизайн QR к выбранному коду */
+  onSaveAndApply?: (payload: SaveAndApplyPayload) => Promise<void>;
   saving?: boolean;
   /** Редактор сохранённого шаблона — без массовой PDF-печати */
   variant?: "designer" | "template";
@@ -1827,37 +1919,157 @@ interface Props {
 export default function StickerDesigner({
   initialConfig,
   onSave,
+  onSaveAndApply,
   saving,
   variant = "designer",
 }: Props) {
   const isTemplate = variant === "template";
+  const savedWatermark = initialConfig?.showWatermark;
   const [cfg, setCfg] = useState<StickerConfig>({ ...DEFAULT_STICKER_CONFIG, ...initialConfig });
   const [newLabel, setNewLabel] = useState("");
   const [busy, setBusy] = useState(false);
   const [preset, setPreset] = useState(BUSINESS_PRESETS[0].id);
+  const [userQrcodes, setUserQrcodes] = useState<UserQR[]>([]);
+  const [selectedQrId, setSelectedQrId] = useState<string | null>(null);
+  const [qrStyleTemplates, setQrStyleTemplates] = useState<QrStyleTemplateSource[]>([]);
+  const [previewStyleId, setPreviewStyleId] = useState("");
+  const [isPro, setIsPro] = useState(false);
+  const [planLoaded, setPlanLoaded] = useState(false);
   const previewRef = useRef<HTMLCanvasElement>(null);
+
+  const effectiveCfg = useMemo(
+    (): StickerConfig => (isPro ? cfg : { ...cfg, showWatermark: true }),
+    [cfg, isPro],
+  );
 
   const fmt = FORMATS.find(f => f.id === cfg.formatId) || FORMATS[0];
   const { layout, palette } = resolveLayoutAndPalette(cfg);
   const theme = composeTheme(layout, palette);
 
+  const selectedQr = userQrcodes.find((q) => q.id === selectedQrId) ?? null;
+
+  const linkedStyleId = selectedQr?.qrStyleTemplateId ?? "";
+  const linkedQrStyleName = useMemo(() => {
+    if (!linkedStyleId) return null;
+    return resolveQrStyleName(linkedStyleId, qrStyleTemplates);
+  }, [linkedStyleId, qrStyleTemplates]);
+
+  const previewStyleName = useMemo(() => {
+    if (!previewStyleId) return null;
+    return resolveQrStyleName(previewStyleId, qrStyleTemplates);
+  }, [previewStyleId, qrStyleTemplates]);
+
+  const qrStyleOptions = useMemo(() => {
+    const fromApi = qrStyleTemplates.filter(
+      (t) => (t.layout as { __type?: string } | undefined)?.__type === "qr-style",
+    );
+    const apiIds = new Set(fromApi.map((t) => t.id));
+    const presets = QR_CODE_TEMPLATES.filter(
+      (p) => !apiIds.has(qrStylePresetTemplateId(p.id)),
+    ).map((p) => ({
+      id: qrStylePresetTemplateId(p.id),
+      name: p.name,
+    }));
+    const custom = fromApi
+      .filter((t) => !t.id.startsWith("qr-preset-"))
+      .map((t) => ({ id: t.id, name: t.name ?? "Шаблон" }));
+    const builtIn = fromApi
+      .filter((t) => t.id.startsWith("qr-preset-"))
+      .map((t) => ({ id: t.id, name: t.name ?? resolveQrStyleName(t.id, fromApi) ?? "Пресет" }));
+    return [...builtIn, ...presets, ...custom];
+  }, [qrStyleTemplates]);
+
+  const renderCfg = useMemo((): StickerConfig => {
+    if (!isTemplate || !selectedQr) return effectiveCfg;
+    const qrStyle = resolveQrStyleConfig(previewStyleId || null, qrStyleTemplates);
+    return {
+      ...effectiveCfg,
+      url: scanUrlForCode(selectedQr.code),
+      qrStyleConfig: qrStyle ?? undefined,
+    };
+  }, [effectiveCfg, isTemplate, selectedQr, previewStyleId, qrStyleTemplates]);
+
+  useEffect(() => {
+    fetch("/api/subscription")
+      .then((r) => r.json())
+      .then((d) => setIsPro(!!(d.hasPaidFeatures ?? d.isPro)))
+      .catch(() => {})
+      .finally(() => setPlanLoaded(true));
+  }, []);
+
+  useEffect(() => {
+    if (!planLoaded || savedWatermark !== undefined) return;
+    setCfg((prev) => ({ ...prev, showWatermark: !isPro }));
+  }, [planLoaded, isPro, savedWatermark]);
+
+  useEffect(() => {
+    if (!isTemplate) return;
+    fetch("/api/qrcodes")
+      .then((r) => r.json())
+      .then((d) => {
+        const list: UserQR[] = d.qrcodes || [];
+        setUserQrcodes(list);
+        setSelectedQrId((prev) => {
+          if (prev && list.some((q) => q.id === prev)) return prev;
+          return list[0]?.id ?? null;
+        });
+      })
+      .catch(() => {});
+    fetch("/api/templates")
+      .then((r) => r.json())
+      .then((d) => setQrStyleTemplates(d.templates || []))
+      .catch(() => {});
+  }, [isTemplate]);
+
+  useEffect(() => {
+    if (!selectedQr) return;
+    setPreviewStyleId(selectedQr.qrStyleTemplateId ?? "");
+  }, [selectedQr?.id, selectedQr?.qrStyleTemplateId]);
+
   const up = useCallback(<K extends keyof StickerConfig>(k: K, v: StickerConfig[K]) =>
     setCfg(prev => ({ ...prev, [k]: v })), []);
+
+  const refreshQrcodes = useCallback(async () => {
+    try {
+      const r = await fetch("/api/qrcodes");
+      const d = await r.json();
+      const list: UserQR[] = d.qrcodes || [];
+      setUserQrcodes(list);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const handleSaveAndApply = async () => {
+    if (!selectedQr || !onSaveAndApply) return;
+    setBusy(true);
+    try {
+      await onSaveAndApply({
+        cfg: effectiveCfg,
+        qrId: selectedQr.id,
+        qrStyleTemplateId: previewStyleId || null,
+      });
+      await refreshQrcodes();
+    } finally {
+      setBusy(false);
+    }
+  };
 
   /* draw preview */
   const redraw = useCallback(async () => {
     const canvas = previewRef.current;
     if (!canvas) return;
+    if (isTemplate && !selectedQr) return;
     try {
       const off = document.createElement("canvas");
-      await renderSticker(off, cfg, fmt, true);
+      await renderSticker(off, renderCfg, fmt, true);
       canvas.width  = off.width;
       canvas.height = off.height;
       canvas.getContext("2d")!.drawImage(off, 0, 0);
     } catch (e) {
       console.error("preview err", e);
     }
-  }, [cfg, fmt]);
+  }, [renderCfg, fmt, isTemplate, selectedQr]);
 
   useEffect(() => {
     const t = setTimeout(redraw, 80);
@@ -1866,38 +2078,48 @@ export default function StickerDesigner({
 
   /* downloads */
   const downloadPNG = async () => {
+    if (isTemplate && !selectedQr) return;
     setBusy(true);
     try {
       const c = document.createElement("canvas");
-      await renderSticker(c, cfg, fmt, false);
+      await renderSticker(c, renderCfg, fmt, false);
       const a = document.createElement("a");
-      a.download = `qr-sticker-${cfg.formatId}-${layout.id}-${palette.id}.png`;
+      const suffix = selectedQr ? `-${selectedQr.code}` : "";
+      a.download = `qr-sticker-${cfg.formatId}-${layout.id}-${palette.id}${suffix}.png`;
       a.href = c.toDataURL("image/png", 1.0); a.click();
     } finally { setBusy(false); }
   };
 
   const downloadPDF = async () => {
+    if (isTemplate && !selectedQr) return;
     setBusy(true);
     try {
       const c = document.createElement("canvas");
-      await renderSticker(c, cfg, fmt, false);
+      await renderSticker(c, renderCfg, fmt, false);
       const imgData = c.toDataURL("image/png", 1.0);
       const { jsPDF } = await import("jspdf");
-      const doc = new jsPDF({ unit: "mm", format: "a4" });
-      const { cols, rows, perPage, margin, gap } = calcA4Grid(fmt.wMm, fmt.hMm);
-      for (let i = 0; i < cfg.pdfCount; i++) {
-        if (i > 0 && i % perPage === 0) doc.addPage();
+      const grid = calcA4StickerGrid(fmt.id, fmt.wMm, fmt.hMm);
+      const doc = new jsPDF({ unit: "mm", format: "a4", orientation: grid.orientation });
+      const { cols, perPage, marginX, marginY, spacing } = grid;
+      const count = renderCfg.pdfCount;
+      for (let i = 0; i < count; i++) {
+        if (i > 0 && i % perPage === 0) {
+          doc.addPage("a4", grid.orientation === "landscape" ? "l" : "p");
+        }
         const pos = i % perPage;
         const col = pos % cols, row = Math.floor(pos / cols);
-        const x = margin + col * (fmt.wMm + gap);
-        const y = margin + row * (fmt.hMm + gap);
+        const x = marginX + col * (fmt.wMm + spacing);
+        const y = marginY + row * (fmt.hMm + spacing);
         doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
       }
-      doc.save(`qr-stickers-${cfg.pdfCount}шт.pdf`);
+      const fileName = selectedQr
+        ? `sticker-${selectedQr.code}-${count}шт.pdf`
+        : `qr-stickers-${count}шт.pdf`;
+      doc.save(fileName);
     } finally { setBusy(false); }
   };
 
-  const { perPage } = calcA4Grid(fmt.wMm, fmt.hMm);
+  const { perPage } = calcA4StickerGrid(fmt.id, fmt.wMm, fmt.hMm);
   const pagesNeeded = Math.ceil(cfg.pdfCount / perPage);
 
   /* ── UI ── */
@@ -1907,20 +2129,106 @@ export default function StickerDesigner({
       {/* ── Left panel ── */}
       <div className="lg:w-[380px] flex-shrink-0 space-y-4">
 
-        {/* URL */}
-        <Panel title={isTemplate ? "Ссылка для предпросмотра" : "Ссылка для QR-кода"}>
-          {isTemplate && (
+        {/* URL / QR selector */}
+        {isTemplate ? (
+          <Panel title="QR-код для предпросмотра и печати">
             <p className="text-xs text-gray-500 mb-2 leading-relaxed">
-              В предпросмотре отображается <strong className="font-medium text-gray-700">статический QR-код</strong> для этой ссылки.
-              После привязки шаблона к динамическому QR-коду при печати будет подставляться его реальный адрес.
+              Выберите динамический QR-код — в макет подставится его реальный адрес для предпросмотра и печати.
             </p>
-          )}
-          <input
-            type="url" value={cfg.url} onChange={e => up("url", e.target.value)}
-            placeholder="https://..."
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </Panel>
+            {userQrcodes.length === 0 ? (
+              <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-center">
+                <p className="text-sm text-gray-500 mb-2">Нет QR-кодов</p>
+                <Link href="/dashboard/qrcodes" className="text-sm text-indigo-600 hover:underline font-medium">
+                  Создать QR-код →
+                </Link>
+              </div>
+            ) : (
+              <>
+                <select
+                  value={selectedQrId ?? ""}
+                  onChange={(e) => setSelectedQrId(e.target.value || null)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  {userQrcodes.map((qr) => (
+                    <option key={qr.id} value={qr.id}>
+                      {qrDisplayName(qr)} · {qr.code}
+                    </option>
+                  ))}
+                </select>
+                {selectedQr && (
+                  <p className="text-[11px] text-gray-400 mt-2 truncate font-mono">
+                    {scanUrlForCode(selectedQr.code)}
+                  </p>
+                )}
+              </>
+            )}
+          </Panel>
+        ) : (
+          <Panel title="Ссылка для QR-кода">
+            <input
+              type="url" value={cfg.url} onChange={e => up("url", e.target.value)}
+              placeholder="https://..."
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+          </Panel>
+        )}
+
+        {isTemplate && (
+          <Panel title="Дизайн QR-кода">
+            <p className="text-xs text-gray-500 mb-3 leading-relaxed">
+              Выберите шаблон оформления QR для предпросмотра. Кнопка «Сохранить и применить к QR» закрепит и макет таблички, и этот дизайн QR в настройках выбранного кода.
+            </p>
+            {!selectedQr ? (
+              <p className="text-sm text-gray-400">Сначала выберите QR-код выше</p>
+            ) : (
+              <>
+                <select
+                  value={previewStyleId}
+                  onChange={(e) => setPreviewStyleId(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Без шаблона — базовый вид QR</option>
+                  {qrStyleOptions.map((opt) => (
+                    <option key={opt.id} value={opt.id}>
+                      {opt.name}
+                    </option>
+                  ))}
+                </select>
+
+                {linkedStyleId ? (
+                  <div className="rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2.5 mt-3">
+                    <p className="text-xs text-gray-500 mb-0.5">В QR-коде указан</p>
+                    <p className="text-sm font-semibold text-indigo-900">{linkedQrStyleName ?? "Шаблон"}</p>
+                    {previewStyleId === linkedStyleId && (
+                      <p className="text-xs text-indigo-700/80 mt-1">Совпадает с предпросмотром</p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 mt-3">
+                    <p className="text-sm font-medium text-amber-900">В QR-коде шаблон не указан</p>
+                    <p className="text-xs text-amber-800/80 mt-1 leading-relaxed">
+                      Можно подобрать оформление здесь для предпросмотра и закрепить в настройках QR.
+                    </p>
+                  </div>
+                )}
+
+                {previewStyleId !== linkedStyleId && previewStyleId && (
+                  <p className="text-xs text-gray-500 mt-2 leading-relaxed">
+                    Предпросмотр: <span className="font-medium text-gray-700">{previewStyleName}</span>
+                    {" "}— отличается от шаблона в QR-коде.
+                  </p>
+                )}
+
+                <Link
+                  href={`/dashboard/qrcodes/${selectedQr.id}`}
+                  className="inline-block mt-3 text-sm text-indigo-600 hover:underline font-medium"
+                >
+                  {linkedStyleId ? "Изменить шаблон в QR-коде →" : "Указать шаблон в QR-коде →"}
+                </Link>
+              </>
+            )}
+          </Panel>
+        )}
 
         {/* Business preset */}
         <Panel title="Тип бизнеса">
@@ -2053,49 +2361,66 @@ export default function StickerDesigner({
           )}
         </Panel>
 
-        {/* QR dot style */}
-        <Panel title="Форма точек QR">
-          <div className="grid grid-cols-4 gap-2">
-            {(["squares", "rounded", "dots", "diamond", "cross", "hex", "bars", "star"] as DotStyle[]).map(s => (
-              <div key={s} className="flex flex-col items-center gap-1">
-                <DotBtn style={s} active={cfg.dotStyle === s} onClick={() => up("dotStyle", s)} />
-                <span className="text-[10px] text-gray-500">{DOT_LABELS[s]}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <p className="text-xs text-gray-500 mb-2">Форма угловых рамок (глазков)</p>
-            <div className="grid grid-cols-3 gap-2">
-              {(["square", "rounded", "dot", "circle", "leaf", "corners"] as EyeStyle[]).map(s => (
+        {!isTemplate && (
+          <Panel title="Форма точек QR">
+            <div className="grid grid-cols-4 gap-2">
+              {(["squares", "rounded", "dots", "diamond", "cross", "hex", "bars", "star"] as DotStyle[]).map(s => (
                 <div key={s} className="flex flex-col items-center gap-1">
-                  <EyeBtn style={s} active={cfg.eyeStyle === s} onClick={() => up("eyeStyle", s)} />
-                  <span className="text-[10px] text-gray-500">{EYE_LABELS[s]}</span>
+                  <DotBtn style={s} active={cfg.dotStyle === s} onClick={() => up("dotStyle", s)} />
+                  <span className="text-[10px] text-gray-500">{DOT_LABELS[s]}</span>
                 </div>
               ))}
             </div>
-          </div>
-        </Panel>
+
+            <div className="mt-3 pt-3 border-t border-gray-100">
+              <p className="text-xs text-gray-500 mb-2">Форма угловых рамок (глазков)</p>
+              <div className="grid grid-cols-3 gap-2">
+                {(["square", "rounded", "dot", "circle", "leaf", "corners"] as EyeStyle[]).map(s => (
+                  <div key={s} className="flex flex-col items-center gap-1">
+                    <EyeBtn style={s} active={cfg.eyeStyle === s} onClick={() => up("eyeStyle", s)} />
+                    <span className="text-[10px] text-gray-500">{EYE_LABELS[s]}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Panel>
+        )}
 
         {/* Print settings */}
         <Panel title="Настройки печати">
-          <label className="flex items-center gap-2 cursor-pointer mb-3">
-            <input type="checkbox" checked={cfg.showWatermark} onChange={e => up("showWatermark", e.target.checked)}
-              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-            <span className="text-sm text-gray-700">Отображать ссылку «qrstars.ru»</span>
+          <label className={`flex items-center gap-2 mb-1 ${isPro ? "cursor-pointer" : "cursor-default"}`}>
+            <input
+              type="checkbox"
+              checked={effectiveCfg.showWatermark}
+              disabled={!isPro}
+              onChange={(e) => {
+                if (isPro) up("showWatermark", e.target.checked);
+              }}
+              className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-60"
+            />
+            <span className={`text-sm ${isPro ? "text-gray-700" : "text-gray-500"}`}>
+              Отображать ссылку «qrstars.ru»
+            </span>
           </label>
-          {isTemplate ? (
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Этот шаблон также можно использовать с <strong className="font-medium text-gray-700">динамическими QR-кодами</strong>: выберите его в настройках конкретного QR-кода и скачайте готовый PDF-макет оттуда.
-            </p>
-          ) : (
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-gray-700 whitespace-nowrap">Количество копий в PDF:</span>
-              <input type="number" value={cfg.pdfCount} min={1} max={200}
-                onChange={e => up("pdfCount", Math.max(1, Math.min(200, Number(e.target.value))))}
-                className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />
-              <span className="text-xs text-gray-400">= {pagesNeeded} стр. A4</span>
+          {!isPro && planLoaded && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 mb-3">
+              <p className="text-xs text-amber-900 leading-relaxed">
+                На бесплатном тарифе ссылка «qrstars.ru» обязательна. Скрыть можно на PRO —{" "}
+                <Link href="/dashboard/subscription" className="font-medium text-indigo-600 hover:underline">
+                  перейти к подписке
+                </Link>
+              </p>
             </div>
+          )}
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-gray-700 whitespace-nowrap">Количество копий в PDF:</span>
+            <input type="number" value={cfg.pdfCount} min={1} max={200}
+              onChange={e => up("pdfCount", Math.max(1, Math.min(200, Number(e.target.value))))}
+              className="w-16 border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+            <span className="text-xs text-gray-400">= {pagesNeeded} стр. A4 ({perPage} шт./стр.)</span>
+          </div>
+          {isTemplate && !selectedQr && (
+            <p className="text-xs text-amber-600 mt-2">Выберите QR-код, чтобы скачать PDF</p>
           )}
         </Panel>
 
@@ -2112,29 +2437,46 @@ export default function StickerDesigner({
           {/* canvas */}
           <div className="flex justify-center mb-5"
             style={{ background: theme.shape === "circle" ? "repeating-conic-gradient(#f0f0f0 0% 25%,#fff 0% 50%) 0 0/16px 16px" : "#f9fafb", borderRadius: 12, padding: 16 }}>
-            <div className="shadow-xl rounded-xl overflow-hidden">
-              <canvas ref={previewRef}
-                style={{ display: "block", width: fmt.previewW, height: fmt.previewH, maxWidth: "100%" }} />
-            </div>
+            {isTemplate && !selectedQr ? (
+              <p className="text-sm text-gray-400 text-center px-4 py-16">
+                Выберите QR-код слева для предпросмотра
+              </p>
+            ) : (
+              <div className="shadow-xl rounded-xl overflow-hidden">
+                <canvas ref={previewRef}
+                  style={{ display: "block", width: fmt.previewW, height: fmt.previewH, maxWidth: "100%" }} />
+              </div>
+            )}
           </div>
 
           <div className="space-y-2.5">
-            <button onClick={downloadPNG} disabled={busy}
+            <button onClick={downloadPNG} disabled={busy || (isTemplate && !selectedQr)}
               className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:scale-[.98] transition-all font-medium text-sm disabled:opacity-50">
               <Download size={16} /> Скачать PNG
             </button>
-            {!isTemplate && (
-              <button onClick={downloadPDF} disabled={busy}
-                className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-lg hover:bg-black active:scale-[.98] transition-all font-medium text-sm disabled:opacity-50">
-                <FileText size={16} /> Скачать PDF ({cfg.pdfCount} шт.)
-              </button>
-            )}
-            {onSave && (
-              <button onClick={() => onSave(cfg)} disabled={saving || busy}
+            <button onClick={downloadPDF} disabled={busy || (isTemplate && !selectedQr)}
+              className="w-full flex items-center justify-center gap-2 py-3 bg-gray-900 text-white rounded-lg hover:bg-black active:scale-[.98] transition-all font-medium text-sm disabled:opacity-50">
+              <FileText size={16} /> Скачать PDF ({cfg.pdfCount} шт.)
+            </button>
+            {onSaveAndApply ? (
+              <>
+                <button
+                  onClick={handleSaveAndApply}
+                  disabled={saving || busy || !selectedQr}
+                  className="w-full flex items-center justify-center gap-2 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 active:scale-[.98] transition-all font-medium text-sm disabled:opacity-50"
+                >
+                  {saving || busy ? "Применение…" : "Сохранить и применить к QR-коду"}
+                </button>
+                {!selectedQr && (
+                  <p className="text-xs text-amber-600 text-center">Выберите QR-код слева</p>
+                )}
+              </>
+            ) : onSave ? (
+              <button onClick={() => onSave(effectiveCfg)} disabled={saving || busy}
                 className="w-full flex items-center justify-center gap-2 py-3 border-2 border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-50 transition-all font-medium text-sm disabled:opacity-50">
                 {saving ? "Сохранение…" : "Сохранить шаблон"}
               </button>
-            )}
+            ) : null}
           </div>
 
           <p className="text-xs text-gray-400 text-center mt-3">

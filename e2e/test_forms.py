@@ -1,6 +1,11 @@
 import pytest
 
 
+def _enable_form(session, base_url, form_id):
+    r = session.put(f"{base_url}/api/forms", json={"id": form_id, "enabled": True})
+    assert r.status_code == 200, r.text
+
+
 def test_create_form_with_preset(owner_session, base_url, owner_establishment_id):
     r = owner_session.post(
         f"{base_url}/api/forms",
@@ -116,6 +121,7 @@ def test_submit_form_creates_submission(owner_session, base_url, owner_establish
     form = create.json()["form"]
     fid = form["id"]
     try:
+        _enable_form(owner_session, base_url, fid)
         values = {}
         for f in form["fields"]:
             if f["type"] == "phone":
@@ -148,6 +154,7 @@ def test_submit_form_rejects_missing_required(owner_session, base_url, owner_est
     )
     fid = create.json()["form"]["id"]
     try:
+        _enable_form(owner_session, base_url, fid)
         import requests
         r = requests.post(f"{base_url}/api/forms/{fid}/submit", json={"values": {}})
         assert r.status_code == 400
@@ -197,6 +204,7 @@ def test_list_submissions_by_establishment(
     form = create.json()["form"]
     fid = form["id"]
     try:
+        _enable_form(owner_session, base_url, fid)
         values = {f["id"]: "Тест" for f in form["fields"]}
         import requests
 

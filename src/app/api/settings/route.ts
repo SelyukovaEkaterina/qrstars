@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { sendMail } from "@/lib/mailer";
 import { sendMaxMessage } from "@/lib/max";
 import prisma from "@/lib/prisma";
+import { getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 import { reviewRoutingToJson, parseReviewRouting } from "@/lib/review-routing";
 import { parseWorkingHours } from "@/lib/working-hours";
 import {
@@ -25,10 +26,13 @@ const establishmentSelect = {
   reviewRouting: true,
   notificationEmail: true,
   notificationEmailEnabled: true,
+  notificationEmailRequestsEnabled: true,
   notificationTelegramChatId: true,
   notificationTelegramEnabled: true,
+  notificationTelegramRequestsEnabled: true,
   notificationMaxUserId: true,
   notificationMaxEnabled: true,
+  notificationMaxRequestsEnabled: true,
   legalName: true,
   inn: true,
   workingHours: true,
@@ -111,17 +115,26 @@ export async function PUT(request: Request) {
   if (body.notificationEmailEnabled !== undefined) {
     data.notificationEmailEnabled = body.notificationEmailEnabled;
   }
+  if (body.notificationEmailRequestsEnabled !== undefined) {
+    data.notificationEmailRequestsEnabled = body.notificationEmailRequestsEnabled;
+  }
   if (body.notificationTelegramChatId !== undefined) {
     data.notificationTelegramChatId = body.notificationTelegramChatId || null;
   }
   if (body.notificationTelegramEnabled !== undefined) {
     data.notificationTelegramEnabled = body.notificationTelegramEnabled;
   }
+  if (body.notificationTelegramRequestsEnabled !== undefined) {
+    data.notificationTelegramRequestsEnabled = body.notificationTelegramRequestsEnabled;
+  }
   if (body.notificationMaxUserId !== undefined) {
     data.notificationMaxUserId = body.notificationMaxUserId || null;
   }
   if (body.notificationMaxEnabled !== undefined) {
     data.notificationMaxEnabled = body.notificationMaxEnabled;
+  }
+  if (body.notificationMaxRequestsEnabled !== undefined) {
+    data.notificationMaxRequestsEnabled = body.notificationMaxRequestsEnabled;
   }
   if (isPro && body.reviewRouting !== undefined) {
     data.reviewRouting = reviewRoutingToJson(parseReviewRouting(body.reviewRouting));
@@ -150,6 +163,36 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "TELEGRAM_BOT_TOKEN не настроен" }, { status: 400 });
     }
 
+    const userId = (session.user as Record<string, unknown>).id as string;
+    let chatId = body.chatId as string | undefined;
+
+    if (body.establishmentId) {
+      const establishment = await prisma.establishment.findFirst({
+        where: { id: body.establishmentId, ...establishmentAccessWhere(userId) },
+        select: {
+          userId: true,
+          notificationTelegramEnabled: true,
+          notificationTelegramRequestsEnabled: true,
+          notificationTelegramChatId: true,
+          notificationMaxEnabled: true,
+          notificationMaxRequestsEnabled: true,
+          notificationMaxUserId: true,
+          notificationEmailEnabled: true,
+          notificationEmailRequestsEnabled: true,
+          notificationEmail: true,
+        },
+      });
+      if (!establishment) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      const targets = await getTelegramTargets(establishment);
+      chatId = targets[0];
+    }
+
+    if (!chatId) {
+      return NextResponse.json({ error: "Telegram не подключён в настройках аккаунта" }, { status: 400 });
+    }
+
     try {
       const res = await fetch(
         `https://api.telegram.org/bot${botToken}/sendMessage`,
@@ -157,8 +200,8 @@ export async function POST(request: Request) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            chat_id: body.chatId,
-            text: "✅ Тестовое уведомление QrStars.ru\n\nTelegram-уведомления настроены правильно. Теперь негативные отзывы будут приходить сюда.",
+            chat_id: chatId,
+            text: "✅ Тестовое уведомление QrStars.ru\n\nTelegram подключён. Жалобы по этому заведению будут приходить сюда, если включены в настройках.",
             parse_mode: "HTML",
           }),
         }
@@ -193,9 +236,39 @@ export async function POST(request: Request) {
   }
 
   if (action === "test-max") {
+    const userId = (session.user as Record<string, unknown>).id as string;
+    let maxUserId = body.userId as string | undefined;
+
+    if (body.establishmentId) {
+      const establishment = await prisma.establishment.findFirst({
+        where: { id: body.establishmentId, ...establishmentAccessWhere(userId) },
+        select: {
+          userId: true,
+          notificationTelegramEnabled: true,
+          notificationTelegramRequestsEnabled: true,
+          notificationTelegramChatId: true,
+          notificationMaxEnabled: true,
+          notificationMaxRequestsEnabled: true,
+          notificationMaxUserId: true,
+          notificationEmailEnabled: true,
+          notificationEmailRequestsEnabled: true,
+          notificationEmail: true,
+        },
+      });
+      if (!establishment) {
+        return NextResponse.json({ error: "Not found" }, { status: 404 });
+      }
+      const targets = await getMaxTargets(establishment);
+      maxUserId = targets[0];
+    }
+
+    if (!maxUserId) {
+      return NextResponse.json({ error: "MAX не подключён в настройках аккаунта" }, { status: 400 });
+    }
+
     const sent = await sendMaxMessage(
-      body.userId,
-      `✅ <b>Тестовое уведомление QrStars.ru</b>\n\nMAX-уведомления настроены правильно. Негативные отзывы будут приходить сюда.`
+      maxUserId,
+      `✅ <b>Тестовое уведомление QrStars.ru</b>\n\nMAX подключён. Жалобы по этому заведению будут приходить сюда, если включены в настройках.`
     );
     if (sent) {
       return NextResponse.json({ ok: true });

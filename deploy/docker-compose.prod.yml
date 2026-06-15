@@ -69,6 +69,8 @@ services:
       NEXTAUTH_URL: ${NEXTAUTH_URL:-https://app.qrstars.ru}
     ports:
       - "127.0.0.1:3000:3000"
+    volumes:
+      - /opt/qrstars/data:/app/data
     depends_on:
       db:
         condition: service_healthy

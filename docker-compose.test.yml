@@ -38,7 +38,9 @@ services:
       SMTP_PASS: ""
       SMTP_FROM: "noreply@smartreview.ru"
       NODE_ENV: "test"
+      E2E_TESTING: "true"
       DISABLE_REGISTER_RATE_LIMIT: "true"
+      CRON_SECRET: "test-cron-secret-for-e2e"
       S3_ENDPOINT: "http://minio-test:9000"
       S3_BUCKET: "qrwin-test"
       S3_ACCESS_KEY: "minioadmin"
@@ -61,6 +63,7 @@ services:
       dockerfile: Dockerfile
     environment:
       BASE_URL: "http://app:3000"
+      CRON_SECRET: "test-cron-secret-for-e2e"
     depends_on:
       app:
         condition: service_healthy

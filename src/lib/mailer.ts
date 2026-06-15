@@ -15,6 +15,9 @@ const transporter = nodemailer.createTransport({
 });
 
 export async function sendMail(to: string, subject: string, html: string) {
+  if (process.env.E2E_TESTING === "true") {
+    return true;
+  }
   try {
     await transporter.sendMail({
       from: process.env.SMTP_FROM || "QrStars.ru <noreply@qrstars.ru>",

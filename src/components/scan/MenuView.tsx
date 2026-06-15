@@ -428,7 +428,7 @@ export default function MenuView({
       setSubmitError("Укажите ваше имя");
       return;
     }
-    if (isIikoMenu && !guestPhone.trim()) {
+    if (isIikoMenu && phoneEmailAllowed && !guestPhone.trim()) {
       setSubmitError("Укажите телефон для заказа");
       return;
     }
@@ -877,43 +877,31 @@ export default function MenuView({
                     </FormField>
 
                     {/* Телефон — опционально или обязателен для iiko */}
-                    {(menu.askPhone || isIikoMenu) && (
-                      phoneEmailAllowed ? (
-                        <FormField label={isIikoMenu ? "Телефон *" : "Телефон"} isBg={isBg}>
-                          <input
-                            type="tel"
-                            value={guestPhone}
-                            onChange={(e) => setGuestPhone(e.target.value)}
-                            placeholder="+7 900 000-00-00"
-                            className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2"
-                            style={fieldStyle(isBg)}
-                          />
-                        </FormField>
-                      ) : (
-                        <div className={`text-xs px-3 py-2 rounded-xl border ${isBg ? "border-white/20 text-white/50" : "border-gray-200 text-gray-400 bg-gray-50"}`}>
-                          Поле телефона недоступно — требуется настройка реквизитов заведения.
-                        </div>
-                      )
+                    {(menu.askPhone || isIikoMenu) && phoneEmailAllowed && (
+                      <FormField label={isIikoMenu ? "Телефон *" : "Телефон"} isBg={isBg}>
+                        <input
+                          type="tel"
+                          value={guestPhone}
+                          onChange={(e) => setGuestPhone(e.target.value)}
+                          placeholder="+7 900 000-00-00"
+                          className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2"
+                          style={fieldStyle(isBg)}
+                        />
+                      </FormField>
                     )}
 
                     {/* Email — опционально */}
-                    {menu.askEmail && (
-                      phoneEmailAllowed ? (
-                        <FormField label="Email" isBg={isBg}>
-                          <input
-                            type="email"
-                            value={guestEmail}
-                            onChange={(e) => setGuestEmail(e.target.value)}
-                            placeholder="mail@example.com"
-                            className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2"
-                            style={fieldStyle(isBg)}
-                          />
-                        </FormField>
-                      ) : (
-                        <div className={`text-xs px-3 py-2 rounded-xl border ${isBg ? "border-white/20 text-white/50" : "border-gray-200 text-gray-400 bg-gray-50"}`}>
-                          Поле email недоступно — требуется настройка реквизитов заведения.
-                        </div>
-                      )
+                    {menu.askEmail && phoneEmailAllowed && (
+                      <FormField label="Email" isBg={isBg}>
+                        <input
+                          type="email"
+                          value={guestEmail}
+                          onChange={(e) => setGuestEmail(e.target.value)}
+                          placeholder="mail@example.com"
+                          className="w-full px-3 py-2 border rounded-xl text-sm focus:outline-none focus:ring-2"
+                          style={fieldStyle(isBg)}
+                        />
+                      </FormField>
                     )}
 
                     {/* Адрес — опционально или для доставки iiko */}

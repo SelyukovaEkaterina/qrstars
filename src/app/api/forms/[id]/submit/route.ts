@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
 import { sendTelegramContactNotification } from "@/lib/telegram";
 import { sendMaxMessage } from "@/lib/max";
+import { getEmailTargets, getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 import {
   formatSubmissionForNotification,
   type FormFieldDef,
@@ -98,8 +99,19 @@ export async function POST(request: Request, context: RouteContext) {
   const textBody = formatSubmissionForNotification(fields, cleaned);
   const subject = `📩 Новая заявка — ${est.name} (${form.title})`;
 
-  const emailTo =
-    est.notificationEmailEnabled && est.notificationEmail ? est.notificationEmail : owner.email;
+  const notifyFields = {
+    userId: est.userId,
+    notificationTelegramEnabled: est.notificationTelegramEnabled,
+    notificationTelegramRequestsEnabled: est.notificationTelegramRequestsEnabled,
+    notificationTelegramChatId: est.notificationTelegramChatId,
+    notificationMaxEnabled: est.notificationMaxEnabled,
+    notificationMaxRequestsEnabled: est.notificationMaxRequestsEnabled,
+    notificationMaxUserId: est.notificationMaxUserId,
+    notificationEmailEnabled: est.notificationEmailEnabled,
+    notificationEmailRequestsEnabled: est.notificationEmailRequestsEnabled,
+    notificationEmail: est.notificationEmail,
+  };
+
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color:#4f46e5;">Новая заявка из формы</h2>
@@ -112,30 +124,37 @@ export async function POST(request: Request, context: RouteContext) {
       </a>
     </div>
   `;
-  try {
-    await sendMail(emailTo, subject, html);
-  } catch (e) {
-    console.error("Form email error", e);
+
+  const emailTargets = await getEmailTargets(notifyFields, "requests");
+  const emailTo = emailTargets[0] ?? owner.email;
+  if (emailTo) {
+    try {
+      await sendMail(emailTo, subject, html);
+    } catch (e) {
+      console.error("Form email error", e);
+    }
   }
 
-  if (est.notificationTelegramEnabled && est.notificationTelegramChatId) {
-    const tg = [
-      `<b>📩 Новая заявка</b>`,
-      `<b>${escapeHtml(est.name)}</b> — ${escapeHtml(form.title)}`,
-      "",
-      escapeHtml(textBody),
-    ].join("\n");
-    await sendTelegramContactNotification(est.notificationTelegramChatId, tg);
+  const tg = [
+    `<b>📩 Новая заявка</b>`,
+    `<b>${escapeHtml(est.name)}</b> — ${escapeHtml(form.title)}`,
+    "",
+    escapeHtml(textBody),
+  ].join("\n");
+
+  for (const chatId of await getTelegramTargets(notifyFields, "requests")) {
+    await sendTelegramContactNotification(chatId, tg);
   }
 
-  if (est.notificationMaxEnabled && est.notificationMaxUserId) {
-    const mx = [
-      `<b>📩 Новая заявка</b>`,
-      `<b>${escapeHtml(est.name)}</b> — ${escapeHtml(form.title)}`,
-      "",
-      escapeHtml(textBody),
-    ].join("\n");
-    await sendMaxMessage(est.notificationMaxUserId, mx, "html");
+  const mx = [
+    `<b>📩 Новая заявка</b>`,
+    `<b>${escapeHtml(est.name)}</b> — ${escapeHtml(form.title)}`,
+    "",
+    escapeHtml(textBody),
+  ].join("\n");
+
+  for (const maxUserId of await getMaxTargets(notifyFields, "requests")) {
+    await sendMaxMessage(maxUserId, mx, "html");
   }
 
   return NextResponse.json({

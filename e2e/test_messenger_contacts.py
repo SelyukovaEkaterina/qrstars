@@ -16,7 +16,7 @@ def test_list_messenger_contacts_unauthorized(base_url):
     assert r.status_code == 401
 
 
-def test_create_messenger_contact_telegram(owner_session, base_url):
+def test_create_messenger_contact_telegram(owner_session, base_url, owner_establishment_id):
     r = owner_session.post(
         f"{base_url}/api/messenger-contacts",
         json={
@@ -26,10 +26,19 @@ def test_create_messenger_contact_telegram(owner_session, base_url):
         },
     )
     assert r.status_code == 200
-    contact = r.json()["contact"]
+    data = r.json()
+    contact = data["contact"]
     assert contact["provider"] == "TELEGRAM"
     assert contact["externalId"] == "999001"
     assert contact["label"] == "Менеджер Telegram"
+    assert data.get("reviewNotificationsEnabled", 0) >= 1
+
+    settings_r = owner_session.get(
+        f"{base_url}/api/settings?id={owner_establishment_id}"
+    )
+    assert settings_r.status_code == 200
+    est = settings_r.json()["establishment"]
+    assert est["notificationTelegramEnabled"] is True
 
 
 def test_create_multiple_messenger_contacts(owner_session, base_url):

@@ -1,0 +1,32 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "qrwin-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 3000,
+      "autoPort": true
+    },
+    {
+      "name": "qrwin-landing",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "/Users/mvphero/qrwin-landing"],
+      "port": 4321
+    },
+    {
+      "name": "adrotator-cabinet",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/mvphero/adrotator/frontend/cabinet && npm run dev -- --port $PORT"],
+      "port": 3001,
+      "autoPort": true
+    },
+    {
+      "name": "adrotator-demo",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd /Users/mvphero/adrotator/frontend/demo-site && npm run dev -- --port $PORT"],
+      "port": 3002,
+      "autoPort": true
+    }
+  ]
+}

@@ -9,7 +9,7 @@ export function pickAutoLinkQrId(
   qrcodes: OnboardingQRCode[],
   preferredQrId?: string | null
 ): string | undefined {
-  const unlinked = qrcodes.filter((q) => !q.establishmentId && !q.isActive);
+  const unlinked = qrcodes.filter((q) => !q.establishmentId);
   if (preferredQrId && unlinked.some((q) => q.id === preferredQrId)) {
     return preferredQrId;
   }

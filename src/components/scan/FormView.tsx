@@ -45,9 +45,6 @@ interface FormViewProps extends BrandThemeScanProps {
 
 const inputClass =
   "w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white";
-const inputDisabledClass =
-  "w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed";
-
 export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brandColor, pageAppearance, pdConsent }: FormViewProps) {
   const { theme } = useBrandThemeScan({ brandColor, pageAppearance });
   const [values, setValues] = useState<Record<string, unknown>>({});
@@ -56,8 +53,9 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const hasSensitiveFields = form.fields.some((f) => f.type === "phone" || f.type === "email");
   const sensitiveAllowed = isDemo || !pdConsent || pdConsent.ready;
+  const hasSensitiveFields =
+    sensitiveAllowed && form.fields.some((f) => f.type === "phone" || f.type === "email");
   const needsConsent = !isDemo && !!pdConsent?.ready && hasSensitiveFields;
 
   const setVal = (id: string, v: unknown) => setValues((prev) => ({ ...prev, [id]: v }));
@@ -67,6 +65,8 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
     setError("");
 
     for (const f of form.fields) {
+      const isSensitive = f.type === "phone" || f.type === "email";
+      if (isSensitive && !sensitiveAllowed) continue;
       if (f.required) {
         const v = values[f.id];
         if (v === undefined || v === null || v === "" || v === false) {
@@ -142,17 +142,7 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
         {form.fields.map((f) => {
           const isSensitive = f.type === "phone" || f.type === "email";
           if (isSensitive && !sensitiveAllowed) {
-            return (
-              <div key={f.id}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {f.label}
-                  {f.required && <span className="text-red-500"> *</span>}
-                </label>
-                <div className={inputDisabledClass}>
-                  Поле недоступно — владелец не заполнил реквизиты для обработки персональных данных.
-                </div>
-              </div>
-            );
+            return null;
           }
           return (
             <div key={f.id}>

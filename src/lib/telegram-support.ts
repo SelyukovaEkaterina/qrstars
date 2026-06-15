@@ -35,6 +35,11 @@ export function isSupportTelegramConfigured(): boolean {
   return Boolean(BOT_TOKEN() && GROUP_ID());
 }
 
+export function getSupportGroupChatId(): string | null {
+  const id = GROUP_ID()?.trim();
+  return id ? normalizeGroupChatId(id) : null;
+}
+
 /** Уведомления в Telegram-форум только на проде (не локально / не test). */
 export function shouldNotifySupportTelegram(): boolean {
   return process.env.NODE_ENV === "production" && isSupportTelegramConfigured();
@@ -47,25 +52,59 @@ export function getTelegramTopicUrl(topicId: number): string | null {
   return `https://t.me/c/${chatId}/${topicId}`;
 }
 
+const TELEGRAM_TIMEOUT_MS = 15_000;
+const TELEGRAM_MAX_ATTEMPTS = 3;
+const TELEGRAM_RETRY_DELAYS_MS = [1_000, 3_000];
+
 async function tgApi<T>(method: string, body: Record<string, unknown>): Promise<T | null> {
   const token = BOT_TOKEN();
   if (!token) return null;
-  try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = (await res.json()) as { ok: boolean; result?: T; description?: string };
-    if (!data.ok) {
-      console.error(`Telegram support API ${method}:`, data.description);
-      return null;
+
+  for (let attempt = 1; attempt <= TELEGRAM_MAX_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), TELEGRAM_TIMEOUT_MS);
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/${method}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+      const data = (await res.json()) as { ok: boolean; result?: T; description?: string };
+      if (!data.ok) {
+        console.error(`Telegram support API ${method}:`, data.description);
+        return null;
+      }
+      return (data.result as T) ?? null;
+    } catch (e) {
+      const isLast = attempt === TELEGRAM_MAX_ATTEMPTS;
+      console.error(
+        `Telegram support API ${method} error (attempt ${attempt}/${TELEGRAM_MAX_ATTEMPTS}):`,
+        e
+      );
+      if (isLast) return null;
+      const delay = TELEGRAM_RETRY_DELAYS_MS[attempt - 1] ?? TELEGRAM_RETRY_DELAYS_MS.at(-1)!;
+      await new Promise((r) => setTimeout(r, delay));
+    } finally {
+      clearTimeout(timeout);
     }
-    return data.result ?? null;
-  } catch (e) {
-    console.error(`Telegram support API ${method} error:`, e);
-    return null;
   }
+  return null;
+}
+
+/** Личное сообщение через support-бота (chat_id пользователя, который писал боту). */
+export async function sendSupportTelegramMessage(
+  chatId: string | number,
+  text: string
+): Promise<boolean> {
+  if (!BOT_TOKEN()) return false;
+  const result = await tgApi("sendMessage", {
+    chat_id: chatId,
+    parse_mode: "HTML",
+    text,
+    disable_web_page_preview: true,
+  });
+  return result !== null;
 }
 
 async function persistForumTopic(
@@ -304,6 +343,7 @@ export async function notifyPaymentAttempt(params: {
   amount: number;
   establishmentCount: number;
   paymentId?: string;
+  mockActivation?: boolean;
 }): Promise<void> {
   if (!shouldNotifySupportTelegram()) return;
 
@@ -328,6 +368,9 @@ export async function notifyPaymentAttempt(params: {
       `<b>Заведений:</b> ${params.establishmentCount}\n` +
       (params.paymentId
         ? `<b>Payment ID:</b> <code>${escapeHtml(params.paymentId)}</code>\n`
+        : "") +
+      (params.mockActivation
+        ? `<b>Статус:</b> тариф выдан бесплатно (оплата недоступна)\n`
         : "") +
       `<b>User ID:</b> <code>${escapeHtml(params.userId)}</code>` +
       (dashboardUrl ? `\n\n<a href="${escapeHtml(dashboardUrl)}">Пользователи в админке</a>` : ""),
@@ -372,6 +415,77 @@ export async function notifyNewUserRegistration(user: {
       `<b>User ID:</b> <code>${escapeHtml(user.id)}</code>` +
       referrerLine +
       (dashboardUrl ? `\n\n<a href="${escapeHtml(dashboardUrl)}">Пользователи в админке</a>` : ""),
+  });
+}
+
+const FEEDBACK_SURVEY_LABELS: Record<string, string> = {
+  d7: "NPS (7 дней / launch)",
+  d90: "Опрос 3 месяца",
+  d365: "Опрос 1 год",
+};
+
+function npsCategory(score: number): string {
+  if (score <= 6) return "критик";
+  if (score <= 8) return "нейтрал";
+  return "промоутер";
+}
+
+/** Заполненный опрос NPS → сообщение в support-группу (только production). */
+export async function notifyUserFeedback(feedback: {
+  userId: string;
+  email: string;
+  name: string | null;
+  surveyKind: string;
+  npsScore: number;
+  comment: string | null;
+  contactOk: boolean;
+  contactPhone: string | null;
+}): Promise<void> {
+  if (!shouldNotifySupportTelegram()) return;
+
+  const groupId = GROUP_ID()!;
+  const surveyLabel = FEEDBACK_SURVEY_LABELS[feedback.surveyKind] ?? feedback.surveyKind;
+  const adminUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/users`
+    : "";
+
+  const lines = [
+    `<b>Обратная связь (NPS)</b>`,
+    "",
+    `<b>Опрос:</b> ${escapeHtml(surveyLabel)}`,
+    `<b>NPS:</b> ${feedback.npsScore}/10 (${npsCategory(feedback.npsScore)})`,
+    `<b>Имя:</b> ${escapeHtml(feedback.name || "—")}`,
+    `<b>Email:</b> ${escapeHtml(feedback.email)}`,
+    `<b>User ID:</b> <code>${escapeHtml(feedback.userId)}</code>`,
+  ];
+
+  if (feedback.comment) {
+    const text =
+      feedback.comment.length > 1500
+        ? `${feedback.comment.slice(0, 1500)}…`
+        : feedback.comment;
+    lines.push("", `<b>Комментарий:</b>`, escapeHtml(text));
+  }
+
+  if (feedback.contactOk) {
+    lines.push(
+      "",
+      `<b>Готов к интервью:</b> да`,
+      feedback.contactPhone
+        ? `<b>Контакт:</b> ${escapeHtml(feedback.contactPhone)}`
+        : `<b>Контакт:</b> не указан`
+    );
+  }
+
+  if (adminUrl) {
+    lines.push("", `<a href="${escapeHtml(adminUrl)}">Пользователи в админке</a>`);
+  }
+
+  await tgApi("sendMessage", {
+    chat_id: groupId,
+    parse_mode: "HTML",
+    text: lines.join("\n"),
+    disable_web_page_preview: true,
   });
 }
 

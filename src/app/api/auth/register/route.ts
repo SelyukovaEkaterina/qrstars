@@ -8,6 +8,7 @@ import {
   acceptPendingInvitesForUser,
   normalizeInviteEmail,
 } from "@/lib/establishment-access";
+import { sendLifecycleEmail } from "@/lib/lifecycle-emails";
 
 export async function POST(request: Request) {
   // Rate limit: 10 регистраций в час с одного IP (в e2e все запросы с одного IP)
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
       name: name || null,
       phone: phone || null,
       hashedPassword,
+      registrationSource: "register",
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
     },
   });
@@ -88,6 +90,10 @@ export async function POST(request: Request) {
     phone: user.phone,
     referredById,
   }).catch((err) => console.error("notifyNewUserRegistration:", err));
+
+  void sendLifecycleEmail(user.id, "welcome").catch((err) =>
+    console.error("sendLifecycleEmail welcome:", err)
+  );
 
   return NextResponse.json({
     success: true,

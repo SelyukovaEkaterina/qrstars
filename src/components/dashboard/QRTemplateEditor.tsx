@@ -35,9 +35,11 @@ import {
   renderQRTemplate,
   downloadQRTemplateAsPNG,
   downloadQRTemplateAsJPG,
+  downloadQRTemplateAsSVG,
   randomizeQRConfig,
   normalizeQRTemplateConfig,
 } from "@/lib/qr-code-templates";
+import { QR_EXPORT_SIZE } from "@/lib/qr-download";
 import {
   type QRContentState,
   type QRContentType,
@@ -458,7 +460,7 @@ export default function QRTemplateEditor({
   const handleDownloadPNG = async () => {
     setBusy(true);
     try {
-      const c = await renderAtSize(1200);
+      const c = await renderAtSize(QR_EXPORT_SIZE);
       if (c) downloadQRTemplateAsPNG(c, downloadBaseName);
     } finally {
       setBusy(false);
@@ -468,8 +470,18 @@ export default function QRTemplateEditor({
   const handleDownloadJPG = async () => {
     setBusy(true);
     try {
-      const c = await renderAtSize(1200);
+      const c = await renderAtSize(QR_EXPORT_SIZE);
       if (c) downloadQRTemplateAsJPG(c, downloadBaseName);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleDownloadSVG = async () => {
+    setBusy(true);
+    try {
+      const c = await renderAtSize(QR_EXPORT_SIZE);
+      if (c) downloadQRTemplateAsSVG(c, downloadBaseName);
     } finally {
       setBusy(false);
     }
@@ -1326,7 +1338,7 @@ export default function QRTemplateEditor({
                   {busy ? "Сохранение…" : saveLabel}
                 </button>
               )}
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
                 <button
                   type="button"
                   onClick={handleDownloadPNG}
@@ -1334,6 +1346,14 @@ export default function QRTemplateEditor({
                   className="flex items-center justify-center gap-1.5 py-2.5 bg-gray-900 text-white rounded-lg text-sm font-medium disabled:opacity-40"
                 >
                   <Download size={14} /> PNG
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownloadSVG}
+                  disabled={busy || !payload}
+                  className="flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <Download size={14} /> SVG
                 </button>
                 <button
                   type="button"

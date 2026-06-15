@@ -1,8 +1,15 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { parseMessengerLinkCode } from "@/lib/messenger-linking";
 import { sendMaxMessage } from "@/lib/max";
+import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
 
 const MAX_SECRET = process.env.MAX_WEBHOOK_SECRET;
+
+const LINK_HELP =
+  `Отправьте код привязки из личного кабинета QrStars.ru:\n` +
+  `<code>MC-…</code>\n\n` +
+  `Подключение одно на аккаунт. Что получать (жалобы, визитка) — в настройках кабинета.`;
 
 export async function POST(request: Request) {
   if (MAX_SECRET) {
@@ -16,17 +23,16 @@ export async function POST(request: Request) {
   const { update_type } = body;
 
   if (update_type === "bot_started") {
-    const userId = getMaxUserId(body);
-    if (!userId) return NextResponse.json({ ok: true });
+    const maxUserId = getMaxUserId(body);
+    if (!maxUserId) return NextResponse.json({ ok: true });
 
-    await sendMaxMessage(
-      userId,
-      `<b>QrStars.ru</b>\n\n` +
-        `Отправьте код привязки из личного кабинета:\n\n` +
-        `• <code>SR-…</code> — уведомления о негативных отзывах заведения\n` +
-        `• <code>MC-…</code> — контакт для сообщений с QR-визитки`
-    );
+    const payload = getStartPayload(body);
+    if (payload) {
+      const linked = await handleLinkPayload(maxUserId, payload);
+      if (linked) return NextResponse.json({ ok: true });
+    }
 
+    await sendMaxMessage(maxUserId, `<b>QrStars.ru</b>\n\n${LINK_HELP}`);
     return NextResponse.json({ ok: true });
   }
 
@@ -36,89 +42,113 @@ export async function POST(request: Request) {
 
     if (!userId || !text) return NextResponse.json({ ok: true });
 
-    const link = parseLinkCode(text);
-
+    const link = parseMessengerLinkCode(text);
     if (!link) {
       await sendMaxMessage(
         userId,
-        `Не распознан код привязки.\n\n` +
-          `Скопируйте код из QrStars.ru и отправьте одним сообщением:\n` +
-          `<code>SR-…</code> или <code>MC-…</code>`
+        `Не распознан код привязки.\n\n${LINK_HELP}`
       );
       return NextResponse.json({ ok: true });
     }
 
     if (link.kind === "mc") {
-      const user = await prisma.user.findUnique({
-        where: { id: link.id },
-        select: { id: true, name: true, email: true },
-      });
-
-      if (!user) {
-        await sendMaxMessage(
-          userId,
-          "❌ Аккаунт не найден. Проверьте код привязки в личном кабинете."
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      const contact = await prisma.messengerContact.upsert({
-        where: {
-          userId_provider_externalId: {
-            userId: link.id,
-            provider: "MAX",
-            externalId: userId,
-          },
-        },
-        create: {
-          user: { connect: { id: link.id } },
-          provider: "MAX",
-          externalId: userId,
-          label: "MAX",
-        },
-        update: {},
-      });
-
-      await sendMaxMessage(
-        userId,
-        `✅ <b>MAX-контакт добавлен!</b>\n\n` +
-          `Контакт: <b>${escapeHtml(contact.label || "MAX")}</b>\n\n` +
-          `Выберите его в настройках QR-визитки в разделе «Связь».`
-      );
+      await linkMcContact(userId, link.id);
     } else {
-      const establishment = await prisma.establishment.findUnique({
-        where: { id: link.id },
-        select: { id: true, name: true },
-      });
-
-      if (!establishment) {
-        await sendMaxMessage(
-          userId,
-          "❌ Заведение не найдено. Проверьте код привязки в настройках."
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      await prisma.establishment.update({
-        where: { id: link.id },
-        data: {
-          notificationMaxUserId: userId,
-          notificationMaxEnabled: true,
-        },
-      });
-
-      await sendMaxMessage(
-        userId,
-        `✅ <b>MAX-уведомления привязаны!</b>\n\n` +
-          `Заведение: <b>${escapeHtml(establishment.name)}</b>\n\n` +
-          `Негативные отзывы (1–3 ★) будут приходить сюда.`
-      );
+      await linkLegacyEstablishmentMax(userId, link.id);
     }
 
     return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ ok: true });
+}
+
+async function handleLinkPayload(maxUserId: string, payload: string): Promise<boolean> {
+  const link = parseMessengerLinkCode(payload);
+  if (link?.kind === "mc") {
+    await linkMcContact(maxUserId, link.id);
+    return true;
+  }
+  if (link?.kind === "sr") {
+    await linkLegacyEstablishmentMax(maxUserId, link.id);
+    return true;
+  }
+  return false;
+}
+
+async function linkMcContact(maxUserId: string, accountUserId: string) {
+  const user = await prisma.user.findUnique({
+    where: { id: accountUserId },
+    select: { id: true, name: true, email: true },
+  });
+
+  if (!user) {
+    await sendMaxMessage(
+      maxUserId,
+      "❌ Аккаунт не найден. Проверьте код привязки в личном кабинете."
+    );
+    return;
+  }
+
+  const contact = await prisma.messengerContact.upsert({
+    where: {
+      userId_provider_externalId: {
+        userId: accountUserId,
+        provider: "MAX",
+        externalId: maxUserId,
+      },
+    },
+    create: {
+      user: { connect: { id: accountUserId } },
+      provider: "MAX",
+      externalId: maxUserId,
+      label: "MAX",
+    },
+    update: {},
+  });
+
+  const enabledCount = await enableReviewNotificationsForProvider(accountUserId, "MAX");
+
+  const reviewHint =
+    enabledCount > 0
+      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} заведений`}.\n` +
+        `Отключить — «Моя страница» → вкладка «Отзывы».`
+      : `Когда появится заведение, жалобы 1–3★ будут приходить сюда.\n` +
+        `Отключить — «Моя страница» → «Отзывы».`;
+
+  await sendMaxMessage(
+    maxUserId,
+    `✅ <b>MAX подключён к аккаунту!</b>\n\n` +
+      `Контакт: <b>${escapeHtml(contact.label || "MAX")}</b>\n\n` +
+      reviewHint
+  );
+}
+
+/** Старый код SR-…: привязка аккаунта + включение MAX для заведения. */
+async function linkLegacyEstablishmentMax(maxUserId: string, establishmentId: string) {
+  const establishment = await prisma.establishment.findUnique({
+    where: { id: establishmentId },
+    select: { id: true, name: true, userId: true },
+  });
+
+  if (!establishment) {
+    await sendMaxMessage(maxUserId, "❌ Заведение не найдено. Используйте код из настроек аккаунта.");
+    return;
+  }
+
+  await linkMcContact(maxUserId, establishment.userId);
+
+  await prisma.establishment.update({
+    where: { id: establishmentId },
+    data: { notificationMaxEnabled: true },
+  });
+
+  await sendMaxMessage(
+    maxUserId,
+    `✅ <b>MAX подключён!</b>\n\n` +
+      `Заведение «${escapeHtml(establishment.name)}»: жалобы 1–3★ включены.\n` +
+      `Остальное — в настройках кабинета.`
+  );
 }
 
 type MaxUserLike = { user_id?: number; id?: number; userId?: number };
@@ -146,12 +176,8 @@ function getMessageText(body: { message?: { body?: { text?: string } } }): strin
   return body.message?.body?.text?.trim() ?? "";
 }
 
-function parseLinkCode(message: string): { kind: "mc" | "sr"; id: string } | null {
-  const trimmed = message.trim();
-  const upper = trimmed.toUpperCase();
-  if (upper.startsWith("MC-")) return { kind: "mc", id: trimmed.slice(3) };
-  if (upper.startsWith("SR-")) return { kind: "sr", id: trimmed.slice(3) };
-  return null;
+function getStartPayload(body: { payload?: string | null }): string {
+  return body.payload?.trim() ?? "";
 }
 
 function escapeHtml(text: string): string {

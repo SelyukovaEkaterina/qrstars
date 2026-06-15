@@ -14,6 +14,7 @@ import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
 import { isBuiltInStickerTemplateId } from "@/lib/builtin-sticker-templates";
+import { invalidateScanCache } from "@/lib/cache";
 
 export async function GET(request: Request) {
   try {
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
   const createData: Record<string, unknown> = {
     code,
     mode: mode || "REVIEW",
-    isActive: !!establishmentId,
+    isActive: true,
     source: "DASHBOARD",
     user: { connect: { id: userId } },
   };
@@ -291,10 +292,16 @@ export async function PUT(request: Request) {
       }
     }
 
+    if (qrcode.source === "DASHBOARD") {
+      data.isActive = true;
+    }
+
     const updated = await prisma.qRCode.update({
       where: { id },
       data,
     });
+
+    invalidateScanCache(qrcode.code).catch(() => {});
 
     return NextResponse.json({ qrcode: updated });
   } catch (e) {

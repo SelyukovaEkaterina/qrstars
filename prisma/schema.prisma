@@ -17,6 +17,9 @@ model User {
   referralCode   String?        @unique
   referredById   String?
   onboardingCompleted Boolean  @default(false)
+  marketingEmailsEnabled Boolean @default(true)
+  registrationSource String?
+  firstScanAt    DateTime?
   telegramForumTopicId Int?
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
@@ -41,6 +44,40 @@ model User {
   withdrawals      PartnerWithdrawal[]
   passwordResetTokens PasswordResetToken[]
   userEvents         UserEvent[]
+  lifecycleEmails    UserLifecycleEmail[]
+  feedbacks          UserFeedback[]
+}
+
+model UserLifecycleEmail {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaignKey String
+  sentAt      DateTime @default(now())
+
+  @@unique([userId, campaignKey])
+  @@index([campaignKey, sentAt])
+}
+
+model UserFeedback {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  surveyKind   String   @default("d7")
+  npsScore     Int
+  comment      String?
+  contactOk    Boolean  @default(false)
+  contactPhone String?
+  createdAt    DateTime @default(now())
+
+  @@unique([userId, surveyKind])
+  @@index([surveyKind, createdAt])
+}
+
+model PlatformMeta {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }
 
 model UserEvent {
@@ -77,12 +114,15 @@ model Establishment {
   tipsProvider     String?
   tipsClientId     String?
 
-  notificationEmail           String?
-  notificationEmailEnabled    Boolean  @default(false)
-  notificationTelegramChatId  String?
-  notificationTelegramEnabled Boolean  @default(false)
-  notificationMaxUserId       String?
-  notificationMaxEnabled      Boolean  @default(false)
+  notificationEmail                    String?
+  notificationEmailEnabled             Boolean  @default(false)
+  notificationEmailRequestsEnabled       Boolean  @default(false)
+  notificationTelegramChatId             String?
+  notificationTelegramEnabled            Boolean  @default(false)
+  notificationTelegramRequestsEnabled    Boolean  @default(false)
+  notificationMaxUserId                  String?
+  notificationMaxEnabled                 Boolean  @default(false)
+  notificationMaxRequestsEnabled         Boolean  @default(false)
 
   reviewRouting Json?
 

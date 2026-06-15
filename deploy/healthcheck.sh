@@ -26,7 +26,7 @@ if [[ -z "$BOT_TOKEN" || -z "$SUPPORT_GROUP_ID" ]]; then
   exit 1
 fi
 
-HEALTH_URL="https://app.qrstars.ru/scan/demo-landing"
+HEALTH_URL="https://app.qrstars.ru/q/demo-landing"
 DEMO_URL="https://qrstars.ru"
 TIMEOUT=15
 

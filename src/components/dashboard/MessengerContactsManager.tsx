@@ -6,8 +6,6 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import {
-  CheckCircle2,
-  Copy,
   ExternalLink,
   Loader2,
   Mail,
@@ -15,6 +13,14 @@ import {
   Trash2,
 } from "lucide-react";
 import { formatMessengerContactLabel, messengerProviderLabel } from "@/lib/messenger-contact";
+import {
+  getMaxBotUrl,
+  messengerLinkCode,
+  telegramDeepLink,
+  telegramMessengerStartPayload,
+} from "@/lib/messenger-linking";
+import { maxMessengerDeepLink } from "@/lib/max-bot-link";
+import MessengerBotLinkHelp from "@/components/dashboard/MessengerBotLinkHelp";
 
 export interface MessengerContactItem {
   id: string;
@@ -24,31 +30,86 @@ export interface MessengerContactItem {
   createdAt: string;
 }
 
-interface MessengerContactsManagerProps {
-  compact?: boolean;
+interface NotificationPrefs {
+  notificationEmailEnabled: boolean;
+  notificationEmailRequestsEnabled: boolean;
+  notificationTelegramEnabled: boolean;
+  notificationTelegramRequestsEnabled: boolean;
+  notificationMaxEnabled: boolean;
+  notificationMaxRequestsEnabled: boolean;
 }
 
-export default function MessengerContactsManager({ compact }: MessengerContactsManagerProps) {
-  const { data: session } = useSession();
+interface MessengerContactsManagerProps {
+  establishmentId: string;
+  establishmentName?: string;
+}
+
+type ChannelKind = "EMAIL" | "TELEGRAM" | "MAX";
+type ToggleField = keyof NotificationPrefs;
+type LinkingChannel = "TELEGRAM" | "MAX" | null;
+
+const CHANNELS: {
+  provider: ChannelKind;
+  label: string;
+  icon: typeof Mail;
+  iconClass: string;
+  reviewsField: ToggleField;
+  requestsField: ToggleField;
+}[] = [
+  {
+    provider: "EMAIL",
+    label: "Email",
+    icon: Mail,
+    iconClass: "text-indigo-500",
+    reviewsField: "notificationEmailEnabled",
+    requestsField: "notificationEmailRequestsEnabled",
+  },
+  {
+    provider: "TELEGRAM",
+    label: "Telegram",
+    icon: MessageCircle,
+    iconClass: "text-blue-500",
+    reviewsField: "notificationTelegramEnabled",
+    requestsField: "notificationTelegramRequestsEnabled",
+  },
+  {
+    provider: "MAX",
+    label: "MAX",
+    icon: MessageCircle,
+    iconClass: "text-green-600",
+    reviewsField: "notificationMaxEnabled",
+    requestsField: "notificationMaxRequestsEnabled",
+  },
+];
+
+export default function MessengerContactsManager({
+  establishmentId,
+  establishmentName,
+}: MessengerContactsManagerProps) {
+  const { data: session, status: sessionStatus } = useSession();
   const userId = (session?.user as { id?: string } | undefined)?.id;
 
   const [contacts, setContacts] = useState<MessengerContactItem[]>([]);
+  const [prefs, setPrefs] = useState<NotificationPrefs | null>(null);
   const [loading, setLoading] = useState(true);
-  const [polling, setPolling] = useState(false);
-  const [maxPolling, setMaxPolling] = useState(false);
+  const [linkingChannel, setLinkingChannel] = useState<LinkingChannel>(null);
   const [codeCopied, setCodeCopied] = useState(false);
   const [emailInput, setEmailInput] = useState("");
   const [emailLabel, setEmailLabel] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [showEmailForm, setShowEmailForm] = useState(false);
+  const [savingToggle, setSavingToggle] = useState<ToggleField | null>(null);
+  const [telegramBotUsername, setTelegramBotUsername] = useState<string | null>(null);
+  const [maxBotUrl, setMaxBotUrl] = useState(getMaxBotUrl());
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const maxPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const contactsCountRef = useRef(0);
 
   const fetchContacts = useCallback(() => {
     return fetch("/api/messenger-contacts")
-      .then((r) => r.json())
-      .then((res) => {
+      .then(async (r) => {
+        if (!r.ok) return [] as MessengerContactItem[];
+        const res = await r.json();
         const list = (res.contacts ?? []) as MessengerContactItem[];
         setContacts(list);
         contactsCountRef.current = list.length;
@@ -57,61 +118,94 @@ export default function MessengerContactsManager({ compact }: MessengerContactsM
       .catch(() => [] as MessengerContactItem[]);
   }, []);
 
+  const fetchPrefs = useCallback(async () => {
+    const r = await fetch(`/api/settings?id=${establishmentId}`);
+    if (!r.ok) return;
+    const data = await r.json();
+    const est = data.establishment;
+    if (!est) return;
+    setPrefs({
+      notificationEmailEnabled: !!est.notificationEmailEnabled,
+      notificationEmailRequestsEnabled: !!est.notificationEmailRequestsEnabled,
+      notificationTelegramEnabled: !!est.notificationTelegramEnabled,
+      notificationTelegramRequestsEnabled: !!est.notificationTelegramRequestsEnabled,
+      notificationMaxEnabled: !!est.notificationMaxEnabled,
+      notificationMaxRequestsEnabled: !!est.notificationMaxRequestsEnabled,
+    });
+  }, [establishmentId]);
+
   useEffect(() => {
-    fetchContacts().finally(() => setLoading(false));
-  }, [fetchContacts]);
+    if (sessionStatus !== "authenticated") return;
+
+    Promise.all([fetchContacts(), fetchPrefs()]).finally(() => setLoading(false));
+
+    fetch("/api/messenger-linking/config")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.telegramBotUsername) setTelegramBotUsername(data.telegramBotUsername);
+        if (data.maxBotUrl) setMaxBotUrl(data.maxBotUrl);
+      })
+      .catch(() => {});
+  }, [fetchContacts, fetchPrefs, sessionStatus]);
+
+  useEffect(() => {
+    const refresh = () => {
+      void fetchContacts();
+      void fetchPrefs();
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") refresh();
+    });
+    return () => window.removeEventListener("focus", refresh);
+  }, [fetchContacts, fetchPrefs]);
 
   useEffect(() => {
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
-      if (maxPollRef.current) clearInterval(maxPollRef.current);
     };
   }, []);
 
   const stopPolling = () => {
-    setPolling(false);
+    setLinkingChannel(null);
     if (pollRef.current) clearInterval(pollRef.current);
   };
 
-  const stopMaxPolling = () => {
-    setMaxPolling(false);
-    if (maxPollRef.current) clearInterval(maxPollRef.current);
-  };
-
   const handleLinkTelegram = () => {
-    if (!userId) return;
-    const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
-    if (!botUsername) return;
+    if (!userId || !telegramBotUsername) return;
 
     const countBefore = contactsCountRef.current;
-    window.open(`https://t.me/${botUsername}?start=link_mc_${userId}`, "_blank");
-    setPolling(true);
+    window.open(
+      telegramDeepLink(telegramBotUsername, telegramMessengerStartPayload(userId)),
+      "_blank"
+    );
+    setLinkingChannel("TELEGRAM");
     pollRef.current = setInterval(async () => {
       const list = await fetchContacts();
-      if (list.length > countBefore) stopPolling();
+      if (list.some((c) => c.provider === "TELEGRAM") && list.length > countBefore) {
+        void fetchPrefs();
+        stopPolling();
+      }
     }, 3000);
     setTimeout(stopPolling, 120000);
   };
 
-  const handleCopyMaxCode = () => {
+  const handleLinkMax = () => {
     if (!userId) return;
-    navigator.clipboard.writeText(`MC-${userId}`).then(() => {
-      setCodeCopied(true);
-      setTimeout(() => setCodeCopied(false), 2000);
-    });
-  };
-
-  const handleStartMaxPolling = () => {
-  const maxBotUrl = process.env.NEXT_PUBLIC_MAX_BOT_URL || "https://max.ru/id540536312882_bot";
-    if (maxBotUrl) window.open(maxBotUrl, "_blank");
+    const url = maxMessengerDeepLink(userId, maxBotUrl);
+    if (!url) return;
 
     const countBefore = contactsCountRef.current;
-    setMaxPolling(true);
-    maxPollRef.current = setInterval(async () => {
+    window.open(url, "_blank");
+    setLinkingChannel("MAX");
+    pollRef.current = setInterval(async () => {
       const list = await fetchContacts();
-      if (list.length > countBefore) stopMaxPolling();
+      if (list.some((c) => c.provider === "MAX") && list.length > countBefore) {
+        void fetchPrefs();
+        stopPolling();
+      }
     }, 3000);
-    setTimeout(stopMaxPolling, 120000);
+    setTimeout(stopPolling, 120000);
   };
 
   const handleAddEmail = async () => {
@@ -144,7 +238,8 @@ export default function MessengerContactsManager({ compact }: MessengerContactsM
       }
       setEmailInput("");
       setEmailLabel("");
-      await fetchContacts();
+      setShowEmailForm(false);
+      await Promise.all([fetchContacts(), fetchPrefs()]);
     } catch {
       setEmailError("Ошибка соединения");
     } finally {
@@ -163,18 +258,49 @@ export default function MessengerContactsManager({ compact }: MessengerContactsM
     }
   };
 
-  const telegramBotUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
-  const telegramBotUrl =
-    userId && telegramBotUsername
-      ? `https://t.me/${telegramBotUsername}?start=link_mc_${userId}`
-      : null;
-  const maxBotUrl = process.env.NEXT_PUBLIC_MAX_BOT_URL;
-  const maxLinkCode = userId ? `MC-${userId}` : "";
+  const handleCopyCode = () => {
+    if (!userId) return;
+    navigator.clipboard.writeText(messengerLinkCode(userId)).then(() => {
+      setCodeCopied(true);
+      setTimeout(() => setCodeCopied(false), 2000);
+    });
+  };
 
-  if (loading) {
+  const saveToggle = async (field: ToggleField, value: boolean) => {
+    if (!prefs) return;
+    setSavingToggle(field);
+    setPrefs((prev) => (prev ? { ...prev, [field]: value } : prev));
+    try {
+      const res = await fetch("/api/settings", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: establishmentId, [field]: value }),
+      });
+      if (!res.ok) {
+        void fetchPrefs();
+      }
+    } catch {
+      void fetchPrefs();
+    } finally {
+      setSavingToggle(null);
+    }
+  };
+
+  const linkCode = userId ? messengerLinkCode(userId) : "";
+  const telegramBotPageUrl =
+    userId && telegramBotUsername
+      ? telegramDeepLink(telegramBotUsername, telegramMessengerStartPayload(userId))
+      : null;
+
+  const contactsFor = (provider: ChannelKind) =>
+    contacts.filter((c) => c.provider === provider);
+
+  const primaryContact = (provider: ChannelKind) => contactsFor(provider)[0];
+
+  if (sessionStatus === "loading" || loading) {
     return (
-      <Card className={compact ? "p-4" : undefined}>
-        <div className="flex items-center justify-center py-8">
+      <Card>
+        <div className="flex items-center justify-center py-10">
           <Loader2 className="w-6 h-6 animate-spin text-indigo-600" />
         </div>
       </Card>
@@ -182,206 +308,205 @@ export default function MessengerContactsManager({ compact }: MessengerContactsM
   }
 
   return (
-    <div className="space-y-4">
-      {!compact && (
-        <div>
-          <h2 className="text-lg font-semibold text-gray-900">Каналы для уведомлений</h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Подключите Telegram, MAX или email — можно несколько каналов. Используются для формы
-            «Написать человеку» на визитках и других уведомлений.
-          </p>
-        </div>
-      )}
+    <Card id="notification-channels">
+      <h3 className="font-semibold text-gray-900 mb-1">Каналы для уведомлений</h3>
+      <p className="text-sm text-gray-500 mb-4">
+        Подключите канал один раз на аккаунт
+        {establishmentName ? (
+          <>
+            {" "}
+            и выберите, что получать для заведения «{establishmentName}»
+          </>
+        ) : (
+          " и выберите типы уведомлений для заведения"
+        )}
+        .
+      </p>
 
-      {compact && (
-        <Card>
-          <h3 className="font-semibold text-gray-900 mb-1">Каналы для уведомлений</h3>
-          <p className="text-sm text-gray-500">
-            Подключите Telegram, MAX или email — можно несколько каналов на аккаунт.
-          </p>
-        </Card>
-      )}
+      <div className="overflow-x-auto -mx-1">
+        <table className="w-full min-w-[540px] text-sm">
+          <thead>
+            <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
+              <th className="pb-2 pl-1 pr-3 font-medium">Канал</th>
+              <th className="pb-2 pr-3 font-medium">Аккаунт</th>
+              <th className="pb-2 pr-3 font-medium text-center w-24">Отзывы</th>
+              <th className="pb-2 pr-3 font-medium text-center w-24">Заявки</th>
+              <th className="pb-2 pr-1 font-medium text-right w-28">Действие</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-gray-100">
+            {CHANNELS.map((channel) => {
+              const Icon = channel.icon;
+              const connected = primaryContact(channel.provider);
+              const linked = !!connected;
+              const isLinking = linkingChannel === channel.provider;
+              const reviewsChecked = prefs?.[channel.reviewsField] ?? false;
+              const requestsChecked = prefs?.[channel.requestsField] ?? false;
+              const toggleDisabled = !linked || savingToggle !== null;
 
-      {contacts.length > 0 && (
-        <Card className={compact ? "p-4" : undefined}>
-          <h3 className="font-semibold text-gray-900 mb-3">Подключённые каналы</h3>
-          <ul className="space-y-2">
-            {contacts.map((contact) => (
-              <li
-                key={contact.id}
-                className="flex items-center justify-between gap-3 p-3 rounded-lg bg-gray-50 border border-gray-100"
-              >
-                <div className="flex items-center gap-2 min-w-0">
-                  {contact.provider === "EMAIL" ? (
-                    <Mail className="w-4 h-4 shrink-0 text-indigo-500" />
-                  ) : (
-                    <MessageCircle
-                      className={`w-4 h-4 shrink-0 ${
-                        contact.provider === "TELEGRAM" ? "text-blue-500" : "text-green-500"
-                      }`}
-                    />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {formatMessengerContactLabel(contact)}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {messengerProviderLabel(contact.provider)}
-                    </p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => handleDelete(contact.id)}
-                  className="text-red-600 shrink-0"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-
-      <Card className={compact ? "p-4" : undefined}>
-        <h3 className="font-semibold text-gray-900 mb-3">Добавить канал</h3>
-        <div className="space-y-4">
-          <div className="space-y-3 p-4 rounded-lg bg-gray-50 border border-gray-100">
-            <div className="flex items-center gap-2">
-              <Mail className="w-4 h-4 text-indigo-500" />
-              <span className="text-sm font-medium text-gray-700">Электронная почта</span>
-            </div>
-            <div className="space-y-2">
-              <Input
-                label="Email"
-                type="email"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                placeholder="manager@example.com"
-              />
-              <Input
-                label="Подпись (необязательно)"
-                value={emailLabel}
-                onChange={(e) => setEmailLabel(e.target.value)}
-                placeholder="Отдел продаж"
-              />
-              {emailError && <p className="text-xs text-red-600">{emailError}</p>}
-              <Button size="sm" onClick={handleAddEmail} disabled={emailSaving}>
-                {emailSaving ? "Добавляем..." : "Добавить email"}
-              </Button>
-            </div>
-          </div>
-
-          <div className="space-y-3 p-4 rounded-lg bg-gray-50 border border-gray-100">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-blue-500" />
-              <span className="text-sm font-medium text-gray-700">Telegram</span>
-            </div>
-            {polling ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-indigo-600">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Ожидаем подтверждения в Telegram...
-                </div>
-                {telegramBotUrl && (
-                  <a
-                    href={telegramBotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Открыть бота
-                  </a>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Button size="sm" onClick={handleLinkTelegram} disabled={!userId}>
-                  <ExternalLink className="w-4 h-4 mr-1" />
-                  {contacts.some((c) => c.provider === "TELEGRAM") ? "Подключить ещё" : "Привязать Telegram"}
-                </Button>
-                {telegramBotUrl && (
-                  <a
-                    href={telegramBotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    @{telegramBotUsername}
-                  </a>
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-3 p-4 rounded-lg bg-gray-50 border border-gray-100">
-            <div className="flex items-center gap-2">
-              <MessageCircle className="w-4 h-4 text-green-500" />
-              <span className="text-sm font-medium text-gray-700">MAX</span>
-            </div>
-            {maxPolling ? (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm text-indigo-600">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Ожидаем код в MAX...
-                </div>
-                {maxBotUrl && (
-                  <a
-                    href={maxBotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Открыть бота в MAX
-                  </a>
-                )}
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {maxBotUrl && (
-                  <a
-                    href={maxBotUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    Написать боту в MAX
-                  </a>
-                )}
-                <p className="text-xs text-gray-500">Отправьте код боту в MAX:</p>
-                <div className="flex items-center gap-2">
-                  <code className="flex-1 px-3 py-2 bg-white border rounded-lg text-sm font-mono select-all">
-                    {maxLinkCode}
-                  </code>
-                  <Button size="sm" variant="ghost" onClick={handleCopyMaxCode} disabled={!userId}>
-                    {codeCopied ? (
-                      <CheckCircle2 className="w-4 h-4 text-green-500" />
+              return (
+                <tr key={channel.provider} className="align-top">
+                  <td className="py-3 pl-1 pr-3">
+                    <div className="flex items-center gap-2 font-medium text-gray-800">
+                      <Icon className={`w-4 h-4 shrink-0 ${channel.iconClass}`} />
+                      {channel.label}
+                    </div>
+                  </td>
+                  <td className="py-3 pr-3">
+                    {linked ? (
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">
+                          {formatMessengerContactLabel(connected)}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {messengerProviderLabel(channel.provider)} · подключён
+                        </p>
+                      </div>
+                    ) : isLinking ? (
+                      <div className="flex items-center gap-2 text-indigo-600">
+                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        <span className="text-xs">Ожидаем подтверждения…</span>
+                      </div>
                     ) : (
-                      <Copy className="w-4 h-4" />
+                      <span className="text-xs text-gray-400">Не подключён</span>
                     )}
-                  </Button>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {maxBotUrl && (
-                    <Button size="sm" variant="ghost" onClick={() => window.open(maxBotUrl, "_blank")}>
-                      <ExternalLink className="w-4 h-4 mr-1" />
-                      Открыть бота в MAX
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" onClick={handleStartMaxPolling} disabled={!userId}>
-                    Код отправлен — ждать подтверждения
-                  </Button>
-                </div>
-              </div>
-            )}
+                  </td>
+                  <td className="py-3 pr-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={reviewsChecked}
+                      disabled={toggleDisabled}
+                      onChange={(e) => saveToggle(channel.reviewsField, e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 disabled:opacity-40"
+                      title={
+                        linked
+                          ? "Жалобы 1–3★ и негативные отзывы"
+                          : "Сначала подключите канал"
+                      }
+                    />
+                  </td>
+                  <td className="py-3 pr-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={requestsChecked}
+                      disabled={toggleDisabled}
+                      onChange={(e) => saveToggle(channel.requestsField, e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 disabled:opacity-40"
+                      title={
+                        linked
+                          ? "Заявки из форм и заказы из меню"
+                          : "Сначала подключите канал"
+                      }
+                    />
+                  </td>
+                  <td className="py-3 pr-1 text-right whitespace-nowrap">
+                    {linked ? (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(connected.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 mr-1" />
+                        Отключить
+                      </Button>
+                    ) : channel.provider === "EMAIL" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setShowEmailForm((v) => !v)}
+                      >
+                        Подключить
+                      </Button>
+                    ) : channel.provider === "TELEGRAM" ? (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLinkTelegram}
+                        disabled={!userId || !telegramBotUsername || isLinking}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                        Подключить
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleLinkMax}
+                        disabled={!userId || !maxBotUrl || isLinking}
+                      >
+                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                        Подключить
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-gray-400 mt-3">
+        Отзывы — жалобы 1–3★. Заявки — формы на странице и заказы из меню.
+      </p>
+
+      {showEmailForm && !primaryContact("EMAIL") && (
+        <div className="mt-4 p-4 rounded-lg border border-gray-200 bg-gray-50 space-y-2">
+          <Input
+            label="Email"
+            type="email"
+            value={emailInput}
+            onChange={(e) => setEmailInput(e.target.value)}
+            placeholder="manager@example.com"
+          />
+          <Input
+            label="Подпись (необязательно)"
+            value={emailLabel}
+            onChange={(e) => setEmailLabel(e.target.value)}
+            placeholder="Отдел продаж"
+          />
+          {emailError && <p className="text-xs text-red-600">{emailError}</p>}
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleAddEmail} disabled={emailSaving}>
+              {emailSaving ? "Добавляем…" : "Сохранить"}
+            </Button>
+            <Button size="sm" variant="ghost" onClick={() => setShowEmailForm(false)}>
+              Отмена
+            </Button>
           </div>
         </div>
-      </Card>
-    </div>
+      )}
+
+      {linkingChannel === "TELEGRAM" && (
+        <div className="mt-4 p-4 rounded-lg border border-indigo-100 bg-indigo-50/40">
+          <MessengerBotLinkHelp
+            botUrl={telegramBotPageUrl}
+            linkCode={linkCode}
+            codeCopied={codeCopied}
+            onCopyCode={handleCopyCode}
+            codeHint="Откройте бота и отправьте код одним сообщением:"
+          />
+        </div>
+      )}
+
+      {linkingChannel === "MAX" && (
+        <div className="mt-4 p-4 rounded-lg border border-green-100 bg-green-50/40">
+          <MessengerBotLinkHelp
+            botUrl={maxBotUrl}
+            linkCode={linkCode}
+            codeCopied={codeCopied}
+            onCopyCode={handleCopyCode}
+            codeHint="Откройте бота в MAX и отправьте код одним сообщением:"
+          />
+        </div>
+      )}
+
+      {!telegramBotUsername && (
+        <p className="text-xs text-amber-600 mt-3">
+          Telegram-бот для уведомлений не настроен на сервере — используйте MAX или email.
+        </p>
+      )}
+    </Card>
   );
 }

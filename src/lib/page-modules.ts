@@ -31,7 +31,7 @@ export const GUEST_PAGE_MODULES: PageModules = {
 
 export const PAGE_MODULE_LABELS: Record<BuiltinModuleKey, string> = {
   menu: "QR-Меню",
-  review: "Сбор отзывов",
+  review: "Оставить отзыв",
   businessCard: "Визитка",
   wifi: "Wi-Fi",
   tips: "Чаевые",

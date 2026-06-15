@@ -51,7 +51,7 @@ def test_create_qrcode_with_code(owner_session, base_url):
     assert r.status_code == 200
     data = r.json()
     assert data["qrcode"]["code"] == code
-    assert data["qrcode"]["isActive"] is False
+    assert data["qrcode"]["isActive"] is True
 
 
 def test_create_qrcode_auto_generate(owner_session, base_url):

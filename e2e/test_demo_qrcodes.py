@@ -39,9 +39,9 @@ def test_demo_scan_api_returns_payload(http, base_url, slug):
 def test_demo_landing_page_loads(http, base_url):
     r = http.get(f"{base_url}/scan/demo-landing", allow_redirects=True)
     assert r.status_code == 200
-    assert "Выберите, что вам нужно" in r.text
+    assert "Кофе на зерне собственной обжарки" in r.text
     assert "QR-Меню" in r.text
-    assert "Сбор отзывов" in r.text
+    assert "Оставить отзыв" in r.text
 
 
 def test_demo_review_page_loads(http, base_url):
@@ -90,7 +90,7 @@ def test_demo2_landing_page_loads(http, base_url):
     assert r.status_code == 200
     assert "Колесо" in r.text
     assert "QR-Меню" in r.text or "Услуги" in r.text
-    assert "Сбор отзывов" in r.text
+    assert "Оставить отзыв" in r.text
 
 
 def test_demo2_landing_shows_tire_content(http, base_url):

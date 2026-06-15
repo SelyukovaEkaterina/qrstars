@@ -2,6 +2,8 @@
 
 import requests as req_lib
 
+from conftest import set_user_plan
+
 
 def test_iiko_discover_unauthorized(base_url):
     r = req_lib.post(
@@ -19,7 +21,10 @@ def test_iiko_preview_unauthorized(base_url):
     assert r.status_code == 401
 
 
-def test_iiko_discover_requires_login(owner_session, base_url, owner_establishment_id):
+def test_iiko_discover_requires_api_login(
+    owner_session, admin_session, base_url, owner_establishment_id
+):
+    set_user_plan(admin_session, base_url, "PRO")
     r = owner_session.post(
         f"{base_url}/api/menus/iiko/discover",
         json={"establishmentId": owner_establishment_id},
@@ -27,7 +32,10 @@ def test_iiko_discover_requires_login(owner_session, base_url, owner_establishme
     assert r.status_code == 400
 
 
-def test_save_iiko_menu_source_pro(owner_session, base_url, owner_establishment_id):
+def test_save_iiko_menu_source_pro(
+    owner_session, admin_session, base_url, owner_establishment_id
+):
+    set_user_plan(admin_session, base_url, "PRO")
     r = owner_session.post(
         f"{base_url}/api/menus",
         json={

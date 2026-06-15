@@ -1,3 +1,5 @@
+import time
+
 import pytest
 import requests
 
@@ -196,6 +198,24 @@ def test_scan_redirect_mode(base_url, owner_session, owner_establishment_id):
     data = r.json()
     assert data["needsActivation"] is False
     assert data["redirectUrl"] == "https://example.com/redirect-target"
+
+
+def test_scan_redirect_mode_without_establishment(base_url, owner_session):
+    code = unique_code("scnredno")
+    owner_session.post(
+        f"{base_url}/api/qrcodes",
+        json={
+            "code": code,
+            "mode": "REDIRECT",
+            "redirectUrl": "https://example.com/no-establishment",
+        },
+    )
+
+    r = requests.get(f"{base_url}/api/scan/{code}")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["needsActivation"] is False
+    assert data["redirectUrl"] == "https://example.com/no-establishment"
 
 
 # --- Scan: BUSINESS_CARD mode ---
@@ -494,6 +514,8 @@ def test_scan_file_increments_counter(base_url, owner_session, owner_establishme
     assert r1.status_code == 200
     r2 = requests.get(f"{base_url}/api/scan/{code}")
     assert r2.status_code == 200
+
+    time.sleep(0.5)
 
     after = owner_session.get(
         f"{base_url}/api/qrcodes", params={"id": qr["id"]}

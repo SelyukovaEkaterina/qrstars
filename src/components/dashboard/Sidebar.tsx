@@ -13,6 +13,7 @@ import {
   LogOut,
   Store,
   Palette,
+  LayoutTemplate,
   Star,
   Layout,
   Users,
@@ -22,6 +23,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { signOutTo } from "@/lib/sign-out-client";
+import {
+  isTableTentTemplateEditorPath,
+  TEMPLATE_ROUTES,
+} from "@/lib/template-routes";
 
 type NavLink = {
   href: string;
@@ -30,6 +35,7 @@ type NavLink = {
   tourId?: string;
   badgeKey?: "submissions" | "support";
   sub?: boolean;
+  featured?: boolean;
   isActive?: (pathname: string) => boolean;
 };
 
@@ -87,6 +93,7 @@ const navSections: NavSection[] = [
         label: "Все коды",
         icon: QrCode,
         tourId: "tour-nav-qrcodes",
+        featured: true,
       },
     ],
   },
@@ -112,10 +119,22 @@ const navSections: NavSection[] = [
     title: "Инструменты",
     items: [
       {
-        href: "/dashboard/templates",
-        label: "Шаблоны",
+        href: TEMPLATE_ROUTES.qr,
+        label: "Шаблоны QR-кода",
         icon: Palette,
-        tourId: "tour-nav-templates",
+        tourId: "tour-nav-templates-qr",
+        isActive: (p) =>
+          p === TEMPLATE_ROUTES.qr || p.startsWith(`${TEMPLATE_ROUTES.qr}/`),
+      },
+      {
+        href: TEMPLATE_ROUTES.tableTents,
+        label: "Шаблоны табличек",
+        icon: LayoutTemplate,
+        tourId: "tour-nav-templates-table-tents",
+        isActive: (p) =>
+          p === TEMPLATE_ROUTES.tableTents ||
+          p.startsWith(`${TEMPLATE_ROUTES.tableTents}/`) ||
+          isTableTentTemplateEditorPath(p),
       },
     ],
   },
@@ -245,17 +264,28 @@ export default function Sidebar() {
                     href={item.href}
                     id={item.tourId}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
+                      "flex items-center gap-3 rounded-lg text-sm transition-colors",
                       item.sub ? "pl-9 pr-3 py-2" : "px-3 py-2.5",
-                      isActive
-                        ? "bg-indigo-50 text-indigo-700"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      item.featured
+                        ? cn(
+                            "font-semibold border shadow-sm",
+                            isActive
+                              ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-200"
+                              : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300"
+                          )
+                        : cn(
+                            "font-medium",
+                            isActive
+                              ? "bg-indigo-50 text-indigo-700"
+                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                          )
                     )}
                   >
                     <Icon
                       className={cn(
                         "shrink-0",
-                        item.sub ? "w-4 h-4" : "w-5 h-5"
+                        item.sub ? "w-4 h-4" : "w-5 h-5",
+                        item.featured && isActive && "text-white"
                       )}
                     />
                     <span className="flex-1">{item.label}</span>

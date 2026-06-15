@@ -78,6 +78,13 @@ docker compose -f docker-compose.prod.yml stop "app_${OLD}" 2>/dev/null || true
 echo "$TARGET" > "$ACTIVE_FILE"
 docker rm -f deploy-app-1 2>/dev/null || true
 
+echo "==> Legacy feedback launch (idempotent)..."
+if bash /opt/qrstars/deploy/feedback-launch.sh; then
+  echo "    feedback launch ok"
+else
+  echo "WARN: feedback launch failed — retry: bash /opt/qrstars/deploy/feedback-launch.sh" >&2
+fi
+
 echo "Deploy complete. Active slot: $TARGET (port $TARGET_PORT)"
 REMOTE
 

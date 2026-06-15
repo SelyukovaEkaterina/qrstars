@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
 
 async function getUserId() {
   const session = await getServerSession(authOptions);
@@ -71,7 +72,12 @@ export async function POST(request: Request) {
     },
   });
 
-  return NextResponse.json({ contact });
+  let reviewNotificationsEnabled = 0;
+  if (provider === "TELEGRAM" || provider === "MAX") {
+    reviewNotificationsEnabled = await enableReviewNotificationsForProvider(userId, provider);
+  }
+
+  return NextResponse.json({ contact, reviewNotificationsEnabled });
 }
 
 export async function DELETE(request: Request) {

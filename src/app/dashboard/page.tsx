@@ -13,6 +13,7 @@ import {
   canAccessAnalytics,
   orphanQrcodeWhere,
 } from "@/lib/establishment-access";
+import { isReviewCapableQrMode } from "@/lib/qr-routing";
 import PlanBadge from "@/components/dashboard/PlanBadge";
 
 export default async function DashboardPage() {
@@ -26,13 +27,29 @@ export default async function DashboardPage() {
       where: establishmentAccessWhere(userId),
       include: {
         reviews: { orderBy: { createdAt: "desc" }, take: 5 },
-        qrcodes: { select: { id: true, scansCount: true, label: true, isActive: true, code: true } },
+        qrcodes: {
+          select: {
+            id: true,
+            scansCount: true,
+            label: true,
+            isActive: true,
+            code: true,
+            mode: true,
+          },
+        },
         _count: { select: { reviews: true } },
       },
     }),
     prisma.qRCode.findMany({
       where: orphanQrcodeWhere(userId),
-      select: { id: true, scansCount: true, label: true, isActive: true, code: true },
+      select: {
+        id: true,
+        scansCount: true,
+        label: true,
+        isActive: true,
+        code: true,
+        mode: true,
+      },
       orderBy: { createdAt: "desc" },
     }),
     prisma.subscription.findFirst({
@@ -52,7 +69,16 @@ export default async function DashboardPage() {
   );
   const orphanScans = orphanQrcodes.reduce((a, q) => a + q.scansCount, 0);
   const totalScans = establishmentScans + orphanScans;
-  const totalReviews = establishments.reduce((acc, e) => acc + e._count.reviews, 0);
+
+  const allQrcodes = [
+    ...establishments.flatMap((e) => e.qrcodes),
+    ...orphanQrcodes,
+  ];
+  const hasReviewQrcodes = allQrcodes.some((q) => isReviewCapableQrMode(q.mode));
+
+  const totalReviews = hasReviewQrcodes
+    ? establishments.reduce((acc, e) => acc + e._count.reviews, 0)
+    : 0;
 
   const recentReviews = establishments.flatMap((e) =>
     e.reviews.map((r) => ({ ...r, establishmentName: e.name }))
@@ -72,7 +98,7 @@ export default async function DashboardPage() {
   let avgRatingLast30 = "—";
   let prevAvgRating = 0;
 
-  if (isPro) {
+  if (isPro && hasReviewQrcodes) {
     const allReviewsFull = await prisma.review.findMany({
       where: {
         establishment: establishmentAccessWhere(userId),
@@ -156,7 +182,11 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div
+            className={`grid grid-cols-1 gap-4 ${
+              hasReviewQrcodes ? "md:grid-cols-4" : "md:grid-cols-1 max-w-xs"
+            }`}
+          >
             <Card>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-50 rounded-lg">
@@ -168,101 +198,75 @@ export default async function DashboardPage() {
                 </div>
               </div>
             </Card>
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-50 rounded-lg">
-                  <Star className="w-5 h-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{avgRating}</p>
-                  <p className="text-sm text-gray-500">Средняя оценка</p>
-                </div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-50 rounded-lg">
-                  <MessageSquare className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{totalReviews}</p>
-                  <p className="text-sm text-gray-500">Отзывов</p>
-                </div>
-              </div>
-            </Card>
-            <Card>
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-50 rounded-lg">
-                  <Store className="w-5 h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-gray-900">{establishments.length}</p>
-                  <p className="text-sm text-gray-500">Заведений</p>
-                </div>
-              </div>
-            </Card>
+            {hasReviewQrcodes && (
+              <>
+                <Card>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-50 rounded-lg">
+                      <Star className="w-5 h-5 text-green-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{avgRating}</p>
+                      <p className="text-sm text-gray-500">Средняя оценка</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 rounded-lg">
+                      <MessageSquare className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{totalReviews}</p>
+                      <p className="text-sm text-gray-500">Отзывов</p>
+                    </div>
+                  </div>
+                </Card>
+                <Card>
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-purple-50 rounded-lg">
+                      <Store className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-gray-900">{establishments.length}</p>
+                      <p className="text-sm text-gray-500">Заведений</p>
+                    </div>
+                  </div>
+                </Card>
+              </>
+            )}
           </div>
 
           {isPro && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Card>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">Отзывов за 30 дней</p>
-                    <p className="text-2xl font-bold text-gray-900">
-                      {reviewsLast30}
-                    </p>
-                  </div>
-                  {prevReviewsLast30 > 0 && (
-                    (() => {
-                      const change = +(
-                        ((reviewsLast30 - prevReviewsLast30) /
-                          prevReviewsLast30) *
-                        100
-                      ).toFixed(0);
-                      const isUp = change >= 0;
-                      return (
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-0.5 ${
-                            isUp
-                              ? "bg-green-50 text-green-700"
-                              : "bg-red-50 text-red-700"
-                          }`}
-                        >
-                          {isUp ? (
-                            <TrendingUp className="w-3 h-3" />
-                          ) : (
-                            <TrendingDown className="w-3 h-3" />
-                          )}
-                          {isUp ? "+" : ""}
-                          {change}%
-                        </span>
-                      );
-                    })()
-                  )}
-                </div>
-              </Card>
-              <Card>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Ср. оценка (30 д.)
-                    </p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-2xl font-bold text-gray-900">
-                        {avgRatingLast30}
-                      </p>
-                      {prevAvgRating > 0 && avgRatingLast30 !== "—" && (
+            <div
+              className={`grid grid-cols-1 gap-4 ${
+                hasReviewQrcodes ? "md:grid-cols-3" : "md:grid-cols-1 max-w-sm"
+              }`}
+            >
+              {hasReviewQrcodes && (
+                <>
+                  <Card>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">Отзывов за 30 дней</p>
+                        <p className="text-2xl font-bold text-gray-900">
+                          {reviewsLast30}
+                        </p>
+                      </div>
+                      {prevReviewsLast30 > 0 && (
                         (() => {
-                          const diff = +(
-                            parseFloat(String(avgRatingLast30)) - prevAvgRating
-                          ).toFixed(1);
-                          if (diff === 0) return null;
-                          const isUp = diff > 0;
+                          const change = +(
+                            ((reviewsLast30 - prevReviewsLast30) /
+                              prevReviewsLast30) *
+                            100
+                          ).toFixed(0);
+                          const isUp = change >= 0;
                           return (
                             <span
-                              className={`text-xs font-semibold flex items-center gap-0.5 ${
-                                isUp ? "text-green-600" : "text-red-600"
+                              className={`text-xs font-semibold px-2 py-1 rounded-full flex items-center gap-0.5 ${
+                                isUp
+                                  ? "bg-green-50 text-green-700"
+                                  : "bg-red-50 text-red-700"
                               }`}
                             >
                               {isUp ? (
@@ -271,15 +275,53 @@ export default async function DashboardPage() {
                                 <TrendingDown className="w-3 h-3" />
                               )}
                               {isUp ? "+" : ""}
-                              {diff}
+                              {change}%
                             </span>
                           );
                         })()
                       )}
                     </div>
-                  </div>
-                </div>
-              </Card>
+                  </Card>
+                  <Card>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-gray-500">
+                          Ср. оценка (30 д.)
+                        </p>
+                        <div className="flex items-center gap-2">
+                          <p className="text-2xl font-bold text-gray-900">
+                            {avgRatingLast30}
+                          </p>
+                          {prevAvgRating > 0 && avgRatingLast30 !== "—" && (
+                            (() => {
+                              const diff = +(
+                                parseFloat(String(avgRatingLast30)) - prevAvgRating
+                              ).toFixed(1);
+                              if (diff === 0) return null;
+                              const isUp = diff > 0;
+                              return (
+                                <span
+                                  className={`text-xs font-semibold flex items-center gap-0.5 ${
+                                    isUp ? "text-green-600" : "text-red-600"
+                                  }`}
+                                >
+                                  {isUp ? (
+                                    <TrendingUp className="w-3 h-3" />
+                                  ) : (
+                                    <TrendingDown className="w-3 h-3" />
+                                  )}
+                                  {isUp ? "+" : ""}
+                                  {diff}
+                                </span>
+                              );
+                            })()
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                </>
+              )}
               <Card className="flex items-center justify-center">
                 <Link
                   href="/dashboard/analytics"
@@ -328,19 +370,42 @@ export default async function DashboardPage() {
                           <ArrowUpRight className="w-4 h-4" />
                         </Link>
                       </div>
-                      <div className="grid grid-cols-3 gap-3 text-center">
-                        <div>
-                          <p className="text-lg font-bold text-gray-900">{est.reviewsCount}</p>
-                          <p className="text-xs text-gray-500">Отзывов</p>
-                        </div>
-                        <div>
-                          <p className="text-lg font-bold text-gray-900">{est.avgRating}</p>
-                          <p className="text-xs text-gray-500">Ср. оценка</p>
-                        </div>
-                        <div>
-                          <p className="text-lg font-bold text-gray-900">{est.activeQRCodesCount}/{est.qrcodesCount}</p>
-                          <p className="text-xs text-gray-500">QR-кодов</p>
-                        </div>
+                      <div
+                        className={`grid gap-3 text-center ${
+                          hasReviewQrcodes ? "grid-cols-3" : "grid-cols-2"
+                        }`}
+                      >
+                        {hasReviewQrcodes ? (
+                          <>
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">{est.reviewsCount}</p>
+                              <p className="text-xs text-gray-500">Отзывов</p>
+                            </div>
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">{est.avgRating}</p>
+                              <p className="text-xs text-gray-500">Ср. оценка</p>
+                            </div>
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">
+                                {est.activeQRCodesCount}/{est.qrcodesCount}
+                              </p>
+                              <p className="text-xs text-gray-500">QR-кодов</p>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">{est.scansCount}</p>
+                              <p className="text-xs text-gray-500">Сканирований</p>
+                            </div>
+                            <div>
+                              <p className="text-lg font-bold text-gray-900">
+                                {est.activeQRCodesCount}/{est.qrcodesCount}
+                              </p>
+                              <p className="text-xs text-gray-500">QR-кодов</p>
+                            </div>
+                          </>
+                        )}
                       </div>
                       {est.qrcodes.length > 0 && (
                         <div className="mt-3 pt-3 border-t border-gray-100">
@@ -422,7 +487,7 @@ export default async function DashboardPage() {
                 </div>
               )}
 
-              {recentReviews.length > 0 && (
+              {hasReviewQrcodes && recentReviews.length > 0 && (
                 <div>
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Последние отзывы

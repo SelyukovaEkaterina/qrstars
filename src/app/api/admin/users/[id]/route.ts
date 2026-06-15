@@ -11,15 +11,32 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { role, subscriptionPlan, subscriptionStatus } = body;
+  const { role, subscriptionPlan, subscriptionStatus, marketingEmailsEnabled, createdAt } = body;
 
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  const userUpdate: { role?: typeof user.role; marketingEmailsEnabled?: boolean; createdAt?: Date } = {};
+
   if (role) {
-    await prisma.user.update({ where: { id }, data: { role } });
+    userUpdate.role = role;
+  }
+
+  if (typeof marketingEmailsEnabled === "boolean") {
+    userUpdate.marketingEmailsEnabled = marketingEmailsEnabled;
+  }
+
+  if (createdAt && process.env.E2E_TESTING === "true") {
+    const parsed = new Date(createdAt);
+    if (!Number.isNaN(parsed.getTime())) {
+      userUpdate.createdAt = parsed;
+    }
+  }
+
+  if (Object.keys(userUpdate).length > 0) {
+    await prisma.user.update({ where: { id }, data: userUpdate });
   }
 
   if (subscriptionPlan) {

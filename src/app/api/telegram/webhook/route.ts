@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { parseMessengerLinkCode } from "@/lib/messenger-linking";
+import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -27,9 +29,9 @@ async function setMyCommands() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       commands: [
-        { command: "start", description: "Привязать заведение" },
-        { command: "stop", description: "Отвязать уведомления" },
-        { command: "status", description: "Статус привязки" },
+        { command: "start", description: "Подключить аккаунт" },
+        { command: "stop", description: "Отключить канал" },
+        { command: "status", description: "Статус подключения" },
       ],
     }),
   });
@@ -55,118 +57,69 @@ export async function POST(request: Request) {
     const parts = incomingText.split(" ");
     const payload = parts[1];
 
-    if (payload && payload.startsWith("link_mc_")) {
-      const userId = payload.replace("link_mc_", "");
-
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        select: { id: true, name: true, email: true },
-      });
-
-      if (!user) {
-        await sendMessage(
-          chatId,
-          "❌ Аккаунт не найден. Откройте привязку заново в личном кабинете QrStars.ru."
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      const label =
-        [chat.first_name, chat.last_name].filter(Boolean).join(" ").trim() ||
-        (chat.username ? `@${chat.username}` : "Telegram");
-
-      const contact = await prisma.messengerContact.upsert({
-        where: {
-          userId_provider_externalId: {
-            userId,
-            provider: "TELEGRAM",
-            externalId: String(chatId),
-          },
-        },
-        create: {
-          user: { connect: { id: userId } },
-          provider: "TELEGRAM",
-          externalId: String(chatId),
-          label,
-        },
-        update: { label },
-      });
-
-      await sendMessage(
-        chatId,
-        `✅ <b>Telegram-контакт добавлен!</b>\n\n` +
-          `Контакт: <b>${escapeHtml(contact.label || label)}</b>\n\n` +
-          `Выберите его в настройках QR-визитки в разделе «Связь».`,
-        "HTML"
-      );
-    } else if (payload && payload.startsWith("link_")) {
-      const establishmentId = payload.replace("link_", "");
-
-      const establishment = await prisma.establishment.findUnique({
-        where: { id: establishmentId },
-        select: { id: true, name: true },
-      });
-
-      if (!establishment) {
-        await sendMessage(
-          chatId,
-          "❌ Заведение не найдено. Возможно, ссылка устарела. Попробуйте привязать заново через настройки."
-        );
-        return NextResponse.json({ ok: true });
-      }
-
-      await prisma.establishment.update({
-        where: { id: establishmentId },
-        data: {
-          notificationTelegramChatId: String(chatId),
-          notificationTelegramEnabled: true,
-        },
-      });
-
-      await sendMessage(
-        chatId,
-        `✅ <b>Telegram-уведомления привязаны!</b>\n\n` +
-        `Заведение: <b>${escapeHtml(establishment.name)}</b>\n\n` +
-        `Теперь негативные отзывы (1–3 ★) будут приходить сюда.\n` +
-        `Чтобы отвязать — отправьте /stop`,
-        "HTML"
-      );
-    } else {
-      await sendMessage(
-        chatId,
-        `👋 <b>QrStars.ru — уведомления об отзывах</b>\n\n` +
-        `Чтобы привязать Telegram-уведомления к вашему заведению:\n\n` +
-        `1️⃣ Откройте настройки заведения в личном кабинете QrStars.ru\n` +
-        `2️⃣ Нажмите «Привязать Telegram»\n` +
-        `3️⃣ Бот автоматически привяжется\n\n` +
-        `Команды:\n` +
-        `/status — проверить статус привязки\n` +
-        `/stop — отвязать уведомления`,
-        "HTML"
-      );
+    if (payload) {
+      const handled = await handleStartPayload(chatId, payload, chat);
+      if (handled) return NextResponse.json({ ok: true });
     }
+
+    await sendMessage(
+      chatId,
+      `👋 <b>QrStars.ru</b>\n\n` +
+        `Подключите Telegram к аккаунту:\n\n` +
+        `1️⃣ Откройте <b>Настройки</b> в личном кабинете\n` +
+        `2️⃣ Скопируйте код <code>MC-…</code> и отправьте боту\n\n` +
+        `Один раз на аккаунт. Жалобы, визитка и др. — включаются в кабинете.\n\n` +
+        `/status — статус\n` +
+        `/stop — отключить этот чат`,
+      "HTML"
+    );
 
     return NextResponse.json({ ok: true });
   }
 
+  const textLink = parseMessengerLinkCode(incomingText);
+  if (textLink) {
+    if (textLink.kind === "mc") {
+      await linkMcContact(chatId, textLink.id, chat);
+    } else {
+      await linkLegacyEstablishmentTelegram(chatId, textLink.id, chat);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   if (incomingText === "/status") {
-    const establishment = await prisma.establishment.findFirst({
-      where: { notificationTelegramChatId: String(chatId) },
-      select: { name: true, notificationTelegramEnabled: true },
+    const contact = await prisma.messengerContact.findFirst({
+      where: { provider: "TELEGRAM", externalId: String(chatId) },
+      select: {
+        label: true,
+        user: {
+          select: {
+            email: true,
+            establishments: {
+              select: { name: true, notificationTelegramEnabled: true },
+              take: 5,
+            },
+          },
+        },
+      },
     });
 
-    if (!establishment) {
+    if (!contact) {
       await sendMessage(
         chatId,
-        "📭 Telegram не привязан ни к одному заведению.\n\nПривяжите через настройки в личном кабинете QrStars.ru."
+        "📭 Telegram не подключён к аккаунту QrStars.ru.\n\nКод привязки — в настройках кабинета."
       );
     } else {
-      const status = establishment.notificationTelegramEnabled ? "✅ Включены" : "⏸ Отключены";
+      const enabled = contact.user.establishments.filter((e) => e.notificationTelegramEnabled);
+      const lines =
+        enabled.length > 0
+          ? enabled.map((e) => `• ${escapeHtml(e.name)} — жалобы ✅`).join("\n")
+          : "Жалобы по заведениям пока не включены — в настройках заведения.";
       await sendMessage(
         chatId,
-        `📋 <b>Статус привязки</b>\n\n` +
-        `Заведение: <b>${escapeHtml(establishment.name)}</b>\n` +
-        `Уведомления: ${status}`,
+        `📋 <b>Подключено к аккаунту</b>\n\n` +
+          `${escapeHtml(contact.user.email)}\n\n` +
+          `${lines}`,
         "HTML"
       );
     }
@@ -175,23 +128,16 @@ export async function POST(request: Request) {
   }
 
   if (incomingText === "/stop") {
-    const establishment = await prisma.establishment.findFirst({
-      where: { notificationTelegramChatId: String(chatId) },
-      select: { id: true, name: true },
+    const deleted = await prisma.messengerContact.deleteMany({
+      where: { provider: "TELEGRAM", externalId: String(chatId) },
     });
 
-    if (!establishment) {
-      await sendMessage(chatId, "📭 Telegram не привязан к заведению.");
+    if (deleted.count === 0) {
+      await sendMessage(chatId, "📭 Этот чат не был подключён.");
     } else {
-      await prisma.establishment.update({
-        where: { id: establishment.id },
-        data: {
-          notificationTelegramEnabled: false,
-        },
-      });
       await sendMessage(
         chatId,
-        `⏸ Уведомления отключены для <b>${escapeHtml(establishment.name)}</b>.\n\nЧтобы включить обратно — откройте настройки заведения.`
+        `⏸ Telegram отключён от аккаунта QrStars.ru.\n\nПодключить снова — код в настройках кабинета.`
       );
     }
 
@@ -199,6 +145,130 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
+}
+
+async function handleStartPayload(
+  chatId: number,
+  payload: string,
+  chat: { first_name?: string; last_name?: string; username?: string }
+): Promise<boolean> {
+  if (payload.startsWith("link_mc_")) {
+    await linkMcContact(chatId, payload.replace("link_mc_", ""), chat);
+    return true;
+  }
+
+  if (payload.startsWith("link_")) {
+    const id = payload.replace("link_", "");
+    const user = await prisma.user.findUnique({ where: { id }, select: { id: true } });
+    if (user) {
+      await linkMcContact(chatId, id, chat);
+      return true;
+    }
+    await linkLegacyEstablishmentTelegram(chatId, id, chat);
+    return true;
+  }
+
+  const parsed = parseMessengerLinkCode(payload);
+  if (parsed?.kind === "mc") {
+    await linkMcContact(chatId, parsed.id, chat);
+    return true;
+  }
+  if (parsed?.kind === "sr") {
+    await linkLegacyEstablishmentTelegram(chatId, parsed.id, chat);
+    return true;
+  }
+
+  return false;
+}
+
+async function linkMcContact(
+  chatId: number,
+  userId: string,
+  chat: { first_name?: string; last_name?: string; username?: string }
+) {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true },
+  });
+
+  if (!user) {
+    await sendMessage(
+      chatId,
+      "❌ Аккаунт не найден. Откройте привязку заново в личном кабинете QrStars.ru."
+    );
+    return;
+  }
+
+  const label =
+    [chat.first_name, chat.last_name].filter(Boolean).join(" ").trim() ||
+    (chat.username ? `@${chat.username}` : "Telegram");
+
+  const contact = await prisma.messengerContact.upsert({
+    where: {
+      userId_provider_externalId: {
+        userId,
+        provider: "TELEGRAM",
+        externalId: String(chatId),
+      },
+    },
+    create: {
+      user: { connect: { id: userId } },
+      provider: "TELEGRAM",
+      externalId: String(chatId),
+      label,
+    },
+    update: { label },
+  });
+
+  const enabledCount = await enableReviewNotificationsForProvider(userId, "TELEGRAM");
+
+  const reviewHint =
+    enabledCount > 0
+      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} заведений`}.\n` +
+        `Отключить — «Моя страница» → вкладка «Отзывы».`
+      : `Когда появится заведение, жалобы 1–3★ будут приходить сюда.\n` +
+        `Отключить — «Моя страница» → «Отзывы».`;
+
+  await sendMessage(
+    chatId,
+    `✅ <b>Telegram подключён к аккаунту!</b>\n\n` +
+      `Контакт: <b>${escapeHtml(contact.label || label)}</b>\n\n` +
+      reviewHint,
+    "HTML"
+  );
+}
+
+async function linkLegacyEstablishmentTelegram(
+  chatId: number,
+  establishmentId: string,
+  chat: { first_name?: string; last_name?: string; username?: string }
+) {
+  const establishment = await prisma.establishment.findUnique({
+    where: { id: establishmentId },
+    select: { id: true, name: true, userId: true },
+  });
+
+  if (!establishment) {
+    await sendMessage(
+      chatId,
+      "❌ Заведение не найдено. Используйте код из настроек аккаунта."
+    );
+    return;
+  }
+
+  await linkMcContact(chatId, establishment.userId, chat);
+
+  await prisma.establishment.update({
+    where: { id: establishmentId },
+    data: { notificationTelegramEnabled: true },
+  });
+
+  await sendMessage(
+    chatId,
+    `✅ Жалобы для «<b>${escapeHtml(establishment.name)}</b>» включены.\n\n` +
+      `Остальные уведомления — в настройках кабинета.`,
+    "HTML"
+  );
 }
 
 function escapeHtml(text: string): string {

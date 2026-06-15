@@ -527,6 +527,28 @@ export function downloadQRTemplateAsPNG(canvas: HTMLCanvasElement, filename: str
   a.click();
 }
 
+/** Styled QR is canvas-rendered; SVG wraps the raster for print/design handoff. */
+export function downloadQRTemplateAsSVG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
+  const w = canvas.width;
+  const h = canvas.height;
+  const pngData = canvas.toDataURL("image/png", 1.0);
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+  <image width="${w}" height="${h}" xlink:href="${pngData}"/>
+</svg>`;
+  downloadSvgString(svg, filename);
+}
+
+export function downloadSvgString(svg: string, filename: string = "qr-code") {
+  const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.download = `${filename}.svg`;
+  a.href = url;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function downloadQRTemplateAsJPG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
   const tmp = document.createElement("canvas");
   tmp.width = canvas.width; tmp.height = canvas.height;

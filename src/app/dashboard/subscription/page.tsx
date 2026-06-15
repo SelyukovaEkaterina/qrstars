@@ -104,6 +104,7 @@ export default function SubscriptionPage() {
       if (json.paymentUrl) {
         window.location.href = json.paymentUrl;
       } else if (json.success) {
+        if (json.message) alert(json.message);
         await load();
       } else if (json.error) {
         alert(json.error);

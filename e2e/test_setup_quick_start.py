@@ -18,7 +18,8 @@ def test_quick_start_reviews_creates_review_mode_qr(base_url):
     )
     assert reg.status_code == 200
 
-    session = login(base_url, email, password)
+    session = req_lib.Session()
+    login(session, base_url, email, password)
     r = session.post(
         f"{base_url}/api/setup/quick-start",
         json={
@@ -48,7 +49,8 @@ def test_quick_start_reviews_requires_yandex_url(base_url):
         f"{base_url}/api/auth/register",
         json={"email": email, "password": password, "consentPd": True},
     )
-    session = login(base_url, email, password)
+    session = req_lib.Session()
+    login(session, base_url, email, password)
     r = session.post(
         f"{base_url}/api/setup/quick-start",
         json={"intent": "reviews", "name": "No Maps"},
@@ -63,7 +65,8 @@ def test_quick_start_landing_page_without_yandex(base_url):
         f"{base_url}/api/auth/register",
         json={"email": email, "password": password, "consentPd": True},
     )
-    session = login(base_url, email, password)
+    session = req_lib.Session()
+    login(session, base_url, email, password)
     r = session.post(
         f"{base_url}/api/setup/quick-start",
         json={"intent": "landing", "name": "Guest Page Only"},
@@ -80,7 +83,7 @@ def test_quick_start_landing_page_without_yandex(base_url):
 
     page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
     assert page.status_code == 200
-    modules = page.json().get("pageModules", {})
+    modules = page.json().get("establishment", {}).get("pageModules", {})
     assert modules.get("review") is False
     assert modules.get("menu") is True
 
@@ -92,7 +95,8 @@ def test_quick_start_landing_with_yandex_enables_reviews(base_url):
         f"{base_url}/api/auth/register",
         json={"email": email, "password": password, "consentPd": True},
     )
-    session = login(base_url, email, password)
+    session = req_lib.Session()
+    login(session, base_url, email, password)
     yandex = "https://yandex.ru/maps/org/test/456/"
     r = session.post(
         f"{base_url}/api/setup/quick-start",
@@ -112,8 +116,119 @@ def test_quick_start_landing_with_yandex_enables_reviews(base_url):
 
     page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
     assert page.status_code == 200
-    modules = page.json().get("pageModules", {})
+    modules = page.json().get("establishment", {}).get("pageModules", {})
     assert modules.get("review") is True
+
+
+def test_quick_start_existing_establishment_reviews_uses_saved_yandex(base_url):
+    email = unique_email("qs5b")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+
+    yandex = "https://yandex.ru/maps/org/existing-saved/789/"
+    first = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Cafe With Yandex",
+            "yandexMapsUrl": yandex,
+        },
+    )
+    assert first.status_code == 200, first.text
+    est_id = first.json()["establishment"]["id"]
+
+    second = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "establishmentId": est_id,
+        },
+    )
+    assert second.status_code == 200, second.text
+    data = second.json()
+    assert data["establishment"]["id"] == est_id
+    assert data["qrcode"]["mode"] == "REVIEW"
+    assert data["qrcode"]["code"] != first.json()["qrcode"]["code"]
+
+    ests = session.get(f"{base_url}/api/establishments")
+    assert ests.status_code == 200
+    est_list = ests.json().get("establishments", [])
+    assert len(est_list) == 1
+    assert est_list[0]["yandexMapsUrl"] == yandex
+
+
+def test_quick_start_existing_establishment_adds_landing_qr(base_url):
+    email = unique_email("qs5")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+
+    first = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "landing",
+            "name": "Existing Org Cafe",
+        },
+    )
+    assert first.status_code == 200, first.text
+    est_id = first.json()["establishment"]["id"]
+
+    second = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "establishmentId": est_id,
+            "yandexMapsUrl": "https://yandex.ru/maps/org/existing/789/",
+        },
+    )
+    assert second.status_code == 200, second.text
+    data = second.json()
+    assert data["establishment"]["id"] == est_id
+    assert data["qrcode"]["mode"] == "REVIEW"
+
+    ests = session.get(f"{base_url}/api/establishments")
+    assert ests.status_code == 200
+    assert len(ests.json().get("establishments", [])) == 1
+
+
+def test_quick_start_saves_legal_requisites(base_url):
+    email = unique_email("qs-legal")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    legal_name = "ИП Тестов Тест Тестович"
+    inn = "123456789012"
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Legal Requisites Cafe",
+            "yandexMapsUrl": "https://yandex.ru/maps/org/legal/123/",
+            "legalName": legal_name,
+            "inn": inn,
+        },
+    )
+    assert r.status_code == 200, r.text
+    est_id = r.json()["establishment"]["id"]
+
+    settings = session.get(f"{base_url}/api/settings", params={"id": est_id})
+    assert settings.status_code == 200
+    est = settings.json()["establishment"]
+    assert est["legalName"] == legal_name
+    assert est["inn"] == inn
 
 
 def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
@@ -123,7 +238,8 @@ def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
         f"{base_url}/api/auth/register",
         json={"email": email, "password": password, "name": "Redirect Only", "consentPd": True},
     )
-    session = login(base_url, email, password)
+    session = req_lib.Session()
+    login(session, base_url, email, password)
 
     r = session.post(
         f"{base_url}/api/setup/quick-start",

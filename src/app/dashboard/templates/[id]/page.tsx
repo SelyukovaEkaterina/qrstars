@@ -7,8 +7,10 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import StickerDesigner, {
   DEFAULT_STICKER_CONFIG,
   type StickerConfig,
+  type SaveAndApplyPayload,
 } from "@/components/dashboard/StickerDesigner";
 import { Loader2, ArrowLeft } from "lucide-react";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 
 interface TemplateData {
   id: string;
@@ -27,6 +29,7 @@ export default function TemplateEditorPage() {
   const [saved,   setSaved]     = useState(false);
   const [tpl,     setTpl]       = useState<TemplateData | null>(null);
   const [error,   setError]     = useState("");
+  const [applyError, setApplyError] = useState("");
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -41,7 +44,7 @@ export default function TemplateEditorPage() {
       })
       .then((d) => {
         if (d.template?.readOnly) {
-          router.replace("/dashboard/templates?tab=table-tent");
+          router.replace(TEMPLATE_ROUTES.tableTents);
           return;
         }
         setTpl(d.template);
@@ -50,11 +53,16 @@ export default function TemplateEditorPage() {
       .catch(() => { setError("Шаблон не найден"); setLoading(false); });
   }, [status, templateId]);
 
-  const handleSave = useCallback(async (cfg: StickerConfig) => {
+  const handleSaveAndApply = useCallback(async ({
+    cfg,
+    qrId,
+    qrStyleTemplateId,
+  }: SaveAndApplyPayload) => {
     if (!tpl) return;
     setSaving(true);
+    setApplyError("");
     try {
-      const res = await fetch(`/api/templates/${tpl.id}`, {
+      const templateRes = await fetch(`/api/templates/${tpl.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -67,9 +75,27 @@ export default function TemplateEditorPage() {
           },
         }),
       });
-      if (!res.ok) return;
+      if (!templateRes.ok) {
+        setApplyError("Не удалось сохранить шаблон таблички");
+        return;
+      }
+
+      const qrRes = await fetch("/api/qrcodes", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: qrId,
+          templateId: tpl.id,
+          qrStyleTemplateId,
+        }),
+      });
+      if (!qrRes.ok) {
+        setApplyError("Шаблон сохранён, но не удалось применить к QR-коду");
+        return;
+      }
+
       setSaved(true);
-      setTimeout(() => setSaved(false), 2000);
+      setTimeout(() => setSaved(false), 2500);
     } finally {
       setSaving(false);
     }
@@ -93,9 +119,9 @@ export default function TemplateEditorPage() {
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <p className="text-gray-500 mb-4">{error || "Шаблон не найден"}</p>
-            <button onClick={() => router.push("/dashboard/templates")}
+            <button onClick={() => router.push(TEMPLATE_ROUTES.tableTents)}
               className="text-indigo-600 hover:underline text-sm">
-              ← К шаблонам
+              ← К шаблонам табличек
             </button>
           </div>
         </main>
@@ -110,7 +136,7 @@ export default function TemplateEditorPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
             <button
-              onClick={() => router.push("/dashboard/templates")}
+              onClick={() => router.push(TEMPLATE_ROUTES.tableTents)}
               className="text-gray-400 hover:text-gray-600 transition-colors"
             >
               <ArrowLeft size={20} />
@@ -118,20 +144,26 @@ export default function TemplateEditorPage() {
             <div>
               <h1 className="text-xl font-bold text-gray-900">{tpl.name}</h1>
               <p className="text-sm text-gray-500">
-                Дизайн таблички · в предпросмотре — статический QR, для печати с динамическим QR — в настройках QR-кода
+                Дизайн таблички · сохранение применяет макет и оформление QR к выбранному коду
               </p>
             </div>
             {saved && (
               <span className="ml-auto text-sm font-medium text-green-600 bg-green-50 px-3 py-1.5 rounded-lg border border-green-200">
-                Сохранено ✓
+                Сохранено и применено ✓
               </span>
             )}
           </div>
 
+          {applyError && (
+            <p className="mb-4 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+              {applyError}
+            </p>
+          )}
+
           <StickerDesigner
             variant="template"
             initialConfig={tpl.layout?.stickerConfig || DEFAULT_STICKER_CONFIG}
-            onSave={handleSave}
+            onSaveAndApply={handleSaveAndApply}
             saving={saving}
           />
         </div>

@@ -4,6 +4,7 @@ import { collectClientInfo } from "@/lib/client-info";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { sendTelegramContactNotification } from "@/lib/telegram";
 import { sendMaxMessage } from "@/lib/max";
+import { getEmailTargets, getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 import {
   configFromQrMenu,
   createIikoDeliveryOrder,
@@ -139,13 +140,17 @@ export async function POST(request: Request) {
     where: { id: establishmentId },
     select: {
       id: true,
+      userId: true,
       name: true,
       menuId: true,
       notificationEmailEnabled: true,
+      notificationEmailRequestsEnabled: true,
       notificationEmail: true,
       notificationTelegramEnabled: true,
+      notificationTelegramRequestsEnabled: true,
       notificationTelegramChatId: true,
       notificationMaxEnabled: true,
+      notificationMaxRequestsEnabled: true,
       notificationMaxUserId: true,
       user: { select: { email: true } },
     },
@@ -284,9 +289,21 @@ export async function POST(request: Request) {
     ...client,
   });
 
-  const emailTo = est.notificationEmailEnabled && est.notificationEmail
-    ? est.notificationEmail
-    : est.user.email;
+  const notifyFields = {
+    userId: est.userId,
+    notificationTelegramEnabled: est.notificationTelegramEnabled,
+    notificationTelegramRequestsEnabled: est.notificationTelegramRequestsEnabled,
+    notificationTelegramChatId: est.notificationTelegramChatId,
+    notificationMaxEnabled: est.notificationMaxEnabled,
+    notificationMaxRequestsEnabled: est.notificationMaxRequestsEnabled,
+    notificationMaxUserId: est.notificationMaxUserId,
+    notificationEmailEnabled: est.notificationEmailEnabled,
+    notificationEmailRequestsEnabled: est.notificationEmailRequestsEnabled,
+    notificationEmail: est.notificationEmail,
+  };
+
+  const emailTargets = await getEmailTargets(notifyFields, "requests");
+  const emailTo = emailTargets[0] ?? est.user.email;
 
   const n = (v?: string | null) => v?.trim() || null;
 
@@ -310,14 +327,16 @@ export async function POST(request: Request) {
   ].filter(Boolean).join("\n");
 
   const { sendMail } = await import("@/lib/mailer");
-  await sendMail(emailTo, `Новый заказ — ${est.name} [${qrLabel}]`, emailBody);
-
-  if (est.notificationTelegramEnabled && est.notificationTelegramChatId) {
-    await sendTelegramContactNotification(est.notificationTelegramChatId, text);
+  if (emailTo) {
+    await sendMail(emailTo, `Новый заказ — ${est.name} [${qrLabel}]`, emailBody);
   }
 
-  if (est.notificationMaxEnabled && est.notificationMaxUserId) {
-    await sendMaxMessage(est.notificationMaxUserId, text, "html");
+  for (const chatId of await getTelegramTargets(notifyFields, "requests")) {
+    await sendTelegramContactNotification(chatId, text);
+  }
+
+  for (const maxUserId of await getMaxTargets(notifyFields, "requests")) {
+    await sendMaxMessage(maxUserId, text, "html");
   }
 
   const savedOrder = await prisma.menuOrder.create({

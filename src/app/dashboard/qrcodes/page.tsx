@@ -25,6 +25,7 @@ import {
   Check,
 } from "lucide-react";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
+import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
 import { scanUrlForCode } from "@/lib/utils";
 import type { QrStyleTemplateSource } from "@/lib/qr-code-templates";
@@ -68,6 +69,8 @@ function QRCodesPageContent() {
   const [linking, setLinking] = useState(false);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isPro, setIsPro] = useState(false);
+  const [downloadingQrId, setDownloadingQrId] = useState<string | null>(null);
 
   const [estForm, setEstForm] = useState({
     name: "",
@@ -107,6 +110,7 @@ function QRCodesPageContent() {
       const data = await res.json();
       const codes = data.qrcodes || [];
       const pro = data.isPro || false;
+      setIsPro(pro);
 
       const withImages = await Promise.all(
         codes.map(async (q: QRCodeItem) => ({
@@ -123,6 +127,20 @@ function QRCodesPageContent() {
     },
     [generateQRImage]
   );
+
+  const handleDownloadQr = async (qr: QRCodeItem, format: "png" | "svg") => {
+    setDownloadingQrId(qr.id);
+    try {
+      await downloadQrCode(format, scanUrlForCode(qr.code), `qr-${qr.code}`, {
+        qrStyleTemplateId: qr.qrStyleTemplateId,
+        qrStyleTemplates: qr.qrStyleTemplate ? [qr.qrStyleTemplate] : [],
+        isPro,
+        size: QR_EXPORT_SIZE,
+      });
+    } finally {
+      setDownloadingQrId(null);
+    }
+  };
 
   const refreshData = useCallback(async () => {
     const [estData] = await Promise.all([
@@ -587,14 +605,24 @@ function QRCodesPageContent() {
                           </>
                         )}
                       </button>
-                      <a
-                        href={qr.imageUrl}
-                        download={`qr-${qr.code}.png`}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadQr(qr, "png")}
+                        disabled={downloadingQrId === qr.id}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
                       >
                         <Download className="w-3 h-3" />
                         PNG
-                      </a>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadQr(qr, "svg")}
+                        disabled={downloadingQrId === qr.id}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                      >
+                        <Download className="w-3 h-3" />
+                        SVG
+                      </button>
                     </div>
                   </div>
                 </Card>

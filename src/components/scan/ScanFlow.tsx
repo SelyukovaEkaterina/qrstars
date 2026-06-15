@@ -214,7 +214,7 @@ export default function ScanFlow({
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="Как к вам обращаться?"
             />
-            {phoneAllowed ? (
+            {phoneAllowed && (
               <Input
                 label="Телефон (необязательно)"
                 value={guestPhone}
@@ -222,10 +222,6 @@ export default function ScanFlow({
                 placeholder="+7 (___) ___-__-__"
                 type="tel"
               />
-            ) : (
-              <div className={`text-xs px-3 py-2 rounded-lg border ${isBg ? "border-white/20 text-white/50" : dark ? "border-slate-600 text-slate-500" : "border-gray-200 text-gray-400 bg-gray-50"}`}>
-                Поле телефона недоступно — владелец не заполнил реквизиты для обработки персональных данных.
-              </div>
             )}
             <div className="space-y-1">
               <label className={`block text-sm font-medium ${isBg ? "text-white/80" : dark ? "text-slate-300" : "text-gray-700"}`}>Комментарий</label>

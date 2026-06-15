@@ -20,7 +20,7 @@ def test_create_custom_page_html(owner_session, base_url, owner_establishment_id
     assert page["menuItemLabel"] == "О нас"
     assert page["title"] == "О нашем заведении"
     assert page["type"] == "HTML"
-    assert page["enabled"] is True
+    assert page["enabled"] is False
 
 
 def test_create_custom_page_link(owner_session, base_url, owner_establishment_id):

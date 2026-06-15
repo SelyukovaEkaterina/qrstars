@@ -101,7 +101,24 @@ export async function POST(request: Request) {
         },
       });
 
-      return NextResponse.json({ success: true, mode: "mock", plan });
+      void notifyPaymentAttempt({
+        userId,
+        email: session.user.email ?? "—",
+        name: session.user.name ?? null,
+        plan,
+        billing,
+        amount,
+        establishmentCount,
+        mockActivation: true,
+      }).catch((err) => console.error("notifyPaymentAttempt:", err));
+
+      return NextResponse.json({
+        success: true,
+        mode: "mock",
+        plan,
+        message:
+          "Функционал оплаты пока не доступен. Поздравляем - вы получили платный тариф бесплатно!",
+      });
     }
 
     const payment = await createPayment(
