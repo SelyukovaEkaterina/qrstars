@@ -11,20 +11,26 @@ export async function GET() {
 
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const subscriptions = await prisma.subscription.findMany({
+  const orders = await prisma.paymentOrder.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
+      invId: true,
+      kind: true,
       plan: true,
+      billing: true,
+      amount: true,
       status: true,
-      yookassaPaymentId: true,
-      currentPeriodStart: true,
-      currentPeriodEnd: true,
-      cancelAtPeriodEnd: true,
+      paidAt: true,
       createdAt: true,
     },
   });
 
-  return NextResponse.json({ history: subscriptions });
+  return NextResponse.json({
+    history: orders.map((order) => ({
+      ...order,
+      amount: Number(order.amount),
+    })),
+  });
 }

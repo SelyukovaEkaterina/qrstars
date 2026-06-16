@@ -24,9 +24,11 @@ import {
   formatRub,
   PLANS,
   calcNetworkMonthlyPrice,
+  calcSubscriptionAmount,
   type PlanId,
   type BillingPeriod,
 } from "@/lib/plans";
+import { LEGAL_OFFER_URL } from "@/lib/legal-urls";
 
 interface SubscriptionState {
   plan: string;
@@ -43,16 +45,29 @@ interface SubscriptionResponse {
   establishmentCount: number;
   establishmentLimit: number | null;
   canAddEstablishment: boolean;
+  renewalPriceChange?: {
+    previousAmount: number;
+    newAmount: number;
+    chargeDate: string;
+    planLabel: string;
+    daysUntilCharge: number;
+  } | null;
+  platformTariffChange?: {
+    effectiveAt: string;
+    message: string | null;
+    daysUntilEffective: number;
+  } | null;
 }
 
 interface HistoryItem {
   id: string;
+  invId: number;
+  kind: "INITIAL" | "RENEWAL";
   plan: string;
-  status: string;
-  yookassaPaymentId: string | null;
-  currentPeriodStart: string | null;
-  currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
+  billing: string;
+  amount: number;
+  status: "PENDING" | "PAID" | "FAILED";
+  paidAt: string | null;
   createdAt: string;
 }
 
@@ -65,6 +80,8 @@ export default function SubscriptionPage() {
   const [data, setData] = useState<SubscriptionResponse | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
+  const [recurringConsent, setRecurringConsent] = useState(false);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const load = () =>
     fetch("/api/subscription")
@@ -89,19 +106,45 @@ export default function SubscriptionPage() {
     if (status !== "authenticated") return;
     load();
     loadHistory();
+    const params = new URLSearchParams(window.location.search);
+    const st = params.get("status");
+    if (st === "success") setStatusMessage("Оплата прошла успешно. Подписка активируется в течение минуты.");
+    if (st === "fail") setStatusMessage("Оплата не завершена. Попробуйте снова или выберите другой способ.");
   }, [status, router]);
 
   const handleSubscribe = async (plan: "PRO" | "NETWORK") => {
+    if (!recurringConsent) {
+      alert("Необходимо согласие на автоматические списания");
+      return;
+    }
     setSubscribing(plan);
     try {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "subscribe", plan, billing }),
+        body: JSON.stringify({ action: "subscribe", plan, billing, recurringConsent: true }),
       });
 
       const json = await res.json();
-      if (json.paymentUrl) {
+      if (json.paymentRedirectUrl) {
+        window.location.href = json.paymentRedirectUrl;
+      } else if (json.paymentPost?.action && json.paymentPost?.fields) {
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = json.paymentPost.action;
+        form.acceptCharset = "utf-8";
+        for (const [name, value] of Object.entries(
+          json.paymentPost.fields as Record<string, string>
+        )) {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = name;
+          input.value = value;
+          form.appendChild(input);
+        }
+        document.body.appendChild(form);
+        form.submit();
+      } else if (json.paymentUrl) {
         window.location.href = json.paymentUrl;
       } else if (json.success) {
         if (json.message) alert(json.message);
@@ -236,6 +279,83 @@ export default function SubscriptionPage() {
             </button>
           </div>
 
+          {statusMessage && (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+              {statusMessage}
+            </div>
+          )}
+
+          {data.platformTariffChange && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p className="font-medium">Изменение тарифов</p>
+              <p className="mt-1">
+                С{" "}
+                {new Date(data.platformTariffChange.effectiveAt).toLocaleDateString(
+                  "ru-RU",
+                  { day: "numeric", month: "long", year: "numeric" }
+                )}{" "}
+                изменяется стоимость подписки.
+                {data.platformTariffChange.message
+                  ? ` ${data.platformTariffChange.message}`
+                  : " Актуальные цены — на этой странице."}
+              </p>
+            </div>
+          )}
+
+          {data.renewalPriceChange && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+              <p className="font-medium">Изменение суммы списания</p>
+              <p className="mt-1">
+                {new Date(data.renewalPriceChange.chargeDate).toLocaleDateString(
+                  "ru-RU",
+                  { day: "numeric", month: "long", year: "numeric" }
+                )}{" "}
+                будет списано{" "}
+                <strong>{formatRub(data.renewalPriceChange.newAmount)}</strong> вместо{" "}
+                {formatRub(data.renewalPriceChange.previousAmount)} (тариф{" "}
+                {data.renewalPriceChange.planLabel}). Отменить автопродление можно до этой
+                даты.
+              </p>
+            </div>
+          )}
+
+          <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={recurringConsent}
+                onChange={(e) => setRecurringConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+              />
+              <span className="text-sm text-gray-700">
+                Я согласен на автоматические списания согласно{" "}
+                <a
+                  href={LEGAL_OFFER_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 hover:underline"
+                >
+                  условиям оферты
+                </a>
+                . Списание произойдёт в дату окончания оплаченного периода (ориентировочно 06:00 МСК).
+                Отмена — в один клик на этой странице.
+              </span>
+            </label>
+            {billing === "monthly" && (
+              <p className="text-xs text-gray-500 pl-7">
+                При выборе PRO: {formatRub(calcSubscriptionAmount("PRO", "monthly", estCount))} каждый месяц.
+                При выборе Сеть: от {formatRub(calcNetworkMonthlyPrice(Math.max(estCount, 2)))} каждый месяц
+                (зависит от числа заведений).
+              </p>
+            )}
+            {billing === "yearly" && (
+              <p className="text-xs text-gray-500 pl-7">
+                PRO: {formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} раз в год.
+                Сеть: {formatRub(calcSubscriptionAmount("NETWORK", "yearly", estCount))} раз в год.
+              </p>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <PlanCard
               planId="FREE"
@@ -253,7 +373,8 @@ export default function SubscriptionPage() {
               price={priceFor("PRO")}
               onSubscribe={() => handleSubscribe("PRO")}
               subscribing={subscribing}
-              disabled={currentPlan === "PRO" && isPaidActive}
+              disabled={(currentPlan === "PRO" && isPaidActive) || !recurringConsent}
+              consentRequired={!recurringConsent}
             />
             <PlanCard
               planId="NETWORK"
@@ -269,7 +390,8 @@ export default function SubscriptionPage() {
               }
               onSubscribe={() => handleSubscribe("NETWORK")}
               subscribing={subscribing}
-              disabled={currentPlan === "NETWORK" && isPaidActive}
+              disabled={(currentPlan === "NETWORK" && isPaidActive) || !recurringConsent}
+              consentRequired={!recurringConsent}
             />
           </div>
 
@@ -293,28 +415,47 @@ export default function SubscriptionPage() {
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
+                        Дата
+                      </th>
+                      <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
                         Тариф
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                        Статус
+                        Тип
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
                         Период
                       </th>
+                      <th className="text-right px-4 py-3 text-xs font-medium text-gray-500 uppercase">
+                        Сумма
+                      </th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">
-                        Дата
+                        Статус
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {history.map((item) => {
-                      const sc = historyStatusConfig[item.status] || historyStatusConfig.ACTIVE;
+                      const sc =
+                        paymentStatusConfig[item.status] || paymentStatusConfig.PENDING;
                       const StatusIcon = sc.icon;
+                      const date = item.paidAt ?? item.createdAt;
                       return (
                         <tr
                           key={item.id}
                           className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50"
                         >
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-gray-700">
+                              {new Date(date).toLocaleDateString("ru-RU", {
+                                day: "2-digit",
+                                month: "2-digit",
+                                year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </span>
+                          </td>
                           <td className="px-4 py-3">
                             <span className="text-sm font-medium text-gray-900">
                               {item.plan === "PRO"
@@ -325,35 +466,25 @@ export default function SubscriptionPage() {
                             </span>
                           </td>
                           <td className="px-4 py-3">
+                            <span className="text-xs text-gray-600">
+                              {item.kind === "RENEWAL" ? "Продление" : "Подключение"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="text-xs text-gray-600">
+                              {item.billing === "yearly" ? "1 год" : "1 месяц"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <span className="text-sm font-semibold text-gray-900 tabular-nums">
+                              {formatRub(item.amount)}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3">
                             <Badge variant={sc.variant} className="flex items-center gap-1 w-fit">
                               <StatusIcon className="w-3 h-3" />
                               {sc.label}
                             </Badge>
-                            {item.cancelAtPeriodEnd && item.status === "ACTIVE" && (
-                              <p className="text-[11px] text-orange-500 mt-1">
-                                Отменена в конце периода
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            {item.currentPeriodStart && item.currentPeriodEnd ? (
-                              <div>
-                                <p className="text-xs text-gray-700">
-                                  {new Date(item.currentPeriodStart).toLocaleDateString("ru-RU")}
-                                </p>
-                                <p className="text-[10px] text-gray-400">—</p>
-                                <p className="text-xs text-gray-700">
-                                  {new Date(item.currentPeriodEnd).toLocaleDateString("ru-RU")}
-                                </p>
-                              </div>
-                            ) : (
-                              <span className="text-xs text-gray-400">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 py-3">
-                            <span className="text-xs text-gray-500">
-                              {new Date(item.createdAt).toLocaleDateString("ru-RU")}
-                            </span>
                           </td>
                         </tr>
                       );
@@ -369,10 +500,13 @@ export default function SubscriptionPage() {
   );
 }
 
-const historyStatusConfig: Record<string, { variant: "success" | "warning" | "danger"; label: string; icon: typeof CheckCircle }> = {
-  ACTIVE: { variant: "success", label: "Активна", icon: CheckCircle },
-  PAST_DUE: { variant: "warning", label: "Просрочена", icon: Clock },
-  CANCELED: { variant: "danger", label: "Отменена", icon: XCircle },
+const paymentStatusConfig: Record<
+  string,
+  { variant: "success" | "warning" | "danger"; label: string; icon: typeof CheckCircle }
+> = {
+  PAID: { variant: "success", label: "Оплачен", icon: CheckCircle },
+  PENDING: { variant: "warning", label: "Ожидает", icon: Clock },
+  FAILED: { variant: "danger", label: "Не прошёл", icon: XCircle },
 };
 
 function PlanCard({
@@ -384,6 +518,7 @@ function PlanCard({
   onSubscribe,
   subscribing,
   disabled,
+  consentRequired,
 }: {
   planId: PlanId;
   currentPlan: PlanId;
@@ -393,6 +528,7 @@ function PlanCard({
   onSubscribe: () => void;
   subscribing: string | null;
   disabled: boolean;
+  consentRequired?: boolean;
 }) {
   const plan = PLANS[planId];
   const isCurrent = currentPlan === planId;
@@ -466,6 +602,7 @@ function PlanCard({
                 className="w-full"
                 onClick={onSubscribe}
                 disabled={disabled || subscribing !== null}
+                title={disabled && consentRequired ? "Отметьте согласие на автосписания" : undefined}
               >
                 {subscribing === planId
                   ? "Перенаправляем..."

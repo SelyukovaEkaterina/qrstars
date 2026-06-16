@@ -2,14 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { createPayment } from "@/lib/yookassa";
+import { buildPaymentRequest, isRobokassaConfigured, resolvePaymentRedirectUrl } from "@/lib/robokassa";
 import {
   calcSubscriptionAmount,
-  formatRub,
   hasPaidFeatures,
   PLANS,
   type BillingPeriod,
-  type PlanId,
 } from "@/lib/plans";
 import {
   buildSubscriptionContext,
@@ -17,7 +15,10 @@ import {
   findLatestSubscription,
   findActiveSubscription,
 } from "@/lib/subscription-utils";
+import { buildRenewalPriceChangeNotice } from "@/lib/subscription-billing-utils";
+import { getPlatformTariffChangeBanner } from "@/lib/tariff-change-notice";
 import { notifyPaymentAttempt } from "@/lib/telegram-support";
+import { LEGAL_OFFER_URL, LEGAL_OFFER_VERSION } from "@/lib/legal-urls";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -34,11 +35,28 @@ export async function GET() {
 
   const ctx = buildSubscriptionContext(activeSubscription, establishmentCount);
 
+  const [renewalPriceChange, platformTariffChange] = await Promise.all([
+    activeSubscription
+      ? buildRenewalPriceChangeNotice(activeSubscription)
+      : Promise.resolve(null),
+    getPlatformTariffChangeBanner(),
+  ]);
+
   return NextResponse.json({
     subscription: activeSubscription ?? latestSubscription,
     ...ctx,
     plans: PLANS,
+    renewalPriceChange,
+    platformTariffChange,
   });
+}
+
+function clientIp(request: Request): string | null {
+  return (
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip") ||
+    null
+  );
 }
 
 export async function POST(request: Request) {
@@ -49,7 +67,7 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { action, plan: targetPlan, billing: billingRaw } = body;
+  const { action, plan: targetPlan, billing: billingRaw, recurringConsent } = body;
   const billing: BillingPeriod =
     billingRaw === "yearly" ? "yearly" : "monthly";
 
@@ -57,6 +75,13 @@ export async function POST(request: Request) {
     const plan = targetPlan as "PRO" | "NETWORK";
     if (plan !== "PRO" && plan !== "NETWORK") {
       return NextResponse.json({ error: "Укажите тариф PRO или Сеть" }, { status: 400 });
+    }
+
+    if (!recurringConsent) {
+      return NextResponse.json(
+        { error: "Необходимо согласие на автоматические списания" },
+        { status: 400 }
+      );
     }
 
     const existing = await findActiveSubscription(userId);
@@ -79,7 +104,7 @@ export async function POST(request: Request) {
     const planLabel = plan === "PRO" ? "PRO" : "Сеть";
     const periodLabel = billing === "yearly" ? "1 год" : "1 месяц";
 
-    if (!process.env.YOOKASSA_SHOP_ID) {
+    if (!isRobokassaConfigured()) {
       const periodMs =
         billing === "yearly" ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
       await prisma.subscription.upsert({
@@ -87,6 +112,7 @@ export async function POST(request: Request) {
         update: {
           plan,
           status: "ACTIVE",
+          billing,
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + periodMs),
           cancelAtPeriodEnd: false,
@@ -95,6 +121,7 @@ export async function POST(request: Request) {
           id: `mock-${userId}`,
           plan,
           status: "ACTIVE",
+          billing,
           user: { connect: { id: userId } },
           currentPeriodStart: new Date(),
           currentPeriodEnd: new Date(Date.now() + periodMs),
@@ -121,12 +148,50 @@ export async function POST(request: Request) {
       });
     }
 
-    const payment = await createPayment(
+    const consentLog = await prisma.recurringConsentLog.create({
+      data: {
+        userId,
+        plan,
+        billing,
+        amount,
+        offerUrl: LEGAL_OFFER_URL,
+        offerVersion: LEGAL_OFFER_VERSION,
+        ipAddress: clientIp(request),
+        userAgent: request.headers.get("user-agent"),
+      },
+    });
+
+    const order = await prisma.paymentOrder.create({
+      data: {
+        kind: "INITIAL",
+        userId,
+        plan,
+        billing,
+        amount,
+        status: "PENDING",
+        consentLogId: consentLog.id,
+      },
+    });
+
+    await prisma.recurringConsentLog.update({
+      where: { id: consentLog.id },
+      data: { paymentOrderId: order.id },
+    });
+
+    const paymentPost = buildPaymentRequest({
+      invId: order.invId,
       amount,
-      `QrStars.ru ${planLabel} — подписка на ${periodLabel}`,
+      description: `QrStars ${planLabel}, podpiska ${periodLabel}`.slice(0, 100),
+      plan,
+      billing,
       userId,
-      { type: "subscription", plan, billing }
-    );
+    });
+
+    const paymentRedirectUrl = await resolvePaymentRedirectUrl(paymentPost);
+
+    if (!paymentRedirectUrl) {
+      console.error("Robokassa redirect URL missing for invId", order.invId);
+    }
 
     void notifyPaymentAttempt({
       userId,
@@ -136,12 +201,13 @@ export async function POST(request: Request) {
       billing,
       amount,
       establishmentCount,
-      paymentId: payment.id,
+      paymentId: String(order.invId),
     }).catch((err) => console.error("notifyPaymentAttempt:", err));
 
     return NextResponse.json({
-      paymentUrl: payment.confirmation?.confirmation_url,
-      paymentId: payment.id,
+      paymentRedirectUrl,
+      paymentPost,
+      paymentId: order.invId,
       amount,
     });
   }

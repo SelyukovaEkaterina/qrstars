@@ -35,7 +35,6 @@ type NavLink = {
   tourId?: string;
   badgeKey?: "submissions" | "support";
   sub?: boolean;
-  featured?: boolean;
   isActive?: (pathname: string) => boolean;
 };
 
@@ -53,6 +52,12 @@ const navSections: NavSection[] = [
   {
     title: "Обзор",
     items: [
+      {
+        href: "/dashboard/qrcodes",
+        label: "QR-коды",
+        icon: QrCode,
+        tourId: "tour-nav-qrcodes",
+      },
       {
         href: "/dashboard",
         label: "Сводка",
@@ -82,18 +87,6 @@ const navSections: NavSection[] = [
         label: "Моя страница",
         icon: Layout,
         tourId: "tour-nav-my-page",
-      },
-    ],
-  },
-  {
-    title: "QR-коды",
-    items: [
-      {
-        href: "/dashboard/qrcodes",
-        label: "Все коды",
-        icon: QrCode,
-        tourId: "tour-nav-qrcodes",
-        featured: true,
       },
     ],
   },
@@ -264,28 +257,17 @@ export default function Sidebar() {
                     href={item.href}
                     id={item.tourId}
                     className={cn(
-                      "flex items-center gap-3 rounded-lg text-sm transition-colors",
+                      "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                       item.sub ? "pl-9 pr-3 py-2" : "px-3 py-2.5",
-                      item.featured
-                        ? cn(
-                            "font-semibold border shadow-sm",
-                            isActive
-                              ? "bg-indigo-600 text-white border-indigo-600 shadow-indigo-200"
-                              : "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 hover:border-indigo-300"
-                          )
-                        : cn(
-                            "font-medium",
-                            isActive
-                              ? "bg-indigo-50 text-indigo-700"
-                              : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-                          )
+                      isActive
+                        ? "bg-indigo-50 text-indigo-700"
+                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                     )}
                   >
                     <Icon
                       className={cn(
                         "shrink-0",
-                        item.sub ? "w-4 h-4" : "w-5 h-5",
-                        item.featured && isActive && "text-white"
+                        item.sub ? "w-4 h-4" : "w-5 h-5"
                       )}
                     />
                     <span className="flex-1">{item.label}</span>

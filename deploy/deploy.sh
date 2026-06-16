@@ -11,6 +11,7 @@ rsync -az --delete \
   --exclude .git \
   --exclude .env \
   --exclude e2e/__pycache__ \
+  --exclude deploy/.active_app \
   "$ROOT/" "$HOST:/opt/qrstars/"
 
 ssh "$HOST" bash -s <<'REMOTE'
@@ -20,7 +21,18 @@ ln -sf ../.env .env
 set -a && . ../.env && set +a
 
 ACTIVE_FILE=".active_app"
-ACTIVE="$(cat "$ACTIVE_FILE" 2>/dev/null || echo blue)"
+NGINX_UPSTREAM="/etc/nginx/conf.d/qrstars-upstream.conf"
+
+# Source of truth: nginx upstream (survives rsync). File is fallback only.
+ACTIVE_PORT="$(grep -oE '127\.0\.0\.1:[0-9]+' "$NGINX_UPSTREAM" 2>/dev/null | head -1 | cut -d: -f2 || true)"
+if [[ "$ACTIVE_PORT" == "3001" ]]; then
+  ACTIVE=green
+elif [[ "$ACTIVE_PORT" == "3000" ]]; then
+  ACTIVE=blue
+else
+  ACTIVE="$(cat "$ACTIVE_FILE" 2>/dev/null || echo blue)"
+fi
+echo "==> Detected active slot: $ACTIVE (nginx port ${ACTIVE_PORT:-unknown})"
 if [[ "$ACTIVE" == "blue" ]]; then
   TARGET=green
   TARGET_PORT=3001

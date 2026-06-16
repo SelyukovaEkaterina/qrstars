@@ -46,6 +46,8 @@ model User {
   userEvents         UserEvent[]
   lifecycleEmails    UserLifecycleEmail[]
   feedbacks          UserFeedback[]
+  paymentOrders      PaymentOrder[]
+  recurringConsents  RecurringConsentLog[]
 }
 
 model UserLifecycleEmail {
@@ -284,16 +286,68 @@ model Subscription {
   id              String          @id @default(cuid())
   status          SubStatus       @default(ACTIVE)
   plan            Plan            @default(FREE)
-  yookassaPaymentId String?
+  invoiceId       Int?
+  parentInvoiceId Int?
+  billing         String?
   currentPeriodStart DateTime?
   currentPeriodEnd   DateTime?
   cancelAtPeriodEnd  Boolean      @default(false)
+  renewalAttempts    Int          @default(0)
+  renewalNoticeSentAt DateTime?
+  priceChangeNoticeSentAt DateTime?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+enum PaymentOrderStatus {
+  PENDING
+  PAID
+  FAILED
+}
+
+enum PaymentOrderKind {
+  INITIAL
+  RENEWAL
+}
+
+model PaymentOrder {
+  id           String             @id @default(cuid())
+  invId        Int                @unique @default(autoincrement())
+  kind         PaymentOrderKind   @default(INITIAL)
+  parentInvId  Int?
+  userId       String
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan         Plan
+  billing      String
+  amount       Decimal            @db.Decimal(10, 2)
+  status       PaymentOrderStatus @default(PENDING)
+  paidAt       DateTime?
+  consentLogId String?
+  createdAt    DateTime           @default(now())
+
+  @@index([userId, status])
+  @@index([status, kind])
+}
+
+model RecurringConsentLog {
+  id             String   @id @default(cuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan           Plan
+  billing        String
+  amount         Decimal  @db.Decimal(10, 2)
+  offerUrl       String
+  offerVersion   String
+  ipAddress      String?
+  userAgent      String?
+  paymentOrderId String?
+  createdAt      DateTime @default(now())
+
+  @@index([userId])
 }
 
 model PromoCode {

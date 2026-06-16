@@ -86,7 +86,7 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
     {
       element: "#tour-nav-qrcodes",
       popover: {
-        title: "Все коды",
+        title: "QR-коды",
         description: isLanding
           ? "Список QR: микро-лендинг, быстрый раздел (меню, отзывы, Wi‑Fi), редирект или файл. У каждого кода — своя маршрутизация; контент подтягивается с «Моя страница». Скачайте PNG/PDF для печати."
           : isRedirect

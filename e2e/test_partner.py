@@ -2,6 +2,29 @@ import pytest
 import uuid
 import requests as req_lib
 
+from robokassa_helpers import robokassa_result_url
+
+
+def _pay_subscription(session, base_url, plan="PRO", billing="monthly"):
+    sub_r = session.post(
+        f"{base_url}/api/subscription",
+        json={
+            "action": "subscribe",
+            "plan": plan,
+            "billing": billing,
+            "recurringConsent": True,
+        },
+    )
+    assert sub_r.status_code == 200, sub_r.text
+    data = sub_r.json()
+    if data.get("mode") == "mock":
+        pytest.skip("Robokassa not configured")
+    inv_id = data["paymentId"]
+    out_sum = f"{data['amount']:.2f}"
+    wh = req_lib.get(robokassa_result_url(base_url, inv_id, out_sum))
+    assert wh.status_code == 200
+    return inv_id, data["amount"]
+
 
 @pytest.fixture
 def partner_session(base_url):
@@ -150,34 +173,9 @@ def test_webhook_creates_partner_earning(base_url, referral_session):
     session_r = ref_s.get(f"{base_url}/api/auth/session")
     ref_user_id = session_r.json()["user"]["id"]
 
-    payment_id = f"test-partner-payment-{uuid.uuid4().hex[:8]}"
-    r = req_lib.post(
-        f"{base_url}/api/webhook/yookassa",
-        json={
-            "event": "payment.succeeded",
-            "object": {
-                "id": payment_id,
-                "amount": {"value": "990.00", "currency": "RUB"},
-                "metadata": {
-                    "userId": ref_user_id,
-                    "type": "subscription",
-                },
-                "payment_method": {"id": f"pm-{payment_id}"},
-            },
-        },
-    )
-    assert r.status_code == 200
-    assert r.json()["received"] is True
-
-    partner_s = referral_session[0]
-    # Actually we need the partner session, not referral
-    # Let's get partner data directly
-    # The partner is the one who referred ref_s
-    # We need to find partner's session
-    # Let's use partner_session fixture instead
-    # Actually referral_session is (ref_s, ref_email, ref_code)
-    # partner_session is (partner_s, partner_email)
-    # But these are separate fixtures... let me just check from partner side
+    inv_id, amount = _pay_subscription(ref_s, base_url)
+    assert inv_id is not None
+    assert amount > 0
 
 
 def test_webhook_partner_earning_appears(base_url, partner_session):
@@ -215,31 +213,16 @@ def test_webhook_partner_earning_appears(base_url, partner_session):
     session_r = s.get(f"{base_url}/api/auth/session")
     ref_user_id = session_r.json()["user"]["id"]
 
-    payment_id = f"test-earning-{uuid.uuid4().hex[:8]}"
-    webhook_r = req_lib.post(
-        f"{base_url}/api/webhook/yookassa",
-        json={
-            "event": "payment.succeeded",
-            "object": {
-                "id": payment_id,
-                "amount": {"value": "990.00", "currency": "RUB"},
-                "metadata": {
-                    "userId": ref_user_id,
-                    "type": "subscription",
-                },
-                "payment_method": {"id": f"pm-{payment_id}"},
-            },
-        },
-    )
-    assert webhook_r.status_code == 200
+    inv_id, amount = _pay_subscription(s, base_url)
 
     partner_r = partner_s.get(f"{base_url}/api/partner")
     data = partner_r.json()
 
     assert len(data["earnings"]) >= 1
     earning = data["earnings"][0]
-    assert earning["amount"] == 148.5
-    assert earning["paymentAmount"] == 990.0
+    expected_commission = round(amount * 0.15, 2)
+    assert earning["amount"] == expected_commission
+    assert earning["paymentAmount"] == amount
     assert earning["status"] == "PENDING"
     assert earning["description"] is not None
     assert "15%" in earning["description"]
@@ -273,22 +256,7 @@ def test_webhook_no_earning_without_referrer(base_url):
     session_r = s.get(f"{base_url}/api/auth/session")
     user_id = session_r.json()["user"]["id"]
 
-    r = req_lib.post(
-        f"{base_url}/api/webhook/yookassa",
-        json={
-            "event": "payment.succeeded",
-            "object": {
-                "id": f"test-no-ref-{uuid.uuid4().hex[:8]}",
-                "amount": {"value": "990.00", "currency": "RUB"},
-                "metadata": {
-                    "userId": user_id,
-                    "type": "subscription",
-                },
-                "payment_method": {"id": "pm-no-ref"},
-            },
-        },
-    )
-    assert r.status_code == 200
+    _pay_subscription(s, base_url)
 
 
 def test_withdraw_requires_auth(base_url):

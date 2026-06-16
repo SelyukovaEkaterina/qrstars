@@ -20,7 +20,7 @@ interface Subscription {
   id: string;
   plan: string;
   status: string;
-  yookassaPaymentId: string | null;
+  invoiceId: number | null;
   currentPeriodStart: string | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
@@ -187,9 +187,7 @@ export default function AdminPaymentsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-gray-500 font-mono">
-                              {s.yookassaPaymentId
-                                ? `${s.yookassaPaymentId.slice(0, 12)}...`
-                                : "—"}
+                              {s.invoiceId != null ? `#${s.invoiceId}` : "—"}
                             </span>
                           </td>
                           <td className="px-4 py-3">

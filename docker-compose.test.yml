@@ -41,6 +41,9 @@ services:
       E2E_TESTING: "true"
       DISABLE_REGISTER_RATE_LIMIT: "true"
       CRON_SECRET: "test-cron-secret-for-e2e"
+      ROBOKASSA_MERCHANT_LOGIN: "QrStars"
+      ROBOKASSA_PASSWORD_1: "test-password-1"
+      ROBOKASSA_PASSWORD_2: "test-password-2"
       S3_ENDPOINT: "http://minio-test:9000"
       S3_BUCKET: "qrwin-test"
       S3_ACCESS_KEY: "minioadmin"
@@ -64,6 +67,7 @@ services:
     environment:
       BASE_URL: "http://app:3000"
       CRON_SECRET: "test-cron-secret-for-e2e"
+      ROBOKASSA_PASSWORD_2: "test-password-2"
     depends_on:
       app:
         condition: service_healthy
