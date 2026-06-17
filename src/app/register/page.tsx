@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import { resolveMetrikaClientId, getMetrikaClientIdFromSearchParams } from "@/lib/metrika-client-id";
+import { parseRegistrationUtmFromSearchParams } from "@/lib/registration-utm";
 
 function RegisterForm() {
   const router = useRouter();
@@ -39,6 +41,11 @@ function RegisterForm() {
       .catch(() => {});
   }, [establishmentInvite]);
 
+  useEffect(() => {
+    const fromQuery = getMetrikaClientIdFromSearchParams(searchParams);
+    if (fromQuery) sessionStorage.setItem("qrstars_ym_uid", fromQuery);
+  }, [searchParams]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -62,6 +69,9 @@ function RegisterForm() {
       return;
     }
 
+    const registrationUtm = parseRegistrationUtmFromSearchParams(searchParams);
+    const metrikaClientId = resolveMetrikaClientId(searchParams) || (typeof sessionStorage !== "undefined" ? sessionStorage.getItem("qrstars_ym_uid") : null);
+
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -73,6 +83,8 @@ function RegisterForm() {
         consentPd: true,
         ref: refCode || undefined,
         establishmentInvite: establishmentInvite || undefined,
+        ...(registrationUtm ? { registrationUtm } : {}),
+        ...(metrikaClientId ? { metrikaClientId } : {}),
       }),
     });
 

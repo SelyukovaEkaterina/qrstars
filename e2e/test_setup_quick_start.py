@@ -41,6 +41,10 @@ def test_quick_start_reviews_creates_review_mode_qr(base_url):
     assert ests.status_code == 200
     assert len(ests.json().get("establishments", [])) == 1
 
+    onboarding = session.get(f"{base_url}/api/user/onboarding")
+    assert onboarding.status_code == 200
+    assert onboarding.json().get("onboardingCompleted") is True
+
 
 def test_quick_start_reviews_requires_yandex_url(base_url):
     email = unique_email("qs2")
@@ -261,3 +265,7 @@ def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
     status = session.get(f"{base_url}/api/setup/status")
     assert status.status_code == 200
     assert status.json().get("needsSetup") is False
+
+    onboarding = session.get(f"{base_url}/api/user/onboarding")
+    assert onboarding.status_code == 200
+    assert onboarding.json().get("onboardingCompleted") is False

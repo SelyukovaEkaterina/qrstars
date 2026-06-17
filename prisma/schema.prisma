@@ -19,6 +19,8 @@ model User {
   onboardingCompleted Boolean  @default(false)
   marketingEmailsEnabled Boolean @default(true)
   registrationSource String?
+  registrationUtm    Json?
+  metrikaClientId    String?
   firstScanAt    DateTime?
   telegramForumTopicId Int?
   createdAt      DateTime       @default(now())
@@ -165,6 +167,7 @@ model Establishment {
   tipsEmployees TipsEmployee[]
   members      EstablishmentMember[]
 
+  metrikaOfflineSentAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }

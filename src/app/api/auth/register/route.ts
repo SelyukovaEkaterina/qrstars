@@ -9,6 +9,11 @@ import {
   normalizeInviteEmail,
 } from "@/lib/establishment-access";
 import { sendLifecycleEmail } from "@/lib/lifecycle-emails";
+import {
+  normalizeMetrikaClientId,
+  parseRegistrationUtm,
+} from "@/lib/registration-utm";
+import type { Prisma } from "@/generated/prisma/client";
 
 export async function POST(request: Request) {
   // Rate limit: 10 регистраций в час с одного IP (в e2e все запросы с одного IP)
@@ -23,8 +28,49 @@ export async function POST(request: Request) {
     }
   }
 
-  const { email, password, name, phone, consentPd, ref, establishmentInvite } =
-    await request.json();
+  const body = await request.json();
+  const {
+    email,
+    password,
+    name,
+    phone,
+    consentPd,
+    ref,
+    establishmentInvite,
+    metrikaClientId: rawMetrikaClientId,
+    _ym_uid,
+    registrationUtm: rawRegistrationUtm,
+    utm_source,
+    utm_campaign,
+    utm_content,
+    utm_medium,
+    utm_term,
+    yclid,
+    ymclid,
+  } = body as {
+    email?: string;
+    password?: string;
+    name?: string;
+    phone?: string;
+    consentPd?: boolean;
+    ref?: string;
+    establishmentInvite?: string;
+    metrikaClientId?: string;
+    _ym_uid?: string;
+    registrationUtm?: unknown;
+    utm_source?: string;
+    utm_campaign?: string;
+    utm_content?: string;
+    utm_medium?: string;
+    utm_term?: string;
+    yclid?: string;
+    ymclid?: string;
+  };
+
+  const registrationUtm =
+    parseRegistrationUtm(rawRegistrationUtm) ??
+    parseRegistrationUtm({ utm_source, utm_campaign, utm_content, utm_medium, utm_term, yclid, ymclid });
+  const metrikaClientId = normalizeMetrikaClientId(rawMetrikaClientId ?? _ym_uid);
 
   if (!consentPd) {
     return NextResponse.json(
@@ -74,6 +120,10 @@ export async function POST(request: Request) {
       phone: phone || null,
       hashedPassword,
       registrationSource: "register",
+      ...(registrationUtm
+        ? { registrationUtm: registrationUtm as Prisma.InputJsonValue }
+        : {}),
+      ...(metrikaClientId ? { metrikaClientId } : {}),
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
     },
   });

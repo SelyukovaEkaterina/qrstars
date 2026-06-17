@@ -57,6 +57,7 @@ export async function POST(request: Request) {
   const trimmedRedirect = redirectUrl?.trim();
   const trimmedLegalName = legalName?.trim() || null;
   const trimmedInn = inn?.trim() || null;
+  const qualifiedOnboarding = intent === "reviews" || intent === "landing";
 
   if (intent === "redirect") {
     if (!trimmedRedirect) {
@@ -248,7 +249,7 @@ export async function POST(request: Request) {
 
       await tx.user.update({
         where: { id: userId },
-        data: { onboardingCompleted: false },
+        data: { onboardingCompleted: qualifiedOnboarding },
       });
 
       return qr;
@@ -299,7 +300,7 @@ export async function POST(request: Request) {
 
     await tx.user.update({
       where: { id: userId },
-      data: { onboardingCompleted: false },
+      data: { onboardingCompleted: qualifiedOnboarding },
     });
 
     return { establishment, qrcode };

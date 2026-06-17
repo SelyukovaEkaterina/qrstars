@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -11,6 +11,10 @@ import { generateQRWithCenter } from "@/lib/qr-generator";
 import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
 import { scanUrlForCode } from "@/lib/utils";
 import { trackEvent } from "@/lib/track-event";
+import {
+  orderSetupIntents,
+  parseSetupUtmContext,
+} from "@/lib/setup-utm-intent";
 import {
   renderSticker,
   FORMATS,
@@ -182,17 +186,32 @@ function SetupWizardShell({ children }: { children: ReactNode }) {
 function IntentOptionCard({
   option,
   onSelect,
+  recommended = false,
+  secondary = false,
 }: {
   option: (typeof INTENT_OPTIONS)[number];
   onSelect: () => void;
+  recommended?: boolean;
+  secondary?: boolean;
 }) {
   const Icon = option.icon;
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex h-full flex-col rounded-2xl border border-slate-200/90 bg-white/90 p-6 text-left shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${option.accent}`}
+      className={`group relative flex h-full flex-col rounded-2xl border bg-white/90 p-6 text-left shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+        recommended
+          ? "border-amber-300 ring-2 ring-amber-200/80 shadow-amber-100/80"
+          : secondary
+            ? "border-slate-200/70 opacity-90 hover:opacity-100"
+            : "border-slate-200/90"
+      } ${option.accent}`}
     >
+      {recommended && (
+        <span className="absolute -top-2.5 left-4 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+          Рекомендуем
+        </span>
+      )}
       <div className="mb-4 flex items-start gap-3">
         <span
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1 ${option.iconWrap}`}
@@ -244,6 +263,28 @@ export default function SetupStartWizard({
   canAddNewEstablishment = true,
 }: SetupStartWizardProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const utmContext = useMemo(
+    () =>
+      parseSetupUtmContext(
+        searchParams.get("utm_campaign"),
+        searchParams.get("utm_content")
+      ),
+    [searchParams]
+  );
+  const visibleIntentOptions = useMemo(() => {
+    const ids = orderSetupIntents(
+      INTENT_OPTIONS.map((o) => o.id),
+      utmContext.hint
+    );
+    const options = ids
+      .map((id) => INTENT_OPTIONS.find((o) => o.id === id))
+      .filter((o): o is (typeof INTENT_OPTIONS)[number] => Boolean(o));
+    if (utmContext.hideRedirect) {
+      return options.filter((o) => o.id !== "redirect");
+    }
+    return options;
+  }, [utmContext]);
   const hasExistingOrgs = existingEstablishments.length > 0 && !rerun;
   const isFirstLaunch = existingEstablishments.length === 0 && !rerun;
   const [step, setStep] = useState<Step>(hasExistingOrgs ? "org" : "intent");
@@ -1128,18 +1169,52 @@ export default function SetupStartWizard({
             </div>
           )}
 
-          <div className="grid gap-5 md:grid-cols-3 md:items-stretch">
-            {INTENT_OPTIONS.map((option) => (
+          {utmContext.hint === "reviews" && (
+            <div className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 leading-relaxed">
+              Вы перешли по ссылке про сбор отзывов — начните с «Умного сбора отзывов», чтобы гости оставляли оценки на Яндекс.Картах, а жалобы приходили вам напрямую.
+            </div>
+          )}
+
+          <div
+            className={`grid gap-5 md:items-stretch ${
+              visibleIntentOptions.length <= 2 ? "md:grid-cols-2 max-w-3xl mx-auto" : "md:grid-cols-3"
+            }`}
+          >
+            {visibleIntentOptions.map((option) => (
               <IntentOptionCard
                 key={option.id}
                 option={option}
+                recommended={utmContext.hint === "reviews" && option.id === "reviews"}
+                secondary={
+                  utmContext.hint === "reviews"
+                    ? option.id === "redirect"
+                    : utmContext.hint === "generator"
+                      ? option.id !== "redirect" && option.id !== "landing"
+                      : false
+                }
                 onSelect={() => chooseIntent(option.id)}
               />
             ))}
           </div>
 
+          {utmContext.hideRedirect && (
+            <p className="text-center text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
+              Нужен простой редирект по ссылке?{" "}
+              <button
+                type="button"
+                className="font-medium text-indigo-600 hover:text-indigo-800"
+                onClick={() => chooseIntent("redirect")}
+              >
+                Создать QR-редирект
+              </button>
+              {" "}— но это не настроит сбор отзывов на картах.
+            </p>
+          )}
+
           <p className="text-center text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
-            Сомневаетесь? Выберите «Сайт-визитку» — это универсальный вариант, к которому легко подключить сбор отзывов и другие функции.
+            {utmContext.hint === "reviews"
+              ? "«Сайт-визитка» тоже подойдёт — на неё можно добавить сбор отзывов и меню."
+              : "Сомневаетесь? Выберите «Сайт-визитку» — это универсальный вариант, к которому легко подключить сбор отзывов и другие функции."}
           </p>
         </div>
       </SetupWizardShell>
