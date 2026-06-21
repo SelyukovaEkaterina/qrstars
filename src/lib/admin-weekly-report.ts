@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { analyticsCohortUserWhere } from "@/lib/analytics-exclusion";
 import {
   getSupportGroupChatId,
   sendSupportTelegramMessage,
@@ -155,7 +156,7 @@ export async function collectWeeklyReportMetrics(
   const comparePrevious = options?.comparePrevious ?? true;
   const period = { gte: range.from, lte: range.to };
   const prevPeriod = { gte: range.prevFrom, lte: range.prevTo };
-  const notAdmin = { role: { not: "ADMIN" as const } };
+  const notAdmin = analyticsCohortUserWhere();
 
   const [
     scansCurrent,

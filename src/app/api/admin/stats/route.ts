@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { analyticsCohortUserWhere } from "@/lib/analytics-exclusion";
 import { estimateSubscriptionMonthlyRevenue } from "@/lib/plans";
 
 export async function GET() {
   const { error } = await requireAdmin();
   if (error) return error;
+
+  const cohortUserWhere = analyticsCohortUserWhere();
 
   const [
     totalUsers,
@@ -16,12 +19,13 @@ export async function GET() {
     recentUsers,
     paidSubscriptions,
   ] = await Promise.all([
-    prisma.user.count(),
+    prisma.user.count({ where: cohortUserWhere }),
     prisma.establishment.count(),
     prisma.review.count(),
     prisma.qRCode.count(),
     prisma.review.count({ where: { isNegative: true } }),
     prisma.user.findMany({
+      where: cohortUserWhere,
       take: 10,
       orderBy: { createdAt: "desc" },
       select: { id: true, email: true, name: true, createdAt: true, role: true },
@@ -59,9 +63,9 @@ export async function GET() {
   sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 30);
 
   const [usersLast30, usersPrev30, reviewsLast30, reviewsPrev30] = await Promise.all([
-    prisma.user.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
+    prisma.user.count({ where: { ...cohortUserWhere, createdAt: { gte: thirtyDaysAgo } } }),
     prisma.user.count({
-      where: { createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
+      where: { ...cohortUserWhere, createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo } },
     }),
     prisma.review.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
     prisma.review.count({

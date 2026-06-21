@@ -6,7 +6,7 @@ from conftest import login
 
 
 def unique_email(prefix="afn"):
-    return f"{prefix}-{uuid.uuid4().hex[:8]}@test.example.com"
+    return f"{prefix}-{uuid.uuid4().hex[:8]}@e2e.qrstars.ru"
 
 
 class TestAdminFunnel:

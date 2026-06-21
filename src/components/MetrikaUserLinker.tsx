@@ -1,5 +1,6 @@
 "use client";
 
+import { isAnalyticsDisabledClient } from "@/lib/analytics-exclusion";
 import { useSession } from "next-auth/react";
 import { useEffect } from "react";
 
@@ -10,6 +11,7 @@ export default function MetrikaUserLinker() {
   const { data: session } = useSession();
 
   useEffect(() => {
+    if (isAnalyticsDisabledClient()) return;
     if (!session?.user || typeof window === "undefined" || !window.ym) return;
     const userId = (session.user as Record<string, unknown>).id;
     if (typeof userId !== "string" || !userId) return;

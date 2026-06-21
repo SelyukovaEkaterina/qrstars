@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { INTERNAL_TEST_REGISTRATION_SOURCE } from "@/lib/analytics-exclusion";
 
 export interface OfflineConversionRow {
   target: string;
@@ -90,7 +91,10 @@ export async function loadPendingEstablishmentConversions(options?: {
     where: {
       metrikaOfflineSentAt: null,
       createdAt: { lte: graceCutoff },
-      user: { role: { not: "ADMIN" } },
+      user: {
+        role: { not: "ADMIN" },
+        NOT: { registrationSource: INTERNAL_TEST_REGISTRATION_SOURCE },
+      },
     },
     orderBy: { createdAt: "asc" },
     take: limit,
