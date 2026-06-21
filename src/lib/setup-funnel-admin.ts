@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { analyticsCohortUserWhere } from "@/lib/analytics-exclusion";
 import { SETUP_USER_EVENTS } from "@/lib/user-events";
 
 const FUNNEL_STEP_DEFS = [
@@ -137,7 +138,7 @@ export async function getSetupFunnelReport(
 ): Promise<SetupFunnelReport> {
   const cohortUsers = await prisma.user.findMany({
     where: {
-      role: { not: "ADMIN" },
+      ...analyticsCohortUserWhere(),
       createdAt: { gte: from, lt: toExclusive },
     },
     select: { id: true, email: true, name: true, createdAt: true },

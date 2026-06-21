@@ -1,5 +1,6 @@
 "use client";
 
+import { isAnalyticsDisabledClient } from "@/lib/analytics-exclusion";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
@@ -10,6 +11,7 @@ export default function YandexMetrikaTracker() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
+    if (isAnalyticsDisabledClient()) return;
     const query = searchParams.toString();
     const url = query ? `${pathname}?${query}` : pathname;
     window.ym?.(METRIKA_ID, "hit", url);

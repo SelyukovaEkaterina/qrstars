@@ -3,6 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
+import QaModeBanner from "@/components/dashboard/QaModeBanner";
 import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
 import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
 
@@ -26,6 +27,7 @@ export default async function DashboardLayout({
 
   return (
     <>
+      <QaModeBanner />
       <SetupGuideRedirect />
       {children}
       {!needsSetup && (

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import {
+  isAnalyticsDisabled,
+  resolveRegistrationSource,
+} from "@/lib/analytics-exclusion";
 import { notifyNewUserRegistration } from "@/lib/telegram-support";
 import {
   acceptInviteByToken,
@@ -105,6 +110,12 @@ export async function POST(request: Request) {
 
   const hashedPassword = await bcrypt.hash(password, 12);
 
+  const cookieStore = await cookies();
+  const registrationSource = resolveRegistrationSource({
+    email: normalizedEmail,
+    analyticsDisabled: isAnalyticsDisabled(cookieStore),
+  });
+
   let referredById: string | null = null;
   if (ref) {
     const referrer = await prisma.user.findUnique({ where: { referralCode: ref } });
@@ -119,7 +130,7 @@ export async function POST(request: Request) {
       name: name || null,
       phone: phone || null,
       hashedPassword,
-      registrationSource: "register",
+      registrationSource,
       ...(registrationUtm
         ? { registrationUtm: registrationUtm as Prisma.InputJsonValue }
         : {}),

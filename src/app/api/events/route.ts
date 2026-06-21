@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { isAnalyticsDisabled } from "@/lib/analytics-exclusion";
 import { parseUserEvent } from "@/lib/user-events";
 import type { Prisma } from "@/generated/prisma/client";
 
@@ -57,11 +59,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
 
+  const cookieStore = await cookies();
+  const qa = isAnalyticsDisabled(cookieStore);
+  const props = {
+    ...(parsed.props ?? {}),
+    ...(qa ? { qa: true } : {}),
+  };
+
   await prisma.userEvent.create({
     data: {
       userId,
       event: parsed.event,
-      props: (parsed.props ?? undefined) as Prisma.InputJsonValue | undefined,
+      props: (Object.keys(props).length > 0 ? props : undefined) as
+        | Prisma.InputJsonValue
+        | undefined,
     },
   });
 

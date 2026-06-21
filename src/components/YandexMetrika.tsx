@@ -1,11 +1,16 @@
 import Script from "next/script";
 import { Suspense } from "react";
+import { cookies } from "next/headers";
+import { isAnalyticsDisabled } from "@/lib/analytics-exclusion";
 import YandexMetrikaTracker from "./YandexMetrikaTracker";
 
 const METRIKA_ID = process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID ?? "109307713";
 
-export default function YandexMetrika() {
+export default async function YandexMetrika() {
   if (!METRIKA_ID) return null;
+
+  const cookieStore = await cookies();
+  if (isAnalyticsDisabled(cookieStore)) return null;
 
   return (
     <>
