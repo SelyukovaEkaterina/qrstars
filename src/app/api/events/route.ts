@@ -6,7 +6,20 @@ import prisma from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAnalyticsDisabled } from "@/lib/analytics-exclusion";
 import { parseUserEvent } from "@/lib/user-events";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
+import type { Prisma as PrismaTypes } from "@/generated/prisma/client";
+
+async function resolveSessionUserId(session: { user?: unknown }) {
+  if (!session.user) return null;
+  const userId = (session.user as Record<string, unknown>).id;
+  if (typeof userId !== "string" || !userId) return null;
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true },
+  });
+  return user?.id ?? null;
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -14,7 +27,10 @@ export async function GET() {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
 
-  const userId = (session.user as Record<string, unknown>).id as string;
+  const userId = await resolveSessionUserId(session);
+  if (!userId) {
+    return NextResponse.json({ error: "Сессия недействительна" }, { status: 401 });
+  }
 
   const events = await prisma.userEvent.findMany({
     where: { userId },
@@ -37,7 +53,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
   }
 
-  const userId = (session.user as Record<string, unknown>).id as string;
+  const userId = await resolveSessionUserId(session);
+  if (!userId) {
+    return NextResponse.json({ error: "Сессия недействительна" }, { status: 401 });
+  }
 
   const rl = rateLimit(`events:${userId}`, 120, 60_000);
   if (!rl.ok) {
@@ -66,15 +85,22 @@ export async function POST(request: Request) {
     ...(qa ? { qa: true } : {}),
   };
 
-  await prisma.userEvent.create({
-    data: {
-      userId,
-      event: parsed.event,
-      props: (Object.keys(props).length > 0 ? props : undefined) as
-        | Prisma.InputJsonValue
-        | undefined,
-    },
-  });
+  try {
+    await prisma.userEvent.create({
+      data: {
+        userId,
+        event: parsed.event,
+        props: (Object.keys(props).length > 0 ? props : undefined) as
+          | PrismaTypes.InputJsonValue
+          | undefined,
+      },
+    });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      return NextResponse.json({ error: "Сессия недействительна" }, { status: 401 });
+    }
+    throw err;
+  }
 
   return NextResponse.json({ ok: true });
 }
