@@ -2,6 +2,9 @@ FROM node:22-alpine
 RUN apk add --no-cache libc6-compat curl ttf-dejavu
 WORKDIR /app
 
+COPY deploy/certs/russiantrustedca.pem /usr/local/share/qrstars/russian-trusted-ca.pem
+ENV NODE_EXTRA_CA_CERTS=/usr/local/share/qrstars/russian-trusted-ca.pem
+
 COPY package.json package-lock.json ./
 RUN npm install
 

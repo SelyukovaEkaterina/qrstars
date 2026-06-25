@@ -5,7 +5,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { isAnalyticsDisabled } from "@/lib/analytics-exclusion";
-import { parseUserEvent } from "@/lib/user-events";
+import { parseUserEvent, shouldMarkOnboardingCompleted } from "@/lib/user-events";
 import { Prisma } from "@/generated/prisma/client";
 import type { Prisma as PrismaTypes } from "@/generated/prisma/client";
 
@@ -85,16 +85,28 @@ export async function POST(request: Request) {
     ...(qa ? { qa: true } : {}),
   };
 
+  const eventData = {
+    userId,
+    event: parsed.event,
+    props: (Object.keys(props).length > 0 ? props : undefined) as
+      | PrismaTypes.InputJsonValue
+      | undefined,
+  };
+
+  const markOnboarding = shouldMarkOnboardingCompleted(parsed.event, props);
+
   try {
-    await prisma.userEvent.create({
-      data: {
-        userId,
-        event: parsed.event,
-        props: (Object.keys(props).length > 0 ? props : undefined) as
-          | PrismaTypes.InputJsonValue
-          | undefined,
-      },
-    });
+    if (markOnboarding) {
+      await prisma.$transaction([
+        prisma.userEvent.create({ data: eventData }),
+        prisma.user.update({
+          where: { id: userId },
+          data: { onboardingCompleted: true },
+        }),
+      ]);
+    } else {
+      await prisma.userEvent.create({ data: eventData });
+    }
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
       return NextResponse.json({ error: "Сессия недействительна" }, { status: 401 });

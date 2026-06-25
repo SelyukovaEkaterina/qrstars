@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Sidebar from "@/components/dashboard/Sidebar";
 import MessengerContactsManager from "@/components/dashboard/MessengerContactsManager";
+import MonthlyReportSettings from "@/components/dashboard/MonthlyReportSettings";
 import { Loader2 } from "lucide-react";
 
 interface Establishment {
@@ -97,6 +98,8 @@ export default function SettingsPage() {
                 establishmentId={activeId}
                 establishmentName={current.name}
               />
+
+              <MonthlyReportSettings />
 
               <Card className="border-dashed">
                 <h3 className="font-semibold text-gray-900 mb-1">Мастер настройки QR</h3>

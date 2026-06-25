@@ -16,8 +16,29 @@ import {
   GUEST_PAGE_MODULES,
   pageModulesToJson,
 } from "@/lib/page-modules";
+import { starterMenuCreateInput } from "@/lib/setup-starter-menu";
+import {
+  YANDEX_MAPS_INVALID_ERROR,
+  normalizeYandexMapsUrl,
+  yandexMapsUrlError,
+} from "@/lib/yandex-maps-url";
 
-export type SetupIntent = "reviews" | "landing" | "redirect";
+function resolveYandexMapsUrl(raw: string | undefined): {
+  normalized: string | null;
+  error: string | null;
+} {
+  const trimmed = raw?.trim();
+  if (!trimmed) {
+    return { normalized: null, error: null };
+  }
+  const error = yandexMapsUrlError(trimmed);
+  if (error) {
+    return { normalized: null, error };
+  }
+  return { normalized: normalizeYandexMapsUrl(trimmed)!, error: null };
+}
+
+export type SetupIntent = "reviews" | "landing" | "redirect" | "menu";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -51,13 +72,21 @@ export async function POST(request: Request) {
 
   const establishmentId = rawEstablishmentId?.trim() || undefined;
 
-  const intent: SetupIntent = rawIntent === "redirect" ? "redirect" : rawIntent === "landing" ? "landing" : "reviews";
+  const intent: SetupIntent =
+    rawIntent === "redirect"
+      ? "redirect"
+      : rawIntent === "landing"
+        ? "landing"
+        : rawIntent === "menu"
+          ? "menu"
+          : "reviews";
   const trimmedName = name?.trim();
-  const trimmedYandex = yandexMapsUrl?.trim();
+  const yandexResolved = resolveYandexMapsUrl(yandexMapsUrl);
+  const trimmedYandex = yandexResolved.normalized;
   const trimmedRedirect = redirectUrl?.trim();
   const trimmedLegalName = legalName?.trim() || null;
   const trimmedInn = inn?.trim() || null;
-  const qualifiedOnboarding = intent === "reviews" || intent === "landing";
+  const qualifiedOnboarding = intent === "reviews" || intent === "landing" || intent === "menu";
 
   if (intent === "redirect") {
     if (!trimmedRedirect) {
@@ -76,16 +105,10 @@ export async function POST(request: Request) {
 
   if (intent === "reviews" && !establishmentId) {
     if (!trimmedYandex) {
-      return NextResponse.json(
-        { error: "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв" },
-        { status: 400 }
-      );
-    }
-
-    try {
-      new URL(trimmedYandex);
-    } catch {
-      return NextResponse.json({ error: "Некорректная ссылка на Яндекс.Карты" }, { status: 400 });
+      const error =
+        yandexResolved.error ||
+        "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв";
+      return NextResponse.json({ error }, { status: 400 });
     }
 
     if (twoGisUrl?.trim()) {
@@ -95,11 +118,12 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Некорректная ссылка на 2GIS" }, { status: 400 });
       }
     }
-  } else if (trimmedYandex) {
-    try {
-      new URL(trimmedYandex);
-    } catch {
-      return NextResponse.json({ error: "Некорректная ссылка на Яндекс.Карты" }, { status: 400 });
+  } else if (yandexMapsUrl?.trim()) {
+    if (!trimmedYandex) {
+      return NextResponse.json(
+        { error: yandexResolved.error || YANDEX_MAPS_INVALID_ERROR },
+        { status: 400 }
+      );
     }
   }
 
@@ -111,8 +135,22 @@ export async function POST(request: Request) {
     }
   }
 
-  const qrMode = intent === "reviews" ? "REVIEW" : intent === "redirect" ? "REDIRECT" : "LANDING";
-  const qrLabel = intent === "reviews" ? "Отзывы" : intent === "redirect" ? "Редирект" : "Основной";
+  const qrMode =
+    intent === "reviews"
+      ? "REVIEW"
+      : intent === "redirect"
+        ? "REDIRECT"
+        : intent === "menu"
+          ? "MENU"
+          : "LANDING";
+  const qrLabel =
+    intent === "reviews"
+      ? "Отзывы"
+      : intent === "redirect"
+        ? "Редирект"
+        : intent === "menu"
+          ? "Меню"
+          : "Основной";
 
   const ownedCount = await prisma.establishment.count({ where: { userId } });
   const subscription = await findActiveSubscription(userId);
@@ -206,18 +244,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Заведение не найдено" }, { status: 404 });
     }
 
-    const effectiveYandex = trimmedYandex || establishment.yandexMapsUrl?.trim() || null;
+    const effectiveYandex =
+      trimmedYandex ||
+      normalizeYandexMapsUrl(establishment.yandexMapsUrl?.trim() || "") ||
+      null;
     if (intent === "reviews") {
       if (!effectiveYandex) {
-        return NextResponse.json(
-          { error: "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв" },
-          { status: 400 }
-        );
-      }
-      try {
-        new URL(effectiveYandex);
-      } catch {
-        return NextResponse.json({ error: "Некорректная ссылка на Яндекс.Карты" }, { status: 400 });
+        const error =
+          yandexResolved.error ||
+          "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв";
+        return NextResponse.json({ error }, { status: 400 });
       }
     }
 
@@ -235,6 +271,18 @@ export async function POST(request: Request) {
         });
       }
 
+      let menuId: string | undefined;
+      if (intent === "menu") {
+        const menu = await tx.qRMenu.create({
+          data: starterMenuCreateInput(establishmentId, establishment.name),
+        });
+        menuId = menu.id;
+        await tx.establishment.update({
+          where: { id: establishmentId },
+          data: { menu: { connect: { id: menu.id } } },
+        });
+      }
+
       const qr = await tx.qRCode.create({
         data: {
           code,
@@ -244,6 +292,7 @@ export async function POST(request: Request) {
           source: "DASHBOARD",
           user: { connect: { id: userId } },
           establishment: { connect: { id: establishmentId } },
+          ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
         },
       });
 
@@ -286,6 +335,18 @@ export async function POST(request: Request) {
       },
     });
 
+    let menuId: string | undefined;
+    if (intent === "menu") {
+      const menu = await tx.qRMenu.create({
+        data: starterMenuCreateInput(establishment.id, establishment.name),
+      });
+      menuId = menu.id;
+      await tx.establishment.update({
+        where: { id: establishment.id },
+        data: { menu: { connect: { id: menu.id } } },
+      });
+    }
+
     const qrcode = await tx.qRCode.create({
       data: {
         code,
@@ -295,6 +356,7 @@ export async function POST(request: Request) {
         source: "DASHBOARD",
         user: { connect: { id: userId } },
         establishment: { connect: { id: establishment.id } },
+        ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
       },
     });
 

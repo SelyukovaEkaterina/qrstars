@@ -83,3 +83,41 @@ def test_events_stores_setup_funnel(base_url):
     assert "setup.form_submitted" in names
     assert "setup.completed" in names
     assert "setup.qr_downloaded" in names
+
+
+def test_setup_completed_sets_onboarding_completed(base_url):
+    session = register_and_login(base_url, "evt-onb")
+
+    onboarding = session.get(f"{base_url}/api/user/onboarding")
+    assert onboarding.status_code == 200
+    assert onboarding.json().get("onboardingCompleted") is False
+
+    r = session.post(
+        f"{base_url}/api/events",
+        json={
+            "event": "setup.completed",
+            "props": {"intent": "reviews", "qrCodeId": "test-qr"},
+        },
+    )
+    assert r.status_code == 200, r.text
+
+    onboarding = session.get(f"{base_url}/api/user/onboarding")
+    assert onboarding.status_code == 200
+    assert onboarding.json().get("onboardingCompleted") is True
+
+
+def test_setup_completed_rerun_does_not_set_onboarding_completed(base_url):
+    session = register_and_login(base_url, "evt-rerun")
+
+    r = session.post(
+        f"{base_url}/api/events",
+        json={
+            "event": "setup.completed",
+            "props": {"intent": "reviews", "rerun": True},
+        },
+    )
+    assert r.status_code == 200, r.text
+
+    onboarding = session.get(f"{base_url}/api/user/onboarding")
+    assert onboarding.status_code == 200
+    assert onboarding.json().get("onboardingCompleted") is False

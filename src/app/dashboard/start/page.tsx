@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import SetupStartWizard from "@/components/dashboard/SetupStartWizard";
 import prisma from "@/lib/prisma";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
+import type { RegistrationUtm } from "@/lib/registration-utm";
+import { parseRegistrationUtm } from "@/lib/registration-utm";
 import {
   canAddEstablishment,
   countUserEstablishments,
@@ -23,7 +25,7 @@ export default async function SetupStartPage({
   const isRerun = rerun === "1" || rerun === "true";
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const [establishments, ownedCount, subscription] = await Promise.all([
+  const [establishments, ownedCount, subscription, userRow] = await Promise.all([
     prisma.establishment.findMany({
       where: establishmentAccessWhere(userId),
       select: { id: true, name: true, yandexMapsUrl: true, phone: true, legalName: true, inn: true },
@@ -31,16 +33,22 @@ export default async function SetupStartPage({
     }),
     countUserEstablishments(userId),
     findActiveSubscription(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { registrationUtm: true },
+    }),
   ]);
 
   const plan = effectivePlan(subscription);
   const canAddNewEstablishment = canAddEstablishment(plan, ownedCount);
+  const initialRegistrationUtm = parseRegistrationUtm(userRow?.registrationUtm) as RegistrationUtm | null;
 
   return (
     <SetupStartWizard
       rerun={isRerun}
       existingEstablishments={establishments}
       canAddNewEstablishment={canAddNewEstablishment}
+      initialRegistrationUtm={initialRegistrationUtm}
     />
   );
 }

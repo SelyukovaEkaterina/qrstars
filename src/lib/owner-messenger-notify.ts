@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import type { MessengerProvider } from "@/generated/prisma/client";
 
-export type NotifyPurpose = "reviews" | "requests";
+export type NotifyPurpose = "reviews" | "requests" | "reports";
 
 type EstablishmentNotifyFields = {
   userId: string;
@@ -133,4 +133,79 @@ export async function enableReviewNotificationsForProvider(
     data: { [REVIEW_NOTIFY_FIELD[provider]]: true },
   });
   return result.count;
+}
+
+/**
+ * Owner-level резолверы каналов для ежемесячного отчёта.
+ * Отчёт сводный (на владельца), поэтому тумблеры на User, цели — MessengerContact.
+ */
+type OwnerReportFlags = {
+  reportsEmailEnabled: boolean;
+  reportsTelegramEnabled: boolean;
+  reportsMaxEnabled: boolean;
+};
+
+async function getReportTargets(
+  userId: string,
+  provider: MessengerProvider,
+  enabled: boolean
+): Promise<string[]> {
+  if (!enabled) return [];
+  const contacts = await getOwnerMessengerContacts(userId, provider);
+  return contacts.map((c) => c.externalId);
+}
+
+/** Telegram chat_id-ы для отчёта (из MessengerContact владельца). */
+export async function getReportTelegramTargets(userId: string): Promise<string[]> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { reportsTelegramEnabled: true },
+  });
+  return getReportTargets(userId, "TELEGRAM", u?.reportsTelegramEnabled ?? false);
+}
+
+/** MAX user_id для отчёта (из MessengerContact владельца). */
+export async function getReportMaxTargets(userId: string): Promise<string[]> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { reportsMaxEnabled: true },
+  });
+  return getReportTargets(userId, "MAX", u?.reportsMaxEnabled ?? false);
+}
+
+/**
+ * Email для отчёта: контакты аккаунта (EMAIL), иначе user.email.
+ * Учитывает marketingEmailsEnabled (one-click unsubscribe глушит email-канал).
+ */
+export async function getReportEmailTargets(userId: string): Promise<string[]> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      reportsEmailEnabled: true,
+      marketingEmailsEnabled: true,
+      email: true,
+    },
+  });
+  if (!u || !u.reportsEmailEnabled) return [];
+  const contacts = await getOwnerMessengerContacts(userId, "EMAIL");
+  if (contacts.length > 0) return contacts.map((c) => c.externalId);
+  // Для отчётов email-фолбэк на user.email только если не отписался от marketing.
+  return u.marketingEmailsEnabled ? [u.email] : [];
+}
+
+/** Полный набор флагов отчётов для UI настроек. */
+export async function getOwnerReportFlags(userId: string): Promise<OwnerReportFlags> {
+  const u = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      reportsEmailEnabled: true,
+      reportsTelegramEnabled: true,
+      reportsMaxEnabled: true,
+    },
+  });
+  return {
+    reportsEmailEnabled: u?.reportsEmailEnabled ?? true,
+    reportsTelegramEnabled: u?.reportsTelegramEnabled ?? false,
+    reportsMaxEnabled: u?.reportsMaxEnabled ?? false,
+  };
 }

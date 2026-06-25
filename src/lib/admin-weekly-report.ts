@@ -5,8 +5,14 @@ import {
   sendSupportTelegramMessage,
 } from "@/lib/telegram-support";
 import { estimateSubscriptionMonthlyRevenue } from "@/lib/plans";
-
-const MSK_OFFSET_MS = 3 * 60 * 60 * 1000;
+import {
+  MSK_OFFSET_MS,
+  escapeHtml,
+  formatMskDate,
+  startOfMskDay,
+  countLine,
+  valueLine,
+} from "@/lib/report-formatting";
 
 export interface WeeklyReportRange {
   from: Date;
@@ -65,27 +71,6 @@ export interface WeeklyReportMetrics {
   topRegions: { region: string; scans: number }[];
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function formatMskDate(date: Date): string {
-  const msk = new Date(date.getTime() + MSK_OFFSET_MS);
-  const d = String(msk.getUTCDate()).padStart(2, "0");
-  const m = String(msk.getUTCMonth() + 1).padStart(2, "0");
-  const y = msk.getUTCFullYear();
-  return `${d}.${m}.${y}`;
-}
-
-function startOfMskDay(date: Date): Date {
-  const msk = new Date(date.getTime() + MSK_OFFSET_MS);
-  msk.setUTCHours(0, 0, 0, 0);
-  return new Date(msk.getTime() - MSK_OFFSET_MS);
-}
-
 /** Вчерашний календарный день по Москве относительно referenceDate. */
 export function getPreviousMskDayRange(referenceDate = new Date()): DailyReportRange {
   const todayStart = startOfMskDay(referenceDate);
@@ -130,25 +115,6 @@ export function getPreviousMskWeekRange(referenceDate = new Date()): WeeklyRepor
   };
 }
 
-function deltaLine(current: number, previous: number): string {
-  if (previous === 0) {
-    return current > 0 ? " · <i>новое</i>" : "";
-  }
-  const pct = Math.round(((current - previous) / previous) * 100);
-  if (pct === 0) return " · 0%";
-  const sign = pct > 0 ? "+" : "";
-  const emoji = pct > 0 ? "📈" : "📉";
-  return ` · ${emoji} ${sign}${pct}%`;
-}
-
-function countLine(label: string, current: number, previous: number): string {
-  return `<b>${escapeHtml(label)}:</b> ${current.toLocaleString("ru-RU")}${deltaLine(current, previous)}`;
-}
-
-function valueLine(label: string, value: number): string {
-  return `<b>${escapeHtml(label)}:</b> ${value.toLocaleString("ru-RU")}`;
-}
-
 export async function collectWeeklyReportMetrics(
   range: WeeklyReportRange,
   options?: { comparePrevious?: boolean }
@@ -156,6 +122,13 @@ export async function collectWeeklyReportMetrics(
   const comparePrevious = options?.comparePrevious ?? true;
   const period = { gte: range.from, lte: range.to };
   const prevPeriod = { gte: range.prevFrom, lte: range.prevTo };
+  // DailyScanStat.date хранит полночь МСК дня; период по `date` —
+  // от полуночи первого до полуночи последнего дня диапазона.
+  const scanDayPeriod = { gte: range.from, lte: startOfMskDay(range.to) };
+  const scanPrevDayPeriod = {
+    gte: range.prevFrom,
+    lte: startOfMskDay(range.prevTo),
+  };
   const notAdmin = analyticsCohortUserWhere();
 
   const [
@@ -196,10 +169,16 @@ export async function collectWeeklyReportMetrics(
     topQrGroups,
     topRegionGroups,
   ] = await Promise.all([
-    prisma.qRScan.count({ where: { createdAt: period } }),
+    prisma.dailyScanStat.aggregate({
+      where: { date: scanDayPeriod },
+      _sum: { count: true },
+    }),
     comparePrevious
-      ? prisma.qRScan.count({ where: { createdAt: prevPeriod } })
-      : Promise.resolve(0),
+      ? prisma.dailyScanStat.aggregate({
+          where: { date: scanPrevDayPeriod },
+          _sum: { count: true },
+        })
+      : Promise.resolve({ _sum: { count: 0 } as const }),
     prisma.user.count({ where: { createdAt: period, ...notAdmin } }),
     comparePrevious
       ? prisma.user.count({ where: { createdAt: prevPeriod, ...notAdmin } })
@@ -337,18 +316,18 @@ export async function collectWeeklyReportMetrics(
           include: { user: { include: { _count: { select: { establishments: true } } } } },
         })
       : Promise.resolve([]),
-    prisma.qRScan.groupBy({
+    prisma.dailyScanStat.groupBy({
       by: ["establishmentId"],
-      where: { createdAt: period, establishmentId: { not: null } },
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
+      where: { date: scanDayPeriod, establishmentId: { not: null } },
+      _sum: { count: true },
+      orderBy: { _sum: { count: "desc" } },
       take: 5,
     }),
-    prisma.qRScan.groupBy({
+    prisma.dailyScanStat.groupBy({
       by: ["qrCodeId"],
-      where: { createdAt: period },
-      _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
+      where: { date: scanDayPeriod },
+      _sum: { count: true },
+      orderBy: { _sum: { count: "desc" } },
       take: 5,
     }),
     prisma.qRScan.groupBy({
@@ -406,7 +385,10 @@ export async function collectWeeklyReportMetrics(
 
   return {
     range,
-    scans: { current: scansCurrent, previous: scansPrevious },
+    scans: {
+      current: scansCurrent._sum.count ?? 0,
+      previous: scansPrevious._sum.count ?? 0,
+    },
     registrations: { current: registrationsCurrent, previous: registrationsPrevious },
     establishments: { current: establishmentsCurrent, previous: establishmentsPrevious },
     qrcodes: { current: qrcodesCurrent, previous: qrcodesPrevious },
@@ -456,7 +438,7 @@ export async function collectWeeklyReportMetrics(
         return {
           name: est?.name ?? "—",
           ownerEmail: est?.user.email ?? "—",
-          scans: g._count.id,
+          scans: g._sum.count ?? 0,
         };
       }),
     topQrcodes: topQrGroups.map((g) => {
@@ -465,7 +447,7 @@ export async function collectWeeklyReportMetrics(
         code: qr?.code ?? g.qrCodeId.slice(0, 8),
         label: qr?.label ?? null,
         establishmentName: qr?.establishment?.name ?? null,
-        scans: g._count.id,
+        scans: g._sum.count ?? 0,
       };
     }),
     topRegions: topRegionGroups

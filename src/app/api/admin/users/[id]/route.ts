@@ -39,14 +39,14 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { role, subscriptionPlan, subscriptionStatus, marketingEmailsEnabled, createdAt } = body;
+  const { role, subscriptionPlan, subscriptionStatus, marketingEmailsEnabled, createdAt, reportsEmailEnabled, reportsTelegramEnabled, reportsMaxEnabled } = body;
 
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  const userUpdate: { role?: typeof user.role; marketingEmailsEnabled?: boolean; createdAt?: Date } = {};
+  const userUpdate: { role?: typeof user.role; marketingEmailsEnabled?: boolean; createdAt?: Date; reportsEmailEnabled?: boolean; reportsTelegramEnabled?: boolean; reportsMaxEnabled?: boolean } = {};
 
   if (role) {
     userUpdate.role = role;
@@ -54,6 +54,16 @@ export async function PATCH(
 
   if (typeof marketingEmailsEnabled === "boolean") {
     userUpdate.marketingEmailsEnabled = marketingEmailsEnabled;
+  }
+
+  if (typeof reportsEmailEnabled === "boolean") {
+    userUpdate.reportsEmailEnabled = reportsEmailEnabled;
+  }
+  if (typeof reportsTelegramEnabled === "boolean") {
+    userUpdate.reportsTelegramEnabled = reportsTelegramEnabled;
+  }
+  if (typeof reportsMaxEnabled === "boolean") {
+    userUpdate.reportsMaxEnabled = reportsMaxEnabled;
   }
 
   if (createdAt && process.env.E2E_TESTING === "true") {

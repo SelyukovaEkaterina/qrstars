@@ -28,6 +28,7 @@ const INTENT_LABELS: Record<string, string> = {
   reviews: "Оставиь отзыв",
   landing: "Микро-лендинг",
   redirect: "Редирект",
+  menu: "QR-меню",
 };
 
 const DESTINATION_LABELS: Record<string, string> = {

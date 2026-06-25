@@ -1,4 +1,4 @@
-export type SetupUtmHint = "reviews" | "generator" | null;
+export type SetupUtmHint = "reviews" | "menu" | "generator" | null;
 
 const REVIEWS_CAMPAIGNS = new Set([
   "reviews_search",
@@ -7,6 +7,8 @@ const REVIEWS_CAMPAIGNS = new Set([
   "yandex",
   "2gis",
 ]);
+
+const MENU_CAMPAIGNS = new Set(["menu_search"]);
 
 export interface SetupUtmContext {
   hint: SetupUtmHint;
@@ -19,6 +21,14 @@ export function parseSetupUtmContext(
 ): SetupUtmContext {
   const campaign = (utmCampaign ?? "").trim().toLowerCase();
   const content = (utmContent ?? "").trim().toLowerCase();
+
+  if (
+    campaign.includes("menu") ||
+    MENU_CAMPAIGNS.has(campaign) ||
+    MENU_CAMPAIGNS.has(content)
+  ) {
+    return { hint: "menu", hideRedirect: campaign.includes("menu") };
+  }
 
   if (
     campaign.includes("reviews") ||
@@ -35,17 +45,32 @@ export function parseSetupUtmContext(
   return { hint: null, hideRedirect: false };
 }
 
-export type SetupIntentId = "reviews" | "landing" | "redirect";
+export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu";
+
+/** Exact `menu_search` UTM → skip intent picker and open menu setup immediately. */
+export function resolveAutoSelectedIntent(
+  utmCampaign: string | null,
+  utmContent: string | null
+): SetupIntentId | null {
+  const campaign = (utmCampaign ?? "").trim().toLowerCase();
+  const content = (utmContent ?? "").trim().toLowerCase();
+  if (MENU_CAMPAIGNS.has(campaign) || MENU_CAMPAIGNS.has(content)) {
+    return "menu";
+  }
+  return null;
+}
 
 export function orderSetupIntents(
   intents: SetupIntentId[],
   hint: SetupUtmHint
 ): SetupIntentId[] {
   const preferred: SetupIntentId[] =
-    hint === "reviews"
-      ? ["reviews", "landing", "redirect"]
-      : hint === "generator"
-        ? ["landing", "reviews", "redirect"]
-        : intents;
+    hint === "menu"
+      ? ["menu", "reviews", "landing", "redirect"]
+      : hint === "reviews"
+        ? ["reviews", "landing", "menu", "redirect"]
+        : hint === "generator"
+          ? ["redirect", "landing", "reviews", "menu"]
+          : intents;
   return preferred.filter((id) => intents.includes(id));
 }

@@ -35,3 +35,38 @@ export function normalizeMetrikaClientId(raw: unknown): string | null {
   const value = raw.trim().slice(0, 64);
   return /^[\d.a-zA-Z_-]+$/.test(value) ? value : null;
 }
+
+export function registrationUtmToSearchParams(utm: RegistrationUtm): URLSearchParams {
+  const params = new URLSearchParams();
+  for (const key of UTM_KEYS) {
+    const val = utm[key];
+    if (val) params.set(key, val);
+  }
+  return params;
+}
+
+export function buildDashboardStartUrl(searchParams: URLSearchParams): string {
+  const utm = parseRegistrationUtmFromSearchParams(searchParams);
+  if (!utm) return "/dashboard/start";
+  const qs = registrationUtmToSearchParams(utm).toString();
+  return qs ? `/dashboard/start?${qs}` : "/dashboard/start";
+}
+
+const DEFAULT_REGISTER_SUBTITLE =
+  "Регистрация — дальше настроите страницу и QR для гостей";
+
+/** Подзаголовок на /register по UTM-кампании. */
+export function resolveRegistrationSubtitle(searchParams: URLSearchParams): string {
+  const campaign = (searchParams.get("utm_campaign") ?? "").trim().toLowerCase();
+  if (campaign.includes("menu") || campaign === "menu_search") {
+    return "Создайте электронное меню за 2 минуты";
+  }
+  if (
+    campaign.includes("reviews") ||
+    campaign === "reviews_search" ||
+    campaign === "reviews_landing"
+  ) {
+    return "Настройте QR для отзывов на Яндекс Картах";
+  }
+  return DEFAULT_REGISTER_SUBTITLE;
+}

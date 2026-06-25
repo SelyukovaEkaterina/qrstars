@@ -27,7 +27,8 @@ if [ -n "${TELEGRAM_SUPPORT_BOT_TOKEN}" ]; then
     -d "url=https://app.qrstars.ru/api/telegram/support-webhook"
 fi
 
-curl -fsS -X POST "https://platform-api.max.ru/subscriptions" \
+curl -fsS -X POST "https://platform-api2.max.ru/subscriptions" \
+  --cacert /opt/qrstars/deploy/certs/russiantrustedca.pem \
   -H "Authorization: ${MAX_BOT_ACCESS_TOKEN}" \
   -H "Content-Type: application/json" \
   -d "{\"url\":\"https://app.qrstars.ru/api/max/webhook\",\"update_types\":[\"bot_started\",\"message_created\"],\"secret\":\"${MAX_WEBHOOK_SECRET}\"}"

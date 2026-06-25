@@ -62,6 +62,71 @@ def test_quick_start_reviews_requires_yandex_url(base_url):
     assert r.status_code == 400
 
 
+def test_quick_start_reviews_normalizes_url_without_https(base_url):
+    email = unique_email("qs-norm")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Normalize URL Cafe",
+            "yandexMapsUrl": "yandex.ru/maps/org/test/123",
+        },
+    )
+    assert r.status_code == 200, r.text
+    ests = session.get(f"{base_url}/api/establishments")
+    assert ests.status_code == 200
+    assert ests.json()["establishments"][0]["yandexMapsUrl"] == "https://yandex.ru/maps/org/test/123"
+
+
+def test_quick_start_reviews_rejects_search_url(base_url):
+    email = unique_email("qs-search")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Search URL Cafe",
+            "yandexMapsUrl": "https://yandex.ru/maps/search/кафе",
+        },
+    )
+    assert r.status_code == 400
+    assert "карточку" in r.json().get("error", "").lower()
+
+
+def test_quick_start_reviews_rejects_maps_homepage(base_url):
+    email = unique_email("qs-home")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Homepage Cafe",
+            "yandexMapsUrl": "https://yandex.ru/maps/",
+        },
+    )
+    assert r.status_code == 400
+    assert "карточку" in r.json().get("error", "").lower()
+
+
 def test_quick_start_landing_page_without_yandex(base_url):
     email = unique_email("qs3")
     password = "secure123"
@@ -233,6 +298,45 @@ def test_quick_start_saves_legal_requisites(base_url):
     est = settings.json()["establishment"]
     assert est["legalName"] == legal_name
     assert est["inn"] == inn
+
+
+def test_quick_start_menu_creates_menu_mode_qr_with_items(base_url):
+    email = unique_email("qs-menu")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "menu", "name": "Menu Cafe"},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["intent"] == "menu"
+    assert data["qrcode"]["mode"] == "MENU"
+    code = data["qrcode"]["code"]
+
+    scan = req_lib.get(f"{base_url}/q/{code}", allow_redirects=False)
+    assert scan.status_code == 200
+
+    ests = session.get(f"{base_url}/api/establishments")
+    assert ests.status_code == 200
+    est_list = ests.json().get("establishments", [])
+    assert len(est_list) == 1
+    est_id = est_list[0]["id"]
+
+    page = session.get(f"{base_url}/api/establishments/{est_id}/page")
+    assert page.status_code == 200
+    menu = page.json().get("establishment", {}).get("menu")
+    assert menu is not None
+    assert len(menu.get("items", [])) >= 3
+
+    onboarding = session.get(f"{base_url}/api/user/onboarding")
+    assert onboarding.status_code == 200
+    assert onboarding.json().get("onboardingCompleted") is True
 
 
 def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):

@@ -11,6 +11,8 @@ import {
   establishmentAccessWhere,
   establishmentHasPaidFeatures,
 } from "@/lib/establishment-access";
+import { getOwnerReportFlags } from "@/lib/owner-messenger-notify";
+import { ownerHasMessengerProvider } from "@/lib/owner-messenger-notify";
 
 const establishmentSelect = {
   id: true,
@@ -66,7 +68,20 @@ export async function GET(request: Request) {
     select: establishmentSelect,
   });
 
-  return NextResponse.json({ establishments });
+  const [reportFlags, hasTelegram, hasMax] = await Promise.all([
+    getOwnerReportFlags(userId),
+    ownerHasMessengerProvider(userId, "TELEGRAM"),
+    ownerHasMessengerProvider(userId, "MAX"),
+  ]);
+
+  return NextResponse.json({
+    establishments,
+    reportSettings: {
+      ...reportFlags,
+      hasTelegramContact: hasTelegram,
+      hasMaxContact: hasMax,
+    },
+  });
 }
 
 export async function PUT(request: Request) {
@@ -274,6 +289,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
     return NextResponse.json({ error: "Не удалось отправить сообщение в MAX" }, { status: 500 });
+  }
+
+  if (action === "update-report-settings") {
+    const userId = (session.user as Record<string, unknown>).id as string;
+    const data: { reportsEmailEnabled?: boolean; reportsTelegramEnabled?: boolean; reportsMaxEnabled?: boolean } = {};
+    if (typeof body.reportsEmailEnabled === "boolean") data.reportsEmailEnabled = body.reportsEmailEnabled;
+    if (typeof body.reportsTelegramEnabled === "boolean") data.reportsTelegramEnabled = body.reportsTelegramEnabled;
+    if (typeof body.reportsMaxEnabled === "boolean") data.reportsMaxEnabled = body.reportsMaxEnabled;
+
+    if (Object.keys(data).length === 0) {
+      return NextResponse.json({ error: "No fields to update" }, { status: 400 });
+    }
+
+    await prisma.user.update({ where: { id: userId }, data });
+    const flags = await getOwnerReportFlags(userId);
+    return NextResponse.json({ ok: true, reportSettings: flags });
   }
 
   return NextResponse.json({ error: "Unknown action" }, { status: 400 });

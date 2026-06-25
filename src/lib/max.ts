@@ -1,4 +1,4 @@
-const MAX_API_URL = "https://platform-api.max.ru";
+const MAX_API_URL = "https://platform-api2.max.ru";
 
 export async function sendMaxNotification(
   userId: string,

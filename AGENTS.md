@@ -166,6 +166,15 @@ QR-кодов внутри заведения — **без лимита** на �
 - **In-process flush**: `startScanFlushInterval()` запускает `setInterval` (default 30с, env `SCAN_FLUSH_INTERVAL_MS`) как дополнение к cron.
 - **Cron на VPS**: `deploy/flush-scans.sh` — каждую минуту: `* * * * * /opt/qrstars/deploy/flush-scans.sh`.
 
+### Дневные снапшоты сканов (DailyScanStat)
+- **Зачем**: детальные логи `QRScan` пишутся **только PRO/Сеть** (`shouldLogDetailedScan`), а `scansCount` — кумулятивный счётчик без timestamp. Агрегаты отчётов за период (число сканов, топ заведений/QR) считались по `QRScan` → на FREE показывали 0. Теперь берутся из `DailyScanStat`.
+- **Модель**: `DailyScanStat(qrCodeId, date, count, snapshot, establishmentId)`, unique `(qrCodeId, date)`. `date` — полночь МСК дня; `count` — дельта сканов за день; `snapshot` — абсолют `scansCount` на конец дня (для расчёта следующей дельты).
+- **Алгоритм** (`src/lib/daily-scan-snapshot.ts`, `takeDailyScanSnapshot`): для каждого QR, существовавшего на конец вчера, `count = max(0, scansCount − snapshot предыдущего дня)`. При отсутствии предыдущего снапшота: QR создан вчера → `count = scansCount` (позавчера не существовал); иначе (legacy-QR при первом деплое) → `count = 0` (baseline — корректные дельты со следующего дня). Идемпотентен.
+- **Отчёты**: агрегаты/топы в `src/lib/admin-weekly-report.ts` (`collectWeeklyReportMetrics`) берутся из `DailyScanStat` (`aggregate _sum count` / `groupBy`). Топ регионов остаётся на `QRScan` (регионы PRO-only).
+- **API**: `POST /api/cron/snapshot-scans` с `Authorization: Bearer $CRON_SECRET` (или `?secret=`). Опц. `?referenceDate=ISO` для бэкфилла.
+- **Cron на VPS**: `deploy/snapshot-scans.sh` — ежедневно **04:00 МСК** (после flush-scans и pg-backup, до дневного отчёта 09:00): `0 1 * * * /opt/qrstars/deploy/snapshot-scans.sh`.
+- **Первый запуск после деплоя**: отчёт за день деплоя покажет 0 сканов (baseline); со следующего дня — корректные дельты для всех тарифов.
+
 ### Режимные include (#3)
 - При cache miss сначала идёт минимальный `SELECT` (скаляры, индекс по `code`) → определяет mode/isActive.
 - REDIRECT — **второго запроса нет**: сразу `redirect()`.
@@ -226,6 +235,21 @@ QR-кодов внутри заведения — **без лимита** на �
 - После деплоя: `deploy/feedback-launch.sh` → `POST /api/cron/feedback-launch` — **одно** письмо с опросом legacy-юзерам; затем помечаются `feedback_launch`, `feedback_d7`, `feedback_d90`, `feedback_d365` (cron не догонит).
 - Новые юзеры после cutoff — обычная цепочка с нуля.
 - `deploy/deploy.sh` вызывает feedback-launch автоматически (идемпотентно).
+
+
+## Ежемесячный отчёт владельцу (email / Telegram / MAX)
+
+Ежемесячная сводка по сканированиям, отзывам и заказам для владельца заведений, со сравнением с прошлым месяцем (MoM). Адаптивные секции — только по тем типам QR, которые есть у владельца; промо-блоки кросс-селла («а ещё у нас есть отзывы/меню», upsell PRO).
+
+- **Период**: прошлый календарный месяц (МСК), сравнение MoM с позапрошлым. Опц. `?periodMonth=YYYY-MM` для бэкфилла.
+- **Кому**: всем владельцам с заведением и активностью (≥1 скан/отзыв/QR за период). FREE — упрощённая версия, PRO/Сеть — полная (per-mode секции, конверсия, заказы, разбивка по точкам).
+- **Каналы**: owner-level тумблеры на `User` (`reportsEmailEnabled` / `reportsTelegramEnabled` / `reportsMaxEnabled`), цели — `MessengerContact` владельца (+ email-fallback на `user.email` если `marketingEmailsEnabled`). Настраиваются в `/dashboard/settings` (блок «📋 Ежемесячный отчёт»).
+- **Идемпотентность**: `UserLifecycleEmail(userId, campaignKey = "monthly_report_YYYY_MM")`. Повторный cron / гонка (unique constraint P2002) → skip `already_sent`.
+- **Источник сканов по режимам**: `DailyScanStat` JOIN `QRCode.mode` (raw SQL, все тарифы). Отзывы — `Review` (count/avg/`isNegative`/распределение [1–5★]). Заказы меню — `MenuOrder` (count/`total`/конверсия) при наличии MENU-QR. Сеть — разбивка по точкам.
+- **Код**: `src/lib/owner-monthly-report.ts` (`collectOwnerMonthlyMetrics`, `renderOwnerMonthlyReportEmail`, `renderOwnerMonthlyReportMessenger`, `sendOwnerMonthlyReports`), `src/lib/report-formatting.ts` (общие хелперы: `deltaLine`, `formatMskMonthHuman`, и т.д. — шарятся с `admin-weekly-report.ts`), `src/lib/owner-messenger-notify.ts` (`getReportEmailTargets` / `getReportTelegramTargets` / `getReportMaxTargets`).
+- **API**: `POST /api/cron/monthly-report` с `Authorization: Bearer $CRON_SECRET` (или `?secret=`); опц. `?periodMonth=`, `?userId=`, `?force=1`. Admin-only превью для дебага/e2e: `GET /api/admin/users/[id]/monthly-report-preview?periodMonth=` (метрики + emailHtml + messengerParts).
+- **Cron на VPS**: `deploy/monthly-report.sh` — 1-го числа каждого месяца 10:00 МСК: `0 7 1 * * /opt/qrstars/deploy/monthly-report.sh`. Запускать ПОСЛЕ `snapshot-scans` (04:00 МСК — снапшот за последний день прошлого месяца готов).
+- **E2E**: `e2e/test_owner_monthly_report.py` (cron auth, идемпотентность, FREE vs PRO контент, бэкфилл, Сеть, тумблеры настроек).
 
 
 ## Реальный стек (фактический, не aspirational)
@@ -305,7 +329,7 @@ public/               # Статика (изображения, стандарт
 
 ## Полный список моделей Prisma
 
-`User` · `Establishment` · `EstablishmentMember` · `QRCode` · `Review` · `BusinessCard` · `CustomPage` · `FileAsset` · `QRMenu` · `QRMenuItem` · `WifiConfig` · `Template` · `MessengerContact` · `Subscription` · `PromoCode` · `PartnerEarning` · `PartnerWithdrawal` · `PasswordResetToken`
+`User` · `Establishment` · `EstablishmentMember` · `QRCode` · `Review` · `BusinessCard` · `CustomPage` · `FileAsset` · `QRMenu` · `QRMenuItem` · `WifiConfig` · `Template` · `MessengerContact` · `Subscription` · `PromoCode` · `PartnerEarning` · `PartnerWithdrawal` · `PasswordResetToken` · `DailyScanStat`
 
 > Центральная сущность — `Establishment` (не `Business`, как в старых комментариях). Весь контент (меню, визитка, Wi-Fi, сценарии отзывов, брендинг) принадлежит заведению.
 

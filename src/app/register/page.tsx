@@ -7,7 +7,11 @@ import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import { resolveMetrikaClientId, getMetrikaClientIdFromSearchParams } from "@/lib/metrika-client-id";
-import { parseRegistrationUtmFromSearchParams } from "@/lib/registration-utm";
+import {
+  parseRegistrationUtmFromSearchParams,
+  buildDashboardStartUrl,
+  resolveRegistrationSubtitle,
+} from "@/lib/registration-utm";
 
 function RegisterForm() {
   const router = useRouter();
@@ -27,6 +31,7 @@ function RegisterForm() {
   const [consentPd, setConsentPd] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const registerSubtitle = resolveRegistrationSubtitle(searchParams);
 
   useEffect(() => {
     if (!establishmentInvite) return;
@@ -108,7 +113,7 @@ function RegisterForm() {
       return;
     }
 
-    router.push("/dashboard/start");
+    router.push(buildDashboardStartUrl(searchParams));
   };
 
   return (
@@ -116,7 +121,7 @@ function RegisterForm() {
       <form onSubmit={handleSubmit} className="max-w-sm w-full space-y-5">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">QrStars.ru</h1>
-          <p className="text-gray-500 mt-2">Регистрация — дальше настроите страницу и QR для гостей</p>
+          <p className="text-gray-500 mt-2">{registerSubtitle}</p>
         </div>
 
         {invitePreview && (

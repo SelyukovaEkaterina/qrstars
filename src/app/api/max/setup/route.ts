@@ -30,7 +30,7 @@ export async function POST() {
     body.secret = secret;
   }
 
-  const res = await fetch("https://platform-api.max.ru/subscriptions", {
+  const res = await fetch("https://platform-api2.max.ru/subscriptions", {
     method: "POST",
     headers: {
       Authorization: accessToken,

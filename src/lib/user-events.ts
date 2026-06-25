@@ -44,3 +44,12 @@ export function parseUserEvent(
 
   return { ok: true, event: event as SetupUserEvent, props: null };
 }
+
+/** Demo rerun of the wizard — not a real setup completion. */
+export function shouldMarkOnboardingCompleted(
+  event: string,
+  props: Record<string, unknown> | null | undefined
+): boolean {
+  if (event !== "setup.completed") return false;
+  return props?.rerun !== true;
+}
