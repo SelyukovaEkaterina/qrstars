@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { parseMessengerLinkCode } from "@/lib/messenger-linking";
 import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
+import { pluralize } from "@/lib/utils";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -224,7 +225,7 @@ async function linkMcContact(
 
   const reviewHint =
     enabledCount > 0
-      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} заведений`}.\n` +
+      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} ${pluralize(enabledCount, "заведения", "заведений", "заведений")}`}.\n` +
         `Отключить — «Моя страница» → вкладка «Отзывы».`
       : `Когда появится заведение, жалобы 1–3★ будут приходить сюда.\n` +
         `Отключить — «Моя страница» → «Отзывы».`;

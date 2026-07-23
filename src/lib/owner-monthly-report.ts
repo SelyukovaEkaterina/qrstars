@@ -5,6 +5,7 @@ import { sendTelegramContactNotification } from "@/lib/telegram";
 import { sendMaxMessage } from "@/lib/max";
 import { renderEmailLayout, featureBlock } from "@/lib/email-layout";
 import { userHasPaidFeatures } from "@/lib/subscription-utils";
+import { pluralize } from "@/lib/utils";
 import { MODE_LABELS } from "@/lib/qr-routing";
 import {
   getReportEmailTargets,
@@ -14,7 +15,6 @@ import {
 import {
   MSK_OFFSET_MS,
   formatMskDate,
-  formatMskMonthHuman,
   pad2,
   deltaLine,
   deltaPercent,
@@ -612,7 +612,7 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
       `<p style="margin:0 0 16px;color:#6b7280;font-size:14px;">Сводно по всем заведениям (${m.establishmentCount})</p>`
     );
   } else {
-    lines.push(`<p style="margin:0 0 16px;color:#6b7280;font-size:14px;">${m.qrCount} QR-код${m.qrCount === 1 ? "" : "ов"} активно</p>`);
+    lines.push(`<p style="margin:0 0 16px;color:#6b7280;font-size:14px;">${m.qrCount} ${pluralize(m.qrCount, "QR-код активен", "QR-кода активны", "QR-кодов активны")}</p>`);
   }
 
   // Ключевые метрики
@@ -624,14 +624,14 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
         : null;
     lines.push(
       emailMetricCard(
-        "Отзывы получено",
+        "Получено отзывов",
         fmtRu(m.reviews.count.current) + (m.reviews.avgRating != null ? ` · ${m.reviews.avgRating}★` : ""),
         m.reviews.count.current,
         m.reviews.count.previous
       )
     );
     if (m.isPro && conv !== null) {
-      lines.push(`<p style="margin:-4px 0 16px;font-size:13px;color:#6b7280;">Конверсия в отзыв: <b style="color:#111827;">${conv}%</b>${m.reviews.positive !== m.reviews.count.current ? ` · позитивных ${m.reviews.positive}` : ""}</p>`);
+      lines.push(`<p style="margin:-4px 0 16px;font-size:13px;color:#6b7280;">Конверсия в отзыв: <b style="color:#111827;">${conv}%</b>${m.reviews.positive !== m.reviews.count.current ? ` · ${pluralize(m.reviews.positive, "позитивный", "позитивных", "позитивных")} ${m.reviews.positive}` : ""}</p>`);
     }
   }
 
@@ -670,7 +670,7 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
   const bodyHtml = lines.join("\n");
   return renderEmailLayout({
     userId: m.userId,
-    title: `Ваш отчёт за ${formatMskMonthHuman(r.from)}`,
+    title: `Ваш отчёт за ${r.labelHuman}`,
     preheader: `Сканирования, отзывы и динамика за ${r.labelHuman.toLowerCase()}`,
     bodyHtml,
     cta: base ? { label: "Открыть аналитику", href: `${base}/dashboard/analytics` } : undefined,
@@ -875,7 +875,7 @@ export function renderOwnerMonthlyReportMessenger(m: OwnerReportMetrics): string
       lines.push("");
       lines.push("<b>🍽 QR-меню</b>");
       lines.push(
-        `   Сканы: ${fmtRu(ms?.current ?? 0)}${deltaLine(ms?.current ?? 0, ms?.previous ?? 0)} · заказы ${fmtRu(m.menu.orders.current)}${deltaLine(m.menu.orders.current, m.menu.orders.previous)}${m.menu.avgCheck != null ? ` · чек ≈${fmtRu(m.menu.avgCheck)}₽` : ""}`
+        `   Сканы: ${fmtRu(ms?.current ?? 0)}${deltaLine(ms?.current ?? 0, ms?.previous ?? 0)} · заказов ${fmtRu(m.menu.orders.current)}${deltaLine(m.menu.orders.current, m.menu.orders.previous)}${m.menu.avgCheck != null ? ` · чек ≈${fmtRu(m.menu.avgCheck)}₽` : ""}`
       );
     }
     // Редирект
@@ -908,7 +908,7 @@ export function renderOwnerMonthlyReportMessenger(m: OwnerReportMetrics): string
     lines.push("");
     lines.push("<b>🏪 По точкам</b>");
     m.establishmentBreakdown.slice(0, 5).forEach((e, i) => {
-      lines.push(`   ${i + 1}. ${escapeHtml(e.name)} — ${fmtRu(e.scans)} скан · ${e.reviews} отз.`);
+      lines.push(`   ${i + 1}. ${escapeHtml(e.name)} — ${fmtRu(e.scans)} ${pluralize(Number(e.scans), "скан", "скана", "сканов")} · ${e.reviews} ${pluralize(Number(e.reviews), "отз.", "отз.", "отз.")}`);
     });
   }
 
@@ -989,7 +989,7 @@ export async function sendOwnerMonthlyReport(
   // Email — полная HTML-версия.
   if (emailTargets.length > 0) {
     const html = renderOwnerMonthlyReportEmail(metrics);
-    const subject = `Ваш отчёт QrStars за ${formatMskMonthHuman(range.from)}`;
+    const subject = `Ваш отчёт QrStars за ${range.labelHuman}`;
     for (const to of emailTargets) {
       if (await sendMail(to, subject, html)) emailSent++;
     }

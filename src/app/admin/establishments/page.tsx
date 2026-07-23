@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Badge from "@/components/ui/Badge";
+import { pluralize } from "@/lib/utils";
 import {
   Store,
   Loader2,
@@ -136,17 +137,17 @@ export default function AdminEstablishmentsPage() {
 
                   <div className="flex items-center gap-4 mb-3">
                     <Badge className="bg-blue-500/10 text-blue-400">
-                      {e._count.reviews} отзывов
+                      {e._count.reviews} {pluralize(e._count.reviews, "отзыв", "отзыва", "отзывов")}
                     </Badge>
                     <Badge className="bg-purple-500/10 text-purple-400">
-                      {e._count.qrcodes} QR-кодов
+                      {e._count.qrcodes} {pluralize(e._count.qrcodes, "QR-код", "QR-кода", "QR-кодов")}
                     </Badge>
                     <Badge className="bg-green-500/10 text-green-400">
-                      {e.totalScans} сканирований
+                      {e.totalScans} {pluralize(e.totalScans, "сканирование", "сканирования", "сканирований")}
                     </Badge>
                     {e._count.promocodes > 0 && (
                       <Badge className="bg-amber-500/10 text-amber-400">
-                        {e._count.promocodes} промокодов
+                        {e._count.promocodes} {pluralize(e._count.promocodes, "промокод", "промокода", "промокодов")}
                       </Badge>
                     )}
                   </div>

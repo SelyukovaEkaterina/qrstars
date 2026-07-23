@@ -1,6 +1,4 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
 import { generateQRCode, normalizeMediaUrl } from "@/lib/utils";
@@ -15,15 +13,18 @@ import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
 import { isBuiltInStickerTemplateId } from "@/lib/builtin-sticker-templates";
 import { invalidateScanCache } from "@/lib/cache";
+import { getAuthUserId, withCorsHeaders, corsOkResponse } from "@/lib/mobile-auth";
+
+export async function OPTIONS() {
+  return corsOkResponse();
+}
 
 export async function GET(request: Request) {
   try {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = await getAuthUserId(request);
+  if (!userId) {
+    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
-
-  const userId = (session.user as Record<string, unknown>).id as string;
   const { searchParams } = new URL(request.url);
   const establishmentId = searchParams.get("establishmentId");
   const qrId = searchParams.get("id");
@@ -70,10 +71,10 @@ export async function GET(request: Request) {
     const isPro = qrcode.establishmentId
       ? await establishmentHasPaidFeatures(qrcode.establishmentId)
       : await userHasPaidFeatures(userId);
-    return NextResponse.json({
+    return withCorsHeaders(NextResponse.json({
       qrcode: { ...qrcode, centerLogoUrl: normalizeMediaUrl(qrcode.centerLogoUrl) },
       isPro,
-    });
+    }));
   }
 
   const where: Record<string, unknown> = { ...qrcodeAccessWhere(userId) };
@@ -99,13 +100,13 @@ export async function GET(request: Request) {
     orderBy: { createdAt: "desc" },
   });
 
-  return NextResponse.json({
+  return withCorsHeaders(NextResponse.json({
     qrcodes: qrcodes.map((q) => ({
       ...q,
       centerLogoUrl: normalizeMediaUrl(q.centerLogoUrl),
     })),
     isPro,
-  });
+  }));
   } catch (e) {
     console.error("QR GET error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
@@ -113,12 +114,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const userId = await getAuthUserId(request);
+  if (!userId) {
+    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
-
-  const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
   const { code: bodyCode, establishmentId, label, redirectUrl, mode } = body;
 
@@ -182,17 +181,15 @@ export async function POST(request: Request) {
     data: createData as Parameters<typeof prisma.qRCode.create>[0]["data"],
   });
 
-  return NextResponse.json({ qrcode });
+  return withCorsHeaders(NextResponse.json({ qrcode }));
 }
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const userId = await getAuthUserId(request);
+    if (!userId) {
+      return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     }
-
-    const userId = (session.user as Record<string, unknown>).id as string;
     const body = await request.json();
     const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, qrStyleTemplateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId, tipsType, tipsPhone, tipsBankName } = body;
 
@@ -303,7 +300,7 @@ export async function PUT(request: Request) {
 
     invalidateScanCache(qrcode.code).catch(() => {});
 
-    return NextResponse.json({ qrcode: updated });
+    return withCorsHeaders(NextResponse.json({ qrcode: updated }));
   } catch (e) {
     console.error("QR PUT error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });

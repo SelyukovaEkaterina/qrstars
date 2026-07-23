@@ -434,7 +434,11 @@ export default function SetupStartWizard({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Не удалось создать заведение");
+        setError(
+          res.status === 401
+            ? data.error || "Сессия устарела. Выйдите и войдите снова."
+            : data.error || "Не удалось создать заведение",
+        );
         return;
       }
 
@@ -520,7 +524,11 @@ export default function SetupStartWizard({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Не удалось создать QR-код");
+        setError(
+          res.status === 401
+            ? data.error || "Сессия устарела. Выйдите и войдите снова."
+            : data.error || "Не удалось создать QR-код",
+        );
         setStep("form");
         return;
       }
@@ -556,16 +564,21 @@ export default function SetupStartWizard({
     setStep("intent");
   };
 
-  const downloadQr = async (format: "png" | "svg") => {
+  const downloadQr = async (
+    format: "png" | "svg",
+    opts?: { transparentBackground?: boolean },
+  ) => {
     if (!result) return;
     trackEvent("setup.qr_downloaded", {
       intent: result.intent,
       qrCodeId: result.qrcode.id,
       format,
+      transparentBackground: !!opts?.transparentBackground,
     });
     await downloadQrCode(format, scanUrlForCode(result.qrcode.code), `qr-${result.qrcode.code}`, {
       isPro: false,
       size: QR_EXPORT_SIZE,
+      transparentBackground: opts?.transparentBackground,
     });
   };
 
@@ -718,7 +731,7 @@ export default function SetupStartWizard({
 
       doc.save(`sticker-${result.qrcode.code}.pdf`);
     } catch {
-      alert("Ошибка генерации PDF. Попробуйте еще раз.");
+      alert("Ошибка генерации PDF. Попробуйте ещё раз.");
     } finally {
       setPdfDownloading(false);
     }
@@ -763,7 +776,7 @@ export default function SetupStartWizard({
                 </>
               ) : (
                 <>
-                  QR-код ведет на мобильную визитку заведения <strong className="text-gray-950 font-semibold">«{result.establishment?.name}»</strong>. 
+                  QR-код ведёт на мобильную визитку заведения <strong className="text-gray-950 font-semibold">«{result.establishment?.name}»</strong>.
                   Перейдите в раздел «Моя страница», чтобы добавить меню, контакты, Wi-Fi и включить сбор отзывов.
                 </>
               )}
@@ -929,6 +942,16 @@ export default function SetupStartWizard({
                   <Button variant="outline" size="sm" onClick={() => void downloadQr("png")} disabled={!qrImageUrl}>
                     <Download className="w-4 h-4 mr-1" />
                     PNG
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void downloadQr("png", { transparentBackground: true })}
+                    disabled={!qrImageUrl}
+                    title="Прозрачный фон"
+                  >
+                    <Download className="w-4 h-4 mr-1" />
+                    PNG без фона
                   </Button>
                   <Button variant="outline" size="sm" onClick={() => void downloadQr("svg")} disabled={!qrImageUrl}>
                     <Download className="w-4 h-4 mr-1" />

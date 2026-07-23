@@ -67,7 +67,7 @@ export async function POST(request: Request) {
   const isPro = await establishmentHasPaidFeatures(estId);
   if (!isPro) {
     return NextResponse.json(
-      { error: "Интеграция iiko доступна на тарифе PRO и Сеть" },
+      { error: "Интеграция iiko доступна на тарифах PRO и «Сеть»" },
       { status: 403 }
     );
   }

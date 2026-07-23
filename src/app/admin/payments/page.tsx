@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Badge from "@/components/ui/Badge";
+import { pluralize } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import {
   CreditCard,
@@ -75,7 +76,7 @@ export default function AdminPaymentsPage() {
     <div className="max-w-7xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-white">Подписки и платежи</h1>
-            <p className="text-gray-400 mt-1">{total} записей</p>
+            <p className="text-gray-400 mt-1">{total} {pluralize(total, "запись", "записи", "записей")}</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -118,7 +119,7 @@ export default function AdminPaymentsPage() {
                         Период
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
-                        Yookassa ID
+                        Robokassa ID
                       </th>
                       <th className="text-left px-4 py-3 text-xs font-medium text-gray-400 uppercase">
                         Создана

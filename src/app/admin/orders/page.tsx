@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Badge from "@/components/ui/Badge";
+import { pluralize } from "@/lib/utils";
 import Button from "@/components/ui/Button";
 import {
   Loader2,
@@ -234,7 +235,7 @@ export default function AdminOrdersPage() {
         <div>
           <h1 className="text-2xl font-bold text-white">Заказы из меню</h1>
           <p className="text-gray-400 mt-1">
-            {total} {total === 1 ? "заказ" : total < 5 ? "заказа" : "заказов"}
+            {total} {pluralize(total, "заказ", "заказа", "заказов")}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -331,7 +332,7 @@ export default function AdminOrdersPage() {
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-sm font-medium text-amber-400">{est.orderCount} заказов</span>
+                        <span className="text-sm font-medium text-amber-400">{est.orderCount} {pluralize(est.orderCount, "заказ", "заказа", "заказов")}</span>
                         {est.revenue > 0 && (
                           <p className="text-xs text-gray-600">{est.revenue.toLocaleString("ru-RU")} ₽</p>
                         )}
@@ -605,7 +606,7 @@ export default function AdminOrdersPage() {
                         onClick={() => handleStatusChange(selectedOrder.id, "COMPLETED")}
                         className="text-green-400 text-xs"
                       >
-                        Выполнен
+                        Выполнить
                       </Button>
                       <Button
                         variant="ghost"

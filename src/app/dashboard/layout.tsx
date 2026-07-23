@@ -6,6 +6,7 @@ import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
 import QaModeBanner from "@/components/dashboard/QaModeBanner";
 import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
 import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
+import { sessionUserId } from "@/lib/session-user";
 
 export default async function DashboardLayout({
   children,
@@ -15,7 +16,9 @@ export default async function DashboardLayout({
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
 
-  const userId = (session.user as Record<string, unknown>).id as string;
+  const userId = sessionUserId(session);
+  if (!userId) redirect("/login?session=expired");
+
   const [user, needsSetup, setupProfile] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
@@ -25,6 +28,8 @@ export default async function DashboardLayout({
     getSetupProfile(userId),
   ]);
 
+  if (!user) redirect("/login?session=expired");
+
   return (
     <>
       <QaModeBanner />
@@ -32,6 +37,7 @@ export default async function DashboardLayout({
       {children}
       {!needsSetup && (
         <OnboardingTour
+          userId={userId}
           completed={user?.onboardingCompleted ?? false}
           setupProfile={setupProfile}
         />

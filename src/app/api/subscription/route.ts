@@ -144,7 +144,7 @@ export async function POST(request: Request) {
         mode: "mock",
         plan,
         message:
-          "Функционал оплаты пока не доступен. Поздравляем - вы получили платный тариф бесплатно!",
+          "Функционал оплаты пока недоступен. Поздравляем — вы получили платный тариф бесплатно!",
       });
     }
 
@@ -181,7 +181,7 @@ export async function POST(request: Request) {
     const paymentPost = buildPaymentRequest({
       invId: order.invId,
       amount,
-      description: `QrStars ${planLabel}, podpiska ${periodLabel}`.slice(0, 100),
+      description: `QrStars ${planLabel}, подписка ${periodLabel}`.slice(0, 100),
       plan,
       billing,
       userId,

@@ -103,13 +103,6 @@ export async function PUT(request: Request) {
 
   const isPro = await establishmentHasPaidFeatures(body.id);
 
-  if (body.reviewRouting !== undefined && !isPro) {
-    return NextResponse.json(
-      { error: "Настройка сценариев по звёздам доступна на PRO-тарифе" },
-      { status: 403 }
-    );
-  }
-
   const data: Record<string, unknown> = {};
 
   if (body.name !== undefined) data.name = body.name;
@@ -151,8 +144,18 @@ export async function PUT(request: Request) {
   if (body.notificationMaxRequestsEnabled !== undefined) {
     data.notificationMaxRequestsEnabled = body.notificationMaxRequestsEnabled;
   }
-  if (isPro && body.reviewRouting !== undefined) {
-    data.reviewRouting = reviewRoutingToJson(parseReviewRouting(body.reviewRouting));
+
+  if (body.reviewRouting !== undefined) {
+    if (isPro) {
+      data.reviewRouting = reviewRoutingToJson(parseReviewRouting(body.reviewRouting));
+    } else if (Object.keys(data).length === 0) {
+      // Явно меняют только сценарии — на FREE нельзя.
+      // Если вместе с именем/адресом прилетел reviewRouting «эхом» с GET — игнорируем.
+      return NextResponse.json(
+        { error: "Настройка сценариев по звёздам доступна на PRO-тарифе" },
+        { status: 403 }
+      );
+    }
   }
 
   const updated = await prisma.establishment.update({

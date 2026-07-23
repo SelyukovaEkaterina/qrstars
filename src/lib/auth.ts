@@ -38,6 +38,15 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.id = user.id;
         token.role = (user as unknown as Record<string, unknown>).role as string | undefined;
+      } else if (!token.id && typeof token.email === "string" && token.email) {
+        const dbUser = await prisma.user.findUnique({
+          where: { email: token.email.trim().toLowerCase() },
+          select: { id: true, role: true },
+        });
+        if (dbUser) {
+          token.id = dbUser.id;
+          token.role = dbUser.role;
+        }
       }
       return token;
     },

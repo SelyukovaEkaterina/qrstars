@@ -70,13 +70,27 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
       const res = await fetch("/api/settings", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          id: data.id,
+          name: data.name,
+          address: data.address,
+          phone: data.phone,
+          legalName: data.legalName,
+          inn: data.inn,
+          yandexMapsUrl: data.yandexMapsUrl,
+          twoGisUrl: data.twoGisUrl,
+          avitoUrl: data.avitoUrl,
+          workingHours: data.workingHours,
+        }),
       });
 
       if (res.ok) {
         setMessage("Настройки сохранены");
       } else {
-        setMessage("Ошибка сохранения");
+        const err = await res.json().catch(() => ({}));
+        setMessage(
+          typeof err.error === "string" ? err.error : "Ошибка сохранения",
+        );
       }
     } catch {
       setMessage("Ошибка соединения");

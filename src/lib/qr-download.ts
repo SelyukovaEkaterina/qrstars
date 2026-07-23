@@ -17,6 +17,8 @@ export type QrDownloadOptions = {
   qrStyleTemplates?: QrStyleTemplateSource[];
   isPro?: boolean;
   size?: number;
+  /** PNG only: transparent background (for overlays / design handoff). */
+  transparentBackground?: boolean;
 };
 
 export async function downloadQrCode(
@@ -26,6 +28,7 @@ export async function downloadQrCode(
   options: QrDownloadOptions = {},
 ): Promise<void> {
   const size = options.size ?? QR_EXPORT_SIZE;
+  const transparent = format === "png" && !!options.transparentBackground;
   const config = resolveQrStyleConfig(
     options.qrStyleTemplateId,
     options.qrStyleTemplates ?? [],
@@ -33,9 +36,18 @@ export async function downloadQrCode(
 
   if (config) {
     const canvas = document.createElement("canvas");
-    await renderQRTemplate(canvas, normalizeQRTemplateConfig(config), payload, size);
+    const exportConfig = transparent ? { ...config, bgTransparent: true } : config;
+    await renderQRTemplate(
+      canvas,
+      normalizeQRTemplateConfig(exportConfig),
+      payload,
+      size,
+    );
     if (format === "png") {
-      downloadQRTemplateAsPNG(canvas, filenameBase);
+      downloadQRTemplateAsPNG(
+        canvas,
+        transparent ? `${filenameBase}-transparent` : filenameBase,
+      );
     } else {
       downloadQRTemplateAsSVG(canvas, filenameBase);
     }
@@ -43,10 +55,16 @@ export async function downloadQrCode(
   }
 
   if (format === "png") {
-    const dataUrl = await generateQRWithCenter(payload, { isPro: options.isPro ?? false }, size);
+    const dataUrl = await generateQRWithCenter(
+      payload,
+      { isPro: options.isPro ?? false },
+      size,
+      "#1e1b4b",
+      transparent ? "#00000000" : "#ffffff",
+    );
     const a = document.createElement("a");
     a.href = dataUrl;
-    a.download = `${filenameBase}.png`;
+    a.download = `${transparent ? `${filenameBase}-transparent` : filenameBase}.png`;
     a.click();
     return;
   }

@@ -811,7 +811,7 @@ export default function QRTemplateEditor({
               </div>
             </Panel>
 
-            <Panel title="Стиль глазков">
+            <Panel title="Стиль угловых маркеров">
               <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
                 {EYE_STYLES.map((s) => (
                   <EyeThumb
@@ -829,7 +829,7 @@ export default function QRTemplateEditor({
                   onChange={(e) => up("eyeCustom", e.target.checked)}
                   className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                 />
-                <span className="text-xs text-gray-700">Отдельный цвет глазков</span>
+                <span className="text-xs text-gray-700">Отдельный цвет угловых маркеров</span>
               </label>
               {cfg.eyeCustom && (
                 <div className="flex items-center gap-2 mt-2">
@@ -844,7 +844,7 @@ export default function QRTemplateEditor({
               )}
             </Panel>
 
-            <Panel title="Цветовые пресеты">
+            <Panel title="Цветовые палитры">
               <div className="grid grid-cols-5 sm:grid-cols-10 gap-1">
                 {COLOR_PRESETS.map((p, i) => (
                   <button

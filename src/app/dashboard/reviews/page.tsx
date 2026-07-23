@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
+import { pluralize } from "@/lib/utils";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
@@ -180,11 +181,7 @@ export default function ReviewsPage() {
               <h1 className="text-2xl font-bold text-gray-900">Отзывы</h1>
               <p className="text-gray-500 mt-1">
                 Всего {total}{" "}
-                {total === 1
-                  ? "отзыв"
-                  : total < 5
-                  ? "отзыва"
-                  : "отзывов"}
+                {pluralize(total, "отзыв", "отзыва", "отзывов")}
               </p>
             </div>
             <div className="flex items-center gap-2">

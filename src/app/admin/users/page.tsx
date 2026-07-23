@@ -248,7 +248,7 @@ export default function AdminUsersPage() {
                               ))}
                               {u.establishments.length > 2 && (
                                 <p className="text-[10px] text-gray-600">
-                                  +ещё {u.establishments.length - 2}
+                                  + ещё {u.establishments.length - 2}
                                 </p>
                               )}
                             </div>

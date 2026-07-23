@@ -2,6 +2,7 @@
 
 import { Store, QrCode, Plus, Link2, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/Button";
+import { pluralize } from "@/lib/utils";
 
 interface Establishment {
   id: string;
@@ -48,13 +49,13 @@ export default function DashboardOnboardingBanner({
       <div className="flex flex-col gap-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 sm:flex-row sm:items-center">
         <Store className="w-5 h-5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="font-medium">У вас нет организации</p>
+          <p className="font-medium">У вас нет заведения</p>
           <p className="text-sm opacity-90 mt-0.5">
-            Создайте организацию, чтобы привязать QR-код и начать собирать отзывы
+            Создайте заведение, чтобы привязать QR-код и начать собирать отзывы
           </p>
         </div>
         <Button size="sm" onClick={onCreateEstablishment}>
-          Завести организацию
+          Создать заведение
           <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
       </div>
@@ -76,7 +77,7 @@ export default function DashboardOnboardingBanner({
           {establishmentsWithoutQr.length === 1 ? (
             <div>
               <p className="font-medium">
-                У организации «{establishmentsWithoutQr[0].name}» нет QR-кода
+                У заведения «{establishmentsWithoutQr[0].name}» нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
                 Выпустите новый код или привяжите уже существующий неактивный
@@ -85,10 +86,10 @@ export default function DashboardOnboardingBanner({
           ) : (
             <div>
               <p className="font-medium">
-                У {establishmentsWithoutQr.length} организаций нет QR-кода
+                У {establishmentsWithoutQr.length} {pluralize(establishmentsWithoutQr.length, "заведения", "заведений", "заведений")} нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
-                Выпустите или привяжите код для каждой организации
+                Выпустите или привяжите код для каждого заведения
               </p>
             </div>
           )}

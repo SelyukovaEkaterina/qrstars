@@ -119,7 +119,7 @@ export default async function AdminDashboardPage() {
       sub: "Создано всего",
     },
     {
-      label: "PRO подписки",
+      label: "PRO-подписки",
       value: activeSubscriptions,
       icon: CreditCard,
       color: "text-amber-400",

@@ -60,7 +60,9 @@ function QRCodesPageContent() {
   const [loading, setLoading] = useState(true);
   const [qrcodes, setQrcodes] = useState<QRCodeItem[]>([]);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
-  const [filterEstId, setFilterEstId] = useState<string>("all");
+  const [filterEstId, setFilterEstId] = useState<string>(
+    () => searchParams.get("estId") || "all",
+  );
   const [showCreateEst, setShowCreateEst] = useState(false);
   const [showLinkQr, setShowLinkQr] = useState(false);
   const [linkEstId, setLinkEstId] = useState("");
@@ -128,7 +130,11 @@ function QRCodesPageContent() {
     [generateQRImage]
   );
 
-  const handleDownloadQr = async (qr: QRCodeItem, format: "png" | "svg") => {
+  const handleDownloadQr = async (
+    qr: QRCodeItem,
+    format: "png" | "svg",
+    opts?: { transparentBackground?: boolean },
+  ) => {
     setDownloadingQrId(qr.id);
     try {
       await downloadQrCode(format, scanUrlForCode(qr.code), `qr-${qr.code}`, {
@@ -136,6 +142,7 @@ function QRCodesPageContent() {
         qrStyleTemplates: qr.qrStyleTemplate ? [qr.qrStyleTemplate] : [],
         isPro,
         size: QR_EXPORT_SIZE,
+        transparentBackground: opts?.transparentBackground,
       });
     } finally {
       setDownloadingQrId(null);
@@ -171,9 +178,22 @@ function QRCodesPageContent() {
       setSelectedLinkQrId(first?.id || "");
       setShowLinkQr(true);
     }
+    // ?est= — создать QR для заведения; ?estId= — фильтр списка
     const est = searchParams.get("est");
     if (est) {
       router.replace(`/dashboard/qrcodes/new?est=${est}`);
+      return;
+    }
+    const estId = searchParams.get("estId");
+    if (estId) {
+      setFilterEstId(estId);
+      // Убираем param, чтобы ручной фильтр «Все» не перебивался эффектом
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("estId");
+      const q = next.toString();
+      router.replace(q ? `/dashboard/qrcodes?${q}` : "/dashboard/qrcodes", {
+        scroll: false,
+      });
     }
   }, [searchParams, qrcodes, router]);
 
@@ -329,7 +349,7 @@ function QRCodesPageContent() {
           {showCreateEst && (
             <Card>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Новая организация</h3>
+                <h3 className="font-semibold text-gray-900">Новое заведение</h3>
                 <button
                   onClick={() => {
                     setShowCreateEst(false);
@@ -350,11 +370,11 @@ function QRCodesPageContent() {
                   <div className="bg-indigo-50 text-indigo-800 px-4 py-3 rounded-lg text-sm">
                     Найден непривязанный QR-код{" "}
                     <span className="font-mono">{unlinkedQrcodes[0].code}</span> — после
-                    создания организации он будет привязан автоматически
+                    создания заведения он будет привязан автоматически
                   </div>
                 )}
                 <Input
-                  label="Название организации *"
+                  label="Название заведения *"
                   value={estForm.name}
                   onChange={(e) => setEstForm({ ...estForm, name: e.target.value })}
                   placeholder="Кафе, салон, клиника, автосервис…"
@@ -384,7 +404,7 @@ function QRCodesPageContent() {
                 />
                 <div className="flex gap-3">
                   <Button type="submit" disabled={creatingEst}>
-                    {creatingEst ? "Создаём..." : "Создать организацию"}
+                    {creatingEst ? "Создаём..." : "Создать заведение"}
                   </Button>
                   <Button
                     type="button"
@@ -613,6 +633,18 @@ function QRCodesPageContent() {
                       >
                         <Download className="w-3 h-3" />
                         PNG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void handleDownloadQr(qr, "png", { transparentBackground: true })
+                        }
+                        disabled={downloadingQrId === qr.id}
+                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
+                        title="Прозрачный фон"
+                      >
+                        <Download className="w-3 h-3" />
+                        PNG без фона
                       </button>
                       <button
                         type="button"

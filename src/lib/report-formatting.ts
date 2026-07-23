@@ -23,10 +23,10 @@ export function startOfMskDay(date: Date): Date {
   return new Date(msk.getTime() - MSK_OFFSET_MS);
 }
 
-/** Строка дельты для HTML (Telegram/MAX): « · 📈 +12%» / « · 📉 -5%» / « · <i>новое</i>». */
+/** Строка дельты для HTML (Telegram/MAX): « · 📈 +12%» / « · 📉 -5%» / « · <i>новые</i>». */
 export function deltaLine(current: number, previous: number): string {
   if (previous === 0) {
-    return current > 0 ? " · <i>новое</i>" : "";
+    return current > 0 ? " · <i>новые</i>" : "";
   }
   const pct = Math.round(((current - previous) / previous) * 100);
   if (pct === 0) return " · 0%";

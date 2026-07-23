@@ -396,7 +396,7 @@ export async function notifyNewUserRegistration(user: {
       select: { email: true, name: true },
     });
     if (referrer) {
-      referrerLine = `\n<b>Реферал:</b> ${escapeHtml(referrer.name || referrer.email)}`;
+      referrerLine = `\n<b>Партнёр:</b> ${escapeHtml(referrer.name || referrer.email)}`;
     }
   }
 

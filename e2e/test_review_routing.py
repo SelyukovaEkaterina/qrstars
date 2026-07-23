@@ -51,6 +51,31 @@ def test_free_user_cannot_save_review_routing(owner_session, admin_session, base
     assert r.status_code == 403
 
 
+def test_free_user_can_save_name_even_if_review_routing_echoed(
+    owner_session, admin_session, base_url, owner_establishment_id
+):
+    """Страница заведения раньше слала весь GET-объект, включая reviewRouting — имя не сохранялось."""
+    reset_user_to_free(admin_session, base_url)
+
+    current = owner_session.get(
+        f"{base_url}/api/settings", params={"id": owner_establishment_id}
+    )
+    assert current.status_code == 200
+    est = current.json()["establishment"]
+    new_name = f"{est['name']} Renamed"
+
+    r = owner_session.put(
+        f"{base_url}/api/settings",
+        json={
+            "id": owner_establishment_id,
+            "name": new_name,
+            "reviewRouting": est.get("reviewRouting"),
+        },
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["establishment"]["name"] == new_name
+
+
 def test_pro_user_can_save_review_routing(admin_session, owner_session, base_url, owner_establishment_id):
     users = admin_session.get(f"{base_url}/api/admin/users", params={"search": "demo@smartreview.ru"}).json()
     demo_user = next((u for u in users["users"] if u["email"] == "demo@smartreview.ru"), None)

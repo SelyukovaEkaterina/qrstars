@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useSyncPropState } from "@/lib/sync-prop-state";
+import { pluralize } from "@/lib/utils";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -475,7 +476,7 @@ export default function MenuEditor({
           <h3 className="font-semibold text-gray-900">
             Позиции меню
             {menu.items.length > 0 && (
-              <span className="ml-2 text-sm font-normal text-gray-400">{menu.items.length} позиций</span>
+              <span className="ml-2 text-sm font-normal text-gray-400">{menu.items.length} {pluralize(menu.items.length, "позиция", "позиции", "позиций")}</span>
             )}
           </h3>
           <div className="flex items-center gap-2 flex-wrap">
@@ -775,7 +776,7 @@ export default function MenuEditor({
           )}
         </Button>
         {menu.items.length > 0 && !isIiko && (
-          <span className="text-sm text-gray-400">{menu.items.length} позиций в меню</span>
+          <span className="text-sm text-gray-400">{menu.items.length} {pluralize(menu.items.length, "позиция", "позиции", "позиций")} в меню</span>
         )}
         {isIiko && iikoPreviewMenu && (
           <span className="text-sm text-gray-400">{iikoPreviewMenu.items.length} позиций из iiko</span>

@@ -373,3 +373,24 @@ def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
     onboarding = session.get(f"{base_url}/api/user/onboarding")
     assert onboarding.status_code == 200
     assert onboarding.json().get("onboardingCompleted") is False
+
+
+def test_quick_start_redirect_rejects_invalid_protocol(base_url):
+    email = unique_email("qs5")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "name": "Bad URL", "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "redirect",
+            "redirectUrl": "htttps://example.com/promo",
+        },
+    )
+    assert r.status_code == 400, r.text
+    assert "ссылка" in r.json().get("error", "").lower()

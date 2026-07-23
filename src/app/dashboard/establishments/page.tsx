@@ -10,6 +10,7 @@ import Badge from "@/components/ui/Badge";
 import Sidebar from "@/components/dashboard/Sidebar";
 import DashboardOnboardingBanner from "@/components/dashboard/DashboardOnboardingBanner";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
+import { pluralize } from "@/lib/utils";
 import {
   Store,
   Plus,
@@ -21,6 +22,7 @@ import {
   X,
   Settings,
   Crown,
+  Layout,
 } from "lucide-react";
 import Link from "next/link";
 
@@ -370,9 +372,13 @@ function EstablishmentsPageContent() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <Store className="w-5 h-5 text-indigo-600" />
-                        <h3 className="font-semibold text-gray-900 text-lg">
+                        <Link
+                          href={`/dashboard/my-page?estId=${est.id}`}
+                          className="font-semibold text-gray-900 text-lg hover:text-indigo-600 transition-colors"
+                          title="Открыть микролендинг заведения"
+                        >
                           {est.name}
-                        </h3>
+                        </Link>
                         {est.isOwner === false && (
                           <Badge variant="warning" className="text-xs">
                             Совместный доступ
@@ -385,21 +391,35 @@ function EstablishmentsPageContent() {
                         </p>
                       )}
                       <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                        <Link
+                          href={`/dashboard/qrcodes?estId=${est.id}`}
+                          className="flex items-center gap-1.5 text-sm text-gray-600 hover:text-indigo-600 transition-colors"
+                          title="QR-коды заведения"
+                        >
                           <QrCode className="w-4 h-4 text-indigo-500" />
-                          <span>{est.qrcodesCount} QR-кодов</span>
-                        </div>
+                          <span className="underline-offset-2 hover:underline">
+                            {est.qrcodesCount}{" "}
+                            {pluralize(est.qrcodesCount, "QR-код", "QR-кода", "QR-кодов")}
+                          </span>
+                        </Link>
                         <div className="flex items-center gap-1.5 text-sm text-gray-600">
                           <Star className="w-4 h-4 text-yellow-500" />
-                          <span>{est.reviewsCount} отзывов</span>
+                          <span>{est.reviewsCount} {pluralize(est.reviewsCount, "отзыв", "отзыва", "отзывов")}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-sm text-gray-600">
                           <MousePointerClick className="w-4 h-4 text-blue-500" />
-                          <span>{est.totalScans} сканов</span>
+                          <span>{est.totalScans} {pluralize(est.totalScans, "сканирование", "сканирования", "сканирований")}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 ml-4">
+                      <Link
+                        href={`/dashboard/my-page?estId=${est.id}`}
+                        className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"
+                        title="Микролендинг заведения"
+                      >
+                        <Layout className="w-4 h-4" />
+                      </Link>
                       <button
                         onClick={() => router.push(`/dashboard/establishments/${est.id}`)}
                         className="p-2 text-gray-400 hover:text-indigo-600 transition-colors"

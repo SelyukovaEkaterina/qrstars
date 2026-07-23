@@ -37,7 +37,7 @@ async function assertProForIiko(establishmentId: string | undefined, source: Men
   const isPro = await establishmentHasPaidFeatures(establishmentId);
   if (!isPro) {
     return NextResponse.json(
-      { error: "Интеграция iiko доступна на тарифе PRO и Сеть" },
+      { error: "Интеграция iiko доступна на тарифах PRO и «Сеть»" },
       { status: 403 }
     );
   }

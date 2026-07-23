@@ -84,7 +84,7 @@ const navSections: NavSection[] = [
       },
       {
         href: "/dashboard/my-page",
-        label: "Моя страница",
+        label: "Страницы заведений",
         icon: Layout,
         tourId: "tour-nav-my-page",
       },

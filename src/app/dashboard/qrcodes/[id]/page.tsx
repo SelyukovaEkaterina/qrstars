@@ -9,7 +9,9 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Sidebar from "@/components/dashboard/Sidebar";
 import FileAssetEditor, { type FileAssetData } from "@/components/dashboard/FileAssetEditor";
-import RoutingPreview from "@/components/dashboard/RoutingPreview";
+import RoutingPreview, {
+  type LandingPreviewPayload,
+} from "@/components/dashboard/RoutingPreview";
 import type { MenuData } from "@/components/dashboard/MenuEditor";
 import {
   modeToRouting,
@@ -26,6 +28,58 @@ import {
   type QRMode,
 } from "@/lib/qr-routing";
 import { parsePageModules, type PageModules } from "@/lib/page-modules";
+import { parseReviewRouting } from "@/lib/review-routing";
+
+function landingPreviewFromEstablishment(est: Record<string, unknown>): LandingPreviewPayload {
+  const bc = est.businessCard as LandingPreviewPayload["businessCard"] | null | undefined;
+  const wifi = est.wifiConfig as LandingPreviewPayload["wifiConfig"] | null | undefined;
+  const customPages = (est.customPages as LandingPreviewPayload["customPages"]) || [];
+  return {
+    pageModules: parsePageModules(est.pageModules),
+    moduleOrder: Array.isArray(est.moduleOrder) ? (est.moduleOrder as LandingPreviewPayload["moduleOrder"]) : null,
+    moduleLabels: (est.moduleLabels as LandingPreviewPayload["moduleLabels"]) || undefined,
+    moduleIcons: (est.moduleIcons as LandingPreviewPayload["moduleIcons"]) || undefined,
+    moduleTypes: (est.moduleTypes as LandingPreviewPayload["moduleTypes"]) || undefined,
+    menu: (est.menu as MenuData | null) ?? null,
+    businessCard: bc?.id
+      ? {
+          ...bc,
+          socialLinks: Array.isArray(bc.socialLinks) ? bc.socialLinks : [],
+        }
+      : null,
+    wifiConfig: wifi?.id ? wifi : null,
+    customPages: customPages.map((p) => ({
+      id: p.id,
+      menuItemLabel: p.menuItemLabel,
+      title: p.title || p.menuItemLabel,
+      content: p.content || "",
+      type: p.type || "HTML",
+      url: p.url,
+      icon: p.icon,
+      enabled: !!p.enabled,
+      fileAsset: p.fileAsset,
+    })),
+    reviewRouting: parseReviewRouting(est.reviewRouting),
+    brandColor: (est.brandColor as string | null) ?? null,
+    pageAppearance: (est.pageAppearance as string | null) ?? null,
+    logoUrl: (est.logoUrl as string | null) ?? null,
+    coverUrl: (est.coverUrl as string | null) ?? null,
+    landingSubtitle: (est.landingSubtitle as string | null) ?? null,
+    yandexMapsUrl: (est.yandexMapsUrl as string | null) ?? null,
+    twoGisUrl: (est.twoGisUrl as string | null) ?? null,
+    avitoUrl: (est.avitoUrl as string | null) ?? null,
+    address: (est.address as string | null) ?? null,
+    phone: (est.phone as string | null) ?? null,
+    landingTipsType: (est.landingTipsType as string | null) ?? null,
+    landingTipsPhone: (est.landingTipsPhone as string | null) ?? null,
+    landingTipsBankName: (est.landingTipsBankName as string | null) ?? null,
+    landingTipsUrl: (est.landingTipsUrl as string | null) ?? null,
+    tipsEmployees: (est.tipsEmployees as LandingPreviewPayload["tipsEmployees"]) || undefined,
+    extraMenus: (est.extraMenus as MenuData[]) || undefined,
+    extraBusinessCards: (est.extraBusinessCards as LandingPreviewPayload["extraBusinessCards"]) || undefined,
+    extraWifiConfigs: (est.extraWifiConfigs as LandingPreviewPayload["extraWifiConfigs"]) || undefined,
+  };
+}
 import {
   Loader2,
   ArrowLeft,
@@ -137,6 +191,7 @@ export default function QRCodeSettingsPage() {
   const [customSectionId, setCustomSectionId] = useState<string | null>(null);
   const [pageModules, setPageModules] = useState<PageModules>(parsePageModules(null));
   const [previewMenu, setPreviewMenu] = useState<MenuData | null>(null);
+  const [landingPreview, setLandingPreview] = useState<LandingPreviewPayload | null>(null);
   const [customPages, setCustomPages] = useState<
     { id: string; menuItemLabel: string; enabled: boolean; type?: string }[]
   >([]);
@@ -366,6 +421,7 @@ export default function QRCodeSettingsPage() {
         && !isBuiltInStickerTemplateId(t.id),
     ),
   ];
+
   const qrStyleTemplates = templates.filter(
     (t) => (t.layout as { __type?: string }).__type === "qr-style"
   );
@@ -377,7 +433,10 @@ export default function QRCodeSettingsPage() {
   }, [qrStyleTemplateId, qrStyleTemplates]);
   const userQrStyleTemplates = qrStyleTemplates.filter((t) => !t.id.startsWith("qr-preset-"));
 
-  const handleDownloadQR = async (format: "png" | "svg") => {
+  const handleDownloadQR = async (
+    format: "png" | "svg",
+    opts?: { transparentBackground?: boolean },
+  ) => {
     if (!qrData) return;
     if (isCreateMode) {
       setQrHint("Сначала создайте QR-код");
@@ -392,6 +451,7 @@ export default function QRCodeSettingsPage() {
         qrStyleTemplates,
         isPro,
         size: QR_EXPORT_SIZE,
+        transparentBackground: opts?.transparentBackground,
       });
     } catch {
       setQrHint("Ошибка генерации QR-кода");
@@ -470,19 +530,27 @@ export default function QRCodeSettingsPage() {
   };
 
   useEffect(() => {
-    if (!establishmentId) return;
+    if (!establishmentId) {
+      setLandingPreview(null);
+      return;
+    }
     fetch(`/api/establishments/${establishmentId}/page`)
       .then((r) => r.json())
       .then((res) => {
         if (res.establishment) {
-          setPageModules(parsePageModules(res.establishment.pageModules));
-          setPreviewMenu(res.establishment.menu ?? null);
-          setCustomPages((res.establishment.customPages || []).map((p: { id: string; menuItemLabel: string; enabled: boolean; type?: string }) => ({
-            id: p.id,
-            menuItemLabel: p.menuItemLabel,
-            enabled: p.enabled,
-            type: p.type,
-          })));
+          const est = res.establishment as Record<string, unknown>;
+          const landing = landingPreviewFromEstablishment(est);
+          setLandingPreview(landing);
+          setPageModules(landing.pageModules);
+          setPreviewMenu(landing.menu ?? null);
+          setCustomPages(
+            (landing.customPages || []).map((p) => ({
+              id: p.id,
+              menuItemLabel: p.menuItemLabel,
+              enabled: p.enabled,
+              type: p.type,
+            })),
+          );
         }
       })
       .catch(() => {});
@@ -883,6 +951,19 @@ export default function QRCodeSettingsPage() {
                           type="button"
                           size="sm"
                           variant="ghost"
+                          onClick={() =>
+                            void handleDownloadQR("png", { transparentBackground: true })
+                          }
+                          disabled={qrDownloading}
+                          title="Прозрачный фон — удобно накладывать на макеты"
+                        >
+                          <Download className="w-4 h-4 mr-1" />
+                          PNG без фона
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
                           onClick={() => void handleDownloadQR("svg")}
                           disabled={qrDownloading}
                         >
@@ -1190,6 +1271,7 @@ export default function QRCodeSettingsPage() {
                   section={routingGroup === "SECTION" ? sectionTarget : undefined}
                   establishmentName={previewName}
                   establishmentId={establishmentId || undefined}
+                  landing={landingPreview}
                   pageModules={pageModules}
                   menu={previewMenu}
                   redirectUrl={redirectUrl}

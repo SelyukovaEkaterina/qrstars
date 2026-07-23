@@ -491,7 +491,7 @@ export function formatWeeklyReportTelegram(metrics: WeeklyReportMetrics): string
       metrics.setupCompletedReviewsLanding.previous
     ),
     countLine(
-      "Setup completed (redirect)",
+      "Завершили настройку (redirect)",
       metrics.setupCompletedRedirect.current,
       metrics.setupCompletedRedirect.previous
     ),
@@ -581,7 +581,7 @@ export function formatDailyReportTelegram(metrics: WeeklyReportMetrics): string 
 
   lines.push(
     valueLine("Завершили онбординг", metrics.setupCompletedReviewsLanding.current),
-    valueLine("Setup completed (redirect)", metrics.setupCompletedRedirect.current),
+    valueLine("Завершили настройку (redirect)", metrics.setupCompletedRedirect.current),
     valueLine("Redirect-QR без заведения", metrics.redirectQrWithoutEstablishment.current),
     `<b>Новые PRO/Сеть:</b> ${metrics.newPaidSubscriptions}`,
     valueLine("Заказы из меню", metrics.menuOrders.current),

@@ -18,6 +18,7 @@ import {
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Button from "@/components/ui/Button";
+import { pluralize } from "@/lib/utils";
 import {
   Loader2,
   Download,
@@ -783,11 +784,7 @@ export default function EnhancedAnalytics() {
                           </p>
                           <p className="text-xs text-gray-400">
                             {est.reviews}{" "}
-                            {est.reviews === 1
-                              ? "отзыв"
-                              : est.reviews < 5
-                                ? "отзыва"
-                                : "отзывов"}
+                            {pluralize(est.reviews, "отзыв", "отзыва", "отзывов")}
                           </p>
                         </div>
                       </div>

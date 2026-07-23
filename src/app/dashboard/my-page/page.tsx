@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -24,7 +24,6 @@ import {
   parseModuleLabels,
   parseModuleIcons,
   parseModuleTypes,
-  buildDefaultModuleOrder,
   PAGE_MODULE_LABELS,
   LANDING_BUILTIN_MODULE_KEYS,
   isBuiltinModuleKey,
@@ -191,8 +190,27 @@ function editorTabToPreviewSection(
 }
 
 export default function MyPageDashboard() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen bg-gray-50">
+          <Sidebar />
+          <main className="flex-1 flex items-center justify-center">
+            <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
+          </main>
+        </div>
+      }
+    >
+      <MyPageDashboardContent />
+    </Suspense>
+  );
+}
+
+function MyPageDashboardContent() {
   const { status } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const preferredEstId = searchParams.get("estId");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -207,7 +225,8 @@ export default function MyPageDashboard() {
   const [isPro, setIsPro] = useState(false);
   const [activeEditor, setActiveEditorState] = useState<EditorTab | null>(() => {
     const tab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
-    return (tab as EditorTab) || "menu";
+    // Без ?tab= — главная лендинга (не первый/скрытый блок вроде menu)
+    return tab ? (tab as EditorTab) : null;
   });
   const setActiveEditor = useCallback((next: EditorTab | null) => {
     setActiveEditorState(next);
@@ -413,15 +432,19 @@ export default function MyPageDashboard() {
           setLoading(false);
           return;
         }
-        const firstId = list[0].id;
-        setEstablishmentId(firstId);
-        return loadPage(firstId).finally(() => setLoading(false));
+        const preferredId = preferredEstId;
+        const initialId =
+          preferredId && list.some((e: EstablishmentOption) => e.id === preferredId)
+            ? preferredId
+            : list[0].id;
+        setEstablishmentId(initialId);
+        return loadPage(initialId).finally(() => setLoading(false));
       })
       .catch(() => {
         setError("Не удалось загрузить данные");
         setLoading(false);
       });
-  }, [status, router, loadPage]);
+  }, [status, router, loadPage, preferredEstId]);
 
   const handleEstablishmentChange = async (estId: string) => {
     setEstablishmentId(estId);
@@ -579,7 +602,7 @@ export default function MyPageDashboard() {
         prev ? prev.filter((k) => k !== `custom-${id}`) : null
       );
       if (activeEditor === `custom-${id}`) {
-        setActiveEditor("menu");
+        setActiveEditor(null);
       }
     }
   };
@@ -730,10 +753,14 @@ export default function MyPageDashboard() {
       });
       return ordered;
     }
-    return buildDefaultModuleOrder(
-      pageModules,
-      customPages.filter((p) => p.enabled).map((p) => p.id)
+    // Без сохранённого порядка: builtins по тумблерам + все доп. блоки (вкл. выключенные —
+    // иначе только что добавленная произвольная страница пропадает из списка).
+    const builtin = (LANDING_BUILTIN_MODULE_KEYS as BuiltinModuleKey[]).filter(
+      (k) => pageModules[k],
     );
+    const typed = Object.keys(moduleTypes) as ModuleKey[];
+    const custom = customPages.map((p) => `custom-${p.id}` as ModuleKey);
+    return [...builtin, ...typed, ...custom];
   };
 
   const getModuleLabel = (key: string): string => {
@@ -987,7 +1014,12 @@ export default function MyPageDashboard() {
         }
         const newPage = (await res.json()).customPage;
         setCustomPages((prev) => [...prev, newPage]);
-        setActiveEditor(`custom-${newPage.id}` as EditorTab);
+        const key = `custom-${newPage.id}` as ModuleKey;
+        const order = getEffectiveOrder();
+        if (!order.includes(key)) {
+          await saveModuleOrder([...order, key]);
+        }
+        setActiveEditor(key as EditorTab);
       }
     } finally {
       setSaving(false);
@@ -1125,7 +1157,7 @@ export default function MyPageDashboard() {
       if (info.type === "businessCard") setExtraBusinessCards((prev) => prev.filter((bc) => bc.id !== info.instanceId));
       if (info.type === "wifi") setExtraWifiConfigs((prev) => prev.filter((wc) => wc.id !== info.instanceId));
       if (info.type === "form") setForms((prev) => prev.filter((f) => f.id !== info.instanceId));
-      if (activeEditor === key) setActiveEditor("menu");
+      if (activeEditor === key) setActiveEditor(null);
     }
   };
 
@@ -2161,7 +2193,7 @@ function MyPageHeader({
       <div>
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <Layout className="w-6 h-6 text-indigo-600" />
-          <h1 className="text-2xl font-bold text-gray-900">Моя страница</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Страницы заведений (микролендинги)</h1>
           {shortSlug && (
             <a
               href={`/a/${shortSlug}`}

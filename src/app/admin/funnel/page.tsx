@@ -25,7 +25,7 @@ import {
 import type { SetupFunnelReport } from "@/lib/setup-funnel-admin";
 
 const INTENT_LABELS: Record<string, string> = {
-  reviews: "Оставиь отзыв",
+  reviews: "Оставить отзыв",
   landing: "Микро-лендинг",
   redirect: "Редирект",
   menu: "QR-меню",
@@ -33,7 +33,7 @@ const INTENT_LABELS: Record<string, string> = {
 
 const DESTINATION_LABELS: Record<string, string> = {
   templates: "Конструктор QR",
-  "my-page": "Моя страница",
+  "my-page": "Страницы заведений",
   "qrcode-settings": "Настройки QR",
   dashboard: "Дашборд",
 };

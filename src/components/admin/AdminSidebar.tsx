@@ -29,7 +29,7 @@ const navItems = [
   { href: "/admin/establishments", label: "Заведения", icon: Store, tourId: "nav-establishments" },
   { href: "/admin/batches", label: "Наборы табличек", icon: Package, tourId: "nav-batches" },
   { href: "/admin/partner-withdrawals", label: "Выводы партнёров", icon: Wallet, tourId: "nav-partner-withdrawals" },
-  { href: "/admin/support", label: "Support", icon: Headphones, tourId: "nav-support" },
+  { href: "/admin/support", label: "Поддержка", icon: Headphones, tourId: "nav-support" },
 ];
 
 export default function AdminSidebar() {

@@ -256,7 +256,7 @@ export default function IikoMenuSettings({
   if (!isPro) {
     return (
       <p className="text-sm text-amber-700">
-        Интеграция iiko доступна на тарифе PRO и Сеть.
+        Интеграция iiko доступна на тарифах PRO и «Сеть».
       </p>
     );
   }

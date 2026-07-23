@@ -375,6 +375,45 @@ export default function MicroLandingView({
             />
           );
         }
+        if (page.type === "LINK") {
+          const href = page.url || "#";
+          return (
+            <div
+              className={
+                embedded
+                  ? "flex-1 p-4 relative z-10 min-h-[inherit] flex flex-col items-center justify-center text-center gap-3"
+                  : "flex-1 px-4 pt-6 pb-10 max-w-2xl mx-auto relative z-10 min-h-[inherit] flex flex-col items-center justify-center text-center gap-3"
+              }
+              style={scanRootStyle(theme, { isBg: !!coverUrl, embedded })}
+            >
+              <ExternalLink
+                className="w-8 h-8 opacity-80"
+                style={{ color: headingColor(!!coverUrl) }}
+              />
+              <p
+                className={`font-medium ${embedded ? "text-sm" : "text-base"}`}
+                style={{ color: headingColor(!!coverUrl) }}
+              >
+                Редирект на внешнюю ссылку
+              </p>
+              <a
+                href={href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`break-all underline underline-offset-2 hover:opacity-80 ${embedded ? "text-xs" : "text-sm"}`}
+                style={{ color: mutedColor(!!coverUrl) }}
+              >
+                {page.url || "URL не указан"}
+              </a>
+              <p
+                className={`opacity-70 ${embedded ? "text-[11px]" : "text-xs"}`}
+                style={{ color: mutedColor(!!coverUrl) }}
+              >
+                При сканировании гость сразу перейдёт по этой ссылке
+              </p>
+            </div>
+          );
+        }
         return (
           <CustomPageView
             title={page.title}

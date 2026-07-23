@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback, useMemo } from "react";
+import { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { usePathname } from "next/navigation";
 import { driver, type Driver, type DriveStep } from "driver.js";
 import "driver.js/dist/driver.css";
@@ -76,7 +76,7 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
     {
       element: "#tour-nav-my-page",
       popover: {
-        title: "Моя страница",
+        title: "Страницы заведений",
         description: isLanding
           ? "Единый контент для гостей: меню, Wi‑Fi, визитка, сценарии отзывов, чаевые, оформление (цвет, обложка, светлая/тёмная тема). Включайте блоки тумблерами — QR только открывает нужный раздел."
           : "Меню, Wi‑Fi, визитка, отзывы, чаевые и брендинг страницы. Всё, что видит гость на микро-лендинге, редактируется здесь, а не в настройках QR.",
@@ -88,7 +88,7 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
       popover: {
         title: "QR-коды",
         description: isLanding
-          ? "Список QR: микро-лендинг, быстрый раздел (меню, отзывы, Wi‑Fi), редирект или файл. У каждого кода — своя маршрутизация; контент подтягивается с «Моя страница». Скачайте PNG/PDF для печати."
+          ? "Список QR: микро-лендинг, быстрый раздел (меню, отзывы, Wi‑Fi), редирект или файл. У каждого кода — своя маршрутизация; контент подтягивается со страницы «Моя страница». Скачайте PNG/PDF для печати."
           : isRedirect
             ? "Ваш QR ведёт по прямой ссылке. Можно добавить коды на лендинг, сбор отзывов, меню или Wi‑Fi — у каждого своя маршрутизация при скане."
             : "Ваш QR открывает сбор отзывов. Можно создать ещё коды: лендинг, меню, Wi‑Fi, редирект. Стили QR и скачивание для печати — в карточке кода.",
@@ -100,7 +100,7 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
       popover: {
         title: "Отзывы",
         description: isLanding
-          ? "Жалобы и оценки появятся, когда включите блок «Сбор отзывов» на «Моя страница» и укажете ссылки на карты в заведении."
+          ? "Жалобы и оценки появятся, когда включите блок «Сбор отзывов» в разделе «Моя страница» и укажете ссылки на карты в заведении."
           : "Все оценки и тексты от гостей. 1–3★ — жалобы вам (email на FREE, Telegram/MAX на PRO), 4–5★ — на Яндекс, 2GIS и др. по вашим сценариям.",
         ...popoverRight,
       },
@@ -187,18 +187,68 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
 }
 
 interface OnboardingTourProps {
+  userId: string;
   completed: boolean;
   setupProfile?: SetupProfile | null;
 }
 
-export function OnboardingTour({ completed, setupProfile = null }: OnboardingTourProps) {
+/** Локальный fallback на userId: закрытие не зависит от устаревшего RSC-prop layout. */
+function tourDismissedKey(userId: string) {
+  return `qrstars_onboarding_tour_done:${userId}`;
+}
+
+function readTourDismissedLocal(userId: string): boolean {
+  try {
+    return localStorage.getItem(tourDismissedKey(userId)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function writeTourDismissedLocal(userId: string) {
+  try {
+    localStorage.setItem(tourDismissedKey(userId), "1");
+  } catch {
+    /* private mode */
+  }
+}
+
+export function OnboardingTour({
+  userId,
+  completed,
+  setupProfile = null,
+}: OnboardingTourProps) {
   const pathname = usePathname();
   const driverRef = useRef<Driver | null>(null);
+  /** Не писать onboardingCompleted при programmatic destroy (рестарт тура). */
+  const skipMarkCompleteRef = useRef(false);
+  /** Автозапуск только один раз за жизнь компонента — иначе pathname/loading дают цикл. */
+  const autoStartedRef = useRef(completed || readTourDismissedLocal(userId));
+  const [dismissed, setDismissed] = useState(
+    () => completed || readTourDismissedLocal(userId),
+  );
   const steps = useMemo(() => buildSteps(setupProfile), [setupProfile]);
+
+  const markTourClosed = useCallback(() => {
+    setDismissed(true);
+    autoStartedRef.current = true;
+    writeTourDismissedLocal(userId);
+    fetch("/api/user/onboarding", { method: "PATCH" }).catch(() => {});
+  }, [userId]);
+
+  useEffect(() => {
+    if (completed) {
+      autoStartedRef.current = true;
+      setDismissed(true);
+      writeTourDismissedLocal(userId);
+    }
+  }, [completed, userId]);
 
   const startTour = useCallback(() => {
     if (driverRef.current) {
+      skipMarkCompleteRef.current = true;
       driverRef.current.destroy();
+      skipMarkCompleteRef.current = false;
     }
 
     const d = driver({
@@ -209,31 +259,76 @@ export function OnboardingTour({ completed, setupProfile = null }: OnboardingTou
       doneBtnText: "Готово",
       progressText: "{{current}} из {{total}}",
       popoverClass: "onboarding-popover",
+      allowClose: true,
+      // Иначе клик по подсвеченному логотипу (Link → /dashboard) уводит со страницы
+      // и эффект ниже снова запускает тур — визуально «бесконечный» онбординг.
+      disableActiveInteraction: true,
       onDestroyed: () => {
-        fetch("/api/user/onboarding", { method: "PATCH" }).catch(() => {});
+        driverRef.current = null;
+        // Крестик, оверлей, Escape, «Готово» — всё через destroy → считаем тур закрытым.
+        if (skipMarkCompleteRef.current) return;
+        markTourClosed();
       },
       steps,
     });
 
     driverRef.current = d;
     d.drive();
-  }, [steps]);
+  }, [steps, markTourClosed]);
 
   useEffect(() => {
-    if (completed || isSetupWizardPath(pathname)) return;
+    if (dismissed || completed || isSetupWizardPath(pathname)) return;
+    if (autoStartedRef.current) return;
 
-    const timer = setTimeout(() => {
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+
+    /** Ждём стабильный Sidebar: на /qrcodes/new он монтируется дважды (loading → контент). */
+    const tryStart = (attempt: number) => {
+      if (cancelled || autoStartedRef.current) return;
+      const logo = document.querySelector("#tour-sidebar-logo");
+      if (!logo) {
+        if (attempt < 25) retryTimer = setTimeout(() => tryStart(attempt + 1), 200);
+        return;
+      }
+      retryTimer = setTimeout(() => {
+        if (cancelled || autoStartedRef.current) return;
+        if (!logo.isConnected) {
+          tryStart(attempt + 1);
+          return;
+        }
+        autoStartedRef.current = true;
+        startTour();
+      }, 500);
+    };
+
+    const initial = setTimeout(() => tryStart(0), 400);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(initial);
+      if (retryTimer) clearTimeout(retryTimer);
+    };
+  }, [completed, dismissed, pathname, startTour]);
+
+  useEffect(() => {
+    const handler = () => {
+      // Ручной повтор из «Помощь» — не сбрасываем факт закрытия в БД/localStorage.
+      setDismissed(false);
       startTour();
-    }, 800);
-
-    return () => clearTimeout(timer);
-  }, [completed, pathname, startTour]);
-
-  useEffect(() => {
-    const handler = () => startTour();
+    };
     window.addEventListener("start-onboarding-tour", handler);
     return () => window.removeEventListener("start-onboarding-tour", handler);
   }, [startTour]);
+
+  useEffect(() => {
+    return () => {
+      if (!driverRef.current) return;
+      skipMarkCompleteRef.current = true;
+      driverRef.current.destroy();
+      skipMarkCompleteRef.current = false;
+    };
+  }, []);
 
   return null;
 }

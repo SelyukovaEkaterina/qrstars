@@ -127,6 +127,20 @@ export function getPlatformUrl(
   return urls[idx];
 }
 
+/**
+ * Русская плюрализация: выбор формы слова по числу.
+ * pluralize(1, "отзыв","отзыва","отзывов") → "отзыв"
+ * pluralize(22, "отзыв","отзыва","отзывов") → "отзыва"
+ */
+export function pluralize(n: number, one: string, few: string, many: string): string {
+  const abs = Math.abs(n) % 100;
+  const last = abs % 10;
+  if (abs > 10 && abs < 20) return many;
+  if (last > 1 && last < 5) return few;
+  if (last === 1) return one;
+  return many;
+}
+
 export function ratingToLabel(rating: number): string {
   const labels: Record<number, string> = {
     1: "Ужасно",
@@ -136,4 +150,17 @@ export function ratingToLabel(rating: number): string {
     5: "Отлично!",
   };
   return labels[rating] || "";
+}
+
+/** Parses http(s) URL or null (rejects typos like `htttps://`). */
+export function parseHttpUrl(raw: string): URL | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    return url;
+  } catch {
+    return null;
+  }
 }

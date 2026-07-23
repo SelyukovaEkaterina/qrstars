@@ -338,7 +338,7 @@ export default function ScanFlow({
                 Хорошо, оставлю отзыв
               </Button>
               <Button variant="ghost" className={`w-full ${textWhite}`} onClick={() => setStep("thanks")}>
-                Нет, правда спасибо
+                Нет, правда, спасибо
               </Button>
             </div>
           </div>

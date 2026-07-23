@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { generateQRCode } from "@/lib/utils";
+import { generateQRCode, parseHttpUrl } from "@/lib/utils";
+import { requireDbUserId } from "@/lib/session-user";
 import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
 import {
   canAddEstablishment,
@@ -41,12 +40,11 @@ function resolveYandexMapsUrl(raw: string | undefined): {
 export type SetupIntent = "reviews" | "landing" | "redirect" | "menu";
 
 export async function POST(request: Request) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: "Не авторизован" }, { status: 401 });
+  const auth = await requireDbUserId();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-
-  const userId = (session.user as Record<string, unknown>).id as string;
+  const userId = auth.userId;
   const body = await request.json();
   const {
     name,
@@ -92,9 +90,7 @@ export async function POST(request: Request) {
     if (!trimmedRedirect) {
       return NextResponse.json({ error: "Укажите ссылку для перенаправления" }, { status: 400 });
     }
-    try {
-      new URL(trimmedRedirect);
-    } catch {
+    if (!parseHttpUrl(trimmedRedirect)) {
       return NextResponse.json({ error: "Некорректная ссылка для перенаправления" }, { status: 400 });
     }
   } else if (!establishmentId) {

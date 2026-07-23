@@ -3,6 +3,7 @@ import prisma from "@/lib/prisma";
 import { parseMessengerLinkCode } from "@/lib/messenger-linking";
 import { sendMaxMessage } from "@/lib/max";
 import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
+import { pluralize } from "@/lib/utils";
 
 const MAX_SECRET = process.env.MAX_WEBHOOK_SECRET;
 
@@ -111,7 +112,7 @@ async function linkMcContact(maxUserId: string, accountUserId: string) {
 
   const reviewHint =
     enabledCount > 0
-      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} заведений`}.\n` +
+      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} ${pluralize(enabledCount, "заведения", "заведений", "заведений")}`}.\n` +
         `Отключить — «Моя страница» → вкладка «Отзывы».`
       : `Когда появится заведение, жалобы 1–3★ будут приходить сюда.\n` +
         `Отключить — «Моя страница» → «Отзывы».`;

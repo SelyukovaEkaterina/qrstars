@@ -214,8 +214,8 @@ export default function AdminReviewsPage() {
               className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
             >
               <option value="">Все типы</option>
-              <option value="true">Жалобы (1-3★)</option>
-              <option value="false">Позитив (4-5★)</option>
+              <option value="true">Жалобы (1–3★)</option>
+              <option value="false">Позитив (4–5★)</option>
             </select>
 
             <select
