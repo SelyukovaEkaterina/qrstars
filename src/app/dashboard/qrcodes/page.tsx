@@ -533,24 +533,26 @@ function QRCodesPageContent() {
                       />
                     </div>
                     <div>
-                      <p className="font-mono text-sm text-gray-600">
+                      <p className="font-mono text-sm text-gray-600 break-all">
                         {qr.code}
                       </p>
                       {qr.serialCode && (
                         <p className="text-sm text-orange-600 mt-0.5 flex items-center justify-center gap-1">
-                          <Tag className="w-3 h-3" />
-                          №{qr.serialCode}
+                          <Tag className="w-3 h-3 shrink-0" />
+                          <span className="truncate">№{qr.serialCode}</span>
                         </p>
                       )}
                       {qr.label && !qr.serialCode && (
                         <p className="text-sm text-gray-700 mt-0.5 flex items-center justify-center gap-1">
-                          <Tag className="w-3 h-3" />
-                          {qr.label}
+                          <Tag className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{qr.label}</span>
                         </p>
                       )}
                       <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1">
-                        <Store className="w-3 h-3" />
-                        {qr.establishment?.name || "Не привязан"}
+                        <Store className="w-3 h-3 shrink-0" />
+                        <span className="truncate">
+                          {qr.establishment?.name || "Не привязан"}
+                        </span>
                       </p>
                     </div>
                     <div className="flex items-center justify-center gap-2 flex-wrap">
@@ -584,77 +586,84 @@ function QRCodesPageContent() {
                         {qr.scansCount} сканов
                       </span>
                     </div>
-                    <div className="flex items-center justify-center gap-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => router.push(`/dashboard/qrcodes/${qr.id}`)}
-                      >
-                        <Settings className="w-3 h-3 mr-1" />
-                        Настройки
-                      </Button>
-                      <button
-                        onClick={() => {
-                          const url = scanUrlForCode(qr.code);
-                          if (navigator.clipboard) {
-                            navigator.clipboard.writeText(url);
-                          } else {
-                            const ta = document.createElement("textarea");
-                            ta.value = url;
-                            ta.style.position = "fixed";
-                            ta.style.opacity = "0";
-                            document.body.appendChild(ta);
-                            ta.select();
-                            document.execCommand("copy");
-                            document.body.removeChild(ta);
+                    <div className="space-y-2 pt-1">
+                      <div className="flex items-stretch gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1"
+                          onClick={() => router.push(`/dashboard/qrcodes/${qr.id}`)}
+                        >
+                          <Settings className="w-3.5 h-3.5 mr-1.5 shrink-0" />
+                          Настройки
+                        </Button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const url = scanUrlForCode(qr.code);
+                            if (navigator.clipboard) {
+                              navigator.clipboard.writeText(url);
+                            } else {
+                              const ta = document.createElement("textarea");
+                              ta.value = url;
+                              ta.style.position = "fixed";
+                              ta.style.opacity = "0";
+                              document.body.appendChild(ta);
+                              ta.select();
+                              document.execCommand("copy");
+                              document.body.removeChild(ta);
+                            }
+                            setCopiedId(qr.id);
+                            setTimeout(() => setCopiedId((prev) => prev === qr.id ? null : prev), 2000);
+                          }}
+                          className="flex-1 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"
+                        >
+                          {copiedId === qr.id ? (
+                            <>
+                              <Check className="w-3.5 h-3.5 shrink-0" />
+                              Готово
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3.5 h-3.5 shrink-0" />
+                              Ссылка
+                            </>
+                          )}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-1.5 border-t border-gray-100 pt-2">
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-400">
+                          <Download className="w-3 h-3" />
+                          Скачать
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => void handleDownloadQr(qr, "png")}
+                          disabled={downloadingQrId === qr.id}
+                          className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                        >
+                          PNG
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            void handleDownloadQr(qr, "png", { transparentBackground: true })
                           }
-                          setCopiedId(qr.id);
-                          setTimeout(() => setCopiedId((prev) => prev === qr.id ? null : prev), 2000);
-                        }}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800"
-                      >
-                        {copiedId === qr.id ? (
-                          <>
-                            <Check className="w-3 h-3" />
-                            Скопировано
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3 h-3" />
-                            Ссылка
-                          </>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDownloadQr(qr, "png")}
-                        disabled={downloadingQrId === qr.id}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
-                      >
-                        <Download className="w-3 h-3" />
-                        PNG
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          void handleDownloadQr(qr, "png", { transparentBackground: true })
-                        }
-                        disabled={downloadingQrId === qr.id}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
-                        title="Прозрачный фон"
-                      >
-                        <Download className="w-3 h-3" />
-                        PNG без фона
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDownloadQr(qr, "svg")}
-                        disabled={downloadingQrId === qr.id}
-                        className="inline-flex items-center gap-1 text-sm text-indigo-600 hover:text-indigo-800 disabled:opacity-50"
-                      >
-                        <Download className="w-3 h-3" />
-                        SVG
-                      </button>
+                          disabled={downloadingQrId === qr.id}
+                          className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                          title="PNG с прозрачным фоном"
+                        >
+                          PNG без фона
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDownloadQr(qr, "svg")}
+                          disabled={downloadingQrId === qr.id}
+                          className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                        >
+                          SVG
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </Card>
