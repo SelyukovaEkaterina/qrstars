@@ -21,15 +21,15 @@ This version has breaking changes — APIs, conventions, and file structure may 
 ## Бизнес-модель
 
 - **Продажа табличек** (разовый доход): себестоимость ~550 ₽, розница 1 200 ₽, чистая прибыль ~650 ₽. Продажа через Wildberries / Ozon.
-- **Freemium SaaS** (рекуррентный доход): ядро FREE навсегда, платные тарифы PRO и «Сеть». Конфиг: `src/lib/plans.ts`.
+- **Freemium SaaS** (рекуррентный доход): ядро FREE навсегда, платные тарифы PRO и «Сеть». Конфиг: `src/lib/plans.ts` — единственный источник цен, в UI/письмах суммы не хардкодить.
 
 ### Тарифы (актуально)
 
 | Тариф | Цена | Заведения |
 |---|---|---|
 | **FREE** | 0 ₽ | 1 |
-| **PRO** | 690 ₽/мес (6 900 ₽/год) | 1 |
-| **Сеть** | 1 490 ₽/мес + 350 ₽/точка сверх 2 (14 900 ₽/год база) | 2 в базе, далее per-point |
+| **PRO** | 390 ₽/мес (3 900 ₽/год) | 1 |
+| **Сеть** | 890 ₽/мес + 210 ₽/точка сверх 2 (8 900 ₽/год база) | 2 в базе, далее per-point |
 
 QR-кодов внутри заведения — **без лимита** на всех тарифах. Тарификация по числу заведений.
 
@@ -89,15 +89,26 @@ QR-кодов внутри заведения — **без лимита** на �
 - **Контент заведения** (меню, визитка, Wi-Fi, сценарии отзывов) хранится на уровне `Establishment` и редактируется в **`/dashboard/my-page`** («Моя страница»). Тумблеры `pageModules` управляют блоками микро-лендинга. **Оформление**: `brandColor` (7 пресетов + свой HEX), `pageAppearance` (`light` / `dark`), `coverUrl`, `logoUrl` — палитра UI генерируется в `src/lib/brand-theme.ts`; акцент визитки синхронизируется с `brandColor`.
 - **QR-код** (`/dashboard/qrcodes/[id]`) — только **маршрутизация**: 4 группы — **микро-лендинг** (`LANDING`), **быстрый доступ к разделу** (`MENU` / `REVIEW` / `BUSINESS_CARD` / `WIFI`), **прямой редирект** (`REDIRECT`), **скачать файл** (`FILE`, файл привязан к QR).
 - При сканировании контент подставляется с заведения (fallback — старые FK на QR для обратной совместимости). API: `GET/PUT /api/establishments/[id]/page`.
+- **Отдача загруженных файлов**: при загрузке MIME определяется по заголовку браузера, иначе по расширению (`normalizeContentType`), и в S3 пишется `Content-Disposition` (`buildContentDisposition` в `src/lib/file-assets.ts`). Картинки, текст, PDF, видео/аудио → `inline` (открываются в браузере), остальное → `attachment`. Активные типы (`text/html`, `image/svg+xml`, XML) всегда `attachment`: файлы отдаются с `/storage/` того же origin, что и сессия. Nginx на `/storage/` шлёт `X-Content-Type-Options: nosniff`. `FileDownloadView` для inline-типов делает основной кнопкой «Открыть» (для картинок — превью), скачивание — вторичной ссылкой.
 
 ## Ключевые маршруты фронтенда
 
 - `/scan/:id` — страница-роутер: активация, микро-лендинг, быстрый раздел, редирект, файл или сбор отзывов
 - `/dashboard/my-page` — единый контент заведения (меню, отзывы, визитка, Wi-Fi)
-- **Демо QR (без БД)**: коды с префиксом `demo-` (`demo-landing`, `demo-review`, `demo-redirect`, `demo-business-card`, `demo-wifi`, `demo-file`, `demo-menu`) — конфиг в `src/lib/demo-qrcodes.ts`, рендер в `src/lib/render-demo-scan.tsx`. `demo-landing` — полный микро-лендинг со всеми разделами. На лендинге секция «Попробуйте демо». Префикс `demo-` нельзя занять при создании QR в API.
-- **QR-визитка — «Связь» (опционально)**: в `/dashboard/settings` (блок «Каналы для уведомлений») владелец **один раз** подключает Telegram (`/start link_mc_{userId}` или код `MC-{userId}`), MAX или email; можно несколько каналов на аккаунт. В настройках **заведения** — галочки «получать жалобы в Telegram/MAX»; в конструкторе визитки — выбор канала для формы «Написать человеку». Гость указывает имя и сообщение; владелец получает в выбранный канал: название QR (label или code), IP, регион, браузер, устройство и текст. API: `GET/POST/DELETE /api/messenger-contacts`, `POST /api/business-cards/contact`.
+- **Демо QR (без БД)**: коды с префиксом `demo-` (`demo-landing`, `demo-review`, `demo-2gis`, `demo-redirect`, `demo-business-card`, `demo-wifi`, `demo-file`, `demo-menu`) — конфиг в `src/lib/demo-qrcodes.ts`, рендер в `src/lib/render-demo-scan.tsx`. `demo-review` направляет 4–5★ на Яндекс, `demo-2gis` — в 2GIS. `demo-landing` — полный микро-лендинг со всеми разделами. На лендинге секция «Попробуйте демо». Префикс `demo-` нельзя занять при создании QR в API.
+- **QR-визитка — «Связь» (опционально)**: в `/dashboard/settings` (блок «Каналы для уведомлений») email регистрации создаётся как канал по умолчанию (`ensureDefaultEmailContact`, тумблеры «Отзывы»/«Заявки» включены). Владелец **один раз** подключает Telegram (`/start link_mc_{userId}` или код `MC-{userId}`) или MAX; можно добавить другой email. В настройках **заведения** — галочки типов уведомлений; в конструкторе визитки — выбор канала для формы «Написать человеку». Гость указывает имя и сообщение; владелец получает в выбранный канал: название QR (label или code), IP, регион, браузер, устройство и текст. API: `GET/POST/DELETE /api/messenger-contacts`, `POST /api/business-cards/contact`.
 - **Личный кабинет владельца** (`/dashboard/*`): активация таблички, дашборд статистики, смена ссылок, оплата Pro-тарифа
 - **Личный кабинет администратора** (`/admin/*`): обзор платформы (статистика, рост), управление пользователями (поиск, смена роли/тарифа), подписки и платежи, все отзывы, все заведения. Вход: `/admin/login`, доступ только с ролью `ADMIN` в БД. API-роуты: `/api/admin/*` (защищены `requireAdmin()`). Доступы тестового админа: `admin@smartreview.ru` / `admin1234`
+
+## Вход через VK ID
+
+- На `/login` используется OneTap из `@vkid/sdk` 2.x с `scope: email`; старый `oauth.vk.com` не используется.
+- Фронт получает `code` и `device_id`, а серверный `POST /auth/vk` обменивает код через `https://id.vk.ru/oauth2/auth`, читает профиль через `/oauth2/user_info`, связывает пользователя сначала по `vkId`, затем по email и выдаёт JWT-cookie NextAuth.
+- Новому VK-пользователю пароль не создаётся; выполняются стандартные post-registration действия (email-канал, pending-инвайты, Telegram-уведомление, welcome email).
+- Redirect URL: `https://app.qrstars.ru/auth/vk/callback`. В кабинете VK ID базовый домен должен быть `app.qrstars.ru`, иначе SDK получит CORS/code 8.
+- ID приложения: `54734947`.
+- Env: серверные `VK_CLIENT_ID`, `VK_SERVICE_TOKEN`, `VK_REDIRECT_URI`; build-time публичные `NEXT_PUBLIC_VK_CLIENT_ID`, `NEXT_PUBLIC_VK_REDIRECT_URI`. `VK_CLIENT_SECRET` может храниться в env приложения, но текущий OAuth 2.1 flow использует service token и не передаёт секреты во фронт.
+- E2E: `e2e/test_vk_auth.py`, mock VK ID API — `e2e/vk_id_mock.py`.
 
 ## Партнёрская программа
 
@@ -111,7 +122,7 @@ QR-кодов внутри заведения — **без лимита** на �
 ## Поддержка (Support)
 
 - **Клиенты** пишут в `/dashboard/support` → API `GET/POST /api/support`, тикеты в БД (`SupportTicket`, `SupportMessage`). Вложения (до 20 МБ): изображения, PDF, документы, аудио/видео — в S3 (`support/{ticketId}/…`), двусторонний обмен с Telegram-форумом (`sendPhoto`/`sendDocument` и приём `photo`/`document`/…).
-- **Оператор** отвечает в **Telegram-форуме** (супергруппа с темами): бот `@QrStarsSupportBot`, webhook `/api/telegram/support-webhook`, одна тема = один тикет.
+- **Оператор** отвечает в **Telegram-форуме** (супергруппа с темами): бот `@QrStarsSupportBot`, webhook `/api/telegram/support-webhook`, одна тема = один тикет. Ответ сохраняется в ЛК (`/dashboard/support`) и дублируется на email пользователя (`sendSupportStaffReplyEmail`).
 - **Админка**: `/admin/support` — список тикетов, ссылки на темы, закрытие тикета.
 - **Env**: `TELEGRAM_SUPPORT_BOT_TOKEN`, `TELEGRAM_SUPPORT_GROUP_ID` (ID супергруппы, например `-1001234567890`). Опционально `MAX_SUPPORT_ADMIN_USER_ID` — зеркало новых сообщений в MAX (ответы только из Telegram).
 - **Уведомления об отзывах / привязка аккаунта** — бот `@QrStarsBot` (`TELEGRAM_BOT_TOKEN`, webhook `/api/telegram/webhook`), не смешивать с support.
@@ -171,6 +182,7 @@ QR-кодов внутри заведения — **без лимита** на �
 - **Модель**: `DailyScanStat(qrCodeId, date, count, snapshot, establishmentId)`, unique `(qrCodeId, date)`. `date` — полночь МСК дня; `count` — дельта сканов за день; `snapshot` — абсолют `scansCount` на конец дня (для расчёта следующей дельты).
 - **Алгоритм** (`src/lib/daily-scan-snapshot.ts`, `takeDailyScanSnapshot`): для каждого QR, существовавшего на конец вчера, `count = max(0, scansCount − snapshot предыдущего дня)`. При отсутствии предыдущего снапшота: QR создан вчера → `count = scansCount` (позавчера не существовал); иначе (legacy-QR при первом деплое) → `count = 0` (baseline — корректные дельты со следующего дня). Идемпотентен.
 - **Отчёты**: агрегаты/топы в `src/lib/admin-weekly-report.ts` (`collectWeeklyReportMetrics`) берутся из `DailyScanStat` (`aggregate _sum count` / `groupBy`). Топ регионов остаётся на `QRScan` (регионы PRO-only).
+- **Аналитика в ЛК** (`GET /api/analytics`): объёмные метрики (всего сканов, график по дням, сравнение с прошлым периодом, разбивка по режимам, топ QR/заведений, конверсия, дни недели) считаются через `collectScanPeriodStats` (`src/lib/scan-period-stats.ts`) — `DailyScanStat` за период **плюс живая дельта за сегодня** (`scansCount − последний snapshot`), т.к. снапшот текущего дня появляется только в 04:00 МСК. `QRScan` остаётся источником только для PRO-детализации: устройства, браузеры, регионы, разбивка по часам и лента сканов. Дни графика сканов — по календарю **МСК** (ключ `mskDateKey`), в отличие от графика отзывов (локальная TZ сервера).
 - **API**: `POST /api/cron/snapshot-scans` с `Authorization: Bearer $CRON_SECRET` (или `?secret=`). Опц. `?referenceDate=ISO` для бэкфилла.
 - **Cron на VPS**: `deploy/snapshot-scans.sh` — ежедневно **04:00 МСК** (после flush-scans и pg-backup, до дневного отчёта 09:00): `0 1 * * * /opt/qrstars/deploy/snapshot-scans.sh`.
 - **Первый запуск после деплоя**: отчёт за день деплоя покажет 0 сканов (baseline); со следующего дня — корректные дельты для всех тарифов.

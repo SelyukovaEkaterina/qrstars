@@ -23,15 +23,33 @@ services:
       timeout: 5s
       retries: 5
 
+  vk-id-test:
+    image: python:3.14-alpine
+    working_dir: /app
+    command: ["python", "vk_id_mock.py"]
+    volumes:
+      - ./e2e/vk_id_mock.py:/app/vk_id_mock.py:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
   app:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_VK_CLIENT_ID: "123456"
+        NEXT_PUBLIC_VK_REDIRECT_URI: "http://localhost:3000/auth/vk/callback"
     environment:
       DATABASE_URL: "postgresql://postgres:postgres@db-test:5432/smartreview_test?schema=public"
       NEXTAUTH_URL: "http://localhost:3000"
       NEXTAUTH_SECRET: "test-secret-for-e2e-tests-at-least-32-chars!!"
       NEXT_PUBLIC_BASE_URL: "http://localhost:3000"
+      VK_CLIENT_ID: "123456"
+      VK_REDIRECT_URI: "http://localhost:3000/auth/vk/callback"
+      VK_API_BASE_URL: "http://vk-id-test:8080"
       SMTP_HOST: "localhost"
       SMTP_PORT: "1025"
       SMTP_USER: ""
@@ -53,6 +71,8 @@ services:
         condition: service_healthy
       minio-test:
         condition: service_healthy
+      vk-id-test:
+        condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/auth/csrf || exit 1"]
       interval: 5s
@@ -66,6 +86,7 @@ services:
       dockerfile: Dockerfile
     environment:
       BASE_URL: "http://app:3000"
+      S3_PUBLIC_BASE: "http://minio-test:9000/qrwin-test"
       CRON_SECRET: "test-cron-secret-for-e2e"
       ROBOKASSA_PASSWORD_2: "test-password-2"
     depends_on:

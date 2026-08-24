@@ -1,24 +1,23 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+import VkIdLogin from "@/components/auth/VkIdLogin";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(() =>
+    searchParams.get("session") === "expired"
+      ? "Сессия устарела. Войдите снова."
+      : ""
+  );
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (searchParams.get("session") === "expired") {
-      setError("Сессия устарела. Войдите снова.");
-    }
-  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,6 +49,14 @@ function LoginForm() {
         {error && (
           <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
         )}
+
+        <VkIdLogin />
+
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="h-px flex-1 bg-gray-200" />
+          <span>или по email</span>
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
 
         <Input
           id="email"
