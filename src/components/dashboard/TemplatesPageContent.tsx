@@ -87,7 +87,7 @@ const PAGE_META: Record<
   { title: string; subtitle: string; createLabel: string }
 > = {
   qr: {
-    title: "Шаблоны QR-кода",
+    title: "Шаблоны QR-кодов",
     subtitle: "Стили оформления QR-кодов для скачивания и привязки к кодам",
     createLabel: "Новый шаблон QR-кода",
   },

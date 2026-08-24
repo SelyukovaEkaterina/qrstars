@@ -20,8 +20,5 @@ export default async function TemplatesRedirectPage({
   }
   const suffix = qs.toString() ? `?${qs.toString()}` : "";
 
-  if (tab === "table-tent") {
-    redirect(`${TEMPLATE_ROUTES.tableTents}${suffix}`);
-  }
   redirect(`${TEMPLATE_ROUTES.qr}${suffix}`);
 }

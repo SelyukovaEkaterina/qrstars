@@ -148,3 +148,78 @@ export function sendNegativeReviewNotification(
     `
   );
 }
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+/** Ответ оператора из Telegram-форума → email клиенту (дубль ЛК). */
+export function sendSupportStaffReplyEmail(
+  to: string,
+  body: string,
+  opts?: { attachmentUrl?: string | null; attachmentName?: string | null }
+) {
+  const supportUrl = `${process.env.NEXT_PUBLIC_BASE_URL || "https://app.qrstars.ru"}/dashboard/support`;
+  const safeBody = escapeHtml(body).replace(/\n/g, "<br>");
+  const attachmentBlock =
+    opts?.attachmentUrl && opts.attachmentName
+      ? `<p style="margin:16px 0 0;">
+           <a href="${escapeHtml(opts.attachmentUrl)}"
+              style="color:#4f46e5;text-decoration:underline;">
+             📎 ${escapeHtml(opts.attachmentName)}
+           </a>
+         </p>`
+      : "";
+
+  return sendMail(
+    to,
+    "Ответ службы поддержки — QrStars.ru",
+    `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #1a1a2e;">Ответ службы поддержки</h1>
+      <p>В вашем обращении появился новый ответ:</p>
+      <div style="background:#f9fafb;padding:16px;border-radius:8px;border-left:4px solid #4f46e5;margin:16px 0;color:#1f2937;line-height:1.6;">
+        ${safeBody}
+        ${attachmentBlock}
+      </div>
+      <a href="${supportUrl}"
+         style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:8px;">
+        Открыть чат в кабинете
+      </a>
+      <p style="color:#666;margin-top:24px;font-size:12px;">Ответить можно в личном кабинете → Поддержка.</p>
+    </div>
+    `
+  );
+}
+
+export function sendPromoSurveyEmail(to: string, surveyUrl: string) {
+  return sendMail(
+    to,
+    "Подарок от QrStars: PRO-тариф на 3 месяца за ваше мнение 🎁",
+    `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #1a1a2e; margin-bottom: 16px;">Дарим PRO-тариф за вашу обратную связь!</h1>
+      <p style="font-size: 16px; color: #4b5563; line-height: 1.5; margin-bottom: 16px;">
+        Здравствуйте! Вы зарегистрировались в QrStars более недели назад. Мы постоянно улучшаем наш сервис и нам очень важно ваше мнение.
+      </p>
+      <p style="font-size: 16px; color: #4b5563; line-height: 1.5; margin-bottom: 24px;">
+        Пройдите короткий опрос — он займёт не более двух минут. В благодарность мы <strong>бесплатно активируем PRO-тариф на 3 месяца</strong> для вашего аккаунта или продлим его, если он уже подключён.
+      </p>
+      <div style="text-align: center; margin-bottom: 24px;">
+        <a href="${surveyUrl}"
+           style="display:inline-block;padding:14px 28px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;font-weight: bold; font-size: 16px;">
+          Пройти опрос и получить PRO
+        </a>
+      </div>
+      <p style="color:#9ca3af;margin-top:32px;font-size:12px; text-align: center;">
+        Это единоразовая акция. Если кнопка не работает, скопируйте и вставьте эту ссылку в браузер:<br>
+        <a href="${surveyUrl}" style="color: #6b7280;">${surveyUrl}</a>
+      </p>
+    </div>
+    `
+  );
+}

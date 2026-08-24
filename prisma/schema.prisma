@@ -52,6 +52,8 @@ model User {
   userEvents         UserEvent[]
   lifecycleEmails    UserLifecycleEmail[]
   feedbacks          UserFeedback[]
+  productFeedbacks   ProductFeedback[]
+  promoSurveys       PromoSurveyResponse[]
   paymentOrders      PaymentOrder[]
   recurringConsents  RecurringConsentLog[]
 }
@@ -80,6 +82,29 @@ model UserFeedback {
 
   @@unique([userId, surveyKind])
   @@index([surveyKind, createdAt])
+}
+
+model ProductFeedback {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  message   String
+  pageUrl   String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([createdAt])
+}
+
+model PromoSurveyResponse {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  userId    String?  @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  answers   Json
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 }
 
 model PlatformMeta {
@@ -123,8 +148,8 @@ model Establishment {
   tipsClientId     String?
 
   notificationEmail                    String?
-  notificationEmailEnabled             Boolean  @default(false)
-  notificationEmailRequestsEnabled       Boolean  @default(false)
+  notificationEmailEnabled             Boolean  @default(true)
+  notificationEmailRequestsEnabled       Boolean  @default(true)
   notificationTelegramChatId             String?
   notificationTelegramEnabled            Boolean  @default(false)
   notificationTelegramRequestsEnabled    Boolean  @default(false)
@@ -825,4 +850,3 @@ model EstablishmentMember {
 
   @@unique([establishmentId, email])
 }
-

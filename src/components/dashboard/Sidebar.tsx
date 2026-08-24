@@ -13,20 +13,17 @@ import {
   LogOut,
   Store,
   Palette,
-  LayoutTemplate,
   Star,
   Layout,
   Users,
   HelpCircle,
   Inbox,
   Headphones,
+  Lightbulb,
   type LucideIcon,
 } from "lucide-react";
 import { signOutTo } from "@/lib/sign-out-client";
-import {
-  isTableTentTemplateEditorPath,
-  TEMPLATE_ROUTES,
-} from "@/lib/template-routes";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 
 type NavLink = {
   href: string;
@@ -113,21 +110,11 @@ const navSections: NavSection[] = [
     items: [
       {
         href: TEMPLATE_ROUTES.qr,
-        label: "Шаблоны QR-кода",
+        label: "Шаблоны QR-кодов",
         icon: Palette,
         tourId: "tour-nav-templates-qr",
         isActive: (p) =>
           p === TEMPLATE_ROUTES.qr || p.startsWith(`${TEMPLATE_ROUTES.qr}/`),
-      },
-      {
-        href: TEMPLATE_ROUTES.tableTents,
-        label: "Шаблоны табличек",
-        icon: LayoutTemplate,
-        tourId: "tour-nav-templates-table-tents",
-        isActive: (p) =>
-          p === TEMPLATE_ROUTES.tableTents ||
-          p.startsWith(`${TEMPLATE_ROUTES.tableTents}/`) ||
-          isTableTentTemplateEditorPath(p),
       },
     ],
   },
@@ -240,6 +227,13 @@ export default function Sidebar() {
       </div>
 
       <nav id="tour-sidebar-nav" className="flex-1 p-4 overflow-y-auto">
+        <Link
+          href="/dashboard/ideas"
+          className="mb-5 flex items-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-3 text-sm font-bold text-white shadow-sm transition hover:from-amber-600 hover:to-orange-600"
+        >
+          <Lightbulb className="h-5 w-5 shrink-0" />
+          <span>Есть идея?</span>
+        </Link>
         {navSections.map((section) => (
           <div key={section.title} className="mb-5 last:mb-0">
             <p className="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">

@@ -8,6 +8,7 @@ import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
 import Sidebar from "@/components/dashboard/Sidebar";
+import { PLAN_PRICING, formatRub } from "@/lib/plans";
 import {
   Users,
   Wallet,
@@ -461,7 +462,10 @@ export default function PartnerPage() {
                     <DollarSign className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">Пример заработка</p>
-                      <p className="text-xs text-gray-500">10 рефералов × 690 ₽/мес × 15% = 1 035 ₽/мес пассивного дохода.</p>
+                      <p className="text-xs text-gray-500">
+                        10 рефералов × {formatRub(PLAN_PRICING.PRO.monthlyRub)}/мес × 15% ={" "}
+                        {formatRub(Math.round(PLAN_PRICING.PRO.monthlyRub * 10 * 0.15))}/мес пассивного дохода.
+                      </p>
                     </div>
                   </div>
                 </div>

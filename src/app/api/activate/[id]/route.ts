@@ -5,6 +5,7 @@ import { invalidateScanCache } from "@/lib/cache";
 import { sendWelcomeEmail } from "@/lib/mailer";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
 
 export async function POST(
   request: Request,
@@ -147,6 +148,8 @@ export async function POST(
       user: { connect: { id: user.id } },
     },
   });
+
+  await ensureDefaultEmailContact(user.id, user.email);
 
   if (isNewUser) {
     await sendWelcomeEmail(email, password, establishmentName);

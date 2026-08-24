@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { MessengerProvider } from "@/generated/prisma/client";
+import { normalizeInviteEmail } from "@/lib/establishment-access";
 
 export type NotifyPurpose = "reviews" | "requests" | "reports";
 
@@ -133,6 +134,68 @@ export async function enableReviewNotificationsForProvider(
     data: { [REVIEW_NOTIFY_FIELD[provider]]: true },
   });
   return result.count;
+}
+
+/** Включить email-уведомления (отзывы + заявки) во всех заведениях владельца. */
+export async function enableEmailNotificationsForOwner(userId: string): Promise<number> {
+  const result = await prisma.establishment.updateMany({
+    where: { userId },
+    data: {
+      notificationEmailEnabled: true,
+      notificationEmailRequestsEnabled: true,
+    },
+  });
+  return result.count;
+}
+
+/**
+ * Email регистрации как канал уведомлений по умолчанию.
+ * Создаёт MessengerContact(EMAIL), если такого адреса ещё нет.
+ * Если это первый EMAIL-контакт — включает тумблеры «Отзывы» и «Заявки».
+ */
+export async function ensureDefaultEmailContact(
+  userId: string,
+  email: string
+): Promise<{ created: boolean; enabledEstablishments: number }> {
+  const normalized = normalizeInviteEmail(email);
+  if (!normalized || !normalized.includes("@")) {
+    return { created: false, enabledEstablishments: 0 };
+  }
+
+  const existingSame = await prisma.messengerContact.findUnique({
+    where: {
+      userId_provider_externalId: {
+        userId,
+        provider: "EMAIL",
+        externalId: normalized,
+      },
+    },
+    select: { id: true },
+  });
+  if (existingSame) {
+    return { created: false, enabledEstablishments: 0 };
+  }
+
+  const hadAnyEmail = await prisma.messengerContact.findFirst({
+    where: { userId, provider: "EMAIL" },
+    select: { id: true },
+  });
+
+  await prisma.messengerContact.create({
+    data: {
+      userId,
+      provider: "EMAIL",
+      externalId: normalized,
+      label: normalized,
+    },
+  });
+
+  let enabledEstablishments = 0;
+  if (!hadAnyEmail) {
+    enabledEstablishments = await enableEmailNotificationsForOwner(userId);
+  }
+
+  return { created: true, enabledEstablishments };
 }
 
 /**

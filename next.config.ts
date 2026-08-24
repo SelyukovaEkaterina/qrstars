@@ -6,6 +6,10 @@ const s3Bucket = process.env.S3_BUCKET || "qrwin-logos";
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["192.168.31.23", "localhost"],
+  // Match FILE_MAX_SIZE (25 MB) + multipart overhead; nginx allows 32m.
+  experimental: {
+    proxyClientMaxBodySize: "32mb",
+  },
   images: {
     remotePatterns: [
       {

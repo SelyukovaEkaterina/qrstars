@@ -1,5 +1,9 @@
 import { uploadObject } from "@/lib/s3";
-import { getFileExtension, normalizeContentType } from "@/lib/file-assets";
+import {
+  buildContentDisposition,
+  getFileExtension,
+  normalizeContentType,
+} from "@/lib/file-assets";
 
 /** Лимит для вложений в поддержке (Telegram Bot API до 50 МБ для документов). */
 export const SUPPORT_ATTACHMENT_MAX_SIZE = 20 * 1024 * 1024;
@@ -49,7 +53,9 @@ export async function uploadSupportAttachment(
   const safeName = fileName.replace(/[^\w.\-()а-яА-ЯёЁ ]+/g, "_").slice(0, 120) || `file.${ext}`;
   const key = `support/${ticketId}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  const url = await uploadObject(key, buffer, contentType);
+  const url = await uploadObject(key, buffer, contentType, {
+    contentDisposition: buildContentDisposition(safeName, contentType),
+  });
   return { url, name: safeName, mime: contentType };
 }
 

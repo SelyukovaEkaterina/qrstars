@@ -311,14 +311,14 @@ export default function MessengerContactsManager({
     <Card id="notification-channels">
       <h3 className="font-semibold text-gray-900 mb-1">Каналы для уведомлений</h3>
       <p className="text-sm text-gray-500 mb-4">
-        Подключите канал один раз на аккаунт
+        Email аккаунта подключается автоматически. Telegram и MAX — один раз на аккаунт
         {establishmentName ? (
           <>
             {" "}
-            и выберите, что получать для заведения «{establishmentName}»
+            ; для заведения «{establishmentName}» выберите типы уведомлений
           </>
         ) : (
-          " и выберите типы уведомлений для заведения"
+          "; выберите типы уведомлений для заведения"
         )}
         .
       </p>

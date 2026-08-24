@@ -117,18 +117,9 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
     {
       element: "#tour-nav-templates-qr",
       popover: {
-        title: "Шаблоны QR-кода",
+        title: "Шаблоны QR-кодов",
         description:
           "Готовые оформления QR-кодов (цвет, логотип, фон) — применяйте к кодам одним кликом. Свои пресеты сохраняются для всех QR заведения.",
-        ...popoverRight,
-      },
-    },
-    {
-      element: "#tour-nav-templates-table-tents",
-      popover: {
-        title: "Шаблоны табличек",
-        description:
-          "Макеты табличек и стикеров для печати с QR-кодом. Выберите готовый или создайте свой и привяжите к динамическому QR в настройках кода.",
         ...popoverRight,
       },
     },

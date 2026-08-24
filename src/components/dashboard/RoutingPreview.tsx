@@ -60,6 +60,7 @@ export interface LandingPreviewPayload {
   avitoUrl?: string | null;
   address?: string | null;
   phone?: string | null;
+  workingHours?: unknown;
   landingTipsType?: string | null;
   landingTipsPhone?: string | null;
   landingTipsBankName?: string | null;
@@ -115,7 +116,7 @@ export default function RoutingPreview({
         <span>Предпросмотр для гостя</span>
       </div>
       <div className="mx-auto w-[280px] rounded-[2rem] border-[6px] border-gray-800 bg-gray-800 p-1 shadow-xl">
-        <div className="rounded-[1.4rem] overflow-hidden bg-white min-h-[420px] max-h-[520px] overflow-y-auto">
+        <div className="rounded-t-[1.4rem] overflow-hidden min-h-[480px] max-h-[560px] overflow-y-auto flex flex-col bg-white">
           {routingGroup === "LANDING" && pageModules && establishmentId && (
             <MicroLandingView
               establishmentName={establishmentName}
@@ -211,6 +212,8 @@ export default function RoutingPreview({
               landingSubtitle={landing?.landingSubtitle}
               address={landing?.address}
               phone={landing?.phone}
+              yandexMapsUrl={landing?.yandexMapsUrl}
+              workingHours={landing?.workingHours}
               watermarkEnabled
               embedded
             />
@@ -248,6 +251,9 @@ export default function RoutingPreview({
               </p>
             </div>
           )}
+        </div>
+        <div className="h-3 rounded-b-[1.2rem] bg-gray-800 flex items-center justify-center">
+          <div className="w-16 h-0.5 rounded-full bg-gray-600" />
         </div>
       </div>
     </div>

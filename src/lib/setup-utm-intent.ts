@@ -47,16 +47,16 @@ export function parseSetupUtmContext(
 
 export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu";
 
-/** Exact `menu_search` UTM → skip intent picker and open menu setup immediately. */
+/**
+ * No UTM skips the scenario picker: traffic source only prioritizes the
+ * relevant card, so the owner keeps control over the first QR scenario.
+ */
 export function resolveAutoSelectedIntent(
   utmCampaign: string | null,
   utmContent: string | null
 ): SetupIntentId | null {
-  const campaign = (utmCampaign ?? "").trim().toLowerCase();
-  const content = (utmContent ?? "").trim().toLowerCase();
-  if (MENU_CAMPAIGNS.has(campaign) || MENU_CAMPAIGNS.has(content)) {
-    return "menu";
-  }
+  void utmCampaign;
+  void utmContent;
   return null;
 }
 

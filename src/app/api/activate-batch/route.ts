@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendWelcomeEmail } from "@/lib/mailer";
+import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -175,6 +176,8 @@ export async function POST(request: Request) {
       },
     });
   });
+
+  await ensureDefaultEmailContact(user.id, user.email);
 
   if (isNewUser) {
     await sendWelcomeEmail(email, password, establishmentName);

@@ -19,6 +19,7 @@ import {
   parseRegistrationUtm,
 } from "@/lib/registration-utm";
 import type { Prisma } from "@/generated/prisma/client";
+import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
 
 export async function POST(request: Request) {
   // Rate limit: 10 регистраций в час с одного IP (в e2e все запросы с одного IP)
@@ -138,6 +139,8 @@ export async function POST(request: Request) {
       ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
     },
   });
+
+  await ensureDefaultEmailContact(user.id, user.email);
 
   if (typeof establishmentInvite === "string" && establishmentInvite) {
     await acceptInviteByToken(establishmentInvite, user.id, normalizedEmail);

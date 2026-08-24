@@ -70,6 +70,7 @@ function landingPreviewFromEstablishment(est: Record<string, unknown>): LandingP
     avitoUrl: (est.avitoUrl as string | null) ?? null,
     address: (est.address as string | null) ?? null,
     phone: (est.phone as string | null) ?? null,
+    workingHours: est.workingHours ?? null,
     landingTipsType: (est.landingTipsType as string | null) ?? null,
     landingTipsPhone: (est.landingTipsPhone as string | null) ?? null,
     landingTipsBankName: (est.landingTipsBankName as string | null) ?? null,
@@ -92,6 +93,7 @@ import {
   ChevronDown,
   QrCode,
   LayoutTemplate,
+  Pencil,
 } from "lucide-react";
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
@@ -105,6 +107,7 @@ import {
   DEFAULT_STICKER_CONFIG,
   type StickerConfig,
 } from "@/components/dashboard/StickerDesigner";
+import QRTemplateEditor from "@/components/dashboard/QRTemplateEditor";
 import {
   QR_CODE_TEMPLATES,
   renderQRTemplate,
@@ -113,6 +116,7 @@ import {
   qrStylePresetTemplateId,
   resolveQrStyleConfig,
   resolveQrStyleName,
+  isBuiltInQrStyleTemplateId,
   type QRTemplateConfig,
   type QrStyleTemplateSource,
 } from "@/lib/qr-code-templates";
@@ -204,6 +208,7 @@ export default function QRCodeSettingsPage() {
   const [qrHint, setQrHint] = useState("");
   const [showTableTemplatePicker, setShowTableTemplatePicker] = useState(false);
   const [showQrStyleTemplatePicker, setShowQrStyleTemplatePicker] = useState(false);
+  const [editingQrStyleTemplate, setEditingQrStyleTemplate] = useState<Template | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
 
   const generateQRImage = useCallback(
@@ -431,7 +436,29 @@ export default function QRCodeSettingsPage() {
     if (!qrStyle) return baseCfg;
     return { ...baseCfg, qrStyleConfig: qrStyle };
   }, [qrStyleTemplateId, qrStyleTemplates]);
-  const userQrStyleTemplates = qrStyleTemplates.filter((t) => !t.id.startsWith("qr-preset-"));
+  const userQrStyleTemplates = qrStyleTemplates.filter((t) => !isBuiltInQrStyleTemplateId(t.id));
+
+  const openEditQrStyleTemplate = useCallback((t: Template) => {
+    const config = (t.layout as { config?: QRTemplateConfig }).config;
+    if (!config) return;
+    setShowQrStyleTemplatePicker(false);
+    setEditingQrStyleTemplate(t);
+  }, []);
+
+  const handleQrStyleTemplateSaved = useCallback(
+    (id: string, name: string, config: QRTemplateConfig) => {
+      setTemplates((prev) => {
+        const exists = prev.some((t) => t.id === id);
+        const layout = { __type: "qr-style", config } as unknown as TemplateLayout;
+        if (exists) {
+          return prev.map((t) => (t.id === id ? { ...t, name, layout } : t));
+        }
+        return [...prev, { id, name, layout }];
+      });
+      setEditingQrStyleTemplate(null);
+    },
+    [],
+  );
 
   const handleDownloadQR = async (
     format: "png" | "svg",
@@ -886,6 +913,7 @@ export default function QRCodeSettingsPage() {
                       {(() => {
                         const selectedName = resolveQrStyleName(qrStyleTemplateId, qrStyleTemplates);
                         const config = resolveQrStyleConfig(qrStyleTemplateId, qrStyleTemplates);
+                        const selectedUserTpl = userQrStyleTemplates.find((t) => t.id === qrStyleTemplateId);
                         return (
                           <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50 mb-2">
                             {config ? (
@@ -912,6 +940,18 @@ export default function QRCodeSettingsPage() {
                                 >
                                   {selectedName ? "Сменить" : "Выбрать"} <ChevronDown className="w-3 h-3" />
                                 </button>
+                                {selectedUserTpl && (
+                                  <>
+                                    <span className="text-gray-300">·</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditQrStyleTemplate(selectedUserTpl)}
+                                      className="text-xs text-gray-500 hover:text-indigo-600"
+                                    >
+                                      Редактировать
+                                    </button>
+                                  </>
+                                )}
                                 {selectedName && (
                                   <>
                                     <span className="text-gray-300">·</span>
@@ -929,7 +969,7 @@ export default function QRCodeSettingsPage() {
                                   href={TEMPLATE_ROUTES.qr}
                                   className="text-xs text-gray-500 hover:text-indigo-600"
                                 >
-                                  Шаблоны QR-кода →
+                                  Шаблоны QR-кодов →
                                 </Link>
                               </div>
                             </div>
@@ -976,93 +1016,6 @@ export default function QRCodeSettingsPage() {
                       )}
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-1">
-                        <LayoutTemplate className="w-3.5 h-3.5" />
-                        Шаблон таблички
-                      </label>
-                      {(() => {
-                        const selectedTpl = stickerTemplates.find((t) => t.id === templateId);
-                        const stickerCfg = (selectedTpl?.layout as { stickerConfig?: StickerConfig } | undefined)?.stickerConfig;
-                        return (
-                          <div className="flex items-center gap-3 p-3 rounded-xl border border-gray-200 bg-gray-50 mb-2">
-                            {stickerCfg ? (
-                              <StickerMiniPreview cfg={getEnhancedStickerConfig({ ...stickerCfg, url: scanUrlForCode(qrData.code) })} />
-                            ) : (
-                              <div className="w-14 h-14 rounded-lg bg-gray-200 flex items-center justify-center text-gray-400 text-xs shrink-0">
-                                —
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {selectedTpl ? selectedTpl.name : "Шаблон не выбран"}
-                              </p>
-                              {stickerCfg && (
-                                <p className="text-xs text-gray-400 mt-0.5">
-                                  {FORMATS.find((f) => f.id === stickerCfg.formatId)?.name || stickerCfg.formatId}
-                                  {" · "}
-                                  {stickerCfg.themeId}
-                                </p>
-                              )}
-                              <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                                <button
-                                  type="button"
-                                  onClick={() => setShowTableTemplatePicker(true)}
-                                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-0.5"
-                                >
-                                  {selectedTpl ? "Сменить" : "Выбрать"} <ChevronDown className="w-3 h-3" />
-                                </button>
-                                {selectedTpl && (
-                                  <>
-                                    <span className="text-gray-300">·</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => router.push(`/dashboard/templates/${selectedTpl.id}`)}
-                                      className="text-xs text-gray-500 hover:text-indigo-600"
-                                    >
-                                      Редактировать
-                                    </button>
-                                    <span className="text-gray-300">·</span>
-                                    <button
-                                      type="button"
-                                      onClick={() => void persistTableTemplate("")}
-                                      className="text-xs text-gray-400 hover:text-red-500"
-                                    >
-                                      Убрать
-                                    </button>
-                                  </>
-                                )}
-                                <span className="text-gray-300">·</span>
-                                <Link
-                                  href={TEMPLATE_ROUTES.tableTents}
-                                  className="text-xs text-gray-500 hover:text-indigo-600"
-                                >
-                                  Шаблоны таблички →
-                                </Link>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                      <div className="flex flex-wrap items-center gap-3">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="ghost"
-                          onClick={handleDownloadTablePDF}
-                          disabled={pdfDownloading || !templateId}
-                        >
-                          <Download className="w-4 h-4 mr-1" />
-                          {pdfDownloading ? "Готовим PDF..." : "Скачать табличку"}
-                        </Button>
-                      </div>
-                      {!templateId && (
-                        <p className="mt-1 text-xs text-gray-400">Выберите шаблон таблички, чтобы скачать PDF</p>
-                      )}
-                      {pdfHint && (
-                        <p className="mt-1 text-xs text-amber-700">{pdfHint}</p>
-                      )}
-                    </div>
                   </div>
                 </div>
               </Card>
@@ -1340,19 +1293,31 @@ export default function QRCodeSettingsPage() {
                       const config = (t.layout as { config?: QRTemplateConfig }).config;
                       if (!config) return null;
                       return (
-                        <button
+                        <div
                           key={t.id}
-                          type="button"
-                          onClick={() => { void persistQrStyleTemplate(t.id); setShowQrStyleTemplatePicker(false); }}
                           className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
                             qrStyleTemplateId === t.id ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
                           }`}
                         >
-                          <div className="rounded-lg overflow-hidden shadow-sm">
-                            <QRStyleMiniPreview config={config} payload={scanUrlForCode(qrData?.code || "demo")} size={80} />
-                          </div>
-                          <span className="text-xs text-gray-700 font-medium text-center leading-tight line-clamp-2">{t.name}</span>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => { void persistQrStyleTemplate(t.id); setShowQrStyleTemplatePicker(false); }}
+                            className="flex flex-col items-center gap-2 w-full"
+                          >
+                            <div className="rounded-lg overflow-hidden shadow-sm">
+                              <QRStyleMiniPreview config={config} payload={scanUrlForCode(qrData?.code || "demo")} size={80} />
+                            </div>
+                            <span className="text-xs text-gray-700 font-medium text-center leading-tight line-clamp-2">{t.name}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditQrStyleTemplate(t)}
+                            className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                          >
+                            <Pencil className="w-3 h-3" />
+                            Редактировать
+                          </button>
+                        </div>
                       );
                     })}
                   </div>
@@ -1374,6 +1339,33 @@ export default function QRCodeSettingsPage() {
           </div>
         </div>
       )}
+
+      {editingQrStyleTemplate && (() => {
+        const config = (editingQrStyleTemplate.layout as { config?: QRTemplateConfig }).config;
+        if (!config) return null;
+        return (
+          <QRTemplateEditor
+            preset={{
+              id: editingQrStyleTemplate.id,
+              name: editingQrStyleTemplate.name,
+              description: "",
+              accent: config.fg,
+              config,
+            }}
+            existingId={editingQrStyleTemplate.id}
+            existingName={editingQrStyleTemplate.name}
+            bindQrId={qrData?.id}
+            onClose={() => setEditingQrStyleTemplate(null)}
+            onSaved={handleQrStyleTemplateSaved}
+            onBound={(qrId, templateId) => {
+              if (qrId === qrData?.id) {
+                setQrStyleTemplateId(templateId);
+                setQrData((prev) => (prev ? { ...prev, qrStyleTemplateId: templateId } : prev));
+              }
+            }}
+          />
+        );
+      })()}
 
       {/* ── Table template picker ── */}
       {showTableTemplatePicker && (

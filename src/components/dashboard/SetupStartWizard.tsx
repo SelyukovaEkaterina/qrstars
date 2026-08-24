@@ -612,7 +612,7 @@ export default function SetupStartWizard({
     router.push(href);
   };
 
-  const [downloadType, setDownloadType] = useState<"pdf" | "png">("pdf");
+  const [downloadType, setDownloadType] = useState<"pdf" | "png">("png");
   const [selectedPresetId, setSelectedPresetId] = useState("universal-a6");
   const [pdfDownloading, setPdfDownloading] = useState(false);
   const [tableTemplateId, setTableTemplateId] = useState<string | null>(null);
@@ -830,7 +830,7 @@ export default function SetupStartWizard({
                   Как вы планируете разместить QR-код?
                 </label>
               )}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
+              <div className="hidden grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
                 <button
                   type="button"
                   onClick={() => setDownloadType("pdf")}

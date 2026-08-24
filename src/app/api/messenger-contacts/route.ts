@@ -2,7 +2,12 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
-import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
+import {
+  enableEmailNotificationsForOwner,
+  enableReviewNotificationsForProvider,
+  ensureDefaultEmailContact,
+} from "@/lib/owner-messenger-notify";
+import { normalizeInviteEmail } from "@/lib/establishment-access";
 
 async function getUserId() {
   const session = await getServerSession(authOptions);
@@ -14,6 +19,21 @@ export async function GET() {
   const userId = await getUserId();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  if (user?.email) {
+    // Ленивый бэкап для старых аккаунтов без EMAIL-контакта
+    const hasEmail = await prisma.messengerContact.findFirst({
+      where: { userId, provider: "EMAIL" },
+      select: { id: true },
+    });
+    if (!hasEmail) {
+      await ensureDefaultEmailContact(userId, user.email);
+    }
   }
 
   const contacts = await prisma.messengerContact.findMany({
@@ -45,13 +65,24 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "externalId обязателен" }, { status: 400 });
   }
 
-  const normalizedId = externalId.trim();
+  const normalizedId =
+    provider === "EMAIL" ? normalizeInviteEmail(externalId) : externalId.trim();
   if (provider === "EMAIL" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedId)) {
     return NextResponse.json({ error: "Некорректный email" }, { status: 400 });
   }
 
   const defaultLabel =
     provider === "TELEGRAM" ? "Telegram" : provider === "MAX" ? "MAX" : normalizedId;
+
+  const hadEmailBefore =
+    provider === "EMAIL"
+      ? Boolean(
+          await prisma.messengerContact.findFirst({
+            where: { userId, provider: "EMAIL" },
+            select: { id: true },
+          })
+        )
+      : false;
 
   const contact = await prisma.messengerContact.upsert({
     where: {
@@ -75,6 +106,8 @@ export async function POST(request: Request) {
   let reviewNotificationsEnabled = 0;
   if (provider === "TELEGRAM" || provider === "MAX") {
     reviewNotificationsEnabled = await enableReviewNotificationsForProvider(userId, provider);
+  } else if (provider === "EMAIL" && !hadEmailBefore) {
+    reviewNotificationsEnabled = await enableEmailNotificationsForOwner(userId);
   }
 
   return NextResponse.json({ contact, reviewNotificationsEnabled });

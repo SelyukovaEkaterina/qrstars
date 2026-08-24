@@ -8,6 +8,7 @@ import {
   demoPageModules,
   demoRedirectUrl,
   demoReviewScan,
+  demo2GisReviewScan,
   demoWifiConfig,
   isDemoQrCode,
   demo2Menu,
@@ -60,6 +61,13 @@ export async function GET(
           needsActivation: false,
           demo: true,
           ...demoReviewScan,
+          tipsEnabled: false,
+        });
+      case "demo-2gis":
+        return NextResponse.json({
+          needsActivation: false,
+          demo: true,
+          ...demo2GisReviewScan,
           tipsEnabled: false,
         });
       case "demo-redirect":

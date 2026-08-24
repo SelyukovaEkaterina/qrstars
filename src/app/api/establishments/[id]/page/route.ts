@@ -94,6 +94,9 @@ export async function GET(_request: Request, context: RouteContext) {
     establishment: {
       id: establishment.id,
       name: establishment.name,
+      address: establishment.address,
+      phone: establishment.phone,
+      workingHours: establishment.workingHours,
       yandexMapsUrl: establishment.yandexMapsUrl,
       twoGisUrl: establishment.twoGisUrl,
       avitoUrl: establishment.avitoUrl,
@@ -273,6 +276,12 @@ export async function PUT(request: Request, context: RouteContext) {
     establishment: {
       id: updated.id,
       name: updated.name,
+      address: updated.address,
+      phone: updated.phone,
+      workingHours: updated.workingHours,
+      yandexMapsUrl: updated.yandexMapsUrl,
+      twoGisUrl: updated.twoGisUrl,
+      avitoUrl: updated.avitoUrl,
       pageModules: parsePageModules(updated.pageModules),
       moduleOrder: parseModuleOrder(updated.moduleOrder),
       moduleLabels: parseModuleLabels(updated.moduleLabels),

@@ -1,4 +1,4 @@
-import { PLANS } from "@/lib/plans";
+import { PLANS, PLAN_PRICING, formatRub } from "@/lib/plans";
 import { renderEmailLayout, featureBlock, bulletList } from "@/lib/email-layout";
 import { createSignedFeedbackToken, getBaseUrl } from "@/lib/signed-user-token";
 import type { LifecycleUserState } from "@/lib/lifecycle-email-state";
@@ -17,11 +17,11 @@ export function renderWelcomeEmail(state: LifecycleUserState): string {
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">
-        <strong>QrStars</strong> помогает перехватывать негатив до его публикации на Яндекс Картах и направлять довольных гостей оставлять отзывы.
+        <strong>QrStars</strong> помогает узнавать о недовольстве гостей до публикации публичного отзыва и предлагать довольным гостям оставить отзыв.
       </p>
-      ${featureBlock("⭐ Сбор отзывов 1–5★", "При низких оценках жалоба отправляется вам, а при высоких — гость направляется на Яндекс или 2GIS. Всё настраивается под ваш бизнес.")}
-      ${featureBlock("📱 Микролендинг", "Меню, Wi‑Fi, визитка и формы обратной связи — всё на одной удобной странице по QR-коду.")}
-      ${featureBlock("🖨 Шаблоны для печати", "Готовые макеты тейбл-тентов и наклеек — скачайте PDF, распечатайте и поставьте на стол.")}
+      ${featureBlock("⭐ Сбор отзывов 1–5★", "При низких оценках сообщение получает владелец, а при высоких гость переходит на Яндекс Карты или 2ГИС. Сценарий можно настроить под ваш бизнес.")}
+      ${featureBlock("📱 QR-страница заведения", "Меню, Wi‑Fi, визитка и формы обратной связи — всё на одной странице, открываемой по QR-коду.")}
+      ${featureBlock("🎨 Оформление QR-кода", "Выберите дизайн, добавьте фирменные цвета или логотип и скачайте готовый файл для печати.")}
       <p style="margin:20px 0 8px;font-weight:600;color:#111827;">На бесплатном тарифе FREE вам уже доступны:</p>
       ${bulletList(freeFeatures)}
     `,
@@ -54,19 +54,18 @@ export function renderNoEstablishmentD3Email(state: LifecycleUserState): string 
   const base = getBaseUrl();
   return renderEmailLayout({
     userId: state.userId,
-    preheader: "Узнавайте о негативе до его публикации на картах",
-    title: "Гости уходят недовольными, а вы об этом даже не узнаете",
+    preheader: "Узнавайте о недовольстве гостей до публикации отзыва",
+    title: "Получайте обратную связь до публикации отзыва",
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">
-        По статистике, большинство недовольных клиентов не жалуются лично — они сразу пишут негативные отзывы на Яндекс Картах или в 2GIS.
-        QrStars помогает перехватывать негатив на месте: если гость ставит оценку 1–3★, жалоба приходит лично вам, а не публикуется в интернете.
+        Не каждый недовольный клиент обращается к сотрудникам сразу. QrStars помогает узнать о проблеме на месте: если гость ставит оценку 1–3★, его сообщение приходит вам.
       </p>
       <p style="font-size:16px;color:#374151;">
-        Настройка заведения занимает всего 3 минуты. На бесплатном тарифе нет ограничений по количеству создаваемых QR-кодов.
+        Добавьте заведение, настройте первый сценарий и скачайте QR-код. На тарифе FREE количество QR-кодов не ограничено.
       </p>
     `,
-    cta: { label: "Настроить QrStars за 3 минуты", href: `${base}/dashboard/start` },
+    cta: { label: "Настроить QrStars", href: `${base}/dashboard/start` },
   });
 }
 
@@ -103,7 +102,7 @@ export function renderNoQrD4Email(state: LifecycleUserState): string {
       ${bulletList([
         "<strong>Кафе или ресторан</strong> — QR-код «Сбор отзывов» на каждый стол",
         "<strong>Салон красоты или клиника</strong> — микролендинг со списком услуг и онлайн-записью",
-        "<strong>Любой бизнес</strong> — QR-код для подключения к Wi‑Fi и контактов в зоне ожидания",
+        "<strong>Любой бизнес</strong> — QR-код с контактами, полезной информацией или ссылкой на нужный ресурс",
       ])}
       <p style="font-size:16px;color:#374151;">Вы можете создать несколько разных QR-кодов — ограничений по их количеству нет даже на бесплатном тарифе FREE.</p>
     `,
@@ -116,7 +115,7 @@ export function renderNoScansD2Email(state: LifecycleUserState): string {
   return renderEmailLayout({
     userId: state.userId,
     preheader: "Скачайте готовый QR-код и разместите его на видном месте",
-    title: "Распечатайте QR-код и поставьте его на стол",
+    title: "Разместите QR-код там, где его заметят гости",
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">
@@ -124,11 +123,11 @@ export function renderNoScansD2Email(state: LifecycleUserState): string {
       </p>
       ${bulletList([
         "Скачайте изображение в формате PNG из личного кабинета",
-        "Используйте наши готовые шаблоны тейбл-тентов — просто вставьте ваш QR-код в макет",
+        "Выберите оформление QR-кода в личном кабинете, если хотите добавить фирменные цвета или логотип",
         "Разместите готовый печатный материал на столах, стойке ресепшена или зеркале в зоне ожидания",
       ])}
     `,
-    cta: { label: "Посмотреть шаблоны для печати", href: `${base}/dashboard/templates/table-tents` },
+    cta: { label: "Оформить QR-код", href: `${base}/dashboard/templates/qr` },
   });
 }
 
@@ -136,20 +135,20 @@ export function renderNoScansD5Email(state: LifecycleUserState): string {
   const base = getBaseUrl();
   return renderEmailLayout({
     userId: state.userId,
-    preheader: "Стол, стойка, чек, зона ожидания…",
+    preheader: "Стойка, чек, зона ожидания и другие заметные места",
     title: "5 мест, где QR-код работает эффективнее всего",
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">Если сканирований пока нет, попробуйте разместить QR-код в других зонах:</p>
       ${bulletList([
-        "<strong>На столах</strong> — тейбл-тент с призывом «Оцените визит»",
+        "<strong>На столах</strong> — рядом со счётом или меню, с понятным призывом к действию",
         "<strong>У кассы или на стойке ресепшена</strong> — гость легко заметит его, пока ждёт расчёт",
         "<strong>На чеках или упаковке</strong> — отлично работает для заказов на вынос и доставки",
         "<strong>В туалетных комнатах</strong> — неожиданная локация, которая показывает отличную конверсию (серьёзно)",
         "<strong>На визитках у входа</strong> — для привлечения внимания прохожих",
       ])}
     `,
-    cta: { label: "Открыть шаблоны печатных форм", href: `${base}/dashboard/templates` },
+    cta: { label: "Оформить QR-код", href: `${base}/dashboard/templates/qr` },
   });
 }
 
@@ -166,7 +165,7 @@ export function renderNoReviewsD3Email(state: LifecycleUserState): string {
       </p>
       ${bulletList([
         "При оценке 1–3★ — жалоба отправляется вам (на email в тарифе FREE, в Telegram — на тарифе PRO)",
-        "При оценке 4–5★ — гость направляется на Яндекс Карты или 2GIS",
+        "При оценке 4–5★ — гость направляется на Яндекс Карты или 2ГИС",
         "Вы можете настроить собственные тексты до и после отправки отзыва",
       ])}
       <p style="font-size:16px;color:#374151;">Обязательно укажите ссылку на Яндекс Карты в настройках заведения, иначе гостей с высокими оценками будет некуда направлять.</p>
@@ -180,12 +179,12 @@ export function renderConnectTelegramD2Email(state: LifecycleUserState): string 
   return renderEmailLayout({
     userId: state.userId,
     preheader: "Получайте жалобы гостей прямо в мессенджер",
-    title: "Подключите Telegram, чтобы получать жалобы за секунды",
+    title: "Подключите Telegram для уведомлений о жалобах",
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">
         Ваш QR-код уже работает! На бесплатном тарифе FREE жалобы приходят на email — это надёжно, но не всегда оперативно.
-        Подключите Telegram-уведомления в настройках, чтобы мгновенно узнавать о недовольстве гостей, пока они ещё находятся у вас в заведении.
+        Подключите Telegram-уведомления в настройках, чтобы быстрее узнавать о недовольстве гостей и реагировать, пока они ещё в заведении.
       </p>
       ${featureBlock("Тариф PRO", "Уведомления в Telegram и MAX для моментального реагирования на жалобы + умная ротация площадок для оценок 4–5★. Попробуйте, когда будете готовы.")}
     `,
@@ -287,11 +286,11 @@ export function renderProHintD14Email(state: LifecycleUserState): string {
       </p>
       ${bulletList([
         "Моментальные уведомления о жалобах в Telegram и MAX",
-        "Умную ротацию площадок для высоких оценок (Яндекс Карты, 2GIS, Авито, Flamp)",
+        "Умную ротацию площадок для высоких оценок (Яндекс Карты, 2ГИС, Авито, Flamp)",
         "Собственный бренд (White Label) — ваш логотип на странице вместо вотермарки QrStars",
         "Расширенную аналитику сканирований и возможность дарить промокоды за отзывы",
       ])}
-      <p style="font-size:16px;color:#374151;">Стоимость тарифа PRO — всего 690 ₽/мес. Это значительно дешевле, чем отрабатывать даже один негативный отзыв на картах!</p>
+      <p style="font-size:16px;color:#374151;">Стоимость тарифа PRO — ${formatRub(PLAN_PRICING.PRO.monthlyRub)} в месяц. Подключите его, если вам нужны эти возможности.</p>
     `,
     cta: { label: "Подключить тариф PRO", href: `${base}/dashboard/subscription` },
   });
@@ -318,13 +317,13 @@ export const LIFECYCLE_TEMPLATE_RENDERERS: Record<string, LifecycleTemplateRende
 export const LIFECYCLE_EMAIL_SUBJECTS: Record<string, string> = {
   welcome: "Добро пожаловать в QrStars — умные QR-коды для вашего бизнеса",
   no_establishment_d1: "3 минуты до первого QR-кода — начнём?",
-  no_establishment_d3: "Гости уходят недовольными, а вы об этом даже не узнаете",
+  no_establishment_d3: "Получайте обратную связь до публикации отзыва",
   no_qr_d1: "Заведение готово — создайте первый QR-код",
   no_qr_d4: "Какой QR-код вам нужен: отзывы, меню или микролендинг?",
-  no_scans_d2: "Распечатайте QR-код и поставьте его на стол",
+  no_scans_d2: "Разместите QR-код там, где его заметят гости",
   no_scans_d5: "5 мест, где QR-код работает эффективнее всего",
   no_reviews_d3: "Ваш QR-код уже сканируют — настройте сбор отзывов",
-  connect_telegram_d2: "Подключите Telegram, чтобы получать жалобы гостей за секунды",
+  connect_telegram_d2: "Подключите Telegram для уведомлений о жалобах",
   feedback_d7: "Как вам QrStars? Опрос займёт всего 30 секунд",
   feedback_d90: "3 месяца с QrStars — поделитесь опытом",
   feedback_d365: "Год с QrStars — как изменилась работа с отзывами?",

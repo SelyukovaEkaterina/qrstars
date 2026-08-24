@@ -362,6 +362,27 @@ export default function AdminFunnelPage() {
                     </div>
                   )}
                 </div>
+                <div className="rounded-xl border border-gray-800 bg-gray-900 p-5">
+                  <h3 className="mb-1 text-sm font-semibold text-white">Источники регистраций</h3>
+                  <p className="mb-3 text-xs text-gray-500">Регистрации / QR создан / скачан файл</p>
+                  {report.sourceBreakdown.length === 0 ? (
+                    <p className="text-sm text-gray-500">Нет данных</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {report.sourceBreakdown.map((row) => (
+                        <div
+                          key={row.source}
+                          className="flex items-center justify-between gap-3 rounded-lg bg-gray-800 px-3 py-2 text-sm"
+                        >
+                          <span className="min-w-0 truncate text-gray-300">{row.source}</span>
+                          <span className="shrink-0 text-gray-400">
+                            {row.registrations}/{row.completed}/{row.downloaded}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -377,11 +398,12 @@ export default function AdminFunnelPage() {
               <p className="text-sm text-gray-500">За период регистраций нет</p>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[900px] text-left text-sm">
+                <table className="w-full min-w-[1040px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-gray-800 text-xs uppercase tracking-wide text-gray-500">
                       <th className="px-3 py-2 font-medium">Пользователь</th>
                       <th className="px-3 py-2 font-medium">Регистрация</th>
+                      <th className="px-3 py-2 font-medium">Источник</th>
                       <th className="px-3 py-2 font-medium">Сценарий</th>
                       <th className="px-3 py-2 font-medium">Шаги</th>
                       <th className="px-3 py-2 font-medium">Дальше</th>
@@ -402,6 +424,7 @@ export default function AdminFunnelPage() {
                             minute: "2-digit",
                           })}
                         </td>
+                        <td className="px-3 py-3 text-gray-400">{user.source}</td>
                         <td className="px-3 py-3 text-gray-300">
                           {user.intent ? INTENT_LABELS[user.intent] ?? user.intent : "—"}
                         </td>

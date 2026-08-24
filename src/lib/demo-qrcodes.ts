@@ -12,6 +12,7 @@ export const DEMO_QR_PREFIX = "demo-" as const;
 export type DemoQrSlug =
   | "demo-landing"
   | "demo-review"
+  | "demo-2gis"
   | "demo-redirect"
   | "demo-business-card"
   | "demo-wifi"
@@ -56,6 +57,13 @@ export const DEMO_QR_CATALOG: DemoQrCatalogItem[] = [
     title: "Отзывы",
     description: "Оценка 1–5★, негатив владельцу, позитив на карты",
     emoji: "⭐",
+  },
+  {
+    slug: "demo-2gis",
+    mode: "REVIEW",
+    title: "Отзывы в 2GIS",
+    description: "Оценка 1–5★, негатив владельцу, позитив в 2GIS",
+    emoji: "📍",
   },
   {
     slug: "demo-redirect",
@@ -372,6 +380,29 @@ export const demoReviewScan = {
   watermarkEnabled: true,
   showPromo: true,
   promoCode: "DEMO10",
+};
+
+const demo2GisReviewRouting = {
+  ...DEFAULT_REVIEW_ROUTING,
+  4: {
+    ...DEFAULT_REVIEW_ROUTING[4],
+    action: "TWO_GIS" as const,
+    platformList: [{ type: "TWO_GIS" as const }],
+    ctaLabel: "Оставить отзыв в 2GIS",
+  },
+  5: {
+    ...DEFAULT_REVIEW_ROUTING[5],
+    action: "TWO_GIS" as const,
+    platformList: [{ type: "TWO_GIS" as const }],
+    ctaLabel: "Оставить отзыв в 2GIS",
+  },
+};
+
+/** Демо отзывов для SEO-страницы 2GIS: 4–5★ направляются в 2GIS. */
+export const demo2GisReviewScan = {
+  ...demoReviewScan,
+  qrCodeId: "demo-2gis" as DemoQrSlug,
+  reviewRouting: reviewRoutingToJson(demo2GisReviewRouting),
 };
 
 /** Куда уводит демо-редирект (безопасная публичная ссылка). */

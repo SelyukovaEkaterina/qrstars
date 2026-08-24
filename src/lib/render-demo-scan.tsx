@@ -9,6 +9,7 @@ import {
   demoModuleIcons,
   demoRedirectUrl,
   demoReviewScan,
+  demo2GisReviewScan,
   demoWifiConfig,
   isDemoQrCode,
   demo2Menu,
@@ -156,6 +157,26 @@ export async function renderDemoScan(code: string) {
           watermarkEnabled={demoReviewScan.watermarkEnabled}
           showPromo={demoReviewScan.showPromo}
           promoCode={demoReviewScan.promoCode}
+          isDemo
+          brandColor="#4f46e5"
+          pageAppearance="light"
+        />
+      );
+    }
+
+    case "demo-2gis": {
+      const ScanFlow = (await import("@/components/scan/ScanFlow")).default;
+      const { parseReviewRouting } = await import("@/lib/review-routing");
+      return (
+        <ScanFlow
+          establishmentName={demo2GisReviewScan.establishmentName}
+          establishmentId={demo2GisReviewScan.establishmentId}
+          qrCodeId={demo2GisReviewScan.qrCodeId}
+          reviewRouting={parseReviewRouting(demo2GisReviewScan.reviewRouting)}
+          platformUrls={demo2GisReviewScan.platformUrls}
+          watermarkEnabled={demo2GisReviewScan.watermarkEnabled}
+          showPromo={demo2GisReviewScan.showPromo}
+          promoCode={demo2GisReviewScan.promoCode}
           isDemo
           brandColor="#4f46e5"
           pageAppearance="light"

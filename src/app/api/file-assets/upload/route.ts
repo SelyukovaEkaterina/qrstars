@@ -5,6 +5,7 @@ import prisma from "@/lib/prisma";
 import { uploadObject, deleteObject } from "@/lib/s3";
 import {
   FILE_MAX_SIZE,
+  buildContentDisposition,
   getFileExtension,
   normalizeContentType,
 } from "@/lib/file-assets";
@@ -53,7 +54,9 @@ export async function POST(request: Request) {
 
   let fileUrl: string;
   try {
-    fileUrl = await uploadObject(key, buffer, contentType);
+    fileUrl = await uploadObject(key, buffer, contentType, {
+      contentDisposition: buildContentDisposition(file.name, contentType),
+    });
   } catch (e) {
     console.error("S3 upload error:", e);
     return NextResponse.json({ error: "Ошибка загрузки в хранилище" }, { status: 500 });

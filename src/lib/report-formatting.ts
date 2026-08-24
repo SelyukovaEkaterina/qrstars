@@ -17,6 +17,15 @@ export function formatMskDate(date: Date): string {
   return `${d}.${m}.${y}`;
 }
 
+/** Ключ дня по Москве в формате `YYYY-MM-DD`. */
+export function mskDateKey(date: Date): string {
+  const msk = new Date(date.getTime() + MSK_OFFSET_MS);
+  const y = msk.getUTCFullYear();
+  const m = String(msk.getUTCMonth() + 1).padStart(2, "0");
+  const d = String(msk.getUTCDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
 export function startOfMskDay(date: Date): Date {
   const msk = new Date(date.getTime() + MSK_OFFSET_MS);
   msk.setUTCHours(0, 0, 0, 0);

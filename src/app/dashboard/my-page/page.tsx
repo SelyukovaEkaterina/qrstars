@@ -250,6 +250,12 @@ function MyPageDashboardContent() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [landingSubtitle, setLandingSubtitle] = useState("");
+  const [estAddress, setEstAddress] = useState<string | null>(null);
+  const [estPhone, setEstPhone] = useState<string | null>(null);
+  const [estWorkingHours, setEstWorkingHours] = useState<unknown>(null);
+  const [yandexMapsUrl, setYandexMapsUrl] = useState<string | null>(null);
+  const [twoGisUrl, setTwoGisUrl] = useState<string | null>(null);
+  const [avitoUrl, setAvitoUrl] = useState<string | null>(null);
   const [shortSlug, setShortSlug] = useState("");
   const [shortSlugSaving, setShortSlugSaving] = useState(false);
   const [shortSlugError, setShortSlugError] = useState("");
@@ -387,6 +393,12 @@ function MyPageDashboardContent() {
     setCoverUrl(est.coverUrl || null);
     if (!est.logoUrl && !est.coverUrl) setAppearanceOpen(true);
     setLandingSubtitle(est.landingSubtitle || "");
+    setEstAddress(est.address || null);
+    setEstPhone(est.phone || null);
+    setEstWorkingHours(est.workingHours ?? null);
+    setYandexMapsUrl(est.yandexMapsUrl || null);
+    setTwoGisUrl(est.twoGisUrl || null);
+    setAvitoUrl(est.avitoUrl || null);
     setShortSlug(est.shortSlug || "");
     setShortSlugError("");
     setExtraMenus(est.extraMenus || []);
@@ -2039,7 +2051,7 @@ function MyPageDashboardContent() {
                       <div className="bg-gray-900 h-5 flex items-center justify-center">
                         <div className="w-16 h-1 bg-gray-700 rounded-full" />
                       </div>
-                      <div className="overflow-hidden max-h-[640px] overflow-y-auto overscroll-contain">
+                      <div className="bg-white min-h-[560px] max-h-[640px] overflow-y-auto overscroll-contain flex flex-col">
                     <MicroLandingView
                        establishmentName={establishmentName}
                        establishmentId={establishmentId}
@@ -2127,13 +2139,17 @@ function MyPageDashboardContent() {
                           })),
                       }))}
                       platformUrls={{
-                        yandexMapsUrl: null,
-                        twoGisUrl: null,
-                        avitoUrl: null,
+                        yandexMapsUrl,
+                        twoGisUrl,
+                        avitoUrl,
                       }}
                       logoUrl={logoUrl}
                       coverUrl={coverUrl}
                       landingSubtitle={landingSubtitle || null}
+                      address={estAddress}
+                      phone={estPhone}
+                      yandexMapsUrl={yandexMapsUrl}
+                      workingHours={estWorkingHours}
                       tipsConfig={
                         landingTipsType
                           ? {
@@ -2161,6 +2177,9 @@ function MyPageDashboardContent() {
                        brandColor={brandColor}
                        pageAppearance={pageAppearance}
                      />
+                      </div>
+                      <div className="bg-gray-900 h-4 flex items-center justify-center">
+                        <div className="w-20 h-1 bg-gray-700 rounded-full" />
                       </div>
                     </div>
                   )}

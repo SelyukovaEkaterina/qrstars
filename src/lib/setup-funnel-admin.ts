@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { analyticsCohortUserWhere } from "@/lib/analytics-exclusion";
+import { parseRegistrationUtm } from "@/lib/registration-utm";
 import { SETUP_USER_EVENTS } from "@/lib/user-events";
 
 const FUNNEL_STEP_DEFS = [
@@ -29,6 +30,7 @@ export interface FunnelUserRow {
   email: string;
   name: string | null;
   registeredAt: string;
+  source: string;
   intent: string | null;
   steps: {
     intentViewed: boolean;
@@ -56,6 +58,7 @@ export interface SetupFunnelReport {
   };
   funnel: FunnelStep[];
   intentBreakdown: { intent: string; selected: number; completed: number }[];
+  sourceBreakdown: { source: string; registrations: number; completed: number; downloaded: number }[];
   destinations: { destination: string; count: number }[];
   daily: { date: string; registrations: number; completed: number; downloaded: number }[];
   users: FunnelUserRow[];
@@ -131,6 +134,23 @@ function propsDestination(props: unknown): string | null {
   return typeof destination === "string" ? destination : null;
 }
 
+function registrationSourceLabel(registrationUtm: unknown): string {
+  const utm = parseRegistrationUtm(registrationUtm);
+  const campaign = utm?.utm_campaign?.toLowerCase() ?? "";
+  const content = utm?.utm_content?.toLowerCase() ?? "";
+
+  if (campaign === "generator_search") return "Генератор QR";
+  if (campaign === "main_landing") return "Главная QrStars";
+  if (campaign === "menu_search") return "QR-меню";
+  if (campaign === "reviews_search" || campaign === "reviews_landing") {
+    if (content.includes("2gis")) return "Отзывы · 2GIS";
+    if (content.includes("yandeks") || content.includes("yandex")) return "Отзывы · Яндекс Карты";
+    return "Отзывы";
+  }
+  if (utm?.utm_source) return utm.utm_source;
+  return "Прямой / неизвестно";
+}
+
 export async function getSetupFunnelReport(
   from: Date,
   to: Date,
@@ -141,7 +161,7 @@ export async function getSetupFunnelReport(
       ...analyticsCohortUserWhere(),
       createdAt: { gte: from, lt: toExclusive },
     },
-    select: { id: true, email: true, name: true, createdAt: true },
+    select: { id: true, email: true, name: true, createdAt: true, registrationUtm: true },
     orderBy: { createdAt: "desc" },
   });
 
@@ -175,8 +195,13 @@ export async function getSetupFunnelReport(
   const intentSelected = new Map<string, Set<string>>();
   const intentCompleted = new Map<string, Set<string>>();
   const destinations = new Map<string, number>();
+  const sourceRows = new Map<string, { registrations: number; completed: number; downloaded: number }>();
 
   const userRows: FunnelUserRow[] = cohortUsers.map((user) => {
+    const source = registrationSourceLabel(user.registrationUtm);
+    const sourceRow = sourceRows.get(source) ?? { registrations: 0, completed: 0, downloaded: 0 };
+    sourceRow.registrations += 1;
+    sourceRows.set(source, sourceRow);
     const userEvents = eventsByUser.get(user.id) ?? [];
     const steps = {
       intentViewed: false,
@@ -205,6 +230,7 @@ export async function getSetupFunnelReport(
       }
       if (ev.event === "setup.form_submitted") steps.formSubmitted = true;
       if (ev.event === "setup.completed") {
+        if (!steps.completed) sourceRow.completed += 1;
         steps.completed = true;
         const v = propsIntent(ev.props);
         if (v) {
@@ -213,7 +239,10 @@ export async function getSetupFunnelReport(
           intentCompleted.get(v)!.add(user.id);
         }
       }
-      if (ev.event === "setup.qr_downloaded") steps.qrDownloaded = true;
+      if (ev.event === "setup.qr_downloaded") {
+        if (!steps.qrDownloaded) sourceRow.downloaded += 1;
+        steps.qrDownloaded = true;
+      }
       if (ev.event === "setup.preview_opened") steps.previewOpened = true;
       if (ev.event === "setup.next_step_clicked") {
         const dest = propsDestination(ev.props);
@@ -229,6 +258,7 @@ export async function getSetupFunnelReport(
       email: user.email,
       name: user.name,
       registeredAt: user.createdAt.toISOString(),
+      source,
       intent,
       steps,
       lastDestination,
@@ -308,6 +338,9 @@ export async function getSetupFunnelReport(
     },
     funnel,
     intentBreakdown,
+    sourceBreakdown: [...sourceRows.entries()]
+      .map(([source, value]) => ({ source, ...value }))
+      .sort((a, b) => b.registrations - a.registrations),
     destinations: [...destinations.entries()]
       .map(([destination, count]) => ({ destination, count }))
       .sort((a, b) => b.count - a.count),

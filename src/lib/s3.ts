@@ -3,6 +3,7 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   CreateBucketCommand,
+  PutBucketPolicyCommand,
 } from "@aws-sdk/client-s3";
 
 const s3 = new S3Client({
@@ -27,13 +28,38 @@ export async function ensureBucket(): Promise<void> {
     await s3.send(new CreateBucketCommand({ Bucket: BUCKET }));
   } catch {
     // bucket already exists
+    return;
+  }
+
+  // Только что созданный бакет — локальный MinIO (в проде бакет уже есть).
+  // Открываем анонимное чтение, чтобы /storage отдавал файлы как на проде.
+  try {
+    await s3.send(
+      new PutBucketPolicyCommand({
+        Bucket: BUCKET,
+        Policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Principal: { AWS: ["*"] },
+              Action: ["s3:GetObject"],
+              Resource: [`arn:aws:s3:::${BUCKET}/*`],
+            },
+          ],
+        }),
+      })
+    );
+  } catch (e) {
+    console.error("S3 bucket policy error:", e);
   }
 }
 
 export async function uploadObject(
   key: string,
   buffer: Buffer,
-  contentType: string
+  contentType: string,
+  options?: { contentDisposition?: string }
 ): Promise<string> {
   await ensureBucket();
 
@@ -43,6 +69,9 @@ export async function uploadObject(
       Key: key,
       Body: buffer,
       ContentType: contentType,
+      ...(options?.contentDisposition && {
+        ContentDisposition: options.contentDisposition,
+      }),
     })
   );
 

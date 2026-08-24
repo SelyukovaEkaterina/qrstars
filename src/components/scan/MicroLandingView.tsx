@@ -533,7 +533,7 @@ export default function MicroLandingView({
   };
 
   const wrapperClass = embedded
-    ? "overflow-hidden relative"
+    ? "overflow-hidden relative flex flex-col flex-1 min-h-full"
     : "min-h-screen relative";
 
   const isBg = !!coverUrl;
@@ -559,7 +559,7 @@ export default function MicroLandingView({
           Demo
         </div>
       )}
-      <div className={`relative z-10 ${embedded ? "p-4" : "px-4 pt-10 pb-8 max-w-md mx-auto min-h-[inherit] flex flex-col"}`}>
+      <div className={`relative z-10 flex flex-col flex-1 ${embedded ? "p-4" : "px-4 pt-10 pb-8 max-w-md mx-auto w-full"}`}>
         <div className="flex flex-col items-center">
           {logoUrl && (
             <div

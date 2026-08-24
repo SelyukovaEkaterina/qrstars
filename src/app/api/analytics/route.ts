@@ -10,6 +10,8 @@ import {
   ORPHAN_ESTABLISHMENT_FILTER,
   ORPHAN_ESTABLISHMENT_LABEL,
 } from "@/lib/establishment-access";
+import { collectScanPeriodStats } from "@/lib/scan-period-stats";
+import { mskDateKey, startOfMskDay } from "@/lib/report-formatting";
 
 /** Ключ даты YYYY-MM-DD в локальной TZ сервера (совпадает с графиками в UI). */
 function localDateKey(d: Date): string {
@@ -119,7 +121,9 @@ export async function GET(request: Request) {
   ];
   const filteredQrIds = allQrs.map((q) => q.id);
 
-  const [periodScanRecords, prevPeriodScanCount] = await Promise.all([
+  // Объёмы сканов — из DailyScanStat (все тарифы). QRScan — только детализация
+  // (устройства / браузеры / регионы / часы / лента), она пишется на PRO и Сети.
+  const [periodScanRecords, scanStats, prevScanStats] = await Promise.all([
     filteredQrIds.length > 0
       ? prisma.qRScan.findMany({
           where: {
@@ -132,20 +136,20 @@ export async function GET(request: Request) {
           },
         })
       : Promise.resolve([]),
-    filteredQrIds.length > 0
-      ? prisma.qRScan.count({
-          where: {
-            qrCodeId: { in: filteredQrIds },
-            createdAt: { gte: prevPeriodStart, lte: prevPeriodEnd },
-          },
-        })
-      : Promise.resolve(0),
+    collectScanPeriodStats(filteredQrIds, periodStart, periodEnd),
+    collectScanPeriodStats(filteredQrIds, prevPeriodStart, prevPeriodEnd),
   ]);
 
-  const totalScans = periodScanRecords.length;
-  const reviewCapableScans = periodScanRecords.filter(
-    (s) => s.qrCode.mode === "REVIEW" || s.qrCode.mode === "LANDING"
-  ).length;
+  const scansForQr = (id: string) => scanStats.perQr.get(id) ?? 0;
+  const isReviewCapable = (mode: string | undefined) =>
+    mode === "REVIEW" || mode === "LANDING";
+
+  const totalScans = scanStats.total;
+  const prevPeriodScanCount = prevScanStats.total;
+  const reviewCapableScans = allQrs.reduce(
+    (sum, q) => (isReviewCapable(q.mode) ? sum + scansForQr(q.id) : sum),
+    0
+  );
   const otherScans = totalScans - reviewCapableScans;
 
   const currentReviews = allReviews.filter((r) => {
@@ -233,15 +237,19 @@ export async function GET(request: Request) {
       avgRating: d.count > 0 ? +(d.ratingSum / d.count).toFixed(1) : 0,
     }));
 
+  // Дни сканов — по календарю МСК, как их считает DailyScanStat.
   const dailyScanMap: Record<string, number> = {};
-  for (let i = 0; i <= days; i++) {
-    const d = new Date(periodStart);
-    d.setDate(d.getDate() + i);
-    dailyScanMap[localDateKey(d)] = 0;
+  const firstScanDay = startOfMskDay(periodStart);
+  const lastScanDay = startOfMskDay(periodEnd);
+  for (
+    let d = firstScanDay;
+    d <= lastScanDay;
+    d = new Date(d.getTime() + 86_400_000)
+  ) {
+    dailyScanMap[mskDateKey(d)] = 0;
   }
-  periodScanRecords.forEach((s) => {
-    const day = localDateKey(s.createdAt);
-    dailyScanMap[day] = (dailyScanMap[day] ?? 0) + 1;
+  scanStats.daily.forEach((count, day) => {
+    dailyScanMap[day] = (dailyScanMap[day] ?? 0) + count;
   });
   const dailyScans = Object.entries(dailyScanMap)
     .sort(([a], [b]) => a.localeCompare(b))
@@ -250,10 +258,14 @@ export async function GET(request: Request) {
   const scanDayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const scanDowMap: Record<number, number> = {};
   const scanHourMap: Record<number, number> = {};
-  periodScanRecords.forEach((s) => {
-    const dow = s.createdAt.getDay();
+  dailyScans.forEach(({ date, count }) => {
+    if (count === 0) return;
+    const dow = new Date(`${date}T00:00:00Z`).getUTCDay();
     const dowIdx = dow === 0 ? 6 : dow - 1;
-    scanDowMap[dowIdx] = (scanDowMap[dowIdx] || 0) + 1;
+    scanDowMap[dowIdx] = (scanDowMap[dowIdx] || 0) + count;
+  });
+  // Часовая разбивка возможна только по детальному логу (PRO / Сеть).
+  periodScanRecords.forEach((s) => {
     const hour = s.createdAt.getHours();
     scanHourMap[hour] = (scanHourMap[hour] || 0) + 1;
   });
@@ -355,11 +367,6 @@ export async function GET(request: Request) {
 
   const qrMeta = new Map(qrcodes.map((q) => [q.id, q]));
 
-  const qrScanCounts: Record<string, number> = {};
-  periodScanRecords.forEach((s) => {
-    qrScanCounts[s.qrCodeId] = (qrScanCounts[s.qrCodeId] || 0) + 1;
-  });
-
   const qrReviewCounts: Record<string, number> = {};
   currentReviews.forEach((r) => {
     if (r.qrCodeId) {
@@ -368,7 +375,7 @@ export async function GET(request: Request) {
   });
 
   const qrcodesWithStats = qrcodes.map((q) => {
-    const scansCount = qrScanCounts[q.id] || 0;
+    const scansCount = scansForQr(q.id);
     const reviewsCount = qrReviewCounts[q.id] || 0;
     return {
       ...q,
@@ -384,12 +391,11 @@ export async function GET(request: Request) {
   const establishmentScans = [
     ...filteredEstablishments.map((e) => {
       const estQrs = e.qrcodes.filter((q) => !qrCodeId || q.id === qrCodeId);
-      const estQrIds = new Set(estQrs.map((q) => q.id));
-      const estPeriodScans = periodScanRecords.filter((s) => estQrIds.has(s.qrCodeId));
-      const estScans = estPeriodScans.length;
-      const estReviewCapableScans = estPeriodScans.filter(
-        (s) => s.qrCode.mode === "REVIEW" || s.qrCode.mode === "LANDING"
-      ).length;
+      const estScans = estQrs.reduce((sum, q) => sum + scansForQr(q.id), 0);
+      const estReviewCapableScans = estQrs.reduce(
+        (sum, q) => (isReviewCapable(q.mode) ? sum + scansForQr(q.id) : sum),
+        0
+      );
       const estReviews = currentReviews.filter((r) => r.establishmentId === e.id).length;
       return {
         id: e.id,
@@ -408,9 +414,10 @@ export async function GET(request: Request) {
           {
             id: ORPHAN_ESTABLISHMENT_FILTER,
             name: ORPHAN_ESTABLISHMENT_LABEL,
-            scansCount: periodScanRecords.filter((s) =>
-              filteredOrphanQrs.some((q) => q.id === s.qrCodeId)
-            ).length,
+            scansCount: filteredOrphanQrs.reduce(
+              (sum, q) => sum + scansForQr(q.id),
+              0
+            ),
             reviewsCount: 0,
             qrCount: filteredOrphanQrs.length,
             conversionRate: 0,
@@ -431,21 +438,10 @@ export async function GET(request: Request) {
     FORM: "Форма",
     CUSTOM_SECTION: "Раздел",
   };
-  const scansByMode = periodScanRecords.reduce<
-    Record<string, { mode: string; label: string; scans: number; qrCount: number }>
-  >((acc, s) => {
-    const mode = s.qrCode.mode;
-    if (!acc[mode]) {
-      acc[mode] = {
-        mode,
-        label: modeLabels[mode] || mode,
-        scans: 0,
-        qrCount: 0,
-      };
-    }
-    acc[mode].scans++;
-    return acc;
-  }, {});
+  const scansByMode: Record<
+    string,
+    { mode: string; label: string; scans: number; qrCount: number }
+  > = {};
   for (const q of allQrs) {
     if (!scansByMode[q.mode]) {
       scansByMode[q.mode] = {
@@ -456,6 +452,7 @@ export async function GET(request: Request) {
       };
     }
     scansByMode[q.mode].qrCount++;
+    scansByMode[q.mode].scans += scansForQr(q.id);
   }
 
   const aggregateField = (field: "device" | "browser" | "region") => {

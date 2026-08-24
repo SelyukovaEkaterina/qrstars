@@ -783,7 +783,7 @@ function renderEmailTopQrs(top: TopQr[]): string {
         `<li style="margin-bottom:6px;font-size:13px;color:#374151;"><b>${fmtRu(q.scans)}</b> — ${escapeHtml(q.label ?? q.code)}</li>`
     )
     .join("");
-  return `<p style="margin:8px 0 4px;font-size:13px;color:#6b7280;">Топ QR:</p><ol style="margin:4px 0;padding-left:20px;">${items}</ol>`;
+  return `<p style="margin:8px 0 4px;font-size:13px;color:#6b7280;">Самые сканируемые QR-коды:</p><ol style="margin:4px 0;padding-left:20px;">${items}</ol>`;
 }
 
 interface PromoBlock {
@@ -799,7 +799,7 @@ function buildPromoBlocks(m: OwnerReportMetrics): PromoBlock[] {
   if (!m.qrModeSet.has("REVIEW") && !m.qrModeSet.has("LANDING")) {
     out.push({
       title: "💡 А вы собираете отзывы на Яндекс.Картах?",
-      text: `Создайте QR на отзывы — гости с оценкой 4–5★ перейдут на Яндекс/2GIS, а негатив уйдёт вам в личный кабинет. ${
+      text: `Создайте QR-код для отзывов: гости с оценкой 4–5★ перейдут на Яндекс Карты или 2ГИС, а сообщения с низкими оценками поступят в личный кабинет. ${
         base ? `<a href="${base}/dashboard/start" style="color:#6366f1;text-decoration:none;">Создать бесплатно →</a>` : ""
       }`,
     });
@@ -809,7 +809,7 @@ function buildPromoBlocks(m: OwnerReportMetrics): PromoBlock[] {
   if (!m.qrModeSet.has("MENU") && m.establishmentCount > 0) {
     out.push({
       title: "🍽 Подключите QR-меню с приёмом заказов",
-      text: `Цифровое меню + заказы в iiko или вам в Telegram. Доступно на PRO-тарифе. ${
+      text: `Цифровое меню; заказы передаются в iiko или в Telegram. Доступно на тарифе PRO. ${
         base ? `<a href="${base}/dashboard/subscription" style="color:#6366f1;text-decoration:none;">Подробнее →</a>` : ""
       }`,
     });

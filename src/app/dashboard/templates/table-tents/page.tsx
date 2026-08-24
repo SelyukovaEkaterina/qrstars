@@ -1,5 +1,6 @@
-import TemplatesPageContent from "@/components/dashboard/TemplatesPageContent";
+import { redirect } from "next/navigation";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 
 export default function TableTentTemplatesPage() {
-  return <TemplatesPageContent mode="table-tent" />;
+  redirect(TEMPLATE_ROUTES.qr);
 }

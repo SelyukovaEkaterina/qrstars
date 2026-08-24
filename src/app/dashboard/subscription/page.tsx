@@ -385,7 +385,7 @@ export default function SubscriptionPage() {
                 billing === "monthly" && estCount > 2
                   ? `При ${estCount} заведениях: ${formatRub(networkMonthly)}/мес`
                   : billing === "monthly"
-                    ? "База: 2 заведения, +350 ₽/мес за каждую доп. точку"
+                    ? "База: 2 заведения, +210 ₽/мес за каждую доп. точку"
                     : undefined
               }
               onSubscribe={() => handleSubscribe("NETWORK")}

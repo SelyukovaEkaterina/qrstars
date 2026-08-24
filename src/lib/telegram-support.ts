@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import type { SupportTicket, User } from "@/generated/prisma/client";
 import { sendMaxMessage } from "@/lib/max";
+import { sendSupportStaffReplyEmail } from "@/lib/mailer";
 import {
   isSupportImageMime,
   uploadSupportAttachment,
@@ -155,7 +156,7 @@ export async function createSupportForumTopic(
       `<b>Email:</b> ${escapeHtml(user.email)}\n` +
       `<b>User ID:</b> <code>${escapeHtml(user.id)}</code>\n` +
       `<b>Ticket:</b> <code>${escapeHtml(ticket.id)}</code>\n\n` +
-      `<i>Отвечайте в этой теме — сообщение уйдёт в личный кабинет.</i>`,
+      `<i>Отвечайте в этой теме — сообщение уйдёт в личный кабинет и на email.</i>`,
   });
 
   return threadId;
@@ -489,6 +490,95 @@ export async function notifyUserFeedback(feedback: {
   });
 }
 
+/** Идея или проблема из личного кабинета → общее сообщение в Telegram-группу. */
+export async function notifyProductFeedback(feedback: {
+  id: string;
+  userId: string;
+  email: string;
+  name: string | null;
+  message: string;
+  pageUrl: string | null;
+}): Promise<void> {
+  if (!shouldNotifySupportTelegram()) return;
+
+  const text = feedback.message.length > 3500 ? `${feedback.message.slice(0, 3500)}…` : feedback.message;
+  const lines = [
+    "💡 <b>Идея / проблема по продукту</b>",
+    "",
+    `<b>Имя:</b> ${escapeHtml(feedback.name || "—")}`,
+    `<b>Email:</b> ${escapeHtml(feedback.email)}`,
+    `<b>User ID:</b> <code>${escapeHtml(feedback.userId)}</code>`,
+    `<b>Запись:</b> <code>${escapeHtml(feedback.id)}</code>`,
+  ];
+
+  if (feedback.pageUrl) lines.push(`<b>Страница:</b> ${escapeHtml(feedback.pageUrl)}`);
+  lines.push("", "<b>Сообщение:</b>", escapeHtml(text));
+
+  await tgApi("sendMessage", {
+    chat_id: GROUP_ID()!,
+    parse_mode: "HTML",
+    text: lines.join("\n"),
+    disable_web_page_preview: true,
+  });
+}
+
+/** Заполненная Promo-анкета → сообщение в support-группу (только production). */
+export async function notifyPromoSurveyResponse(survey: {
+  userId?: string | null;
+  email: string;
+  answers: Record<string, string>;
+}): Promise<void> {
+  if (!shouldNotifySupportTelegram()) return;
+
+  const groupId = GROUP_ID()!;
+  
+  const adminUrl = survey.userId && process.env.NEXT_PUBLIC_BASE_URL
+    ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/users?search=${encodeURIComponent(survey.email)}`
+    : "";
+
+  const lines = [
+    `🎁 <b>Новая Promo-анкета (PRO на 3 мес)</b>`,
+    "",
+    `<b>Email:</b> ${escapeHtml(survey.email)}`,
+  ];
+
+  if (survey.userId) {
+    lines.push(`<b>User ID:</b> <code>${escapeHtml(survey.userId)}</code>`);
+  }
+
+  lines.push("", `<b>Ответы:</b>`);
+
+  const fieldLabels: Record<string, string> = {
+    goal: "🎯 Цель",
+    companyInfo: "🏢 Компания",
+    collectingNow: "📝 Как собирают отзывы",
+    qrPlaced: "📍 Поставили ли QR",
+    missingInDashboard: "🔍 Чего не хватило",
+    featuresAndFeedback: "✨ Фичи и фидбек",
+    willingToPay: "💳 Готовность платить",
+    readyForCall: "📞 Созвон",
+  };
+
+  for (const [key, label] of Object.entries(fieldLabels)) {
+    const answer = survey.answers[key];
+    if (answer) {
+      const val = answer === "yes" ? "Да" : answer === "no" ? "Нет" : answer;
+      lines.push(`<i>${label}:</i> ${escapeHtml(val)}`);
+    }
+  }
+
+  if (adminUrl) {
+    lines.push("", `<a href="${escapeHtml(adminUrl)}">Найти в админке</a>`);
+  }
+
+  await tgApi("sendMessage", {
+    chat_id: groupId,
+    parse_mode: "HTML",
+    text: lines.join("\n"),
+    disable_web_page_preview: true,
+  });
+}
+
 export async function mirrorSupportToMax(
   ticketId: string,
   user: Pick<User, "name" | "email">,
@@ -626,4 +716,15 @@ export async function handleTelegramSupportGroupMessage(message: {
       data: { updatedAt: new Date() },
     }),
   ]);
+
+  const user = await prisma.user.findUnique({
+    where: { id: ticket.userId },
+    select: { email: true },
+  });
+  if (user?.email) {
+    await sendSupportStaffReplyEmail(user.email, displayBody, {
+      attachmentUrl,
+      attachmentName,
+    });
+  }
 }
