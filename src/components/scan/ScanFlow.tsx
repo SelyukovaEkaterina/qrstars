@@ -48,15 +48,6 @@ interface ScanFlowProps extends BrandThemeScanProps {
   pdConsent?: PdConsent;
 }
 
-function safeRedirect(url: string) {
-  const a = document.createElement("a");
-  a.href = url;
-  a.rel = "noreferrer noopener";
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-}
-
 export default function ScanFlow({
   establishmentName,
   establishmentId,
@@ -81,6 +72,7 @@ export default function ScanFlow({
   const [submitting, setSubmitting] = useState(false);
   const [skippedAction, setSkippedAction] = useState(false);
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
+  const [leavingTo, setLeavingTo] = useState<string | null>(null);
 
   const policyUrl = pdConsent?.policyUrl || "https://qrstars.ru/politika-konfidencialnosti.html";
   const contactFilled = guestPhone.trim() !== "";
@@ -98,10 +90,45 @@ export default function ScanFlow({
 
   const actionUrl = platforms[0]?.url ?? null;
 
+  const persistPositiveReview = (selectedRating: number) => {
+    if (isDemo) return;
+    void fetch("/api/reviews", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        establishmentId,
+        qrCodeId,
+        rating: selectedRating,
+        comment: "",
+        isNegative: false,
+      }),
+      keepalive: true,
+    });
+  };
+
+  const leaveToPlatform = (platform: ResolvedPlatform, selectedRating: number) => {
+    if (!platform.url) return;
+    setChosenPlatform(platform.id);
+    setLeavingTo(platform.label);
+    persistPositiveReview(selectedRating);
+    window.location.assign(platform.url);
+  };
+
+  const platformsForRating = (selectedRating: number): ResolvedPlatform[] => {
+    const nextStep = getStarStep(reviewRouting, selectedRating);
+    if (!nextStep || isComplaintAction(nextStep.action) || nextStep.action === "THANKS") return [];
+    return resolvePlatformUrls(nextStep, platformUrls).filter((p) => p.url);
+  };
+
   const handleRatingSelect = (r: number) => {
     setRating(r);
     setSkippedAction(false);
     setChosenPlatform(null);
+    const nextPlatforms = platformsForRating(r);
+    if (nextPlatforms.length === 1) {
+      leaveToPlatform(nextPlatforms[0], r);
+      return;
+    }
     setStep("action");
   };
 
@@ -143,12 +170,12 @@ export default function ScanFlow({
     await submitReview(false);
   };
 
-  const handlePlatformClick = async (platform: ResolvedPlatform) => {
-    setChosenPlatform(platform.id);
+  const handlePlatformClick = (platform: ResolvedPlatform) => {
     if (platform.url) {
-      window.open(platform.url, "_blank", "noopener,noreferrer");
+      leaveToPlatform(platform, rating);
+      return;
     }
-    await submitReview(false);
+    void handlePrimaryAction();
   };
 
   const thanksPlatform = chosenPlatform
@@ -184,7 +211,19 @@ export default function ScanFlow({
           {establishmentName}
         </h1>
 
-        {step === "rating" && (
+        {leavingTo && (
+          <div className="text-center space-y-4 mt-8">
+            <div className="text-5xl">⭐</div>
+            <p className={`text-xl font-semibold ${isBg ? "text-white" : dark ? "text-white" : "text-gray-900"}`}>
+              Открываем {leavingTo}…
+            </p>
+            <p className={isBg ? "text-white/70" : dark ? "text-slate-400" : "text-gray-500"}>
+              Сейчас перейдём на карточку, чтобы оставить отзыв.
+            </p>
+          </div>
+        )}
+
+        {!leavingTo && step === "rating" && (
           <div className="text-center space-y-6 mt-8">
             <p className="text-lg" style={{ color: mutedColor(isBg) }}>
               Как вам всё понравилось?
@@ -364,7 +403,7 @@ export default function ScanFlow({
                       key={p.id}
                       size="lg"
                       className={`w-full ${btnWhite}`}
-                      onClick={() => safeRedirect(p.url!)}
+                      onClick={() => window.location.assign(p.url!)}
                     >
                       <PlatformButtonContent platform={p} step={starStep} />
                     </Button>
@@ -378,7 +417,7 @@ export default function ScanFlow({
                           variant="outline"
                           size="sm"
                           className="w-full mb-1"
-                          onClick={() => safeRedirect(p.url!)}
+                          onClick={() => window.location.assign(p.url!)}
                         >
                           <PlatformButtonContent platform={p} step={starStep} />
                         </Button>
@@ -388,7 +427,7 @@ export default function ScanFlow({
                 </div>
               ) : (
                 thanksPlatform?.url && (
-                  <Button size="lg" className={`w-full ${btnWhite}`} onClick={() => safeRedirect(thanksPlatform.url!)}>
+                  <Button size="lg" className={`w-full ${btnWhite}`} onClick={() => window.location.assign(thanksPlatform.url!)}>
                     {starStep.ctaLabel}
                   </Button>
                 )
