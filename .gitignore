@@ -45,3 +45,7 @@ next-env.d.ts
 
 # GeoIP database (downloaded, not committed)
 /data
+
+# local QA artifacts
+/.playwright-cli
+/output

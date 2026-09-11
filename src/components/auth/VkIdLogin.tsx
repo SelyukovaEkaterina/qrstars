@@ -11,6 +11,9 @@ const PKCE_CHARS =
 const RAW_VK_APP_ID = process.env.NEXT_PUBLIC_VK_CLIENT_ID?.trim();
 const VK_APP_ID = RAW_VK_APP_ID ? Number(RAW_VK_APP_ID) : Number.NaN;
 const VK_IS_CONFIGURED = Number.isInteger(VK_APP_ID) && VK_APP_ID > 0;
+// OneTap рендерится в iframe фиксированной ширины, допустимый диапазон — 200–400px.
+const VK_MIN_WIDTH = 200;
+const VK_MAX_WIDTH = 400;
 
 function randomString(length: number): string {
   const bytes = crypto.getRandomValues(new Uint8Array(length));
@@ -44,11 +47,39 @@ export async function finishVkIdLogin(
 export { VK_PKCE_STORAGE_KEY, VK_STATE_STORAGE_KEY };
 
 export default function VkIdLogin() {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [widgetWidth, setWidgetWidth] = useState<number | null>(null);
   const [error, setError] = useState(
     VK_IS_CONFIGURED ? "" : "Вход через VK пока не настроен"
   );
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!VK_IS_CONFIGURED || !wrapper) return;
+
+    let debounce: ReturnType<typeof setTimeout> | undefined;
+    const measure = () => {
+      const available = Math.round(wrapper.clientWidth);
+      if (!available) return;
+      setWidgetWidth(
+        Math.min(Math.max(available, VK_MIN_WIDTH), VK_MAX_WIDTH)
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(() => {
+      clearTimeout(debounce);
+      debounce = setTimeout(measure, 150);
+    });
+    observer.observe(wrapper);
+
+    return () => {
+      clearTimeout(debounce);
+      observer.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     const redirectUrl =
@@ -56,7 +87,7 @@ export default function VkIdLogin() {
       `${window.location.origin}/auth/vk/callback`;
 
     if (!VK_IS_CONFIGURED) return;
-    if (!containerRef.current) return;
+    if (!containerRef.current || !widgetWidth) return;
 
     const state = randomString(48);
     const codeVerifier = randomString(64);
@@ -108,7 +139,7 @@ export default function VkIdLogin() {
         showAlternativeLogin: true,
         oauthList: [VKID.OAuthName.VK, VKID.OAuthName.OK, VKID.OAuthName.MAIL],
         styles: {
-          width: Math.min(containerRef.current.clientWidth || 360, 360),
+          width: widgetWidth,
           height: 44,
           borderRadius: 8,
         },
@@ -121,10 +152,10 @@ export default function VkIdLogin() {
       oneTap.off(VKID.WidgetEvents.ERROR, onError);
       oneTap.close();
     };
-  }, []);
+  }, [widgetWidth]);
 
   return (
-    <div className="space-y-3">
+    <div ref={wrapperRef} className="space-y-3">
       <div
         ref={containerRef}
         className={loading ? "pointer-events-none opacity-60" : ""}

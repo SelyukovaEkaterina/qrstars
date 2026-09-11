@@ -25,7 +25,15 @@ export async function GET(
   const url = new URL(request.url);
   const periodMonth = url.searchParams.get("periodMonth") ?? undefined;
 
-  const range = resolveRange(periodMonth, new Date());
+  let range;
+  try {
+    range = resolveRange(periodMonth, new Date());
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid periodMonth, expected YYYY-MM" },
+      { status: 400 }
+    );
+  }
   const metrics = await collectOwnerMonthlyMetrics(userId, range);
 
   return NextResponse.json({

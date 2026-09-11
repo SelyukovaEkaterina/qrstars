@@ -247,7 +247,7 @@ class TestFeedbackForm:
             json={
                 "intent": "reviews",
                 "name": "Lifecycle Cafe",
-                "yandexMapsUrl": "https://yandex.ru/maps/-/ABC",
+                "yandexMapsUrl": "https://yandex.ru/maps/org/lifecycle/123/",
             },
         )
         assert qs.status_code == 200, qs.text

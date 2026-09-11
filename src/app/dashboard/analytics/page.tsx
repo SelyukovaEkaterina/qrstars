@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import Sidebar from "@/components/dashboard/Sidebar";
 import OverviewTabs from "@/components/dashboard/OverviewTabs";
 import Link from "next/link";
 import { Crown } from "lucide-react";
@@ -31,8 +30,7 @@ export default async function AnalyticsPage() {
   if (isPro) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 p-8">
+          <main className="flex-1 p-8">
           <div className="max-w-6xl mx-auto space-y-6">
             <OverviewTabs />
             <EnhancedAnalytics />
@@ -72,7 +70,6 @@ export default async function AnalyticsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <OverviewTabs />

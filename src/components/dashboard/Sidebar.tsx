@@ -144,7 +144,7 @@ const navSections: NavSection[] = [
   },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const [currentPlan, setCurrentPlan] = useState<string>("FREE");
   const [submissionsUnread, setSubmissionsUnread] = useState(0);
@@ -212,9 +212,9 @@ export default function Sidebar() {
   };
 
   return (
-    <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col">
+    <aside className="w-64 h-full bg-white border-r border-gray-200 min-h-screen flex flex-col">
       <div id="tour-sidebar-logo" className="p-6 border-b border-gray-100">
-        <Link href="/dashboard" className="flex items-center" aria-label="QrStars">
+        <Link href="/dashboard" onClick={onNavigate} className="flex items-center" aria-label="QrStars">
           <img
             src="/logo.svg"
             alt="QrStars"
@@ -229,6 +229,7 @@ export default function Sidebar() {
       <nav id="tour-sidebar-nav" className="flex-1 p-4 overflow-y-auto">
         <Link
           href="/dashboard/ideas"
+          onClick={onNavigate}
           className="mb-5 flex items-center gap-3 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-3 py-3 text-sm font-bold text-white shadow-sm transition hover:from-amber-600 hover:to-orange-600"
         >
           <Lightbulb className="h-5 w-5 shrink-0" />
@@ -250,6 +251,7 @@ export default function Sidebar() {
                     key={item.href}
                     href={item.href}
                     id={item.tourId}
+                    onClick={onNavigate}
                     className={cn(
                       "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                       item.sub ? "pl-9 pr-3 py-2" : "px-3 py-2.5",

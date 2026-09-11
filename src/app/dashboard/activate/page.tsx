@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
-import Sidebar from "@/components/dashboard/Sidebar";
 import { Loader2, Package, CheckCircle2 } from "lucide-react";
 
 interface TabletInfo {
@@ -126,8 +125,7 @@ export default function DashboardActivatePage() {
   if (status === "loading") {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -141,7 +139,6 @@ export default function DashboardActivatePage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>

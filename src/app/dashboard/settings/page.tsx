@@ -5,7 +5,6 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import Sidebar from "@/components/dashboard/Sidebar";
 import MessengerContactsManager from "@/components/dashboard/MessengerContactsManager";
 import MonthlyReportSettings from "@/components/dashboard/MonthlyReportSettings";
 import { Loader2 } from "lucide-react";
@@ -43,8 +42,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -53,7 +51,6 @@ export default function SettingsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-3xl mx-auto space-y-6">
           <h1 className="text-2xl font-bold text-gray-900">Настройки</h1>

@@ -7,6 +7,7 @@ import QaModeBanner from "@/components/dashboard/QaModeBanner";
 import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
 import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
 import { sessionUserId } from "@/lib/session-user";
+import DashboardChrome from "@/components/dashboard/DashboardChrome";
 
 export default async function DashboardLayout({
   children,
@@ -34,7 +35,7 @@ export default async function DashboardLayout({
     <>
       <QaModeBanner />
       <SetupGuideRedirect />
-      {children}
+      <DashboardChrome>{children}</DashboardChrome>
       {!needsSetup && (
         <OnboardingTour
           userId={userId}

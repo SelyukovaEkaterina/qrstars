@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import Sidebar from "@/components/dashboard/Sidebar";
 import PlanBadge from "@/components/dashboard/PlanBadge";
 import {
   Check,
@@ -81,6 +80,7 @@ export default function SubscriptionPage() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [recurringConsent, setRecurringConsent] = useState(false);
+  const [consentError, setConsentError] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
   const load = () =>
@@ -114,9 +114,11 @@ export default function SubscriptionPage() {
 
   const handleSubscribe = async (plan: "PRO" | "NETWORK") => {
     if (!recurringConsent) {
-      alert("Необходимо согласие на автоматические списания");
+      setConsentError("Сначала отметьте согласие на автосписания выше");
+      document.getElementById("recurring-consent")?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
+    setConsentError("");
     setSubscribing(plan);
     try {
       const res = await fetch("/api/subscription", {
@@ -179,8 +181,7 @@ export default function SubscriptionPage() {
   if (loading || !data) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -206,7 +207,6 @@ export default function SubscriptionPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-5xl mx-auto space-y-8">
           <div>
@@ -319,12 +319,15 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          <div className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
+          <div id="recurring-consent" className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
                 checked={recurringConsent}
-                onChange={(e) => setRecurringConsent(e.target.checked)}
+                onChange={(e) => {
+                  setRecurringConsent(e.target.checked);
+                  if (e.target.checked) setConsentError("");
+                }}
                 className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
               />
               <span className="text-sm text-gray-700">
@@ -341,6 +344,9 @@ export default function SubscriptionPage() {
                 Отмена — в один клик на этой странице.
               </span>
             </label>
+            {consentError && (
+              <p className="text-sm text-red-600 pl-7">{consentError}</p>
+            )}
             {billing === "monthly" && (
               <p className="text-xs text-gray-500 pl-7">
                 При выборе PRO: {formatRub(calcSubscriptionAmount("PRO", "monthly", estCount))} каждый месяц.
@@ -373,7 +379,7 @@ export default function SubscriptionPage() {
               price={priceFor("PRO")}
               onSubscribe={() => handleSubscribe("PRO")}
               subscribing={subscribing}
-              disabled={(currentPlan === "PRO" && isPaidActive) || !recurringConsent}
+              disabled={currentPlan === "PRO" && isPaidActive}
               consentRequired={!recurringConsent}
             />
             <PlanCard
@@ -390,7 +396,7 @@ export default function SubscriptionPage() {
               }
               onSubscribe={() => handleSubscribe("NETWORK")}
               subscribing={subscribing}
-              disabled={(currentPlan === "NETWORK" && isPaidActive) || !recurringConsent}
+              disabled={currentPlan === "NETWORK" && isPaidActive}
               consentRequired={!recurringConsent}
             />
           </div>
@@ -597,19 +603,26 @@ function PlanCard({
                 Подписка активна
               </Badge>
             ) : (
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={onSubscribe}
-                disabled={disabled || subscribing !== null}
-                title={disabled && consentRequired ? "Отметьте согласие на автосписания" : undefined}
-              >
-                {subscribing === planId
-                  ? "Перенаправляем..."
-                  : planId === "PRO"
-                    ? "Оформить PRO"
-                    : "Оформить «Сеть»"}
-              </Button>
+              <>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={onSubscribe}
+                  disabled={disabled || subscribing !== null}
+                  title={consentRequired ? "Отметьте согласие на автосписания" : undefined}
+                >
+                  {subscribing === planId
+                    ? "Перенаправляем..."
+                    : planId === "PRO"
+                      ? "Оформить PRO"
+                      : "Оформить «Сеть»"}
+                </Button>
+                {consentRequired && (
+                  <p className="text-xs text-amber-700 mt-2 text-center">
+                    Сначала согласие на автосписания выше
+                  </p>
+                )}
+              </>
             )}
           </div>
         )}

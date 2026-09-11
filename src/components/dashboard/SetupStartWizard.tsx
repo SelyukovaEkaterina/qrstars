@@ -19,9 +19,9 @@ import {
 } from "@/lib/setup-utm-intent";
 import {
   normalizeYandexMapsUrl,
-  yandexMapsUrlError,
 } from "@/lib/yandex-maps-url";
 import YandexMapsUrlHelper from "@/components/dashboard/YandexMapsUrlHelper";
+import YandexMapsOrgConfirm from "@/components/dashboard/YandexMapsOrgConfirm";
 import {
   renderSticker,
   FORMATS,
@@ -327,6 +327,7 @@ export default function SetupStartWizard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [yandexUrlFieldError, setYandexUrlFieldError] = useState("");
+  const [yandexConfirmedUrl, setYandexConfirmedUrl] = useState<string | null>(null);
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [guestPreviewOpened, setGuestPreviewOpened] = useState(false);
 
@@ -365,16 +366,16 @@ export default function SetupStartWizard({
     const yandexRequired =
       intent === "reviews" && (!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl);
     if (yandexRequired) {
-      const rawYandex = form.yandexMapsUrl.trim();
+      const rawYandex = (yandexConfirmedUrl || form.yandexMapsUrl).trim();
       if (!rawYandex) {
         setError(
           "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв"
         );
         return;
       }
-      const yandexErr = yandexMapsUrlError(rawYandex);
-      if (yandexErr) {
-        setYandexUrlFieldError(yandexErr);
+      if (!yandexConfirmedUrl) {
+        setYandexUrlFieldError("Подтвердите, что это ваша организация");
+        setError("Проверьте ссылку Яндекс.Карт и подтвердите название организации");
         return;
       }
     }
@@ -422,7 +423,9 @@ export default function SetupStartWizard({
         payload.establishmentId = selectedEstablishmentId;
         delete payload.name;
       }
-      if (form.yandexMapsUrl.trim()) {
+      if (yandexConfirmedUrl) {
+        payload.yandexMapsUrl = yandexConfirmedUrl;
+      } else if (form.yandexMapsUrl.trim()) {
         const normalized = normalizeYandexMapsUrl(form.yandexMapsUrl);
         if (normalized) payload.yandexMapsUrl = normalized;
       }
@@ -821,7 +824,7 @@ export default function SetupStartWizard({
                   <div>
                     <p className="font-semibold text-gray-950">Подготовьте QR-код к размещению</p>
                     <p className="mt-1 text-xs text-gray-500 leading-relaxed">
-                      Скачайте готовый макет в PDF для самостоятельной печати или передайте чистый QR-код вашему дизайнеру.
+                      Скачайте PNG или SVG, распечатайте сами или отдайте дизайнеру. QR динамический — перепечатывать его после смены ссылок не нужно.
                     </p>
                   </div>
                 </div>
@@ -830,105 +833,13 @@ export default function SetupStartWizard({
                   Как вы планируете разместить QR-код?
                 </label>
               )}
-              <div className="hidden grid-cols-2 gap-2 p-1 bg-gray-100 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setDownloadType("pdf")}
-                  className={`py-2.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    downloadType === "pdf"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <FileText className="w-4 h-4" />
-                  {isReviews ? "Готовая табличка" : "Готовый макет (PDF)"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDownloadType("png")}
-                  className={`py-2.5 text-xs font-semibold rounded-lg transition-all flex items-center justify-center gap-1.5 ${
-                    downloadType === "png"
-                      ? "bg-white text-gray-900 shadow-sm"
-                      : "text-gray-500 hover:text-gray-700"
-                  }`}
-                >
-                  <QrCode className="w-4 h-4" />
-                  {isReviews ? "QR для дизайнера" : "Только QR-код"}
-                </button>
-              </div>
             </div>
 
-            {downloadType === "pdf" ? (
-              <div className="space-y-4">
-                <div className="text-center text-xs text-gray-500 leading-relaxed">
-                  {isReviews
-                    ? "Выберите подходящий формат: наклейка на стол, тейбл-тент или вкладыш в меню. Мы автоматически сгенерируем лист А4 с вашим QR-кодом, готовый к печати."
-                    : "Выберите один из готовых форматов. Мы сгенерируем лист А4, заполненный вашими QR-кодами, который можно сразу отправить на принтер."}
-                </div>
-                
-                {/* 4 Presets Selection */}
-                <div className="grid grid-cols-2 gap-2">
-                  {ONBOARDING_TEMPLATES.map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => {
-                        setSelectedPresetId(p.id);
-                        setTableTemplateId(null);
-                      }}
-                      className={`p-3 text-left rounded-xl border transition-all text-xs flex flex-col justify-between h-[100px] ${
-                        selectedPresetId === p.id
-                          ? "border-indigo-600 bg-indigo-50/50 shadow-sm ring-1 ring-indigo-600/25"
-                          : "border-gray-200 bg-white hover:bg-gray-50"
-                      }`}
-                    >
-                      <div>
-                        <div className="font-bold text-gray-950 leading-tight mb-1">{p.name}</div>
-                        <div className="text-[10px] text-gray-400 font-semibold">{p.size}</div>
-                      </div>
-                      <div className="text-[10px] text-gray-500 line-clamp-2 w-full">{p.desc}</div>
-                    </button>
-                  ))}
-                </div>
-
-                {/* Preview Selected Preset */}
-                {(() => {
-                  const activePreset = ONBOARDING_TEMPLATES.find((p) => p.id === selectedPresetId) || ONBOARDING_TEMPLATES[0];
-                  return (
-                    <div className="space-y-4 pt-1">
-                      <StickerOnboardingPreview cfg={activePreset.config} code={result.qrcode.code} />
-                      
-                      <Button
-                        onClick={downloadTablePDF}
-                        disabled={pdfDownloading}
-                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center gap-2"
-                        size="lg"
-                      >
-                        <Printer className="w-5 h-5" />
-                        {pdfDownloading ? "Генерация PDF..." : "Скачать PDF для печати"}
-                      </Button>
-                      {isReviews && (
-                        <Button
-                          variant="outline"
-                          size="lg"
-                          className="w-full"
-                          onClick={() => void openTableTentDesigner(true)}
-                          disabled={tableTemplateLoading}
-                        >
-                          <Palette className="w-5 h-5 mr-2" />
-                          {tableTemplateLoading ? "Открываем редактор..." : "Настроить дизайн таблички в новой вкладке"}
-                        </Button>
-                      )}
-                    </div>
-                  );
-                })()}
-              </div>
-            ) : (
-              <div className="space-y-4 text-center">
+            <div className="space-y-4 text-center">
                 <div className="text-center text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
                   {isReviews
-                    ? "Если вы разрабатываете собственный дизайн, скачайте чистый QR-код (PNG или SVG) и передайте его дизайнеру."
-                    : "Скачайте QR-код в высоком разрешении (PNG или SVG) для размещения на визитках, буклетах и других материалах."}
+                    ? "Скачайте PNG или SVG и передайте дизайнеру — или распечатайте сами. Менять ссылки можно без перепечатки QR."
+                    : "Скачайте QR-код в высоком разрешении (PNG или SVG) для печати или передачи дизайнеру."}
                 </div>
                 {qrImageUrl && (
                   <img
@@ -978,7 +889,6 @@ export default function SetupStartWizard({
                   </Button>
                 </div>
               </div>
-            )}
           </Card>
 
           {isReviews && (
@@ -993,7 +903,7 @@ export default function SetupStartWizard({
                     <Bell className="w-4 h-4 text-indigo-600" />
                   </p>
                   <p className="mt-1 text-xs text-gray-600 leading-relaxed">
-                    По умолчанию отзывы 1–3★ сохраняются в личном кабинете и отправляются на email. Вы можете подключить уведомления в Telegram или ВКонтакте (MAX), чтобы реагировать на жалобы моментально.
+                    По умолчанию отзывы 1–3★ сохраняются в личном кабинете и отправляются на email. Можно подключить Telegram или MAX, чтобы реагировать на жалобы сразу.
                   </p>
                 </div>
               </div>
@@ -1023,7 +933,7 @@ export default function SetupStartWizard({
               <p>
                 {isReviews
                   ? "QR-код динамический: вы можете менять тексты, ссылки на площадки, превратить QR-код в микросайт с меню или описанием Ваших услуг в любой момент. Сам QR-код при этом перепечатывать не нужно."
-                  : "Вы выбрали базовый макет, но в личном кабинете доступен полноценный редактор. Вы сможете изменить цвета, шрифты, добавить логотип или выбрать другой фон."}
+                  : "В личном кабинете можно поменять цвета QR, добавить логотип и выбрать другое оформление."}
               </p>
             </div>
           )}
@@ -1492,35 +1402,19 @@ export default function SetupStartWizard({
 
             {isReviews && (
               <div>
-                <Input
+                <YandexMapsOrgConfirm
                   label={`Ссылка на карточку в Яндекс.Картах${usingExistingOrg && selectedEstablishment?.yandexMapsUrl ? "" : " *"}`}
-                  type="text"
                   value={form.yandexMapsUrl}
-                  onChange={(e) => {
-                    setYandexUrlFieldError("");
-                    setForm({ ...form, yandexMapsUrl: e.target.value });
-                  }}
-                  onBlur={() => {
-                    const raw = form.yandexMapsUrl.trim();
-                    if (!raw) {
-                      setYandexUrlFieldError("");
-                      return;
-                    }
-                    const fieldErr = yandexMapsUrlError(raw);
-                    if (fieldErr) {
-                      setYandexUrlFieldError(fieldErr);
-                      return;
-                    }
-                    const normalized = normalizeYandexMapsUrl(raw);
-                    if (normalized && normalized !== form.yandexMapsUrl) {
-                      setForm((prev) => ({ ...prev, yandexMapsUrl: normalized }));
-                    }
-                    setYandexUrlFieldError("");
-                  }}
-                  placeholder="https://yandex.ru/maps/org/ваше-заведение/..."
                   required={!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl}
-                  error={yandexUrlFieldError || undefined}
+                  onChange={(url) => {
+                    setYandexUrlFieldError("");
+                    setForm({ ...form, yandexMapsUrl: url });
+                  }}
+                  onConfirmedChange={setYandexConfirmedUrl}
                 />
+                {yandexUrlFieldError && (
+                  <p className="text-sm text-red-600 mt-1">{yandexUrlFieldError}</p>
+                )}
                 <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
                   <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-500" />
                   Гости с оценкой 4–5★ перейдут сюда оставить отзыв. Нужна ссылка именно на вашу
@@ -1548,11 +1442,11 @@ export default function SetupStartWizard({
                   placeholder="Например: +7 (999) 123-45-67"
                 />
                 <div>
-                  <Input
+                  <YandexMapsOrgConfirm
                     label="Ссылка на Яндекс.Карты (необязательно)"
-                    type="url"
                     value={form.yandexMapsUrl}
-                    onChange={(e) => setForm({ ...form, yandexMapsUrl: e.target.value })}
+                    onChange={(url) => setForm({ ...form, yandexMapsUrl: url })}
+                    onConfirmedChange={setYandexConfirmedUrl}
                     placeholder="https://yandex.ru/maps/org/..."
                   />
                   <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">

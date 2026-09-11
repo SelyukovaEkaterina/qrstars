@@ -7,7 +7,6 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import Sidebar from "@/components/dashboard/Sidebar";
 import FileAssetEditor, { type FileAssetData } from "@/components/dashboard/FileAssetEditor";
 import RoutingPreview, {
   type LandingPreviewPayload,
@@ -154,6 +153,7 @@ interface QRCodeData {
 interface Establishment {
   id: string;
   name: string;
+  yandexMapsUrl?: string | null;
 }
 
 interface Template {
@@ -289,15 +289,28 @@ export default function QRCodeSettingsPage() {
           setEstablishments(estList);
           setTemplates(tplList);
           setIsPro(qrListData.isPro || false);
+          const qrList = (qrListData.qrcodes || []) as {
+            establishmentId: string | null;
+            mode: string;
+          }[];
+          const sameEst = qrList.filter((q) => q.establishmentId === estFromUrl);
+          const preferReview =
+            sameEst.some((q) => q.mode === "REVIEW") || !!estMatch?.yandexMapsUrl;
           setEstablishmentId(estFromUrl);
-          setRoutingGroup("LANDING");
-          setMode("LANDING");
+          if (preferReview) {
+            setRoutingGroup("SECTION");
+            setSectionTarget("REVIEW");
+            setMode("REVIEW");
+          } else {
+            setRoutingGroup("LANDING");
+            setMode("LANDING");
+          }
           setQrData({
             id: "",
             code: CREATE_PREVIEW_CODE,
             label: null,
             isActive: false,
-            mode: "LANDING",
+            mode: preferReview ? "REVIEW" : "LANDING",
             redirectUrl: null,
             customSectionId: null,
             scansCount: 0,
@@ -761,8 +774,7 @@ export default function QRCodeSettingsPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -772,8 +784,7 @@ export default function QRCodeSettingsPage() {
   if (!isCreateMode && !qrData) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
             <p className="text-lg text-gray-500">{error || "QR-код не найден"}</p>
             <Button onClick={() => router.push("/dashboard/qrcodes")}>
@@ -797,7 +808,6 @@ export default function QRCodeSettingsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="w-full space-y-6">
           <div className="flex items-center gap-4">
@@ -1066,6 +1076,14 @@ export default function QRCodeSettingsPage() {
                     );
                   })}
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => applyRouting("SECTION", "REVIEW")}
+                  className="mt-3 w-full text-left px-3 py-2 rounded-lg border border-dashed border-indigo-200 text-sm text-indigo-800 hover:bg-indigo-50"
+                >
+                  Как у кода отзывов — сразу оценка 1–5★
+                </button>
 
                 {routingGroup === "LANDING" && (
                   <div className="mt-4 p-4 rounded-xl bg-indigo-50 border border-indigo-100">

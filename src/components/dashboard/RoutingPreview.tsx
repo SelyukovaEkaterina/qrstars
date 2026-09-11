@@ -223,8 +223,8 @@ export default function RoutingPreview({
           )}
           {routingGroup === "SECTION" && section === "REVIEW" && (
             <div className="p-6 text-center space-y-3">
-              <p className="font-semibold text-gray-900">{establishmentName}</p>
-              <p className="text-sm text-gray-500">Оцените нас</p>
+              <p className="font-semibold text-gray-900">{establishmentName || "Заведение"}</p>
+              <p className="text-sm text-gray-500">Гость сразу ставит оценку 1–5★</p>
               <div className="flex justify-center gap-1 text-2xl text-amber-400">
                 ★★★★★
               </div>
@@ -249,6 +249,12 @@ export default function RoutingPreview({
               <p className="text-xs font-mono text-indigo-600 break-all">
                 {redirectUrl || "https://..."}
               </p>
+            </div>
+          )}
+          {routingGroup === "LANDING" && (!establishmentId || !pageModules) && (
+            <div className="p-6 text-center space-y-2">
+              <p className="text-sm font-medium text-gray-900">Сначала привяжите заведение</p>
+              <p className="text-xs text-gray-400">После сохранения здесь появится превью страницы гостя</p>
             </div>
           )}
         </div>

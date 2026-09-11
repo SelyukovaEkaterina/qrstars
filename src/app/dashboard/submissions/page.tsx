@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/dashboard/Sidebar";
 import FormSubmissionsPanel from "@/components/dashboard/FormSubmissionsPanel";
 import { Loader2, Inbox } from "lucide-react";
 
@@ -59,8 +58,7 @@ export default function SubmissionsPage() {
   if (status !== "authenticated") {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -69,7 +67,6 @@ export default function SubmissionsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-start justify-between gap-4 flex-wrap">

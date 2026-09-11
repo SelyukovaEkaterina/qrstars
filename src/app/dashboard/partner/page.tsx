@@ -7,7 +7,6 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
-import Sidebar from "@/components/dashboard/Sidebar";
 import { PLAN_PRICING, formatRub } from "@/lib/plans";
 import {
   Users,
@@ -168,8 +167,7 @@ export default function PartnerPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -182,7 +180,6 @@ export default function PartnerPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-5xl mx-auto space-y-8">
           <div>

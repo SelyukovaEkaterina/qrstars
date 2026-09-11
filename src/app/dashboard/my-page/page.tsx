@@ -3,7 +3,6 @@
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/dashboard/Sidebar";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import MenuEditor, { type MenuData } from "@/components/dashboard/MenuEditor";
@@ -194,8 +193,7 @@ export default function MyPageDashboard() {
     <Suspense
       fallback={
         <div className="flex min-h-screen bg-gray-50">
-          <Sidebar />
-          <main className="flex-1 flex items-center justify-center">
+              <main className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </main>
         </div>
@@ -1225,8 +1223,7 @@ function MyPageDashboardContent() {
   if (loading && establishments.length === 0) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -1290,7 +1287,6 @@ function MyPageDashboardContent() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <MyPageHeader
           autoSaveState={autoSaveState}

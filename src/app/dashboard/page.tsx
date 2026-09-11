@@ -2,7 +2,6 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
-import Sidebar from "@/components/dashboard/Sidebar";
 import OverviewTabs from "@/components/dashboard/OverviewTabs";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -157,7 +156,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-8">
           <OverviewTabs />
@@ -170,15 +168,7 @@ export default async function DashboardPage() {
               </p>
             </div>
             <div className="flex items-center gap-3">
-              <PlanBadge plan={plan} showChangeLink />
-              {!isPro && (
-                <Link
-                  href="/dashboard/subscription"
-                  className="text-sm text-indigo-600 hover:text-indigo-800 font-medium"
-                >
-                  Сменить тариф
-                </Link>
-              )}
+              <PlanBadge plan={plan} showChangeLink={!isPro} />
             </div>
           </div>
 
@@ -387,7 +377,7 @@ export default async function DashboardPage() {
                             </div>
                             <div>
                               <p className="text-lg font-bold text-gray-900">
-                                {est.activeQRCodesCount}/{est.qrcodesCount}
+                                {est.qrcodesCount}
                               </p>
                               <p className="text-xs text-gray-500">QR-кодов</p>
                             </div>
@@ -400,7 +390,7 @@ export default async function DashboardPage() {
                             </div>
                             <div>
                               <p className="text-lg font-bold text-gray-900">
-                                {est.activeQRCodesCount}/{est.qrcodesCount}
+                                {est.qrcodesCount}
                               </p>
                               <p className="text-xs text-gray-500">QR-кодов</p>
                             </div>
@@ -458,7 +448,7 @@ export default async function DashboardPage() {
                       </div>
                       <div>
                         <p className="text-lg font-bold text-gray-900">
-                          {orphanQrcodes.filter((q) => q.isActive).length}/{orphanQrcodes.length}
+                          {orphanQrcodes.length}
                         </p>
                         <p className="text-xs text-gray-500">QR-кодов</p>
                       </div>

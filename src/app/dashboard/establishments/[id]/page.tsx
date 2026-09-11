@@ -6,11 +6,11 @@ import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
-import Sidebar from "@/components/dashboard/Sidebar";
 import { Save, Loader2, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import WorkingHoursEditor from "@/components/dashboard/WorkingHoursEditor";
 import EstablishmentTeamAccess from "@/components/dashboard/EstablishmentTeamAccess";
+import YandexMapsOrgConfirm from "@/components/dashboard/YandexMapsOrgConfirm";
 import { parseWorkingHours, type WorkingHours } from "@/lib/working-hours";
 
 interface EstablishmentSettings {
@@ -41,6 +41,7 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [data, setData] = useState<EstablishmentSettings | null>(null);
+  const [yandexConfirmedUrl, setYandexConfirmedUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -77,7 +78,7 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
           phone: data.phone,
           legalName: data.legalName,
           inn: data.inn,
-          yandexMapsUrl: data.yandexMapsUrl,
+          yandexMapsUrl: yandexConfirmedUrl || data.yandexMapsUrl,
           twoGisUrl: data.twoGisUrl,
           avitoUrl: data.avitoUrl,
           workingHours: data.workingHours,
@@ -103,8 +104,7 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -114,8 +114,7 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
   if (!data) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Card className="text-center py-12 px-8">
             <p className="text-gray-500">Заведение не найдено</p>
             <Button variant="ghost" className="mt-4" onClick={() => router.push("/dashboard/establishments")}>
@@ -130,7 +129,6 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <div className="flex items-center gap-4">
@@ -215,11 +213,11 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
               Ссылки используются в сценариях «Сбор отзывов» при выборе действия «Яндекс.Карты», «2GIS» или «Авито».
             </p>
             <div className="space-y-4">
-              <Input
+              <YandexMapsOrgConfirm
                 label="Яндекс.Карты"
-                type="url"
                 value={data.yandexMapsUrl || ""}
-                onChange={(e) => updateField("yandexMapsUrl", e.target.value)}
+                onChange={(url) => updateField("yandexMapsUrl", url)}
+                onConfirmedChange={setYandexConfirmedUrl}
                 placeholder="https://yandex.ru/maps/org/..."
               />
               <Input

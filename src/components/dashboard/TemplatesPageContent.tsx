@@ -3,7 +3,6 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
-import Sidebar from "@/components/dashboard/Sidebar";
 import {
   renderSticker,
   DEFAULT_STICKER_CONFIG,
@@ -266,8 +265,7 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
   if (status === "loading" || loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="animate-spin text-indigo-600" size={32} />
         </main>
       </div>
@@ -276,7 +274,6 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-6 overflow-auto">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center justify-between mb-6">

@@ -90,15 +90,19 @@ export async function POST(request: Request) {
     };
 
     const emailTargets = await getEmailTargets(notifyFields, "reviews");
-    const emailTo = emailTargets[0] ?? owner.email;
-    if (emailTo) {
-      await sendNegativeReviewNotification(
-        emailTo,
+    const emailTo = [...new Set((emailTargets.length ? emailTargets : [owner.email]).filter(Boolean))];
+    for (const to of emailTo) {
+      const sent = await sendNegativeReviewNotification(
+        to,
         establishment.name,
         rating,
         comment || "",
-        guestName || undefined
+        guestName || undefined,
+        guestPhone || undefined
       );
+      if (!sent) {
+        console.error("Complaint email was not delivered", { to, establishmentId, reviewId: review.id });
+      }
     }
 
     for (const chatId of await getTelegramTargets(notifyFields, "reviews")) {

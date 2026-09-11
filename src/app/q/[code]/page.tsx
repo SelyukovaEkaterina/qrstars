@@ -25,6 +25,7 @@ import { getScanCache, setScanCache } from "@/lib/cache";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { menuHasLandingContent } from "@/lib/menu-content";
 import { menuNeedsDeferredLoad } from "@/lib/menu-deferred";
+import { toHeaderSafeUrl } from "@/lib/redirect-url";
 
 interface ScanPageProps {
   params: Promise<{ code: string }>;
@@ -341,8 +342,12 @@ export default async function ScanPage({ params }: ScanPageProps) {
 
   // REDIRECT: fast path — no relations loaded, just bounce
   if (qrCode.mode === "REDIRECT" && qrCode.redirectUrl) {
+    const target = toHeaderSafeUrl(qrCode.redirectUrl);
+    if (!target) {
+      return <ScanEmptyState emoji="🔗" title="Ссылка указана неверно" desc="Проверьте адрес перехода в настройках QR-кода." />;
+    }
     incrementScan();
-    redirect(qrCode.redirectUrl);
+    redirect(target);
   }
 
   const est = qrCode.establishment;
@@ -661,7 +666,11 @@ export default async function ScanPage({ params }: ScanPageProps) {
     incrementScan();
     const cp = qrCode.customPage;
     if (cp.type === "LINK" && cp.url) {
-      redirect(cp.url);
+      const target = toHeaderSafeUrl(cp.url);
+      if (!target) {
+        return <ScanEmptyState emoji="🔗" title="Ссылка указана неверно" desc="Проверьте адрес раздела в настройках «Моя страница»." />;
+      }
+      redirect(target);
     }
     if (cp.type === "FILE") {
       if (!cp.fileAsset) {

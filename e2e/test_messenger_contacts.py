@@ -7,6 +7,9 @@ def test_list_messenger_contacts_empty(owner_session, base_url):
     data = r.json()
     assert "contacts" in data
     assert isinstance(data["contacts"], list)
+    # Email регистрации создаётся как канал по умолчанию
+    emails = [c for c in data["contacts"] if c["provider"] == "EMAIL"]
+    assert len(emails) >= 1
 
 
 def test_list_messenger_contacts_unauthorized(base_url):

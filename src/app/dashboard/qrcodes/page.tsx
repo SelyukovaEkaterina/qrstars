@@ -7,7 +7,6 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import Sidebar from "@/components/dashboard/Sidebar";
 import DashboardOnboardingBanner from "@/components/dashboard/DashboardOnboardingBanner";
 import Link from "next/link";
 import {
@@ -301,8 +300,7 @@ function QRCodesPageContent() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -311,7 +309,6 @@ function QRCodesPageContent() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -681,8 +678,7 @@ export default function QRCodesPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen bg-gray-50">
-          <Sidebar />
-          <main className="flex-1 flex items-center justify-center">
+              <main className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </main>
         </div>

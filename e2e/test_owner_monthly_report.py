@@ -111,7 +111,7 @@ def _setup_active_owner(base_url, admin_session, plan="PRO", modes=("REVIEW", "M
     # quick-start создаёт заведение + первый QR (intent reviews → REVIEW).
     qs = s.post(
         f"{base_url}/api/setup/quick-start",
-        json={"intent": "reviews", "name": "Monthly Cafe", "yandexMapsUrl": "https://yandex.ru/maps/-/ABC"},
+        json={"intent": "reviews", "name": "Monthly Cafe", "yandexMapsUrl": "https://yandex.ru/maps/org/monthly/123/"},
     )
     assert qs.status_code == 200, qs.text
     est_id = qs.json()["establishment"]["id"]
@@ -134,6 +134,19 @@ def _setup_active_owner(base_url, admin_session, plan="PRO", modes=("REVIEW", "M
         )
         assert r.status_code == 200, r.text
         codes["MENU"] = menu_code
+        # Наполняем меню: пустое меню → «Меню не заполнено» и скан не записывается.
+        r = s.post(
+            f"{base_url}/api/menus",
+            json={
+                "establishmentId": est_id,
+                "title": "Меню Monthly Cafe",
+                "items": [
+                    {"name": "Капучино", "price": "290 ₽", "category": "Кофе"},
+                    {"name": "Круассан", "price": "180 ₽", "category": "Выпечка"},
+                ],
+            },
+        )
+        assert r.status_code == 200, r.text
 
     # Сканируем каждый код.
     for mode, code in codes.items():
@@ -200,16 +213,91 @@ class TestMonthlyReportCron:
         )
         s = req_lib.Session()
         login(s, base_url, email, "secure123")
-        qs = s.post(
-            f"{base_url}/api/setup/quick-start",
-            json={"intent": "reviews", "name": "Empty Cafe", "yandexMapsUrl": "https://yandex.ru/maps/-/XYZ"},
+        # Заведение без QR (quick-start создаёт QR, поэтому прямой CRUD).
+        r = s.post(
+            f"{base_url}/api/establishments",
+            json={"name": "Empty Cafe", "yandexMapsUrl": "https://yandex.ru/maps/org/empty"},
         )
-        assert qs.status_code == 200, qs.text
+        assert r.status_code == 200, r.text
 
         r = _run_cron(base_url, userId=user_id, periodMonth=current_period_month())
         assert r.status_code == 200
         assert r.json()["sentCount"] == 0
         assert r.json()["skippedCount"] >= 1
+
+    def test_old_qr_without_scans_not_activity(self, base_url, admin_session):
+        """QR, созданный вне отчётного периода, без сканов — не активность.
+
+        Регрессия: раньше qrCount считался за всё время → вечные «нулевые» отчёты.
+        """
+        user, email = _register(base_url)
+        user_id = _find_user_id(admin_session, base_url, email)
+        admin_session.patch(
+            f"{base_url}/api/admin/users/{user_id}",
+            json={"marketingEmailsEnabled": True},
+        )
+        s = req_lib.Session()
+        login(s, base_url, email, "secure123")
+        r = s.post(
+            f"{base_url}/api/establishments",
+            json={"name": "Stale Cafe", "yandexMapsUrl": "https://yandex.ru/maps/org/stale"},
+        )
+        assert r.status_code == 200, r.text
+        est_id = r.json()["establishment"]["id"]
+
+        stale_code = unique_code("stale")
+        r = s.post(
+            f"{base_url}/api/qrcodes",
+            json={"code": stale_code, "establishmentId": est_id, "mode": "REVIEW"},
+        )
+        assert r.status_code == 200, r.text
+
+        # QR существует, но создан после отчётного периода (прошлый месяц), сканов нет.
+        now = _now_msk()
+        first = now.replace(day=1)
+        last_prev = first - datetime.timedelta(days=1)
+        prev_period = last_prev.strftime("%Y-%m")
+
+        data = _preview(admin_session, base_url, user_id, prev_period)
+        assert data["metrics"]["hasActivity"] is False
+
+        r = _run_cron(base_url, userId=user_id, periodMonth=prev_period)
+        assert r.status_code == 200
+        assert r.json()["sentCount"] == 0
+        assert r.json()["skippedCount"] >= 1
+
+    def test_new_qr_counts_as_activity(self, base_url, admin_session):
+        """QR, созданный в отчётном периоде, — активность: отчёт отправляется."""
+        user, email = _register(base_url)
+        user_id = _find_user_id(admin_session, base_url, email)
+        admin_session.patch(
+            f"{base_url}/api/admin/users/{user_id}",
+            json={"marketingEmailsEnabled": True},
+        )
+        s = req_lib.Session()
+        login(s, base_url, email, "secure123")
+        r = s.post(
+            f"{base_url}/api/establishments",
+            json={"name": "Fresh Cafe", "yandexMapsUrl": "https://yandex.ru/maps/org/fresh"},
+        )
+        assert r.status_code == 200, r.text
+        est_id = r.json()["establishment"]["id"]
+
+        r = s.post(
+            f"{base_url}/api/qrcodes",
+            json={"code": unique_code("fresh"), "establishmentId": est_id, "mode": "REVIEW"},
+        )
+        assert r.status_code == 200, r.text
+
+        data = _preview(admin_session, base_url, user_id, current_period_month())
+        assert data["metrics"]["hasActivity"] is True
+
+    def test_invalid_period_month_rejected(self, base_url, admin_session):
+        user, email = _register(base_url)
+        user_id = _find_user_id(admin_session, base_url, email)
+        for bad in ("2026-13", "2026-00", "abc", "2026-1"):
+            r = _run_cron(base_url, userId=user_id, periodMonth=bad)
+            assert r.status_code == 400, f"{bad}: {r.status_code} {r.text}"
 
     def test_no_channels_skipped(self, base_url, admin_session):
         """Все каналы выключены → no_channels_enabled."""
@@ -247,6 +335,9 @@ class TestMonthlyReportContent:
 
         # Email содержит секцию меню.
         assert "QR-меню" in data["emailHtml"]
+        # Отписка из письма-отчёта глушит именно отчёты.
+        assert "Отписаться от отчётов" in data["emailHtml"]
+        assert "Отписаться от подсказок" not in data["emailHtml"]
         # Messenger содержит обе секции.
         assert any("QR-меню" in part for part in data["messengerParts"])
 
@@ -296,13 +387,13 @@ class TestMonthlyReportContent:
         # Первое заведение.
         qs1 = s.post(
             f"{base_url}/api/setup/quick-start",
-            json={"intent": "reviews", "name": "Net Cafe 1", "yandexMapsUrl": "https://yandex.ru/maps/-/N1"},
+            json={"intent": "reviews", "name": "Net Cafe 1", "yandexMapsUrl": "https://yandex.ru/maps/org/net1/1/"},
         )
         assert qs1.status_code == 200, qs1.text
         # Второе заведение (через тот же quick-start с новым intent — лимит NETWORK позволяет).
         qs2 = s.post(
             f"{base_url}/api/setup/quick-start",
-            json={"intent": "reviews", "name": "Net Cafe 2", "yandexMapsUrl": "https://yandex.ru/maps/-/N2"},
+            json={"intent": "reviews", "name": "Net Cafe 2", "yandexMapsUrl": "https://yandex.ru/maps/org/net2/2/"},
         )
         assert qs2.status_code == 200, qs2.text
 
@@ -320,6 +411,53 @@ class TestMonthlyReportContent:
         metrics = data["metrics"]
         assert metrics["establishmentCount"] >= 2
         assert len(metrics["establishmentBreakdown"]) >= 2
+
+
+class TestReportUnsubscribe:
+    def test_unsubscribe_reports_disables_reports_email(self, base_url, admin_session):
+        """Отписка из письма-отчёта (type=reports) глушит только отчёты."""
+        user, email = _register(base_url)
+        user_id = _find_user_id(admin_session, base_url, email)
+
+        r = admin_session.get(
+            f"{base_url}/api/admin/users/{user_id}/signed-tokens",
+            params={"purpose": "unsubscribe"},
+        )
+        assert r.status_code == 200, r.text
+        token = r.json()["token"]
+
+        r = req_lib.get(
+            f"{base_url}/api/unsubscribe",
+            params={"token": token, "type": "reports"},
+        )
+        assert r.status_code == 200
+        assert "ежемесячных отчётов" in r.text
+
+        s = req_lib.Session()
+        login(s, base_url, email, "secure123")
+        data = s.get(f"{base_url}/api/settings").json()
+        assert data["reportSettings"]["reportsEmailEnabled"] is False
+
+    def test_unsubscribe_default_keeps_reports(self, base_url, admin_session):
+        """Обычная отписка (onboarding) не выключает отчёты."""
+        user, email = _register(base_url)
+        user_id = _find_user_id(admin_session, base_url, email)
+
+        r = admin_session.get(
+            f"{base_url}/api/admin/users/{user_id}/signed-tokens",
+            params={"purpose": "unsubscribe"},
+        )
+        assert r.status_code == 200, r.text
+        token = r.json()["token"]
+
+        r = req_lib.get(f"{base_url}/api/unsubscribe", params={"token": token})
+        assert r.status_code == 200
+        assert "подсказок" in r.text.lower()
+
+        s = req_lib.Session()
+        login(s, base_url, email, "secure123")
+        data = s.get(f"{base_url}/api/settings").json()
+        assert data["reportSettings"]["reportsEmailEnabled"] is True
 
 
 class TestSettingsReportToggles:

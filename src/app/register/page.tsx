@@ -12,6 +12,8 @@ import {
   buildDashboardStartUrl,
   resolveRegistrationSubtitle,
 } from "@/lib/registration-utm";
+import VkIdLogin from "@/components/auth/VkIdLogin";
+import YandexIdLogin from "@/components/auth/YandexIdLogin";
 
 function RegisterForm() {
   const router = useRouter();
@@ -55,6 +57,22 @@ function RegisterForm() {
     e.preventDefault();
     setLoading(true);
     setError("");
+
+    if (!email.trim()) {
+      setError("Укажите email");
+      setLoading(false);
+      return;
+    }
+    if (!password) {
+      setError("Укажите пароль");
+      setLoading(false);
+      return;
+    }
+    if (!confirmPassword) {
+      setError("Подтвердите пароль");
+      setLoading(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Пароли не совпадают");
@@ -118,7 +136,7 @@ function RegisterForm() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex items-center justify-center px-4">
-      <form onSubmit={handleSubmit} className="max-w-sm w-full space-y-5">
+      <form onSubmit={handleSubmit} noValidate className="max-w-sm w-full space-y-5">
         <div className="text-center">
           <h1 className="text-3xl font-bold text-gray-900">QrStars.ru</h1>
           <p className="text-gray-500 mt-2">{registerSubtitle}</p>
@@ -136,6 +154,17 @@ function RegisterForm() {
           <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
         )}
 
+        <div className="mx-auto w-full max-w-[400px] space-y-3">
+          <YandexIdLogin />
+          <VkIdLogin />
+        </div>
+
+        <div className="flex items-center gap-3 text-xs text-gray-400">
+          <span className="h-px flex-1 bg-gray-200" />
+          <span>или по email</span>
+          <span className="h-px flex-1 bg-gray-200" />
+        </div>
+
         <Input
           id="name"
           label="Имя"
@@ -148,7 +177,6 @@ function RegisterForm() {
           id="email"
           label="Email"
           type="email"
-          required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           readOnly={!!invitePreview}
@@ -157,18 +185,18 @@ function RegisterForm() {
 
         <Input
           id="phone"
-          label="Телефон"
+          label="Телефон (необязательно)"
           type="tel"
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           placeholder="+7 (999) 123-45-67"
         />
+        <p className="-mt-3 text-xs text-gray-500">Нужен, чтобы восстановить доступ, если забудете пароль.</p>
 
         <Input
           id="password"
           label="Пароль"
           type="password"
-          required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Минимум 6 символов"
@@ -178,7 +206,6 @@ function RegisterForm() {
           id="confirmPassword"
           label="Подтвердите пароль"
           type="password"
-          required
           value={confirmPassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           placeholder="Повторите пароль"
@@ -190,7 +217,6 @@ function RegisterForm() {
             checked={consentPd}
             onChange={(e) => setConsentPd(e.target.checked)}
             className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-            required
           />
           <span>
             Принимаю условия{" "}

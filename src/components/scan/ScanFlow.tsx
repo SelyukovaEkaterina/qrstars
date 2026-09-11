@@ -82,8 +82,9 @@ export default function ScanFlow({
   const [skippedAction, setSkippedAction] = useState(false);
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
 
-  const phoneAllowed = isDemo || !pdConsent || pdConsent.ready;
-  const needsConsent = !isDemo && !!pdConsent?.ready;
+  const policyUrl = pdConsent?.policyUrl || "https://qrstars.ru/politika-konfidencialnosti.html";
+  const contactFilled = guestPhone.trim() !== "";
+  const needsConsent = !isDemo && contactFilled;
 
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
 
@@ -144,6 +145,9 @@ export default function ScanFlow({
 
   const handlePlatformClick = async (platform: ResolvedPlatform) => {
     setChosenPlatform(platform.id);
+    if (platform.url) {
+      window.open(platform.url, "_blank", "noopener,noreferrer");
+    }
     await submitReview(false);
   };
 
@@ -214,15 +218,15 @@ export default function ScanFlow({
               onChange={(e) => setGuestName(e.target.value)}
               placeholder="Как к вам обращаться?"
             />
-            {phoneAllowed && (
-              <Input
-                label="Телефон (необязательно)"
-                value={guestPhone}
-                onChange={(e) => setGuestPhone(e.target.value)}
-                placeholder="+7 (___) ___-__-__"
-                type="tel"
-              />
-            )}
+            <Input
+              label="Телефон или Telegram"
+              value={guestPhone}
+              onChange={(e) => setGuestPhone(e.target.value)}
+              placeholder="+7… или @username"
+            />
+            <p className={`text-xs ${isBg ? "text-white/60" : dark ? "text-slate-400" : "text-gray-500"}`}>
+              Чтобы заведение могло ответить на жалобу, оставьте способ связи.
+            </p>
             <div className="space-y-1">
               <label className={`block text-sm font-medium ${isBg ? "text-white/80" : dark ? "text-slate-300" : "text-gray-700"}`}>Комментарий</label>
               <textarea
@@ -239,11 +243,11 @@ export default function ScanFlow({
                 placeholder="Что пошло не так? Мы хотим исправиться."
               />
             </div>
-            {needsConsent && phoneAllowed && (
+            {needsConsent && (
               <ConsentCheckbox
                 checked={consentChecked}
                 onChange={setConsentChecked}
-                policyUrl={pdConsent!.policyUrl}
+                policyUrl={policyUrl}
                 isBg={isBg}
                 dark={dark}
               />
@@ -253,7 +257,7 @@ export default function ScanFlow({
               className="w-full"
               style={!isBg ? primaryButtonStyle(false) : primaryButtonStyle(true)}
               onClick={handlePrimaryAction}
-              disabled={submitting || !comment || (needsConsent && phoneAllowed && guestPhone.trim() !== "" && !consentChecked)}
+              disabled={submitting || !comment || (needsConsent && !consentChecked)}
             >
               {submitting ? "Отправляем..." : starStep.ctaLabel}
             </Button>

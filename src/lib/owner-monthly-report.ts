@@ -20,7 +20,9 @@ import {
   deltaPercent,
   escapeHtml,
   fmtRu,
+  fmtRuDecimal,
 } from "@/lib/report-formatting";
+import { createSignedUserToken, getBaseUrl } from "@/lib/signed-user-token";
 
 export interface MonthlyReportRange {
   /** Период: первый день месяца 00:00:00 МСК */
@@ -40,7 +42,8 @@ export interface MonthlyReportRange {
   year: number;
   month: number; // 1-12 (MSK)
   key: string; // monthly_report_YYYY_MM
-  labelHuman: string; // «июня 2026»
+  /** «июнь 2026» — именительный падеж (после «за» винительный = именительный) */
+  labelHuman: string;
   labelFrom: string;
   labelTo: string;
 }
@@ -251,26 +254,30 @@ async function topQrsByMode(
 ): Promise<Record<string, TopQr[]>> {
   if (estIds.length === 0) return {};
   const estIdsJoined = Prisma.join(estIds);
-  // Топ-QR по сканам за период (один проход, группируем в памяти по mode).
+  // Топ-QR по сканам за период: ROW_NUMBER по каждому режиму отдельно,
+  // чтобы один «жирный» режим не вытеснил остальные из общего LIMIT.
   const rows: RawTopQr[] = await prisma.$queryRaw(Prisma.sql`
-    SELECT d."qrCodeId" AS "qrCodeId", q."mode" AS mode, SUM(d.count)::bigint AS scans
-    FROM "DailyScanStat" d
-    JOIN "QRCode" q ON q.id = d."qrCodeId"
-    WHERE d.date >= ${scanFrom} AND d.date <= ${scanTo}
-      AND q."establishmentId" IN (${estIdsJoined})
-    GROUP BY d."qrCodeId", q."mode"
-    ORDER BY scans DESC
-    LIMIT 50
+    SELECT t."qrCodeId" AS "qrCodeId", t."mode" AS mode, t.scans AS scans
+    FROM (
+      SELECT d."qrCodeId", q."mode" AS mode, SUM(d.count)::bigint AS scans,
+             ROW_NUMBER() OVER (PARTITION BY q."mode" ORDER BY SUM(d.count) DESC) AS rn
+      FROM "DailyScanStat" d
+      JOIN "QRCode" q ON q.id = d."qrCodeId"
+      WHERE d.date >= ${scanFrom} AND d.date <= ${scanTo}
+        AND q."establishmentId" IN (${estIdsJoined})
+      GROUP BY d."qrCodeId", q."mode"
+    ) t
+    WHERE t.rn <= ${limitPerMode}
+    ORDER BY t.mode, t.scans DESC
   `);
   const byModeAcc: Record<string, { id: string; mode: string; scans: number }[]> = {};
   for (const r of rows) {
     const arr = byModeAcc[r.mode] ?? (byModeAcc[r.mode] = []);
     arr.push({ id: r.qrCodeId, mode: r.mode, scans: Number(r.scans) });
   }
-  // Обогащаем метаданными QR и обрезаем по limitPerMode.
+  // Обогащаем метаданными QR.
   const allTopIds = Object.values(byModeAcc)
     .flat()
-    .slice(0, 50)
     .map((x) => x.id);
   const qrMeta =
     allTopIds.length > 0
@@ -282,17 +289,15 @@ async function topQrsByMode(
   const metaMap = new Map(qrMeta.map((q) => [q.id, q]));
   const result: Record<string, TopQr[]> = {};
   for (const [mode, arr] of Object.entries(byModeAcc)) {
-    result[mode] = arr
-      .slice(0, limitPerMode)
-      .map((x) => {
-        const m = metaMap.get(x.id);
-        return {
-          code: m?.code ?? x.id.slice(0, 8),
-          label: m?.label ?? null,
-          mode: x.mode,
-          scans: x.scans,
-        };
-      });
+    result[mode] = arr.map((x) => {
+      const m = metaMap.get(x.id);
+      return {
+        code: m?.code ?? x.id.slice(0, 8),
+        label: m?.label ?? null,
+        mode: x.mode,
+        scans: x.scans,
+      };
+    });
   }
   return result;
 }
@@ -437,11 +442,15 @@ export async function collectOwnerMonthlyMetrics(
   const qrs = establishmentCount > 0
     ? await prisma.qRCode.findMany({
         where: { establishmentId: { in: estIds } },
-        select: { mode: true },
+        select: { mode: true, createdAt: true },
       })
     : [];
   const qrCount = qrs.length;
   const qrModeSet = new Set(qrs.map((q) => q.mode));
+  // QR, созданные за отчётный период, — считаются активностью (первый месяц после запуска).
+  const newQrCount = qrs.filter(
+    (q) => q.createdAt >= range.from && q.createdAt <= range.to
+  ).length;
 
   // Сканы по режимам: текущий и предыдущий периоды.
   const [curModeMap, prevModeMap] = await Promise.all([
@@ -490,10 +499,10 @@ export async function collectOwnerMonthlyMetrics(
     ratingDistribution: curReviews.ratingDistribution,
   };
 
-  // Меню (заказы) — только если есть MENU-QR.
+  // Меню (заказы) — только если есть MENU-QR; детализация заказов — PRO/Сеть.
   const hasMenuQr = qrModeSet.has("MENU");
   let menu: MenuStat | null = null;
-  if (hasMenuQr) {
+  if (hasMenuQr && isPro) {
     const [curMenu, prevMenu] = await Promise.all([
       aggregateMenu(estIds, range.from, range.to),
       aggregateMenu(estIds, range.prevFrom, range.prevTo),
@@ -528,8 +537,10 @@ export async function collectOwnerMonthlyMetrics(
         )
       : [];
 
+  // Активность: сканы/отзывы за период ИЛИ QR, созданные за период.
+  // Старые QR без сканов не должны генерить вечные «нулевые» отчёты.
   const hasActivity =
-    totalScans.current > 0 || reviews.count.current > 0 || qrCount > 0;
+    totalScans.current > 0 || reviews.count.current > 0 || newQrCount > 0;
 
   return {
     userId,
@@ -625,13 +636,13 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
     lines.push(
       emailMetricCard(
         "Получено отзывов",
-        fmtRu(m.reviews.count.current) + (m.reviews.avgRating != null ? ` · ${m.reviews.avgRating}★` : ""),
+        fmtRu(m.reviews.count.current) + (m.reviews.avgRating != null ? ` · ${fmtRuDecimal(m.reviews.avgRating)}★` : ""),
         m.reviews.count.current,
         m.reviews.count.previous
       )
     );
     if (m.isPro && conv !== null) {
-      lines.push(`<p style="margin:-4px 0 16px;font-size:13px;color:#6b7280;">Конверсия в отзыв: <b style="color:#111827;">${conv}%</b>${m.reviews.positive !== m.reviews.count.current ? ` · ${pluralize(m.reviews.positive, "позитивный", "позитивных", "позитивных")} ${m.reviews.positive}` : ""}</p>`);
+      lines.push(`<p style="margin:-4px 0 16px;font-size:13px;color:#6b7280;">Конверсия в отзыв: <b style="color:#111827;">≈ ${fmtRuDecimal(conv)}%</b>${m.reviews.positive !== m.reviews.count.current ? ` · позитивных: ${m.reviews.positive}` : ""}</p>`);
     }
   }
 
@@ -651,7 +662,7 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
           `<tr>
             <td style="padding:8px 12px 8px 0;font-size:14px;color:#111827;">${i + 1}. ${escapeHtml(e.name)}</td>
             <td style="padding:8px;font-size:14px;color:#374151;text-align:right;">${fmtRu(e.scans)} скан.</td>
-            <td style="padding:8px 0;font-size:14px;color:#374151;text-align:right;">${e.reviews} отз.${e.avgRating != null ? ` · ${e.avgRating}★` : ""}</td>
+            <td style="padding:8px 0;font-size:14px;color:#374151;text-align:right;">${e.reviews} отз.${e.avgRating != null ? ` · ${fmtRuDecimal(e.avgRating)}★` : ""}</td>
           </tr>`
       )
       .join("");
@@ -668,13 +679,20 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "";
   const bodyHtml = lines.join("\n");
+  // Отписка из письма-отчёта глушит именно отчёты (reportsEmailEnabled),
+  // а не onboarding-подсказки.
+  const unsubscribeUrl = `${getBaseUrl()}/api/unsubscribe?token=${createSignedUserToken(
+    m.userId,
+    "unsubscribe",
+    90 * 24 * 60 * 60 * 1000
+  )}&type=reports`;
   return renderEmailLayout({
     userId: m.userId,
     title: `Ваш отчёт за ${r.labelHuman}`,
     preheader: `Сканирования, отзывы и динамика за ${r.labelHuman.toLowerCase()}`,
     bodyHtml,
     cta: base ? { label: "Открыть аналитику", href: `${base}/dashboard/analytics` } : undefined,
-    showUnsubscribe: true,
+    unsubscribe: { url: unsubscribeUrl, label: "Отписаться от отчётов" },
   });
 }
 
@@ -688,7 +706,7 @@ function renderEmailProSections(m: OwnerReportMetrics): string[] {
       `<p style="margin:0 0 8px;font-size:14px;color:#374151;">
         Получено <b>${fmtRu(m.reviews.count.current)}</b> ${emailDeltaPill(m.reviews.count.current, m.reviews.count.previous)}
         · негативных (1–3★) <b>${m.reviews.negative.current}</b>
-        ${m.reviews.avgRating != null ? `· средняя <b>${m.reviews.avgRating}★</b>${m.reviews.prevAvgRating != null ? ` (было ${m.reviews.prevAvgRating}★)` : ""}` : ""}
+        ${m.reviews.avgRating != null ? `· средняя <b>${fmtRuDecimal(m.reviews.avgRating)}★</b>${m.reviews.prevAvgRating != null ? ` (было ${fmtRuDecimal(m.reviews.prevAvgRating)}★)` : ""}` : ""}
       </p>`
     );
     if (m.reviews.count.current > 0) {
@@ -712,7 +730,7 @@ function renderEmailProSections(m: OwnerReportMetrics): string[] {
         Сканы меню: <b>${fmtRu(menuScans)}</b> ${emailDeltaPill(menuScans, menuScansPrev)} ·
         заказов <b>${fmtRu(m.menu.orders.current)}</b> ${emailDeltaPill(m.menu.orders.current, m.menu.orders.previous)}
         ${m.menu.avgCheck != null ? `· средний чек <b>≈ ${fmtRu(m.menu.avgCheck)} ₽</b>` : ""}
-        ${m.menu.conversion != null ? `· конверсия в заказ <b>${m.menu.conversion}%</b>` : ""}
+        ${m.menu.conversion != null ? `· конверсия в заказ <b>${fmtRuDecimal(m.menu.conversion)}%</b>` : ""}
       </p>`
     );
     const topMenuQrs = m.topQrsByMode["MENU"] ?? [];
@@ -798,7 +816,7 @@ function buildPromoBlocks(m: OwnerReportMetrics): PromoBlock[] {
   // Нет QR на отзывы → расскажи про отзывы.
   if (!m.qrModeSet.has("REVIEW") && !m.qrModeSet.has("LANDING")) {
     out.push({
-      title: "💡 А вы собираете отзывы на Яндекс.Картах?",
+      title: "💡 А вы собираете отзывы на Яндекс Картах?",
       text: `Создайте QR-код для отзывов: гости с оценкой 4–5★ перейдут на Яндекс Карты или 2ГИС, а сообщения с низкими оценками поступят в личный кабинет. ${
         base ? `<a href="${base}/dashboard/start" style="color:#6366f1;text-decoration:none;">Создать бесплатно →</a>` : ""
       }`,
@@ -845,12 +863,12 @@ export function renderOwnerMonthlyReportMessenger(m: OwnerReportMetrics): string
   const lines: string[] = [];
 
   lines.push(`📋 <b>QrStars — отчёт за ${escapeHtml(r.labelHuman)}</b>`);
-  lines.push(`<i>сравнение с прошлым месяцем${m.establishmentCount > 1 ? ` · сводно по ${m.establishmentCount} точкам` : ""}</i>`);
+  lines.push(`<i>сравнение с прошлым месяцем${m.establishmentCount > 1 ? ` · сводно по ${m.establishmentCount} ${pluralize(m.establishmentCount, "точке", "точкам", "точкам")}` : ""}</i>`);
   lines.push("");
   lines.push(`<b>Сканирования:</b> ${fmtRu(m.totalScans.current)}${deltaLine(m.totalScans.current, m.totalScans.previous)}`);
 
   if (m.reviews.count.current > 0 || m.reviewCapableScans.current > 0) {
-    const ratingStr = m.reviews.avgRating != null ? ` · ср. ${m.reviews.avgRating}★` : "";
+    const ratingStr = m.reviews.avgRating != null ? ` · ср. ${fmtRuDecimal(m.reviews.avgRating)}★` : "";
     lines.push(
       `<b>Отзывы:</b> ${fmtRu(m.reviews.count.current)}${deltaLine(m.reviews.count.current, m.reviews.count.previous)}${ratingStr} · негатив ${m.reviews.negative.current}`
     );
@@ -1038,6 +1056,7 @@ export async function sendOwnerMonthlyReports(options?: {
   force?: boolean;
   referenceDate?: Date;
 }): Promise<OwnerReportBatchResult> {
+  // Вне try: невалидный период должен падать в 400 роута, а не в ok:false бэтча.
   const range = resolveRange(options?.periodMonth, options?.referenceDate);
 
   const sent: OwnerReportSendResult[] = [];
@@ -1094,10 +1113,13 @@ export function resolveRange(
   periodMonth: string | undefined,
   referenceDate: Date | undefined
 ): MonthlyReportRange {
-  if (periodMonth && /^\d{4}-\d{2}$/.test(periodMonth)) {
-    const [yStr, mStr] = periodMonth.split("-");
-    const year = Number(yStr);
-    const month0 = Number(mStr) - 1;
+  if (periodMonth) {
+    const match = /^(\d{4})-(\d{2})$/.exec(periodMonth);
+    const year = match ? Number(match[1]) : NaN;
+    const month0 = match ? Number(match[2]) - 1 : NaN;
+    if (!match || month0 < 0 || month0 > 11 || year < 2000 || year > 2100) {
+      throw new Error("INVALID_PERIOD_MONTH");
+    }
     return buildMonthRange(year, month0);
   }
   return getPreviousMskMonthRange(referenceDate ?? new Date());

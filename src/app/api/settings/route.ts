@@ -7,6 +7,7 @@ import prisma from "@/lib/prisma";
 import { getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 import { reviewRoutingToJson, parseReviewRouting } from "@/lib/review-routing";
 import { parseWorkingHours } from "@/lib/working-hours";
+import { normalizeYandexMapsUrl, yandexMapsUrlError } from "@/lib/yandex-maps-url";
 import {
   establishmentAccessWhere,
   establishmentHasPaidFeatures,
@@ -113,7 +114,18 @@ export async function PUT(request: Request) {
   if (body.phone !== undefined) data.phone = body.phone || null;
   if (body.legalName !== undefined) data.legalName = body.legalName || null;
   if (body.inn !== undefined) data.inn = body.inn || null;
-  if (body.yandexMapsUrl !== undefined) data.yandexMapsUrl = body.yandexMapsUrl || null;
+  if (body.yandexMapsUrl !== undefined) {
+    const trimmed = typeof body.yandexMapsUrl === "string" ? body.yandexMapsUrl.trim() : "";
+    if (!trimmed) {
+      data.yandexMapsUrl = null;
+    } else {
+      const yandexError = yandexMapsUrlError(trimmed);
+      if (yandexError) {
+        return NextResponse.json({ error: yandexError }, { status: 400 });
+      }
+      data.yandexMapsUrl = normalizeYandexMapsUrl(trimmed);
+    }
+  }
   if (body.twoGisUrl !== undefined) data.twoGisUrl = body.twoGisUrl || null;
   if (body.avitoUrl !== undefined) data.avitoUrl = body.avitoUrl || null;
   if (body.platformRotation !== undefined) data.platformRotation = body.platformRotation;

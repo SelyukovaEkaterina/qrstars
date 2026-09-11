@@ -7,7 +7,6 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
-import Sidebar from "@/components/dashboard/Sidebar";
 import DashboardOnboardingBanner from "@/components/dashboard/DashboardOnboardingBanner";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
 import { pluralize } from "@/lib/utils";
@@ -182,8 +181,7 @@ function EstablishmentsPageContent() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -192,7 +190,6 @@ function EstablishmentsPageContent() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
@@ -461,8 +458,7 @@ export default function EstablishmentsPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen bg-gray-50">
-          <Sidebar />
-          <main className="flex-1 flex items-center justify-center">
+              <main className="flex-1 flex items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </main>
         </div>

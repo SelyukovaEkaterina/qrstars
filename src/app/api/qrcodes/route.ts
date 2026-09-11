@@ -14,6 +14,7 @@ import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
 import { isBuiltInStickerTemplateId } from "@/lib/builtin-sticker-templates";
 import { invalidateScanCache } from "@/lib/cache";
 import { getAuthUserId, withCorsHeaders, corsOkResponse } from "@/lib/mobile-auth";
+import { toHeaderSafeUrl } from "@/lib/redirect-url";
 
 export async function OPTIONS() {
   return corsOkResponse();
@@ -172,7 +173,7 @@ export async function POST(request: Request) {
     user: { connect: { id: userId } },
   };
   if (label) createData.label = label;
-  if (redirectUrl) createData.redirectUrl = redirectUrl;
+  if (redirectUrl) createData.redirectUrl = toHeaderSafeUrl(redirectUrl) ?? redirectUrl;
   if (establishmentId) {
     createData.establishment = { connect: { id: establishmentId } };
   }
@@ -216,7 +217,9 @@ export async function PUT(request: Request) {
 
     const data: Record<string, unknown> = {};
     if (label !== undefined) data.label = label || null;
-    if (redirectUrl !== undefined) data.redirectUrl = redirectUrl || null;
+    if (redirectUrl !== undefined) {
+      data.redirectUrl = redirectUrl ? toHeaderSafeUrl(redirectUrl) ?? redirectUrl : null;
+    }
     if (mode !== undefined) data.mode = mode;
     if (isActive !== undefined) data.isActive = isActive;
     if (establishmentId !== undefined) {

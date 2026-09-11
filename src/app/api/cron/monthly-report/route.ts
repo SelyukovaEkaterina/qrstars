@@ -31,7 +31,18 @@ export async function POST(request: Request) {
   const userId = url.searchParams.get("userId") ?? undefined;
   const force = url.searchParams.get("force") === "1";
 
-  const result = await sendOwnerMonthlyReports({ periodMonth, userId, force });
+  let result;
+  try {
+    result = await sendOwnerMonthlyReports({ periodMonth, userId, force });
+  } catch (err) {
+    if (err instanceof Error && err.message === "INVALID_PERIOD_MONTH") {
+      return NextResponse.json(
+        { error: "Invalid periodMonth, expected YYYY-MM" },
+        { status: 400 }
+      );
+    }
+    throw err;
+  }
 
   return NextResponse.json({
     ok: result.ok,

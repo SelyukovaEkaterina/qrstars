@@ -19,15 +19,16 @@ export async function sendMail(to: string, subject: string, html: string) {
     return true;
   }
   try {
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
       from: process.env.SMTP_FROM || "QrStars.ru <noreply@qrstars.ru>",
       to,
       subject,
       html,
     });
+    console.info("Email sent", { to, subject, messageId: info.messageId });
     return true;
   } catch (error) {
-    console.error("Email send error:", error);
+    console.error("Email send error:", { to, subject, error });
     return false;
   }
 }
@@ -125,24 +126,32 @@ export function sendNegativeReviewNotification(
   establishmentName: string,
   rating: number,
   comment: string,
-  guestName?: string
+  guestName?: string,
+  guestContact?: string
 ) {
+  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://app.qrstars.ru";
+  const reviewsUrl = `${base.replace(/\/$/, "")}/dashboard/reviews`;
+  const safeEst = escapeHtml(establishmentName);
+  const safeComment = escapeHtml(comment || "Без комментария").replace(/\n/g, "<br>");
+  const safeGuest = guestName ? escapeHtml(guestName) : "";
+  const safeContact = guestContact ? escapeHtml(guestContact) : "";
   return sendMail(
     to,
     `⚠️ Негативный отзыв — ${establishmentName} (${rating}★)`,
     `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #dc2626;">Получен негативный отзыв</h2>
-      <p><strong>Заведение:</strong> ${establishmentName}</p>
+      <p><strong>Заведение:</strong> ${safeEst}</p>
       <p><strong>Оценка:</strong> ${rating} из 5 ★</p>
-      ${guestName ? `<p><strong>Имя гостя:</strong> ${guestName}</p>` : ""}
+      ${safeGuest ? `<p><strong>Имя гостя:</strong> ${safeGuest}</p>` : ""}
+      ${safeContact ? `<p><strong>Как связаться:</strong> ${safeContact}</p>` : ""}
       <p><strong>Комментарий:</strong></p>
       <div style="background:#fef2f2;padding:16px;border-radius:8px;border-left:4px solid #dc2626;">
-        ${comment || "Без комментария"}
+        ${safeComment}
       </div>
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL}/dashboard"
+      <a href="${reviewsUrl}"
          style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">
-        Открыть кабинет
+        Открыть жалобы в кабинете
       </a>
     </div>
     `

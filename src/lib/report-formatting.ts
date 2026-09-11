@@ -6,7 +6,14 @@ export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/** Дробное число по-русски: 4.5 → «4,5» (для уже округлённых значений). */
+export function fmtRuDecimal(value: number): string {
+  return String(value).replace(".", ",");
 }
 
 export function formatMskDate(date: Date): string {

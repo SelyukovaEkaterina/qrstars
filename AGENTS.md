@@ -17,6 +17,9 @@ This version has breaking changes — APIs, conventions, and file structure may 
 1. **Физическая табличка** (акриловый тейбл-тент) на стол с QR-кодом «Наведите камеру».
 2. **Гость сканирует QR** → ставит оценку 1–5 звёзд:
    - **По каждой оценке 1–5★** — настраиваемое действие (жалоба владельцу, отзыв на Яндекс / 2GIS / Авито, только благодарность) и свои тексты до/после отправки. На FREE — стандарт: 1–3★ жалоба, 4–5★ Яндекс; на PRO — свои сценарии в настройках QR «Сбор отзывов». Ссылки на площадки — в настройках заведения (`/dashboard/establishments/[id]`).
+   - **CTA площадки открывается с первого клика**: в `ScanFlow.handlePlatformClick` отзыв сохраняется и одновременно вызывается `window.open` на URL площадки; кнопка на шаге `thanks` остаётся запасным путём при блокировке попапа.
+   - **Контакт гостя в жалобе**: в форме 1–3★ поле «Телефон или Telegram» показывается **всегда** (не зависит от `pdConsent.ready` / реквизитов заведения), согласие на ПД — при заполненном контакте. Реквизиты по-прежнему гейтят чувствительные поля визитки, меню и кастомных форм. Жалоба без контакта помечается в `/dashboard/reviews`.
+   - **Email о жалобе**: `POST /api/reviews` шлёт письмо на все email-цели (`getEmailTargets`), при их отсутствии — на `user.email`; сбой SMTP логируется и не роняет запрос.
 
 ## Бизнес-модель
 
@@ -89,6 +92,7 @@ QR-кодов внутри заведения — **без лимита** на �
 - **Контент заведения** (меню, визитка, Wi-Fi, сценарии отзывов) хранится на уровне `Establishment` и редактируется в **`/dashboard/my-page`** («Моя страница»). Тумблеры `pageModules` управляют блоками микро-лендинга. **Оформление**: `brandColor` (7 пресетов + свой HEX), `pageAppearance` (`light` / `dark`), `coverUrl`, `logoUrl` — палитра UI генерируется в `src/lib/brand-theme.ts`; акцент визитки синхронизируется с `brandColor`.
 - **QR-код** (`/dashboard/qrcodes/[id]`) — только **маршрутизация**: 4 группы — **микро-лендинг** (`LANDING`), **быстрый доступ к разделу** (`MENU` / `REVIEW` / `BUSINESS_CARD` / `WIFI`), **прямой редирект** (`REDIRECT`), **скачать файл** (`FILE`, файл привязан к QR).
 - При сканировании контент подставляется с заведения (fallback — старые FK на QR для обратной совместимости). API: `GET/PUT /api/establishments/[id]/page`.
+- **Внешние редиректы** (`REDIRECT`, `CUSTOM_SECTION` типа `LINK`): URL прогоняется через `toHeaderSafeUrl` (`src/lib/redirect-url.ts`) — percent-кодирование не-ASCII (кириллица в ссылках Яндекс.Карт), punycode для домена, вырезание управляющих символов. Заголовок `Location` допускает только ASCII, иначе `TypeError: Invalid character in header content`. Нормализация применяется и при чтении (legacy-записи), и при сохранении в `POST/PUT /api/qrcodes`. Невалидный URL → заглушка «Ссылка указана неверно» вместо 500.
 - **Отдача загруженных файлов**: при загрузке MIME определяется по заголовку браузера, иначе по расширению (`normalizeContentType`), и в S3 пишется `Content-Disposition` (`buildContentDisposition` в `src/lib/file-assets.ts`). Картинки, текст, PDF, видео/аудио → `inline` (открываются в браузере), остальное → `attachment`. Активные типы (`text/html`, `image/svg+xml`, XML) всегда `attachment`: файлы отдаются с `/storage/` того же origin, что и сессия. Nginx на `/storage/` шлёт `X-Content-Type-Options: nosniff`. `FileDownloadView` для inline-типов делает основной кнопкой «Открыть» (для картинок — превью), скачивание — вторичной ссылкой.
 
 ## Ключевые маршруты фронтенда
@@ -97,7 +101,8 @@ QR-кодов внутри заведения — **без лимита** на �
 - `/dashboard/my-page` — единый контент заведения (меню, отзывы, визитка, Wi-Fi)
 - **Демо QR (без БД)**: коды с префиксом `demo-` (`demo-landing`, `demo-review`, `demo-2gis`, `demo-redirect`, `demo-business-card`, `demo-wifi`, `demo-file`, `demo-menu`) — конфиг в `src/lib/demo-qrcodes.ts`, рендер в `src/lib/render-demo-scan.tsx`. `demo-review` направляет 4–5★ на Яндекс, `demo-2gis` — в 2GIS. `demo-landing` — полный микро-лендинг со всеми разделами. На лендинге секция «Попробуйте демо». Префикс `demo-` нельзя занять при создании QR в API.
 - **QR-визитка — «Связь» (опционально)**: в `/dashboard/settings` (блок «Каналы для уведомлений») email регистрации создаётся как канал по умолчанию (`ensureDefaultEmailContact`, тумблеры «Отзывы»/«Заявки» включены). Владелец **один раз** подключает Telegram (`/start link_mc_{userId}` или код `MC-{userId}`) или MAX; можно добавить другой email. В настройках **заведения** — галочки типов уведомлений; в конструкторе визитки — выбор канала для формы «Написать человеку». Гость указывает имя и сообщение; владелец получает в выбранный канал: название QR (label или code), IP, регион, браузер, устройство и текст. API: `GET/POST/DELETE /api/messenger-contacts`, `POST /api/business-cards/contact`.
-- **Личный кабинет владельца** (`/dashboard/*`): активация таблички, дашборд статистики, смена ссылок, оплата Pro-тарифа
+- **Личный кабинет владельца** (`/dashboard/*`): активация таблички, дашборд статистики, смена ссылок, оплата Pro-тарифа. Оболочка кабинета — `src/components/dashboard/DashboardChrome.tsx` (рендерится в `dashboard/layout.tsx`): сайдбар один на все страницы, на &lt;1024px скрыт в drawer с гамбургером. Отдельные страницы `Sidebar` **не** импортируют. `/dashboard/start` (мастер) — без сайдбара. 404 внутри кабинета — `src/app/dashboard/not-found.tsx`.
+- **Ссылка на Яндекс.Карты**: короткие `yandex.ru/maps/-/…` не сохраняются вслепую (могут вести на чужую организацию). `POST /api/yandex-maps/preview` резолвит редиректы (только yandex-хосты, таймаут 6 с) и возвращает название + канонический `/maps/org/…`; UI — `YandexMapsOrgConfirm` («Это ваша организация?») в мастере `/dashboard/start` и настройках заведения. `PUT /api/settings` валидирует `yandexMapsUrl`. Поиск (`/maps/search/`) — по-прежнему ошибка.
 - **Личный кабинет администратора** (`/admin/*`): обзор платформы (статистика, рост), управление пользователями (поиск, смена роли/тарифа), подписки и платежи, все отзывы, все заведения. Вход: `/admin/login`, доступ только с ролью `ADMIN` в БД. API-роуты: `/api/admin/*` (защищены `requireAdmin()`). Доступы тестового админа: `admin@smartreview.ru` / `admin1234`
 
 ## Вход через VK ID
@@ -109,6 +114,15 @@ QR-кодов внутри заведения — **без лимита** на �
 - ID приложения: `54734947`.
 - Env: серверные `VK_CLIENT_ID`, `VK_SERVICE_TOKEN`, `VK_REDIRECT_URI`; build-time публичные `NEXT_PUBLIC_VK_CLIENT_ID`, `NEXT_PUBLIC_VK_REDIRECT_URI`. `VK_CLIENT_SECRET` может храниться в env приложения, но текущий OAuth 2.1 flow использует service token и не передаёт секреты во фронт.
 - E2E: `e2e/test_vk_auth.py`, mock VK ID API — `e2e/vk_id_mock.py`.
+
+## Вход через Яндекс ID
+
+- На `/login` кнопка ведёт в серверный OAuth-flow: `GET /auth/yandex` → Яндекс → `GET /auth/yandex/callback`. `clientSecret` во фронт не передаётся.
+- Callback проверяет `state` из HttpOnly-cookie, обменивает код на токен через `https://oauth.yandex.ru/token`, читает профиль через `https://login.yandex.ru/info`, связывает пользователя сначала по `yandexId`, затем по email и выдаёт JWT-cookie NextAuth.
+- Новому Яндекс-пользователю пароль не создаётся; выполняются стандартные post-registration действия (email-канал, pending-инвайты, Telegram-уведомление, welcome email).
+- Redirect URL: `https://app.qrstars.ru/auth/yandex/callback`.
+- Env: `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI`. Секрет хранится только в env приложения.
+- E2E: `e2e/test_yandex_auth.py`, mock Яндекс ID API — `e2e/yandex_id_mock.py`.
 
 ## Партнёрская программа
 
@@ -254,8 +268,9 @@ QR-кодов внутри заведения — **без лимита** на �
 Ежемесячная сводка по сканированиям, отзывам и заказам для владельца заведений, со сравнением с прошлым месяцем (MoM). Адаптивные секции — только по тем типам QR, которые есть у владельца; промо-блоки кросс-селла («а ещё у нас есть отзывы/меню», upsell PRO).
 
 - **Период**: прошлый календарный месяц (МСК), сравнение MoM с позапрошлым. Опц. `?periodMonth=YYYY-MM` для бэкфилла.
-- **Кому**: всем владельцам с заведением и активностью (≥1 скан/отзыв/QR за период). FREE — упрощённая версия, PRO/Сеть — полная (per-mode секции, конверсия, заказы, разбивка по точкам).
+- **Кому**: всем владельцам с заведением и активностью (≥1 скан/отзыв/QR **за отчётный период** — старые QR без сканов «нулевые» отчёты не генерят). FREE — упрощённая версия, PRO/Сеть — полная (per-mode секции, конверсия, заказы, разбивка по точкам).
 - **Каналы**: owner-level тумблеры на `User` (`reportsEmailEnabled` / `reportsTelegramEnabled` / `reportsMaxEnabled`), цели — `MessengerContact` владельца (+ email-fallback на `user.email` если `marketingEmailsEnabled`). Настраиваются в `/dashboard/settings` (блок «📋 Ежемесячный отчёт»).
+- **Отписка из письма-отчёта**: footer содержит «Отписаться от отчётов» → `GET /api/unsubscribe?token=…&type=reports` ставит `reportsEmailEnabled=false` (onboarding-отписка без `type` по-прежнему глушит только `marketingEmailsEnabled`). `?periodMonth=` невалидного месяца → 400 (`INVALID_PERIOD_MONTH`).
 - **Идемпотентность**: `UserLifecycleEmail(userId, campaignKey = "monthly_report_YYYY_MM")`. Повторный cron / гонка (unique constraint P2002) → skip `already_sent`.
 - **Источник сканов по режимам**: `DailyScanStat` JOIN `QRCode.mode` (raw SQL, все тарифы). Отзывы — `Review` (count/avg/`isNegative`/распределение [1–5★]). Заказы меню — `MenuOrder` (count/`total`/конверсия) при наличии MENU-QR. Сеть — разбивка по точкам.
 - **Код**: `src/lib/owner-monthly-report.ts` (`collectOwnerMonthlyMetrics`, `renderOwnerMonthlyReportEmail`, `renderOwnerMonthlyReportMessenger`, `sendOwnerMonthlyReports`), `src/lib/report-formatting.ts` (общие хелперы: `deltaLine`, `formatMskMonthHuman`, и т.д. — шарятся с `admin-weekly-report.ts`), `src/lib/owner-messenger-notify.ts` (`getReportEmailTargets` / `getReportTelegramTargets` / `getReportMaxTargets`).

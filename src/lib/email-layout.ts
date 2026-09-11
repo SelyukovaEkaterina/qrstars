@@ -9,6 +9,8 @@ export interface EmailLayoutOptions {
   bodyHtml: string;
   cta?: { label: string; href: string };
   showUnsubscribe?: boolean;
+  /** Своя ссылка отписки (например, «Отписаться от отчётов» с type=reports). */
+  unsubscribe?: { url: string; label: string };
 }
 
 export function renderEmailLayout(options: EmailLayoutOptions): string {
@@ -27,7 +29,11 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
   const footerLinks = [
     `<a href="${base}/dashboard/support" style="color:#6366f1;text-decoration:none;">Поддержка</a>`,
   ];
-  if (options.showUnsubscribe !== false) {
+  if (options.unsubscribe) {
+    footerLinks.push(
+      `<a href="${options.unsubscribe.url}" style="color:#9ca3af;text-decoration:none;">${options.unsubscribe.label}</a>`
+    );
+  } else if (options.showUnsubscribe !== false) {
     footerLinks.push(
       `<a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:none;">Отписаться от подсказок</a>`
     );

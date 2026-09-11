@@ -106,6 +106,28 @@ def test_quick_start_reviews_rejects_search_url(base_url):
     assert "карточку" in r.json().get("error", "").lower()
 
 
+def test_quick_start_reviews_rejects_short_share_url(base_url):
+    email = unique_email("qs-short")
+    password = "secure123"
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Short URL Cafe",
+            "yandexMapsUrl": "https://yandex.ru/maps/-/CDwZ6KMr",
+        },
+    )
+    assert r.status_code == 400
+    err = r.json().get("error", "").lower()
+    assert "коротк" in err or "org" in err
+
+
 def test_quick_start_reviews_rejects_maps_homepage(base_url):
     email = unique_email("qs-home")
     password = "secure123"

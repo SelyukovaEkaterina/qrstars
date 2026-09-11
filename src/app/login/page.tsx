@@ -6,17 +6,19 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import VkIdLogin from "@/components/auth/VkIdLogin";
+import YandexIdLogin from "@/components/auth/YandexIdLogin";
 
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState(() =>
-    searchParams.get("session") === "expired"
-      ? "Сессия устарела. Войдите снова."
-      : ""
-  );
+  const [error, setError] = useState(() => {
+    if (searchParams.get("session") === "expired") {
+      return "Сессия устарела. Войдите снова.";
+    }
+    return searchParams.get("yandex_error") || "";
+  });
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,7 +52,10 @@ function LoginForm() {
           <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
         )}
 
-        <VkIdLogin />
+        <div className="mx-auto w-full max-w-[400px] space-y-3">
+          <YandexIdLogin />
+          <VkIdLogin />
+        </div>
 
         <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="h-px flex-1 bg-gray-200" />

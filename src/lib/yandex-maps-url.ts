@@ -5,17 +5,19 @@ const ALLOWED_HOSTS = new Set([
   "maps.yandex.com",
 ]);
 
-/** Путь похож на карточку организации (не поиск и не главная). */
-const ORG_PATH_PATTERNS = [
-  /\/maps\/org\//i,
-  /\/org\//i,
-  /\/maps\/-\/[A-Za-z0-9_-]+/i,
-];
+const ORG_PATH_PATTERNS = [/\/maps\/org\//i, /\/org\//i];
+const SHORT_PATH_PATTERN = /\/maps\/-\/[A-Za-z0-9_-]+/i;
 
 export const YANDEX_MAPS_CARD_ERROR =
   "Вставьте ссылку на карточку заведения, а не на поиск или главную карт";
 
 export const YANDEX_MAPS_INVALID_ERROR = "Некорректная ссылка на Яндекс.Карты";
+
+export const YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR =
+  "Это короткая ссылка. Подтвердите организацию после проверки карточки или вставьте ссылку вида yandex.ru/maps/org/…";
+
+export const YANDEX_MAPS_RESOLVE_ERROR =
+  "Не удалось открыть карточку по этой ссылке. Скопируйте ссылку «Поделиться» с страницы организации (yandex.ru/maps/org/…).";
 
 function isAllowedHost(hostname: string): boolean {
   return ALLOWED_HOSTS.has(hostname.toLowerCase());
@@ -27,11 +29,15 @@ function isSearchOrMainPath(pathname: string): boolean {
   return /\/maps\/search(?:\/|$)/i.test(pathname);
 }
 
-function hasOrgCardPath(pathname: string): boolean {
+export function isYandexMapsOrgPath(pathname: string): boolean {
   return ORG_PATH_PATTERNS.some((pattern) => pattern.test(pathname));
 }
 
-function parseInput(raw: string): URL | null {
+export function isYandexMapsShortPath(pathname: string): boolean {
+  return SHORT_PATH_PATTERN.test(pathname);
+}
+
+export function parseYandexMapsInput(raw: string): URL | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
@@ -47,32 +53,146 @@ function parseInput(raw: string): URL | null {
   }
 }
 
-/** Нормализует ввод → https URL или null */
+export function isAllowedYandexMapsHost(hostname: string): boolean {
+  return isAllowedHost(hostname);
+}
+
+/** Нормализует карточку /maps/org/… . Короткие /maps/-/ не принимаются без резолва. */
 export function normalizeYandexMapsUrl(raw: string): string | null {
-  const parsed = parseInput(raw);
+  const parsed = parseYandexMapsInput(raw);
   if (!parsed) return null;
   if (!isAllowedHost(parsed.hostname)) return null;
   if (isSearchOrMainPath(parsed.pathname)) return null;
-  if (!hasOrgCardPath(parsed.pathname)) return null;
+  if (!isYandexMapsOrgPath(parsed.pathname)) return null;
   return parsed.href;
 }
 
-/** true если домен yandex.* / maps.yandex.* и путь похож на карточку */
+export function isYandexMapsShortUrl(raw: string): boolean {
+  const parsed = parseYandexMapsInput(raw);
+  if (!parsed || !isAllowedHost(parsed.hostname)) return false;
+  if (isSearchOrMainPath(parsed.pathname)) return false;
+  return isYandexMapsShortPath(parsed.pathname);
+}
+
 export function isValidYandexMapsUrl(url: string): boolean {
   return normalizeYandexMapsUrl(url) !== null;
 }
 
-/** Человекочитаемая ошибка для UI; null — ссылка валидна (пустая строка тоже null) */
 export function yandexMapsUrlError(raw: string): string | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
-  const parsed = parseInput(trimmed);
+  const parsed = parseYandexMapsInput(trimmed);
   if (!parsed) return YANDEX_MAPS_INVALID_ERROR;
   if (!isAllowedHost(parsed.hostname)) return YANDEX_MAPS_INVALID_ERROR;
   if (isSearchOrMainPath(parsed.pathname) || /\/maps\/search(?:\/|$)/i.test(parsed.pathname)) {
     return YANDEX_MAPS_CARD_ERROR;
   }
-  if (!hasOrgCardPath(parsed.pathname)) return YANDEX_MAPS_CARD_ERROR;
+  if (isYandexMapsShortPath(parsed.pathname)) {
+    return YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR;
+  }
+  if (!isYandexMapsOrgPath(parsed.pathname)) return YANDEX_MAPS_CARD_ERROR;
   return null;
+}
+
+export function orgNameFromYandexPath(pathname: string): string | null {
+  const match = pathname.match(/\/(?:maps\/)?org\/([^/]+)/i);
+  if (!match?.[1]) return null;
+  try {
+    return decodeURIComponent(match[1]).replace(/_/g, " ").trim() || null;
+  } catch {
+    return match[1].replace(/_/g, " ").trim() || null;
+  }
+}
+
+export function extractYandexOrgTitle(html: string): string | null {
+  const og =
+    html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:title["']/i);
+  const raw = og?.[1] || html.match(/<title>([^<]+)<\/title>/i)?.[1];
+  if (!raw) return null;
+  const decoded = raw
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .trim();
+  return decoded.replace(/\s+[—–-]\s+Яндекс.*$/i, "").trim() || null;
+}
+
+export type YandexMapsPreview = {
+  ok: true;
+  name: string;
+  canonicalUrl: string;
+} | {
+  ok: false;
+  error: string;
+};
+
+export async function resolveYandexMapsPreview(
+  raw: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<YandexMapsPreview> {
+  const searchError = yandexMapsUrlError(raw);
+  if (searchError === YANDEX_MAPS_INVALID_ERROR || searchError === YANDEX_MAPS_CARD_ERROR) {
+    return { ok: false, error: searchError };
+  }
+
+  const start = parseYandexMapsInput(raw);
+  if (!start || !isAllowedHost(start.hostname)) {
+    return { ok: false, error: YANDEX_MAPS_INVALID_ERROR };
+  }
+
+  let current = start.href;
+  let html = "";
+  for (let hop = 0; hop < 6; hop++) {
+    let res: Response;
+    try {
+      res = await fetchImpl(current, {
+        method: "GET",
+        redirect: "manual",
+        headers: {
+          "User-Agent": "QrStarsMapsPreview/1.0",
+          Accept: "text/html,application/xhtml+xml",
+        },
+        signal: AbortSignal.timeout(6000),
+      });
+    } catch {
+      return { ok: false, error: YANDEX_MAPS_RESOLVE_ERROR };
+    }
+
+    const location = res.headers.get("location");
+    if (location && [301, 302, 303, 307, 308].includes(res.status)) {
+      let next: URL;
+      try {
+        next = new URL(location, current);
+      } catch {
+        return { ok: false, error: YANDEX_MAPS_RESOLVE_ERROR };
+      }
+      if (!isAllowedHost(next.hostname)) {
+        return { ok: false, error: YANDEX_MAPS_RESOLVE_ERROR };
+      }
+      current = next.href;
+      continue;
+    }
+
+    html = await res.text();
+    break;
+  }
+
+  const finalUrl = parseYandexMapsInput(current);
+  if (!finalUrl || !isAllowedHost(finalUrl.hostname) || isSearchOrMainPath(finalUrl.pathname)) {
+    return { ok: false, error: YANDEX_MAPS_RESOLVE_ERROR };
+  }
+  if (!isYandexMapsOrgPath(finalUrl.pathname)) {
+    return { ok: false, error: YANDEX_MAPS_RESOLVE_ERROR };
+  }
+
+  const name =
+    extractYandexOrgTitle(html) ||
+    orgNameFromYandexPath(finalUrl.pathname) ||
+    "организация на Яндекс.Картах";
+
+  return { ok: true, name, canonicalUrl: finalUrl.href };
 }

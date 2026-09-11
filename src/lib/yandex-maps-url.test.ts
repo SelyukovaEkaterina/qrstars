@@ -2,8 +2,13 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   YANDEX_MAPS_CARD_ERROR,
+  YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR,
+  extractYandexOrgTitle,
   isValidYandexMapsUrl,
+  isYandexMapsShortUrl,
   normalizeYandexMapsUrl,
+  orgNameFromYandexPath,
+  resolveYandexMapsPreview,
   yandexMapsUrlError,
 } from "./yandex-maps-url";
 
@@ -32,8 +37,13 @@ describe("normalizeYandexMapsUrl", () => {
     assert.ok(isValidYandexMapsUrl("https://yandex.ru/org/cafe/123"));
   });
 
-  it("accepts legacy /maps/-/ short link", () => {
-    assert.ok(isValidYandexMapsUrl("https://yandex.ru/maps/-/ABC"));
+  it("does not treat short /maps/-/ as a confirmed org card", () => {
+    assert.equal(normalizeYandexMapsUrl("https://yandex.ru/maps/-/CDwZ6KMr"), null);
+    assert.ok(isYandexMapsShortUrl("https://yandex.ru/maps/-/CDwZ6KMr"));
+    assert.equal(
+      yandexMapsUrlError("https://yandex.ru/maps/-/CDwZ6KMr"),
+      YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR
+    );
   });
 
   it("rejects maps homepage", () => {
@@ -79,5 +89,44 @@ describe("yandexMapsUrlError", () => {
       yandexMapsUrlError("https://google.com/foo"),
       "Некорректная ссылка на Яндекс.Карты"
     );
+  });
+});
+
+describe("title helpers", () => {
+  it("reads og:title and strips Yandex suffix", () => {
+    const html = `<meta property="og:title" content="Кофейня «Бобр» — Яндекс Карты">`;
+    assert.equal(extractYandexOrgTitle(html), "Кофейня «Бобр»");
+  });
+
+  it("reads slug from org path", () => {
+    assert.equal(orgNameFromYandexPath("/maps/org/кофейня_бобр/123"), "кофейня бобр");
+  });
+});
+
+describe("resolveYandexMapsPreview", () => {
+  it("follows a short link to an org card", async () => {
+    const fetchMock = async (url: string | URL | Request) => {
+      const href = String(url);
+      if (href.includes("/maps/-/")) {
+        return new Response("", {
+          status: 302,
+          headers: { location: "https://yandex.ru/maps/org/cafe_roma/42" },
+        });
+      }
+      return new Response(`<title>Cafe Roma — Яндекс Карты</title>`, { status: 200 });
+    };
+    const result = await resolveYandexMapsPreview("https://yandex.ru/maps/-/ABC", fetchMock as typeof fetch);
+    assert.equal(result.ok, true);
+    if (result.ok) {
+      assert.equal(result.name, "Cafe Roma");
+      assert.match(result.canonicalUrl, /\/maps\/org\/cafe_roma\/42/);
+    }
+  });
+
+  it("rejects search URLs without fetching", async () => {
+    const result = await resolveYandexMapsPreview("https://yandex.ru/maps/search/кафе", async () => {
+      throw new Error("should not fetch");
+    });
+    assert.equal(result.ok, false);
   });
 });

@@ -7,24 +7,17 @@ import {
 } from "./setup-utm-intent";
 
 describe("resolveAutoSelectedIntent", () => {
-  it("auto-selects menu for menu_search campaign", () => {
-    assert.equal(resolveAutoSelectedIntent("menu_search", null), "menu");
-    assert.equal(resolveAutoSelectedIntent("MENU_SEARCH", null), "menu");
-  });
-
-  it("auto-selects menu when menu_search is in utm_content", () => {
-    assert.equal(resolveAutoSelectedIntent(null, "menu_search"), "menu");
-  });
-
-  it("does not auto-select for broad menu hint campaigns", () => {
+  it("does not auto-select a scenario for UTM traffic", () => {
+    assert.equal(resolveAutoSelectedIntent("menu_search", null), null);
+    assert.equal(resolveAutoSelectedIntent(null, "menu_search"), null);
     assert.equal(resolveAutoSelectedIntent("my_menu_promo", null), null);
     assert.equal(resolveAutoSelectedIntent("reviews_search", null), null);
     assert.equal(resolveAutoSelectedIntent(null, null), null);
   });
 });
 
-describe("parseSetupUtmContext vs auto-select", () => {
-  it("keeps menu hint for campaigns containing menu without auto-select", () => {
+describe("parseSetupUtmContext", () => {
+  it("keeps menu hint for campaigns containing menu", () => {
     const ctx = parseSetupUtmContext("my_menu_promo", null);
     assert.equal(ctx.hint, "menu");
     assert.equal(resolveAutoSelectedIntent("my_menu_promo", null), null);

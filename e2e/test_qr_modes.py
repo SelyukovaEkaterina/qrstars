@@ -200,6 +200,44 @@ def test_scan_redirect_mode(base_url, owner_session, owner_establishment_id):
     assert data["redirectUrl"] == "https://example.com/redirect-target"
 
 
+def test_create_qrcode_redirect_url_with_cyrillic_is_encoded(
+    owner_session, base_url, owner_establishment_id
+):
+    r = owner_session.post(
+        f"{base_url}/api/qrcodes",
+        json={
+            "code": unique_code("qrredcyr"),
+            "establishmentId": owner_establishment_id,
+            "mode": "REDIRECT",
+            "redirectUrl": "https://yandex.ru/maps/org/foo/1/reviews/?text=Ломбард 585&z=15",
+        },
+    )
+    assert r.status_code == 200
+    saved = r.json()["qrcode"]["redirectUrl"]
+    assert saved.isascii(), saved
+    assert "%D0%9B%D0%BE%D0%BC%D0%B1%D0%B0%D1%80%D0%B4" in saved
+
+
+def test_scan_redirect_mode_with_cyrillic_url(base_url, owner_session, owner_establishment_id):
+    """Location допускает только ASCII — кириллица в URL не должна ломать /q/[code]."""
+    code = unique_code("scnredcyr")
+    owner_session.post(
+        f"{base_url}/api/qrcodes",
+        json={
+            "code": code,
+            "establishmentId": owner_establishment_id,
+            "mode": "REDIRECT",
+            "redirectUrl": "https://yandex.ru/maps/org/bar/2/reviews/?text=Кофейня Уют",
+        },
+    )
+
+    r = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
+    assert r.status_code in (302, 303, 307, 308), f"{r.status_code} {r.text[:300]}"
+    location = r.headers["location"]
+    assert location.isascii(), location
+    assert location.startswith("https://yandex.ru/maps/org/bar/2/reviews/")
+
+
 def test_scan_redirect_mode_without_establishment(base_url, owner_session):
     code = unique_code("scnredno")
     owner_session.post(

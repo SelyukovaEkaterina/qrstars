@@ -1,4 +1,5 @@
 import io
+import os
 
 import pytest
 import requests
@@ -51,6 +52,95 @@ def test_file_upload_replace_keeps_same_id(owner_session, base_url):
     assert updated["id"] == first["id"]
     assert updated["fileName"] == "v2.pdf"
     assert updated["title"] == "Версия 2"
+
+
+def _fetch_stored_file(session, base_url, file_asset):
+    # В проде /storage проксирует nginx; в тестах ходим в S3 напрямую (S3_PUBLIC_BASE).
+    storage_base = os.environ.get("S3_PUBLIC_BASE")
+    if storage_base and file_asset.get("fileKey"):
+        url = f"{storage_base.rstrip('/')}/{file_asset['fileKey']}"
+    else:
+        url = file_asset["fileUrl"]
+        if url.startswith("/"):
+            url = f"{base_url}{url}"
+    r = requests.get(url)
+    if r.status_code != 200:
+        pytest.skip(f"S3 storage is not reachable in test environment ({r.status_code})")
+    return r
+
+
+def test_upload_detects_mime_by_extension(owner_session, base_url):
+    file_asset = upload_test_file_asset(
+        owner_session,
+        base_url,
+        file_name="photo.png",
+        content=b"\x89PNG\r\n\x1a\n fake",
+        mime_type="application/octet-stream",
+    )
+    assert file_asset["mimeType"] == "image/png"
+
+
+def test_image_is_served_inline(owner_session, base_url):
+    file_asset = upload_test_file_asset(
+        owner_session,
+        base_url,
+        file_name="inline.png",
+        content=b"\x89PNG\r\n\x1a\n fake",
+        mime_type="image/png",
+    )
+    r = _fetch_stored_file(owner_session, base_url, file_asset)
+    assert r.headers.get("Content-Type", "").startswith("image/png")
+    assert r.headers.get("Content-Disposition", "").startswith("inline")
+
+
+def test_text_is_served_inline(owner_session, base_url):
+    file_asset = upload_test_file_asset(
+        owner_session,
+        base_url,
+        file_name="notes.txt",
+        content=b"hello e2e",
+        mime_type="text/plain",
+    )
+    r = _fetch_stored_file(owner_session, base_url, file_asset)
+    assert r.headers.get("Content-Disposition", "").startswith("inline")
+
+
+def test_html_is_served_as_attachment(owner_session, base_url):
+    file_asset = upload_test_file_asset(
+        owner_session,
+        base_url,
+        file_name="page.html",
+        content=b"<script>alert(1)</script>",
+        mime_type="text/html",
+    )
+    r = _fetch_stored_file(owner_session, base_url, file_asset)
+    assert r.headers.get("Content-Disposition", "").startswith("attachment")
+
+
+def test_archive_is_served_as_attachment(owner_session, base_url):
+    file_asset = upload_test_file_asset(
+        owner_session,
+        base_url,
+        file_name="archive.zip",
+        content=b"PK\x03\x04test",
+        mime_type="application/zip",
+    )
+    r = _fetch_stored_file(owner_session, base_url, file_asset)
+    assert r.headers.get("Content-Disposition", "").startswith("attachment")
+
+
+def test_cyrillic_file_name_in_disposition(owner_session, base_url):
+    file_asset = upload_test_file_asset(
+        owner_session,
+        base_url,
+        file_name="Меню.pdf",
+        content=b"%PDF-1.4 cyrillic",
+        mime_type="application/pdf",
+    )
+    r = _fetch_stored_file(owner_session, base_url, file_asset)
+    disposition = r.headers.get("Content-Disposition", "")
+    assert disposition.startswith("inline")
+    assert "filename*=UTF-8''" in disposition
 
 
 def test_file_delete(owner_session, base_url):

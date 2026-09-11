@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/dashboard/Sidebar";
 import { pluralize } from "@/lib/utils";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -158,8 +157,7 @@ export default function ReviewsPage() {
   if (status !== "authenticated") {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -173,7 +171,6 @@ export default function ReviewsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex items-center justify-between">
@@ -394,10 +391,17 @@ export default function ReviewsPage() {
                             )}
                           </td>
                           <td className="px-4 py-3">
-                            {r.guestName ? (
-                              <span className="text-sm text-gray-700">
-                                {r.guestName}
-                              </span>
+                            {r.guestName || r.guestPhone ? (
+                              <div className="text-sm text-gray-700">
+                                {r.guestName && <p>{r.guestName}</p>}
+                                {r.guestPhone && (
+                                  <p className="text-xs text-gray-500">{r.guestPhone}</p>
+                                )}
+                              </div>
+                            ) : r.isNegative ? (
+                              <p className="text-xs text-amber-700 max-w-[12rem]">
+                                Нет контакта. Гость оставляет телефон или Telegram в форме жалобы.
+                              </p>
                             ) : (
                               <span className="text-sm text-gray-400">—</span>
                             )}

@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/dashboard/Sidebar";
 import SupportChat from "@/components/dashboard/SupportChat";
 import { Headphones, Loader2 } from "lucide-react";
 
@@ -18,8 +17,7 @@ export default function DashboardSupportPage() {
   if (status !== "authenticated") {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        <Sidebar />
-        <main className="flex-1 flex items-center justify-center">
+          <main className="flex-1 flex items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -28,7 +26,6 @@ export default function DashboardSupportPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>

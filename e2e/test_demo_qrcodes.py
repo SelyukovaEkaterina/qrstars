@@ -6,6 +6,7 @@ import pytest
 DEMO_SLUGS = [
     "demo-landing",
     "demo-review",
+    "demo-2gis",
     "demo-redirect",
     "demo-business-card",
     "demo-wifi",
@@ -48,6 +49,22 @@ def test_demo_review_page_loads(http, base_url):
     r = http.get(f"{base_url}/scan/demo-review", allow_redirects=True)
     assert r.status_code == 200
     assert "Кофейня" in r.text or "понравилось" in r.text
+
+
+def test_demo_2gis_routes_positive_reviews_to_2gis(http, base_url):
+    api_response = http.get(f"{base_url}/api/scan/demo-2gis")
+    assert api_response.status_code == 200
+    data = api_response.json()
+    assert data["qrCodeId"] == "demo-2gis"
+    assert data["reviewRouting"]["4"]["action"] == "TWO_GIS"
+    assert data["reviewRouting"]["4"]["platformList"] == [{"type": "TWO_GIS"}]
+    assert data["reviewRouting"]["5"]["action"] == "TWO_GIS"
+    assert data["reviewRouting"]["5"]["platformList"] == [{"type": "TWO_GIS"}]
+    assert data["platformUrls"]["twoGisUrl"] == "https://2gis.ru/"
+
+    page_response = http.get(f"{base_url}/scan/demo-2gis", allow_redirects=True)
+    assert page_response.status_code == 200
+    assert "Кофейня" in page_response.text or "понравилось" in page_response.text
 
 
 def test_demo_wifi_page_shows_copy_actions(http, base_url):
