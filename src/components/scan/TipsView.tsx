@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { ExternalLink, Copy, Check } from "lucide-react";
+import { openExternalUrl } from "@/lib/open-external";
 
 interface TipsViewProps {
   tipsType: "REDIRECT" | "PHONE";
@@ -43,7 +44,7 @@ export default function TipsView({
 
   useEffect(() => {
     if (tipsType === "REDIRECT" && redirectUrl) {
-      window.location.replace(redirectUrl);
+      openExternalUrl(redirectUrl, { history: "replace" });
     }
   }, [tipsType, redirectUrl]);
 
@@ -73,6 +74,8 @@ export default function TipsView({
           </p>
           <a
             href={redirectUrl ?? "#"}
+            target="_blank"
+            rel="noopener noreferrer"
             className="inline-flex items-center gap-1 text-sm underline"
             style={{ color: brandColor }}
           >

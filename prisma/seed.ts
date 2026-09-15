@@ -86,6 +86,28 @@ async function main() {
 
   console.log("QR codes ready:", qrCodes.length);
 
+  await prisma.qRCode.upsert({
+    where: { code: "legacy-landing" },
+    update: {
+      mode: "LANDING",
+      landingGrandfathered: true,
+      isActive: true,
+      establishmentId: establishment.id,
+      userId: user.id,
+      source: "DASHBOARD",
+    },
+    create: {
+      code: "legacy-landing",
+      mode: "LANDING",
+      landingGrandfathered: true,
+      isActive: true,
+      establishmentId: establishment.id,
+      userId: user.id,
+      source: "DASHBOARD",
+    },
+  });
+  console.log("Grandfathered landing QR: legacy-landing");
+
   const unactivatedQR = await prisma.qRCode.upsert({
     where: { code: UNACTIVATED_QR_CODE },
     update: { isActive: false, establishmentId: null },

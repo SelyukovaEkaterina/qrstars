@@ -11,6 +11,7 @@ import {
   countUserEstablishments,
   effectivePlan,
   findActiveSubscription,
+  hasPaidFeatures,
 } from "@/lib/subscription-utils";
 
 export default async function SetupStartPage({
@@ -41,6 +42,7 @@ export default async function SetupStartPage({
 
   const plan = effectivePlan(subscription);
   const canAddNewEstablishment = canAddEstablishment(plan, ownedCount);
+  const paid = hasPaidFeatures(plan);
   const initialRegistrationUtm = parseRegistrationUtm(userRow?.registrationUtm) as RegistrationUtm | null;
 
   return (
@@ -48,6 +50,7 @@ export default async function SetupStartPage({
       rerun={isRerun}
       existingEstablishments={establishments}
       canAddNewEstablishment={canAddNewEstablishment}
+      hasPaidFeatures={paid}
       initialRegistrationUtm={initialRegistrationUtm}
     />
   );

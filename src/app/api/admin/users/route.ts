@@ -29,7 +29,16 @@ export async function GET(request: Request) {
       orderBy: { createdAt: "desc" },
       include: {
         establishments: {
-          select: { id: true, name: true, _count: { select: { reviews: true, qrcodes: true } } },
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { reviews: true, qrcodes: true } },
+            qrcodes: {
+              select: { id: true, code: true, mode: true, landingGrandfathered: true },
+              orderBy: { createdAt: "desc" },
+              take: 20,
+            },
+          },
         },
         subscriptions: { orderBy: { createdAt: "desc" }, take: 1 },
         _count: { select: { establishments: true } },

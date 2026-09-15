@@ -243,6 +243,9 @@ model QRCode {
   tipsPhone       String?
   tipsBankName    String?
 
+  /// QR был в режиме LANDING до перевода микросайта на PRO — показ и редактирование этого QR сохраняются на FREE.
+  landingGrandfathered Boolean @default(false)
+
   centerText    String?
   centerLogoUrl String?
 

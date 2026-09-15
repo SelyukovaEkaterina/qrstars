@@ -11,13 +11,15 @@ export async function GET() {
     include: {
       user: { select: { id: true, email: true, name: true } },
       _count: { select: { reviews: true, qrcodes: true, promocodes: true } },
-      qrcodes: { select: { scansCount: true } },
+      qrcodes: { select: { scansCount: true, mode: true, landingGrandfathered: true } },
     },
   });
 
   const result = establishments.map((e) => ({
     ...e,
     totalScans: e.qrcodes.reduce((a, q) => a + q.scansCount, 0),
+    grandfatheredLandingCount: e.qrcodes.filter((q) => q.landingGrandfathered).length,
+    landingQrCount: e.qrcodes.filter((q) => q.mode === "LANDING").length,
     qrcodes: undefined,
   }));
 

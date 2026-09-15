@@ -93,6 +93,7 @@ import {
   QrCode,
   LayoutTemplate,
   Pencil,
+  Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
@@ -141,6 +142,7 @@ interface QRCodeData {
   establishmentId: string | null;
   templateId: string | null;
   qrStyleTemplateId: string | null;
+  landingGrandfathered?: boolean;
   establishment: {
     name: string;
     id: string;
@@ -294,8 +296,11 @@ export default function QRCodeSettingsPage() {
             mode: string;
           }[];
           const sameEst = qrList.filter((q) => q.establishmentId === estFromUrl);
+          const canUseLanding = qrListData.isPro || false;
           const preferReview =
-            sameEst.some((q) => q.mode === "REVIEW") || !!estMatch?.yandexMapsUrl;
+            !canUseLanding ||
+            sameEst.some((q) => q.mode === "REVIEW") ||
+            !!estMatch?.yandexMapsUrl;
           setEstablishmentId(estFromUrl);
           if (preferReview) {
             setRoutingGroup("SECTION");
@@ -317,6 +322,7 @@ export default function QRCodeSettingsPage() {
             establishmentId: estFromUrl || null,
             templateId: null,
             qrStyleTemplateId: null,
+            landingGrandfathered: false,
             establishment: estMatch ? { id: estMatch.id, name: estMatch.name } : null,
             fileAsset: null,
           });
@@ -805,6 +811,8 @@ export default function QRCodeSettingsPage() {
     qrData.establishment?.name ||
     establishments.find((e) => e.id === establishmentId)?.name ||
     "Заведение";
+  const canSelectLanding =
+    isPro || !!qrData.landingGrandfathered || (!isCreateMode && mode === "LANDING");
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -831,8 +839,8 @@ export default function QRCodeSettingsPage() {
 
           {showWelcome && (
             <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
-              <strong>QR готов к работе.</strong> Режим «Микро-лендинг» уже включён — гости увидят страницу
-              заведения с отзывами. Скачайте QR-код или табличку ниже и проверьте ссылку «Открыть как гость».
+              <strong>QR готов к работе.</strong> Гости увидят страницу заведения. Скачайте QR-код
+              или табличку ниже и проверьте ссылку «Открыть как гость».
             </div>
           )}
 
@@ -1044,15 +1052,22 @@ export default function QRCodeSettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {ROUTING_GROUPS.map((g) => {
                     const selected = routingGroup === g.id;
+                    const landingLocked = g.id === "LANDING" && !canSelectLanding;
                     return (
                       <button
                         key={g.id}
                         type="button"
-                        onClick={() => applyRouting(g.id, sectionTarget)}
+                        onClick={() => {
+                          if (landingLocked) return;
+                          applyRouting(g.id, sectionTarget);
+                        }}
+                        disabled={landingLocked}
                         className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
                           selected
                             ? "border-indigo-600 bg-indigo-50"
-                            : "border-gray-200 bg-white hover:border-gray-300"
+                            : landingLocked
+                              ? "border-gray-200 bg-gray-50 cursor-not-allowed opacity-80"
+                              : "border-gray-200 bg-white hover:border-gray-300"
                         }`}
                       >
                         <div className="flex items-start gap-3">
@@ -1066,10 +1081,27 @@ export default function QRCodeSettingsPage() {
                           <div>
                             <p className={`font-semibold ${selected ? "text-indigo-900" : "text-gray-900"}`}>
                               {g.label}
+                              {g.id === "LANDING" && (
+                                <span className="ml-2 inline-flex items-center gap-0.5 rounded-full bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                                  <Crown className="w-3 h-3" />
+                                  PRO
+                                </span>
+                              )}
                             </p>
                             <p className={`text-sm mt-0.5 ${selected ? "text-indigo-700" : "text-gray-500"}`}>
-                              {g.desc}
+                              {landingLocked
+                                ? "Страница со всеми разделами в одном QR — на тарифах PRO и «Сеть»."
+                                : g.desc}
                             </p>
+                            {landingLocked && (
+                              <Link
+                                href="/dashboard/subscription"
+                                className="inline-block mt-2 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                Подключить PRO →
+                              </Link>
+                            )}
                           </div>
                         </div>
                       </button>
@@ -1087,6 +1119,12 @@ export default function QRCodeSettingsPage() {
 
                 {routingGroup === "LANDING" && (
                   <div className="mt-4 p-4 rounded-xl bg-indigo-50 border border-indigo-100">
+                    {qrData.landingGrandfathered && !isPro && (
+                      <p className="text-sm text-amber-900 mb-3">
+                        Этот микросайт сохранён с бесплатного тарифа — гости по-прежнему его увидят.
+                        Новые микросайты доступны на PRO.
+                      </p>
+                    )}
                     <p className="text-sm text-indigo-900 mb-3">
                       Контент страницы настраивается один раз для всего заведения
                     </p>
@@ -1209,6 +1247,14 @@ export default function QRCodeSettingsPage() {
                 {error && (
                   <div className="mt-4 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
                     {error}
+                    {error.includes("PRO") && (
+                      <Link
+                        href="/dashboard/subscription"
+                        className="block mt-2 font-medium text-indigo-700 hover:text-indigo-900"
+                      >
+                        Перейти к тарифам →
+                      </Link>
+                    )}
                   </div>
                 )}
 

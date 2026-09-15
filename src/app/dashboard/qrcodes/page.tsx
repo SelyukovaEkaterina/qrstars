@@ -574,7 +574,7 @@ function QRCodesPageContent() {
                         ) : qr.mode === "MENU" ? (
                           "Меню"
                         ) : qr.mode === "LANDING" ? (
-                          "Лендинг"
+                          "Микросайт"
                         ) : (
                           "Отзывы"
                         )}

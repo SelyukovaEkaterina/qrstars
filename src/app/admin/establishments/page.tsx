@@ -28,6 +28,8 @@ interface Establishment {
   user: { id: string; email: string; name: string | null };
   _count: { reviews: number; qrcodes: number; promocodes: number };
   totalScans: number;
+  landingQrCount: number;
+  grandfatheredLandingCount: number;
 }
 
 export default function AdminEstablishmentsPage() {
@@ -148,6 +150,16 @@ export default function AdminEstablishmentsPage() {
                     {e._count.promocodes > 0 && (
                       <Badge className="bg-amber-500/10 text-amber-400">
                         {e._count.promocodes} {pluralize(e._count.promocodes, "промокод", "промокода", "промокодов")}
+                      </Badge>
+                    )}
+                    {e.landingQrCount > 0 && (
+                      <Badge className="bg-indigo-500/10 text-indigo-300">
+                        {e.landingQrCount} {pluralize(e.landingQrCount, "микросайт", "микросайта", "микросайтов")}
+                      </Badge>
+                    )}
+                    {e.grandfatheredLandingCount > 0 && (
+                      <Badge className="bg-amber-500/10 text-amber-400">
+                        {e.grandfatheredLandingCount} сохранённых микросайтов
                       </Badge>
                     )}
                   </div>

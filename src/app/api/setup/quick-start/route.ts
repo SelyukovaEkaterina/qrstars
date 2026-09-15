@@ -8,7 +8,9 @@ import {
   effectivePlan,
   findActiveSubscription,
   getUpgradeHint,
+  hasPaidFeatures,
 } from "@/lib/subscription-utils";
+import { LANDING_UPGRADE_ERROR } from "@/lib/qr-mode-access";
 import { requireEstablishmentAccess } from "@/lib/establishment-access";
 import {
   DEFAULT_PAGE_MODULES,
@@ -151,6 +153,16 @@ export async function POST(request: Request) {
   const ownedCount = await prisma.establishment.count({ where: { userId } });
   const subscription = await findActiveSubscription(userId);
   const plan = effectivePlan(subscription);
+
+  if (intent === "landing" && !hasPaidFeatures(plan)) {
+    return NextResponse.json(
+      {
+        error: LANDING_UPGRADE_ERROR,
+        upgradeRequired: "PRO",
+      },
+      { status: 403 }
+    );
+  }
 
   if (establishmentId) {
     const access = await requireEstablishmentAccess(userId, establishmentId);

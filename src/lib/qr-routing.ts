@@ -86,8 +86,8 @@ export const ROUTING_GROUPS: {
   {
     id: "LANDING",
     emoji: "📱",
-    label: "Микро-лендинг",
-    desc: "Страница со всеми сервисами (меню, отзывы плиткой, Wi‑Fi). Это не сразу звёзды 1–5.",
+    label: "Микросайт",
+    desc: "Страница со всеми сервисами (меню, отзывы плиткой, Wi‑Fi). На FREE — только для сохранённых старых QR.",
   },
   {
     id: "SECTION",
@@ -106,7 +106,7 @@ export const ROUTING_GROUPS: {
 export const SECTION_OPTIONS: { value: BuiltinSectionTarget; label: string }[] = BUILTIN_SECTION_OPTIONS;
 
 export const MODE_LABELS: Record<QRMode, string> = {
-  LANDING: "Микро-лендинг",
+  LANDING: "Микросайт",
   REVIEW: "Отзывы",
   REDIRECT: "Редирект",
   BUSINESS_CARD: "Визитка",

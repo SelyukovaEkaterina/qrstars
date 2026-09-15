@@ -9,6 +9,8 @@ import { getSlugPageCache, setSlugPageCache } from "@/lib/cache";
 import type { Metadata } from "next";
 import type { ComponentProps } from "react";
 import type MicroLandingView from "@/components/scan/MicroLandingView";
+import LandingLockedState from "@/components/scan/LandingLockedState";
+import { establishmentCanShowPublicLanding } from "@/lib/qr-mode-access";
 
 interface SlugPageProps {
   params: Promise<{ slug: string }>;
@@ -170,6 +172,23 @@ async function buildSlugLandingProps(slug: string): Promise<SlugLandingProps | n
 
 export default async function ShortSlugPage({ params }: SlugPageProps) {
   const { slug } = await params;
+
+  const estAccess = await prisma.establishment.findUnique({
+    where: { shortSlug: slug },
+    select: {
+      id: true,
+      user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
+    },
+  });
+  if (!estAccess) {
+    notFound();
+  }
+  const sub = estAccess.user.subscriptions[0];
+  const isPro = sub?.plan === "PRO" || sub?.plan === "NETWORK";
+  const allowed = await establishmentCanShowPublicLanding(estAccess.id, isPro);
+  if (!allowed) {
+    return <LandingLockedState />;
+  }
 
   let landingProps = await getSlugPageCache<SlugLandingProps>(slug);
   if (!landingProps) {

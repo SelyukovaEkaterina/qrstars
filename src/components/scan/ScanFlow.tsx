@@ -26,6 +26,7 @@ import {
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
+import { openExternalUrl } from "@/lib/open-external";
 
 type FlowStep = "rating" | "action" | "convince" | "thanks";
 
@@ -73,6 +74,8 @@ export default function ScanFlow({
   const [skippedAction, setSkippedAction] = useState(false);
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
   const [leavingTo, setLeavingTo] = useState<string | null>(null);
+  const [leavingUrl, setLeavingUrl] = useState<string | null>(null);
+  const [openedInNewTab, setOpenedInNewTab] = useState(false);
 
   const policyUrl = pdConsent?.policyUrl || "https://qrstars.ru/politika-konfidencialnosti.html";
   const contactFilled = guestPhone.trim() !== "";
@@ -110,8 +113,19 @@ export default function ScanFlow({
     if (!platform.url) return;
     setChosenPlatform(platform.id);
     setLeavingTo(platform.label);
+    setLeavingUrl(platform.url);
     persistPositiveReview(selectedRating);
-    window.location.assign(platform.url);
+    const { openedInNewTab: inTab } = openExternalUrl(platform.url);
+    setOpenedInNewTab(inTab);
+  };
+
+  const resetLeaving = () => {
+    setLeavingTo(null);
+    setLeavingUrl(null);
+    setOpenedInNewTab(false);
+    setRating(0);
+    setChosenPlatform(null);
+    setStep("rating");
   };
 
   const platformsForRating = (selectedRating: number): ResolvedPlatform[] => {
@@ -215,11 +229,25 @@ export default function ScanFlow({
           <div className="text-center space-y-4 mt-8">
             <div className="text-5xl">⭐</div>
             <p className={`text-xl font-semibold ${isBg ? "text-white" : dark ? "text-white" : "text-gray-900"}`}>
-              Открываем {leavingTo}…
+              {openedInNewTab ? `Открыли ${leavingTo}` : `Открываем ${leavingTo}…`}
             </p>
             <p className={isBg ? "text-white/70" : dark ? "text-slate-400" : "text-gray-500"}>
-              Сейчас перейдём на карточку, чтобы оставить отзыв.
+              {openedInNewTab
+                ? "Карты нельзя показать внутри демо-экрана, поэтому открыли карточку в новой вкладке."
+                : "Сейчас перейдём на карточку, чтобы оставить отзыв."}
             </p>
+            {openedInNewTab && (
+              <div className="space-y-2">
+                {leavingUrl && (
+                  <Button size="lg" className={`w-full ${btnWhite}`} onClick={() => openExternalUrl(leavingUrl)}>
+                    Открыть ещё раз
+                  </Button>
+                )}
+                <Button variant="ghost" className={`w-full ${textWhite}`} onClick={resetLeaving}>
+                  Оценить снова
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -403,7 +431,7 @@ export default function ScanFlow({
                       key={p.id}
                       size="lg"
                       className={`w-full ${btnWhite}`}
-                      onClick={() => window.location.assign(p.url!)}
+                      onClick={() => openExternalUrl(p.url!)}
                     >
                       <PlatformButtonContent platform={p} step={starStep} />
                     </Button>
@@ -417,7 +445,7 @@ export default function ScanFlow({
                           variant="outline"
                           size="sm"
                           className="w-full mb-1"
-                          onClick={() => window.location.assign(p.url!)}
+                          onClick={() => openExternalUrl(p.url!)}
                         >
                           <PlatformButtonContent platform={p} step={starStep} />
                         </Button>
@@ -427,7 +455,7 @@ export default function ScanFlow({
                 </div>
               ) : (
                 thanksPlatform?.url && (
-                  <Button size="lg" className={`w-full ${btnWhite}`} onClick={() => window.location.assign(thanksPlatform.url!)}>
+                  <Button size="lg" className={`w-full ${btnWhite}`} onClick={() => openExternalUrl(thanksPlatform.url!)}>
                     {starStep.ctaLabel}
                   </Button>
                 )

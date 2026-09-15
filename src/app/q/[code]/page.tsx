@@ -26,6 +26,8 @@ import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { menuHasLandingContent } from "@/lib/menu-content";
 import { menuNeedsDeferredLoad } from "@/lib/menu-deferred";
 import { toHeaderSafeUrl } from "@/lib/redirect-url";
+import { canViewLandingPage } from "@/lib/qr-mode-access";
+import LandingLockedState from "@/components/scan/LandingLockedState";
 
 interface ScanPageProps {
   params: Promise<{ code: string }>;
@@ -168,6 +170,7 @@ const qrMinimalSelect = {
   tipsType: true,
   tipsPhone: true,
   tipsBankName: true,
+  landingGrandfathered: true,
 } as const;
 
 /** Relations shared by all non-REDIRECT render modes. */
@@ -416,6 +419,14 @@ export default async function ScanPage({ params }: ScanPageProps) {
   };
 
   if (qrCode.mode === "LANDING") {
+    if (
+      !canViewLandingPage({
+        hasPaidFeatures: isPro,
+        grandfathered: "landingGrandfathered" in qrCode ? qrCode.landingGrandfathered : false,
+      })
+    ) {
+      return <LandingLockedState />;
+    }
     incrementScan();
     const MicroLandingView = (await import("@/components/scan/MicroLandingView")).default;
     const pageModules = parsePageModules(est.pageModules);

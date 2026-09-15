@@ -15,6 +15,7 @@ import { isBuiltInStickerTemplateId } from "@/lib/builtin-sticker-templates";
 import { invalidateScanCache } from "@/lib/cache";
 import { getAuthUserId, withCorsHeaders, corsOkResponse } from "@/lib/mobile-auth";
 import { toHeaderSafeUrl } from "@/lib/redirect-url";
+import { assertCanAssignLandingMode } from "@/lib/qr-mode-access";
 
 export async function OPTIONS() {
   return corsOkResponse();
@@ -165,9 +166,26 @@ export async function POST(request: Request) {
     }
   }
 
+  const nextMode = mode || "REVIEW";
+  const landingAccess = await assertCanAssignLandingMode({
+    userId,
+    establishmentId: establishmentId || null,
+    nextMode,
+    previousMode: null,
+    grandfathered: false,
+  });
+  if (!landingAccess.ok) {
+    return withCorsHeaders(
+      NextResponse.json(
+        { error: landingAccess.error, upgradeRequired: landingAccess.upgradeRequired },
+        { status: 403 }
+      )
+    );
+  }
+
   const createData: Record<string, unknown> = {
     code,
-    mode: mode || "REVIEW",
+    mode: nextMode,
     isActive: true,
     source: "DASHBOARD",
     user: { connect: { id: userId } },
@@ -212,6 +230,24 @@ export async function PUT(request: Request) {
       });
       if (!est) {
         return NextResponse.json({ error: "Establishment not found" }, { status: 404 });
+      }
+    }
+
+    if (mode !== undefined) {
+      const landingAccess = await assertCanAssignLandingMode({
+        userId,
+        establishmentId: establishmentId ?? qrcode.establishmentId,
+        nextMode: mode,
+        previousMode: qrcode.mode,
+        grandfathered: qrcode.landingGrandfathered,
+      });
+      if (!landingAccess.ok) {
+        return withCorsHeaders(
+          NextResponse.json(
+            { error: landingAccess.error, upgradeRequired: landingAccess.upgradeRequired },
+            { status: 403 }
+          )
+        );
       }
     }
 

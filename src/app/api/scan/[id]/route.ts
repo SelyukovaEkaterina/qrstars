@@ -28,6 +28,7 @@ import {
   demoTipsConfig,
 } from "@/lib/demo-qrcodes";
 import { DEFAULT_REVIEW_ROUTING, parseReviewRouting, reviewRoutingToJson } from "@/lib/review-routing";
+import { canViewLandingPage } from "@/lib/qr-mode-access";
 
 export async function GET(
   request: Request,
@@ -355,6 +356,23 @@ export async function GET(
   const reviewRouting = isPro
     ? parseReviewRouting(est.reviewRouting)
     : DEFAULT_REVIEW_ROUTING;
+
+  if (
+    qrCode.mode === "LANDING" &&
+    !canViewLandingPage({
+      hasPaidFeatures: isPro,
+      grandfathered: qrCode.landingGrandfathered,
+    })
+  ) {
+    return NextResponse.json(
+      {
+        error: "Микросайт доступен на тарифах PRO и «Сеть»",
+        upgradeRequired: "PRO",
+        landingLocked: true,
+      },
+      { status: 403 }
+    );
+  }
 
   return NextResponse.json({
     needsActivation: false,

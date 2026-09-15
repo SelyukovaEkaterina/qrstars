@@ -3,7 +3,7 @@
 import pytest
 import requests
 
-from conftest import unique_code
+from conftest import unique_code, reset_user_to_free, set_user_plan
 
 
 def test_establishment_page_api_get(owner_session, base_url, owner_establishment_id):
@@ -33,7 +33,8 @@ def test_establishment_page_modules_toggle(owner_session, base_url, owner_establ
     assert r2.status_code == 200
 
 
-def test_create_qrcode_mode_landing(owner_session, base_url, owner_establishment_id):
+def test_create_qrcode_mode_landing_requires_pro(owner_session, admin_session, base_url, owner_establishment_id):
+    reset_user_to_free(admin_session, base_url)
     r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
@@ -42,8 +43,45 @@ def test_create_qrcode_mode_landing(owner_session, base_url, owner_establishment
             "mode": "LANDING",
         },
     )
-    assert r.status_code == 200
-    assert r.json()["qrcode"]["mode"] == "LANDING"
+    assert r.status_code == 403
+    data = r.json()
+    assert data.get("upgradeRequired") == "PRO"
+
+    set_user_plan(admin_session, base_url, "PRO")
+    try:
+        r_ok = owner_session.post(
+            f"{base_url}/api/qrcodes",
+            json={
+                "code": unique_code("qrlandp"),
+                "establishmentId": owner_establishment_id,
+                "mode": "LANDING",
+            },
+        )
+        assert r_ok.status_code == 200, r_ok.text
+        assert r_ok.json()["qrcode"]["mode"] == "LANDING"
+        assert r_ok.json()["qrcode"]["landingGrandfathered"] is False
+    finally:
+        reset_user_to_free(admin_session, base_url)
+
+
+def test_switch_review_to_landing_requires_pro(owner_session, admin_session, base_url, owner_establishment_id):
+    reset_user_to_free(admin_session, base_url)
+    created = owner_session.post(
+        f"{base_url}/api/qrcodes",
+        json={
+            "code": unique_code("qrsw"),
+            "establishmentId": owner_establishment_id,
+            "mode": "REVIEW",
+        },
+    )
+    assert created.status_code == 200
+    qr_id = created.json()["qrcode"]["id"]
+    switched = owner_session.put(
+        f"{base_url}/api/qrcodes",
+        json={"id": qr_id, "mode": "LANDING"},
+    )
+    assert switched.status_code == 403
+    assert switched.json().get("upgradeRequired") == "PRO"
 
 
 def test_menu_linked_to_establishment(owner_session, base_url, owner_establishment_id):
@@ -101,3 +139,69 @@ def test_establishment_page_brand_color(owner_session, base_url, owner_establish
 def test_establishment_page_api_unauthorized(base_url, owner_establishment_id):
     r = requests.get(f"{base_url}/api/establishments/{owner_establishment_id}/page")
     assert r.status_code in (401, 403)
+
+
+def _find_grandfathered_landing(session, base_url, establishment_id):
+    listed = session.get(f"{base_url}/api/qrcodes", params={"establishmentId": establishment_id})
+    assert listed.status_code == 200
+    for qr in listed.json().get("qrcodes", []):
+        if qr.get("landingGrandfathered"):
+            return qr
+    return None
+
+
+def test_grandfathered_landing_stays_on_free(owner_session, admin_session, base_url, owner_establishment_id):
+    reset_user_to_free(admin_session, base_url)
+    qr = _find_grandfathered_landing(owner_session, base_url, owner_establishment_id)
+    if not qr:
+        pytest.skip("No grandfathered LANDING QR in seed")
+
+    keep = owner_session.put(
+        f"{base_url}/api/qrcodes",
+        json={"id": qr["id"], "mode": "LANDING", "label": "Saved microsite"},
+    )
+    assert keep.status_code == 200, keep.text
+    assert keep.json()["qrcode"]["mode"] == "LANDING"
+
+    to_review = owner_session.put(
+        f"{base_url}/api/qrcodes",
+        json={"id": qr["id"], "mode": "REVIEW"},
+    )
+    assert to_review.status_code == 200
+    back = owner_session.put(
+        f"{base_url}/api/qrcodes",
+        json={"id": qr["id"], "mode": "LANDING"},
+    )
+    assert back.status_code == 200, back.text
+    assert back.json()["qrcode"]["mode"] == "LANDING"
+
+    scan = requests.get(f"{base_url}/q/{qr['code']}", allow_redirects=False)
+    assert scan.status_code == 200
+    assert "временно недоступна" not in scan.text
+
+
+def test_paid_landing_locks_after_downgrade(owner_session, admin_session, base_url, owner_establishment_id):
+    set_user_plan(admin_session, base_url, "PRO")
+    try:
+        created = owner_session.post(
+            f"{base_url}/api/qrcodes",
+            json={
+                "code": unique_code("qrdn"),
+                "establishmentId": owner_establishment_id,
+                "mode": "LANDING",
+            },
+        )
+        assert created.status_code == 200, created.text
+        qr = created.json()["qrcode"]
+        assert qr["landingGrandfathered"] is False
+        code = qr["code"]
+    finally:
+        reset_user_to_free(admin_session, base_url)
+
+    page = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
+    assert page.status_code == 200
+    assert "временно недоступна" in page.text
+
+    api = requests.get(f"{base_url}/api/scan/{code}")
+    assert api.status_code == 403
+    assert api.json().get("upgradeRequired") == "PRO"

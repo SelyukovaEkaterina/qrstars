@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check, ExternalLink, ArrowLeft } from "lucide-react";
+import { openExternalUrl } from "@/lib/open-external";
 
 export interface TipsEmployeeData {
   id: string;
@@ -96,6 +97,12 @@ function EmployeePayView({
 }) {
   const [copied, setCopied] = useState(false);
 
+  useEffect(() => {
+    if (emp.paymentType === "LINK" && emp.paymentUrl) {
+      openExternalUrl(emp.paymentUrl, { history: "replace" });
+    }
+  }, [emp.paymentType, emp.paymentUrl]);
+
   const handleCopy = async () => {
     const num = (emp.phone ?? "").replace(/\s/g, "");
     try {
@@ -113,12 +120,11 @@ function EmployeePayView({
   };
 
   if (emp.paymentType === "LINK" && emp.paymentUrl) {
-    window.location.replace(emp.paymentUrl);
     return (
       <div className="text-center space-y-3 py-10">
         <div className="text-4xl animate-bounce">💰</div>
         <p className={`text-sm ${isDark ? "text-gray-400" : "text-gray-500"}`}>Переходим к оплате...</p>
-        <a href={emp.paymentUrl} className="inline-flex items-center gap-1 text-sm underline" style={{ color: brandColor }}>
+        <a href={emp.paymentUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-sm underline" style={{ color: brandColor }}>
           <ExternalLink className="w-3 h-3" /> Перейти вручную
         </a>
       </div>

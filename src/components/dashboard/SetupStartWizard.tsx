@@ -51,6 +51,7 @@ import {
   FileText,
   Palette,
   UtensilsCrossed,
+  Crown,
   type LucideIcon,
 } from "lucide-react";
 
@@ -126,6 +127,7 @@ const INTENT_OPTIONS: {
   accent: string;
   iconWrap: string;
   features: string[];
+  paid?: boolean;
 }[] = [
   {
     id: "reviews",
@@ -155,7 +157,7 @@ const INTENT_OPTIONS: {
       "Категории, цены и описания — редактируются в личном кабинете",
       "Можно включить корзину и приём заказов (PRO)",
       "Подходит для кафе, ресторанов и баров",
-      "Позже можно добавить отзывы или микро-лендинг",
+      "Позже можно добавить отзывы или микросайт (PRO)",
     ],
   },
   {
@@ -163,6 +165,7 @@ const INTENT_OPTIONS: {
     title: "Сайт-визитка заведения",
     tagline: "Всё важное в одном QR-коде",
     icon: LayoutGrid,
+    paid: true,
     accent: "hover:border-indigo-400 hover:shadow-indigo-100/80 group-hover:ring-indigo-300",
     iconWrap: "bg-gradient-to-br from-indigo-100 to-violet-50 text-indigo-700 ring-indigo-200/60",
     features: [
@@ -235,6 +238,12 @@ function IntentOptionCard({
           Рекомендуем
         </span>
       )}
+      {option.paid && (
+        <span className="absolute -top-2.5 right-4 inline-flex items-center gap-0.5 rounded-full bg-indigo-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
+          <Crown className="h-3 w-3" />
+          PRO
+        </span>
+      )}
       <div className="mb-4 flex items-start gap-3">
         <span
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1 ${option.iconWrap}`}
@@ -262,7 +271,7 @@ function IntentOptionCard({
   );
 }
 
-type Step = "org" | "intent" | "form" | "success";
+type Step = "org" | "intent" | "form" | "success" | "landing-upsell";
 
 export type SetupEstablishmentOption = {
   id: string;
@@ -278,6 +287,7 @@ interface SetupStartWizardProps {
   rerun?: boolean;
   existingEstablishments?: SetupEstablishmentOption[];
   canAddNewEstablishment?: boolean;
+  hasPaidFeatures?: boolean;
   /** UTM из User.registrationUtm, если в URL нет меток. */
   initialRegistrationUtm?: RegistrationUtm | null;
 }
@@ -286,6 +296,7 @@ export default function SetupStartWizard({
   rerun = false,
   existingEstablishments = [],
   canAddNewEstablishment = true,
+  hasPaidFeatures = false,
   initialRegistrationUtm = null,
 }: SetupStartWizardProps) {
   const router = useRouter();
@@ -318,6 +329,7 @@ export default function SetupStartWizard({
   const isFirstLaunch = existingEstablishments.length === 0 && !rerun;
   const [step, setStep] = useState<Step>(() => {
     if (hasExistingOrgs) return "org";
+    if (autoSelectedIntent === "landing" && !hasPaidFeatures && !rerun) return "intent";
     if (autoSelectedIntent) return "form";
     return "intent";
   });
@@ -472,6 +484,11 @@ export default function SetupStartWizard({
     });
     setIntent(value);
     setError("");
+
+    if (value === "landing" && !hasPaidFeatures && !rerun) {
+      setStep("landing-upsell");
+      return;
+    }
 
     if (usingExistingOrg && selectedEstablishment) {
       setForm((prev) => ({
@@ -1153,6 +1170,47 @@ export default function SetupStartWizard({
     );
   }
 
+  if (step === "landing-upsell") {
+    return (
+      <SetupWizardShell>
+        <div className="mx-auto max-w-lg w-full">
+          <Card className="p-8 space-y-5">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
+              <Crown className="h-3.5 w-3.5" />
+              PRO
+            </div>
+            <h1 className="text-2xl font-bold text-slate-900">Микросайт — на тарифе PRO</h1>
+            <p className="text-sm leading-relaxed text-slate-600">
+              Одна страница со всеми разделами: меню, отзывы, визитка и Wi‑Fi в одном QR.
+              Сбор отзывов, отдельные QR-меню, визитка, Wi‑Fi и редирект остаются бесплатными.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                type="button"
+                className="flex-1"
+                onClick={() => router.push("/dashboard/subscription")}
+              >
+                Смотреть тарифы
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                className="flex-1"
+                onClick={() => {
+                  setIntent(null);
+                  setStep("intent");
+                }}
+              >
+                Выбрать другой сценарий
+              </Button>
+            </div>
+          </Card>
+        </div>
+      </SetupWizardShell>
+    );
+  }
+
   if (step === "intent") {
     return (
       <SetupWizardShell>
@@ -1255,11 +1313,11 @@ export default function SetupStartWizard({
           )}
 
           <p className="text-center text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
-            {utmContext.hint === "reviews"
-              ? "«Сайт-визитка» и «QR-меню» тоже подойдут — к ним можно добавить сбор отзывов."
+          {utmContext.hint === "reviews"
+              ? "«Сайт-визитка» (PRO) и «QR-меню» тоже подойдут — к ним можно добавить сбор отзывов."
               : utmContext.hint === "menu"
                 ? "Нужны отзывы на картах? Выберите «Умный сбор отзывов» — или добавьте их позже в личном кабинете."
-                : "Сомневаетесь? Выберите «Сайт-визитку» или «QR-меню» — универсальные варианты для HoReCa."}
+                : "Сомневаетесь? Начните с бесплатного сбора отзывов — микросайт можно подключить на PRO."}
           </p>
         </div>
       </SetupWizardShell>

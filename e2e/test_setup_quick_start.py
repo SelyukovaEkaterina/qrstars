@@ -2,7 +2,7 @@ import uuid
 
 import requests as req_lib
 
-from conftest import login
+from conftest import login, set_user_plan, reset_user_to_free
 
 
 def unique_email(prefix="qs"):
@@ -149,7 +149,7 @@ def test_quick_start_reviews_rejects_maps_homepage(base_url):
     assert "карточку" in r.json().get("error", "").lower()
 
 
-def test_quick_start_landing_page_without_yandex(base_url):
+def test_quick_start_landing_requires_pro(base_url, admin_session):
     email = unique_email("qs3")
     password = "secure123"
     req_lib.post(
@@ -158,28 +158,39 @@ def test_quick_start_landing_page_without_yandex(base_url):
     )
     session = req_lib.Session()
     login(session, base_url, email, password)
-    r = session.post(
+    blocked = session.post(
         f"{base_url}/api/setup/quick-start",
         json={"intent": "landing", "name": "Guest Page Only"},
     )
-    assert r.status_code == 200, r.text
-    data = r.json()
-    assert data["intent"] == "landing"
-    assert data["qrcode"]["mode"] == "LANDING"
+    assert blocked.status_code == 403
+    assert blocked.json().get("upgradeRequired") == "PRO"
 
-    ests = session.get(f"{base_url}/api/establishments")
-    assert ests.status_code == 200
-    est_list = ests.json().get("establishments", [])
-    assert len(est_list) == 1
+    set_user_plan(admin_session, base_url, "PRO", email)
+    try:
+        r = session.post(
+            f"{base_url}/api/setup/quick-start",
+            json={"intent": "landing", "name": "Guest Page Only"},
+        )
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["intent"] == "landing"
+        assert data["qrcode"]["mode"] == "LANDING"
 
-    page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
-    assert page.status_code == 200
-    modules = page.json().get("establishment", {}).get("pageModules", {})
-    assert modules.get("review") is False
-    assert modules.get("menu") is True
+        ests = session.get(f"{base_url}/api/establishments")
+        assert ests.status_code == 200
+        est_list = ests.json().get("establishments", [])
+        assert len(est_list) == 1
+
+        page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
+        assert page.status_code == 200
+        modules = page.json().get("establishment", {}).get("pageModules", {})
+        assert modules.get("review") is False
+        assert modules.get("menu") is True
+    finally:
+        reset_user_to_free(admin_session, base_url, email)
 
 
-def test_quick_start_landing_with_yandex_enables_reviews(base_url):
+def test_quick_start_landing_with_yandex_enables_reviews(base_url, admin_session):
     email = unique_email("qs3b")
     password = "secure123"
     req_lib.post(
@@ -189,26 +200,30 @@ def test_quick_start_landing_with_yandex_enables_reviews(base_url):
     session = req_lib.Session()
     login(session, base_url, email, password)
     yandex = "https://yandex.ru/maps/org/test/456/"
-    r = session.post(
-        f"{base_url}/api/setup/quick-start",
-        json={
-            "intent": "landing",
-            "name": "Landing With Reviews",
-            "yandexMapsUrl": yandex,
-        },
-    )
-    assert r.status_code == 200, r.text
-    data = r.json()
-    assert data["qrcode"]["mode"] == "LANDING"
+    set_user_plan(admin_session, base_url, "PRO", email)
+    try:
+        r = session.post(
+            f"{base_url}/api/setup/quick-start",
+            json={
+                "intent": "landing",
+                "name": "Landing With Reviews",
+                "yandexMapsUrl": yandex,
+            },
+        )
+        assert r.status_code == 200, r.text
+        data = r.json()
+        assert data["qrcode"]["mode"] == "LANDING"
 
-    ests = session.get(f"{base_url}/api/establishments")
-    est_list = ests.json().get("establishments", [])
-    assert est_list[0]["yandexMapsUrl"] == yandex
+        ests = session.get(f"{base_url}/api/establishments")
+        est_list = ests.json().get("establishments", [])
+        assert est_list[0]["yandexMapsUrl"] == yandex
 
-    page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
-    assert page.status_code == 200
-    modules = page.json().get("establishment", {}).get("pageModules", {})
-    assert modules.get("review") is True
+        page = session.get(f"{base_url}/api/establishments/{est_list[0]['id']}/page")
+        assert page.status_code == 200
+        modules = page.json().get("establishment", {}).get("pageModules", {})
+        assert modules.get("review") is True
+    finally:
+        reset_user_to_free(admin_session, base_url, email)
 
 
 def test_quick_start_existing_establishment_reviews_uses_saved_yandex(base_url):
@@ -253,7 +268,7 @@ def test_quick_start_existing_establishment_reviews_uses_saved_yandex(base_url):
     assert est_list[0]["yandexMapsUrl"] == yandex
 
 
-def test_quick_start_existing_establishment_adds_landing_qr(base_url):
+def test_quick_start_existing_establishment_adds_review_qr(base_url):
     email = unique_email("qs5")
     password = "secure123"
     req_lib.post(
@@ -266,8 +281,9 @@ def test_quick_start_existing_establishment_adds_landing_qr(base_url):
     first = session.post(
         f"{base_url}/api/setup/quick-start",
         json={
-            "intent": "landing",
+            "intent": "reviews",
             "name": "Existing Org Cafe",
+            "yandexMapsUrl": "https://yandex.ru/maps/org/existing/111/",
         },
     )
     assert first.status_code == 200, first.text

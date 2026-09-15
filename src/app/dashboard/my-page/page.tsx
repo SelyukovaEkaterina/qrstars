@@ -221,6 +221,7 @@ function MyPageDashboardContent() {
   const [wifiConfigData, setWifiConfigData] = useState<WifiConfigData | null>(null);
   const [reviewRouting, setReviewRouting] = useState<ReviewRoutingConfig>(DEFAULT_REVIEW_ROUTING);
   const [isPro, setIsPro] = useState(false);
+  const [hasGrandfatheredLanding, setHasGrandfatheredLanding] = useState(false);
   const [activeEditor, setActiveEditorState] = useState<EditorTab | null>(() => {
     const tab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
     // Без ?tab= — главная лендинга (не первый/скрытый блок вроде menu)
@@ -403,6 +404,13 @@ function MyPageDashboardContent() {
     setExtraBusinessCards(est.extraBusinessCards || []);
     setExtraWifiConfigs(est.extraWifiConfigs || []);
     setForms((est.forms || []).map((f: FormApiShape) => apiFormToState(f)));
+    const qrList = await fetch(`/api/qrcodes?establishmentId=${estId}`)
+      .then((r) => r.json())
+      .catch(() => ({ qrcodes: [] }));
+    setHasGrandfatheredLanding(
+      Array.isArray(qrList.qrcodes) &&
+        qrList.qrcodes.some((q: { landingGrandfathered?: boolean }) => q.landingGrandfathered)
+    );
     const tipsType = est.landingTipsType as TipsMode | null;
     setLandingTipsType(
       tipsType === "REDIRECT" || tipsType === "PHONE" || tipsType === "EMPLOYEES" ? tipsType : null
@@ -1317,6 +1325,30 @@ function MyPageDashboardContent() {
                 <ExternalLink className="w-3 h-3" />
               </Link>
             </p>
+
+            {!isPro && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+                {hasGrandfatheredLanding ? (
+                  <>
+                    Контент этой страницы относится к сохранённому микросайту — гости по старым QR
+                    его по-прежнему увидят. Новые QR «Микросайт» доступны на{" "}
+                    <Link href="/dashboard/subscription" className="font-medium underline">
+                      тарифе PRO
+                    </Link>
+                    .
+                  </>
+                ) : (
+                  <>
+                    Здесь вы редактируете разделы заведения (меню, отзывы, визитка). Собирать их на
+                    одной странице-микросайте можно на{" "}
+                    <Link href="/dashboard/subscription" className="font-medium underline">
+                      тарифе PRO
+                    </Link>
+                    . Отдельные QR «Отзывы», «Меню» и другие остаются бесплатными.
+                  </>
+                )}
+              </div>
+            )}
 
             {/* APPEARANCE_START */}
             <Card>

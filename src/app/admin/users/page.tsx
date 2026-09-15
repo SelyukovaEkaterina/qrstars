@@ -26,6 +26,12 @@ interface UserEstablishment {
   id: string;
   name: string;
   _count: { reviews: number; qrcodes: number };
+  qrcodes?: {
+    id: string;
+    code: string;
+    mode: string;
+    landingGrandfathered: boolean;
+  }[];
 }
 
 interface UserSubscription {
@@ -382,6 +388,18 @@ export default function AdminUsersPage() {
                             <span className="flex items-center gap-0.5"><QrCode className="w-3 h-3" />{e._count.qrcodes} QR</span>
                             <span className="flex items-center gap-0.5"><Star className="w-3 h-3" />{e._count.reviews} отз.</span>
                           </p>
+                          {e.qrcodes?.some((q) => q.mode === "LANDING" || q.landingGrandfathered) && (
+                            <p className="text-[11px] text-amber-400/90 mt-1">
+                              {e.qrcodes
+                                .filter((q) => q.mode === "LANDING" || q.landingGrandfathered)
+                                .map((q) =>
+                                  q.landingGrandfathered
+                                    ? `${q.code}: микросайт (сохранён)`
+                                    : `${q.code}: микросайт`
+                                )
+                                .join(" · ")}
+                            </p>
+                          )}
                         </div>
                         <a
                           href={`/dashboard`}
