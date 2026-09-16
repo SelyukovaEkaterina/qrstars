@@ -124,6 +124,7 @@ async function buildSlugLandingProps(slug: string): Promise<SlugLandingProps | n
 
   return {
     establishmentName: est.name,
+    industry: est.industry,
     establishmentId: est.id,
     qrCodeId: "",
     pageModules,
