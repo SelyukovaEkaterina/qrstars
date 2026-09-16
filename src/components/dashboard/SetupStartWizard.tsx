@@ -9,7 +9,7 @@ import Card from "@/components/ui/Card";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
 import { generateQRWithCenter } from "@/lib/qr-generator";
 import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
-import { scanUrlForCode } from "@/lib/utils";
+import { scanUrlForCode, quotedEstablishmentName } from "@/lib/utils";
 import { trackEvent } from "@/lib/track-event";
 import type { RegistrationUtm } from "@/lib/registration-utm";
 import {
@@ -21,12 +21,21 @@ import {
   normalizeYandexMapsUrl,
 } from "@/lib/yandex-maps-url";
 import YandexMapsUrlHelper from "@/components/dashboard/YandexMapsUrlHelper";
-import YandexMapsOrgConfirm from "@/components/dashboard/YandexMapsOrgConfirm";
+import YandexMapsOrgConfirm, {
+  type YandexMapsOrgConfirmHandle,
+} from "@/components/dashboard/YandexMapsOrgConfirm";
 import {
   renderSticker,
   FORMATS,
   type StickerConfig,
 } from "@/components/dashboard/StickerDesigner";
+import {
+  INDUSTRY_OPTIONS,
+  inferIndustryFromUtm,
+  isHorecaIndustry,
+  parseEstablishmentIndustry,
+  type EstablishmentIndustry,
+} from "@/lib/establishment-industry";
 import {
   BUILTIN_STICKER_TEMPLATES,
   stickerPresetLayout,
@@ -253,6 +262,11 @@ function IntentOptionCard({
         <div className="min-w-0 pt-0.5">
           <h2 className="text-base font-bold text-slate-900 leading-snug">{option.title}</h2>
           <p className="mt-0.5 text-xs font-medium text-slate-500">{option.tagline}</p>
+          {option.id === "reviews" && (
+            <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-snug text-amber-900">
+              Нужна ссылка на карточку в Яндекс.Картах
+            </p>
+          )}
         </div>
       </div>
       <ul className="mb-5 flex-1 space-y-2">
@@ -280,6 +294,7 @@ export type SetupEstablishmentOption = {
   phone: string | null;
   legalName: string | null;
   inn: string | null;
+  industry: string | null;
 };
 
 interface SetupStartWizardProps {
@@ -305,6 +320,15 @@ export default function SetupStartWizard({
     searchParams.get("utm_campaign") ?? initialRegistrationUtm?.utm_campaign ?? null;
   const utmContent =
     searchParams.get("utm_content") ?? initialRegistrationUtm?.utm_content ?? null;
+  const utmTerm =
+    searchParams.get("utm_term") ?? initialRegistrationUtm?.utm_term ?? null;
+  const inferredIndustry = useMemo(
+    () => inferIndustryFromUtm(utmCampaign, utmContent, utmTerm),
+    [utmCampaign, utmContent, utmTerm]
+  );
+  const [industry, setIndustry] = useState<EstablishmentIndustry | null>(
+    inferredIndustry
+  );
   const utmContext = useMemo(() => {
     return parseSetupUtmContext(utmCampaign, utmContent);
   }, [utmCampaign, utmContent]);
@@ -320,11 +344,14 @@ export default function SetupStartWizard({
     const options = ids
       .map((id) => INTENT_OPTIONS.find((o) => o.id === id))
       .filter((o): o is (typeof INTENT_OPTIONS)[number] => Boolean(o));
-    if (utmContext.hideRedirect) {
-      return options.filter((o) => o.id !== "redirect");
+    const visible = utmContext.hideRedirect
+      ? options.filter((o) => o.id !== "redirect")
+      : options;
+    if (industry && !isHorecaIndustry(industry)) {
+      return [...visible.filter((o) => o.id !== "menu"), ...visible.filter((o) => o.id === "menu")];
     }
-    return options;
-  }, [utmContext]);
+    return visible;
+  }, [industry, utmContext]);
   const hasExistingOrgs = existingEstablishments.length > 0 && !rerun;
   const isFirstLaunch = existingEstablishments.length === 0 && !rerun;
   const [step, setStep] = useState<Step>(() => {
@@ -340,6 +367,8 @@ export default function SetupStartWizard({
   const [error, setError] = useState("");
   const [yandexUrlFieldError, setYandexUrlFieldError] = useState("");
   const [yandexConfirmedUrl, setYandexConfirmedUrl] = useState<string | null>(null);
+  const yandexCheckRef = useRef<YandexMapsOrgConfirmHandle>(null);
+  const creatingRef = useRef(false);
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [guestPreviewOpened, setGuestPreviewOpened] = useState(false);
 
@@ -373,23 +402,39 @@ export default function SetupStartWizard({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!intent) return;
+    await createFromForm();
+  };
 
+  const createFromForm = async (confirmedYandex?: string | null) => {
+    if (!intent || loading || creatingRef.current) return;
+
+    const confirmed = confirmedYandex ?? yandexConfirmedUrl;
     const yandexRequired =
       intent === "reviews" && (!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl);
     if (yandexRequired) {
-      const rawYandex = (yandexConfirmedUrl || form.yandexMapsUrl).trim();
+      const rawYandex = (confirmed || form.yandexMapsUrl).trim();
       if (!rawYandex) {
-        setError(
-          "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв"
+        setYandexUrlFieldError(
+          "Укажите ссылку на карточку в Яндекс.Картах. Если карточки нет — вернитесь и выберите прямую ссылку или QR-меню."
         );
+        setError("");
         return;
       }
-      if (!yandexConfirmedUrl) {
-        setYandexUrlFieldError("Подтвердите, что это ваша организация");
-        setError("Проверьте ссылку Яндекс.Карт и подтвердите название организации");
+      if (!confirmed) {
+        setYandexUrlFieldError("Нажмите «Проверить ссылку», затем подтвердите организацию.");
+        setError("");
         return;
       }
+    }
+
+    if (!usingExistingOrg && intent !== "redirect" && !form.name.trim()) {
+      setError("Укажите название заведения");
+      return;
+    }
+
+    if (intent === "redirect" && !form.redirectUrl.trim()) {
+      setError("Укажите ссылку для перенаправления");
+      return;
     }
 
     trackEvent("setup.form_submitted", {
@@ -397,8 +442,10 @@ export default function SetupStartWizard({
       rerun,
       orgMode: usingExistingOrg ? "existing" : "new",
     });
+    creatingRef.current = true;
     setLoading(true);
     setError("");
+    setYandexUrlFieldError("");
 
     try {
       if (rerun) {
@@ -431,12 +478,13 @@ export default function SetupStartWizard({
       }
 
       const payload: Record<string, string> = { ...form, intent };
+      if (industry) payload.industry = industry;
       if (usingExistingOrg && selectedEstablishmentId) {
         payload.establishmentId = selectedEstablishmentId;
         delete payload.name;
       }
-      if (yandexConfirmedUrl) {
-        payload.yandexMapsUrl = yandexConfirmedUrl;
+      if (confirmed) {
+        payload.yandexMapsUrl = confirmed;
       } else if (form.yandexMapsUrl.trim()) {
         const normalized = normalizeYandexMapsUrl(form.yandexMapsUrl);
         if (normalized) payload.yandexMapsUrl = normalized;
@@ -473,61 +521,15 @@ export default function SetupStartWizard({
     } catch {
       setError("Ошибка соединения");
     } finally {
+      creatingRef.current = false;
       setLoading(false);
     }
   };
 
-  const chooseIntent = (value: SetupIntent) => {
-    trackEvent("setup.intent_selected", {
-      intent: value,
-      orgMode: usingExistingOrg ? "existing" : orgMode ?? "new",
-    });
-    setIntent(value);
-    setError("");
-
-    if (value === "landing" && !hasPaidFeatures && !rerun) {
-      setStep("landing-upsell");
-      return;
-    }
-
-    if (usingExistingOrg && selectedEstablishment) {
-      setForm((prev) => ({
-        ...prev,
-        name: selectedEstablishment.name,
-        phone: selectedEstablishment.phone || "",
-        yandexMapsUrl: selectedEstablishment.yandexMapsUrl || "",
-        legalName: selectedEstablishment.legalName || "",
-        inn: selectedEstablishment.inn || "",
-      }));
-      if (value === "landing" || value === "menu" || (value === "reviews" && selectedEstablishment.yandexMapsUrl)) {
-        void submitForExistingEstablishment(value);
-        return;
-      }
-    }
-
-    setStep("form");
-  };
-
-  useEffect(() => {
-    if (!autoSelectedIntent || autoIntentHandled.current) return;
-
-    if (step === "intent") {
-      autoIntentHandled.current = true;
-      chooseIntent(autoSelectedIntent);
-      return;
-    }
-
-    if (step === "form" && intent === autoSelectedIntent) {
-      autoIntentHandled.current = true;
-      trackEvent("setup.intent_selected", {
-        intent: autoSelectedIntent,
-        auto: true,
-        orgMode: "new",
-      });
-    }
-  }, [step, intent, autoSelectedIntent]);
-
-  const submitForExistingEstablishment = async (value: SetupIntent) => {
+  async function submitForExistingEstablishment(
+    value: SetupIntent,
+    selectedIndustry: EstablishmentIndustry | null = industry
+  ) {
     if (!selectedEstablishmentId) return;
     trackEvent("setup.form_submitted", { intent: value, orgMode: "existing" });
     setLoading(true);
@@ -540,6 +542,7 @@ export default function SetupStartWizard({
         body: JSON.stringify({
           intent: value,
           establishmentId: selectedEstablishmentId,
+          ...(selectedIndustry ? { industry: selectedIndustry } : {}),
         }),
       });
       const data = await res.json();
@@ -572,7 +575,59 @@ export default function SetupStartWizard({
     } finally {
       setLoading(false);
     }
+  }
+
+  const chooseIntent = (value: SetupIntent) => {
+    trackEvent("setup.intent_selected", {
+      intent: value,
+      orgMode: usingExistingOrg ? "existing" : orgMode ?? "new",
+    });
+    setIntent(value);
+    setError("");
+
+    if (value === "landing" && !hasPaidFeatures && !rerun) {
+      setStep("landing-upsell");
+      return;
+    }
+
+    if (usingExistingOrg && selectedEstablishment) {
+      setForm((prev) => ({
+        ...prev,
+        name: selectedEstablishment.name,
+        phone: selectedEstablishment.phone || "",
+        yandexMapsUrl: selectedEstablishment.yandexMapsUrl || "",
+        legalName: selectedEstablishment.legalName || "",
+        inn: selectedEstablishment.inn || "",
+      }));
+      const selectedIndustry = parseEstablishmentIndustry(selectedEstablishment.industry);
+      setIndustry(selectedIndustry);
+      if (value === "landing" || value === "menu" || (value === "reviews" && selectedEstablishment.yandexMapsUrl)) {
+        void submitForExistingEstablishment(value, selectedIndustry);
+        return;
+      }
+    }
+
+    setStep("form");
   };
+
+  useEffect(() => {
+    if (!autoSelectedIntent || autoIntentHandled.current) return;
+
+    if (step === "intent") {
+      autoIntentHandled.current = true;
+      chooseIntent(autoSelectedIntent);
+      return;
+    }
+
+    if (step === "form" && intent === autoSelectedIntent) {
+      autoIntentHandled.current = true;
+      trackEvent("setup.intent_selected", {
+        intent: autoSelectedIntent,
+        auto: true,
+        orgMode: "new",
+      });
+    }
+  }, [step, intent, autoSelectedIntent]);
 
   const continueFromOrgStep = () => {
     if (!orgMode) return;
@@ -780,7 +835,7 @@ export default function SetupStartWizard({
             <p className="text-gray-600 text-sm leading-relaxed">
               {isReviews ? (
                 <>
-                  Ваш QR-код для заведения <strong className="text-gray-950 font-semibold">«{result.establishment?.name}»</strong> настроен на сбор отзывов.
+                  Ваш QR-код для заведения <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong> настроен на сбор отзывов.
                   Пройдите три коротких шага: проверьте сценарий как гость, подготовьте QR к печати и подключите уведомления о новых отзывах.
                 </>
               ) : isRedirect ? (
@@ -791,12 +846,12 @@ export default function SetupStartWizard({
               ) : isMenu ? (
                 <>
                   QR-код ведёт на электронное меню заведения{" "}
-                  <strong className="text-gray-950 font-semibold">«{result.establishment?.name}»</strong>.
+                  <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
                   Отредактируйте позиции и цены в разделе «Моя страница» и разместите QR на столах.
                 </>
               ) : (
                 <>
-                  QR-код ведёт на мобильную визитку заведения <strong className="text-gray-950 font-semibold">«{result.establishment?.name}»</strong>.
+                  QR-код ведёт на мобильную визитку заведения <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
                   Перейдите в раздел «Моя страница», чтобы добавить меню, контакты, Wi-Fi и включить сбор отзывов.
                 </>
               )}
@@ -1139,7 +1194,19 @@ export default function SetupStartWizard({
                   <p className="mt-1 text-sm text-slate-500">
                     {canAddNewEstablishment
                       ? "Добавить новое заведение и сгенерировать для него первый QR-код"
-                      : "Достигнут лимит заведений на вашем тарифе. Для добавления новых обновите подписку."}
+                      : (
+                        <>
+                          Достигнут лимит заведений на вашем тарифе.{" "}
+                          <Link
+                            href="/dashboard/subscription"
+                            className="font-medium text-indigo-600 hover:text-indigo-800"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Обновите подписку
+                          </Link>
+                          , чтобы добавить новые.
+                        </>
+                      )}
                   </p>
                 </div>
               </div>
@@ -1227,7 +1294,7 @@ export default function SetupStartWizard({
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
               {usingExistingOrg
-                ? `Какой QR-код нужен для «${selectedEstablishment?.name}»?`
+                ? `Какой QR-код нужен для ${quotedEstablishmentName(selectedEstablishment?.name)}?`
                 : "С чего начнём?"}
             </h1>
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
@@ -1265,6 +1332,30 @@ export default function SetupStartWizard({
               Вы перешли по ссылке про электронное меню — начните с «QR-меню»: мы создадим заведение, базовое меню и QR-код для столов.
             </div>
           )}
+
+          <div className="mx-auto w-full max-w-2xl rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm">
+            <label className="block text-sm font-semibold text-slate-900" htmlFor="setup-industry">
+              Что у вас за бизнес?
+            </label>
+            <p className="mt-1 text-xs text-slate-500">
+              Необязательно — подберём тексты для гостей и готовый стиль QR.
+            </p>
+            <select
+              id="setup-industry"
+              value={industry || ""}
+              onChange={(e) =>
+                setIndustry((e.target.value || null) as EstablishmentIndustry | null)
+              }
+              className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            >
+              <option value="">Выбрать позже</option>
+              {INDUSTRY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div
             className={`grid gap-5 md:items-stretch ${
@@ -1317,7 +1408,7 @@ export default function SetupStartWizard({
               ? "«Сайт-визитка» (PRO) и «QR-меню» тоже подойдут — к ним можно добавить сбор отзывов."
               : utmContext.hint === "menu"
                 ? "Нужны отзывы на картах? Выберите «Умный сбор отзывов» — или добавьте их позже в личном кабинете."
-                : "Сомневаетесь? Начните с бесплатного сбора отзывов — микросайт можно подключить на PRO."}
+                : "Нет карточки на картах? Выберите прямую ссылку или QR-меню. «Умный сбор отзывов» работает только со ссылкой на организацию в Яндекс.Картах."}
           </p>
         </div>
       </SetupWizardShell>
@@ -1327,6 +1418,9 @@ export default function SetupStartWizard({
   const isReviews = intent === "reviews";
   const isRedirect = intent === "redirect";
   const isMenu = intent === "menu";
+  const yandexRequired =
+    isReviews && (!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl);
+  const yandexNeedsCheck = Boolean(yandexRequired && !yandexConfirmedUrl);
 
   const autoSubmitExisting =
     usingExistingOrg &&
@@ -1340,7 +1434,7 @@ export default function SetupStartWizard({
             <QrCode className="w-7 h-7" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900">Создаём QR-код…</h1>
-          <p className="text-sm text-gray-500">Заведение «{selectedEstablishment?.name}»</p>
+          <p className="text-sm text-gray-500">Заведение {quotedEstablishmentName(selectedEstablishment?.name)}</p>
         </div>
       </SetupWizardShell>
     );
@@ -1367,7 +1461,7 @@ export default function SetupStartWizard({
             {usingExistingOrg ? (
               <>
                 Создаём QR-код для заведения{" "}
-                <strong className="text-gray-950 font-semibold">«{selectedEstablishment?.name}»</strong>.
+                <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(selectedEstablishment?.name)}</strong>.
                 {isReviews
                   ? " Укажите ссылку на вашу карточку в Яндекс.Картах."
                   : isRedirect
@@ -1424,7 +1518,7 @@ export default function SetupStartWizard({
             Назад к выбору сценария
           </button>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {error && (
               <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
             )}
@@ -1436,7 +1530,6 @@ export default function SetupStartWizard({
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Например: Кафе «Аромат», Салон красоты «Престиж»…"
-                  required
                 />
               </div>
             )}
@@ -1461,17 +1554,34 @@ export default function SetupStartWizard({
             {isReviews && (
               <div>
                 <YandexMapsOrgConfirm
-                  label={`Ссылка на карточку в Яндекс.Картах${usingExistingOrg && selectedEstablishment?.yandexMapsUrl ? "" : " *"}`}
+                  ref={yandexCheckRef}
+                  label={`Ссылка на карточку в Яндекс.Картах${yandexRequired ? " *" : ""}`}
                   value={form.yandexMapsUrl}
-                  required={!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl}
+                  required={false}
+                  previewOnBlur={false}
+                  error={yandexUrlFieldError}
                   onChange={(url) => {
                     setYandexUrlFieldError("");
                     setForm({ ...form, yandexMapsUrl: url });
                   }}
                   onConfirmedChange={setYandexConfirmedUrl}
+                  onConfirmed={(url) => {
+                    setYandexConfirmedUrl(url);
+                    void createFromForm(url);
+                  }}
                 />
                 {yandexUrlFieldError && (
-                  <p className="text-sm text-red-600 mt-1">{yandexUrlFieldError}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep("intent");
+                      setError("");
+                      setYandexUrlFieldError("");
+                    }}
+                    className="mt-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                  >
+                    Назад к выбору сценария — прямая ссылка или QR-меню, если карточки нет
+                  </button>
                 )}
                 <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
                   <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-500" />
@@ -1479,7 +1589,8 @@ export default function SetupStartWizard({
                   организацию, не на поиск.
                 </p>
                 <YandexMapsUrlHelper
-                  defaultOpen={!form.yandexMapsUrl.trim() && utmContext.hint === "reviews"}
+                  defaultOpen={!form.yandexMapsUrl.trim()}
+                  searchName={form.name || selectedEstablishment?.name || ""}
                 />
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
                   Дополнительные площадки (2GIS, Flamp, Авито) можно добавить позже в разделе{" "}
@@ -1564,13 +1675,32 @@ export default function SetupStartWizard({
                 <ChevronLeft className="w-4 h-4 mr-1 inline shrink-0" />
                 Назад
               </Button>
-              <Button type="submit" className="flex-1" disabled={loading}>
+              <Button
+                type={yandexNeedsCheck ? "button" : "submit"}
+                className="flex-1"
+                disabled={loading}
+                onClick={
+                  yandexNeedsCheck
+                    ? () => {
+                        if (!form.yandexMapsUrl.trim()) {
+                          setYandexUrlFieldError(
+                            "Укажите ссылку на карточку в Яндекс.Картах. Если карточки нет — вернитесь и выберите прямую ссылку или QR-меню."
+                          );
+                          return;
+                        }
+                        void yandexCheckRef.current?.check();
+                      }
+                    : undefined
+                }
+              >
                 {loading ? (
                   "Создаём..."
+                ) : yandexNeedsCheck ? (
+                  "Проверить ссылку"
                 ) : (
                   <>
                     <QrCode className="w-5 h-5 mr-2" />
-                    {usingExistingOrg ? "Создать QR-код" : "Создать QR-код"}
+                    Создать QR-код
                   </>
                 )}
               </Button>

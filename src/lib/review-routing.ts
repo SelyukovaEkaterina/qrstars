@@ -1,3 +1,5 @@
+import { toPlatformReviewUrl } from "@/lib/review-platform-url";
+
 export type ReviewStarAction = "COMPLAINT" | "YANDEX" | "TWO_GIS" | "AVITO" | "CUSTOM" | "THANKS";
 
 export type ReviewPlatformAction = "YANDEX" | "TWO_GIS" | "AVITO" | "CUSTOM";
@@ -335,7 +337,7 @@ export function resolvePlatformUrls(step: ReviewStarStep, urls: PlatformUrls): R
         return {
           action: "CUSTOM",
           id: entry.id,
-          url: entry.url || null,
+          url: toPlatformReviewUrl("CUSTOM", entry.url || null),
           label: entry.name || "Своя площадка",
           iconUrl: entry.iconUrl || null,
         };
@@ -343,7 +345,7 @@ export function resolvePlatformUrls(step: ReviewStarStep, urls: PlatformUrls): R
       return {
         action: entry.type,
         id: entry.type,
-        url: resolveActionUrl(entry.type, urls),
+        url: toPlatformReviewUrl(entry.type, resolveActionUrl(entry.type, urls)),
         label: STANDARD_PLATFORM_LABELS[entry.type],
         iconUrl: null,
       };
@@ -360,7 +362,7 @@ export function resolvePlatformUrls(step: ReviewStarStep, urls: PlatformUrls): R
       return {
         action: p,
         id: "legacy-custom",
-        url: step.customPlatformUrl ?? null,
+        url: toPlatformReviewUrl("CUSTOM", step.customPlatformUrl ?? null),
         label: "Своя площадка",
         iconUrl: step.customPlatformIconUrl ?? null,
       };
@@ -368,7 +370,7 @@ export function resolvePlatformUrls(step: ReviewStarStep, urls: PlatformUrls): R
     return {
       action: p,
       id: p,
-      url: resolveActionUrl(p, urls),
+      url: toPlatformReviewUrl(p, resolveActionUrl(p, urls)),
       label: PLATFORM_ACTIONS.find((a) => a.value === p)?.label ?? p,
       iconUrl: null,
     };

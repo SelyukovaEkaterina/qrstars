@@ -9,6 +9,37 @@ def unique_email(prefix="qs"):
     return f"{prefix}-{uuid.uuid4().hex[:8]}@test.example.com"
 
 
+def test_quick_start_saves_industry_and_applies_qr_style(base_url):
+    email = unique_email("qs-auto")
+    password = "secure123"
+    reg = req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    assert reg.status_code == 200
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+
+    response = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Автосервис Тест",
+            "industry": "AUTO",
+            "yandexMapsUrl": "https://yandex.ru/maps/org/auto_test/123/",
+        },
+    )
+    assert response.status_code == 200, response.text
+
+    establishments = session.get(f"{base_url}/api/establishments").json()["establishments"]
+    assert establishments[0]["industry"] == "AUTO"
+
+    qr_id = response.json()["qrcode"]["id"]
+    qr = session.get(f"{base_url}/api/qrcodes", params={"id": qr_id})
+    assert qr.status_code == 200, qr.text
+    assert qr.json()["qrcode"]["qrStyleTemplateId"] == "qr-preset-auto"
+
+
 def test_quick_start_reviews_creates_review_mode_qr(base_url):
     email = unique_email()
     password = "secure123"

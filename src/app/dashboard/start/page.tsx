@@ -29,7 +29,15 @@ export default async function SetupStartPage({
   const [establishments, ownedCount, subscription, userRow] = await Promise.all([
     prisma.establishment.findMany({
       where: establishmentAccessWhere(userId),
-      select: { id: true, name: true, yandexMapsUrl: true, phone: true, legalName: true, inn: true },
+      select: {
+        id: true,
+        name: true,
+        industry: true,
+        yandexMapsUrl: true,
+        phone: true,
+        legalName: true,
+        inn: true,
+      },
       orderBy: { createdAt: "desc" },
     }),
     countUserEstablishments(userId),

@@ -35,6 +35,10 @@ function drawRoundRect(
   ctx.closePath();
 }
 
+function clampRadius(w: number, h: number, r: number) {
+  return Math.max(0, Math.min(r, w / 2, h / 2));
+}
+
 export interface QRCenterOptions {
   centerText?: string | null;
   centerLogoUrl?: string | null;
@@ -118,26 +122,26 @@ export async function generateQRWithCenter(
   }
 
   if (overlayText) {
-    ctx.fillStyle = "#ffffff";
-    drawRoundRect(
-      ctx,
-      cx - centerSize / 2,
-      cy - centerSize / 2,
-      centerSize,
-      centerSize,
-      r
-    );
-    ctx.fill();
-
     const isWatermark = overlayText === DEFAULT_WATERMARK;
-    const maxFontSize = isWatermark ? centerSize * 0.22 : centerSize * 0.32;
+    const maxFontSize = isWatermark ? size * 0.045 : centerSize * 0.32;
 
     let fontSize = maxFontSize;
     ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
-    while (ctx.measureText(overlayText).width > centerSize * 0.85 && fontSize > 4) {
+    while (ctx.measureText(overlayText).width > size * 0.62 && fontSize > 4) {
       fontSize -= 1;
       ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
     }
+
+    const textW = ctx.measureText(overlayText).width;
+    const padX = isWatermark ? fontSize * 0.7 : centerSize * 0.12;
+    const padY = isWatermark ? fontSize * 0.45 : centerSize * 0.1;
+    const boxW = isWatermark ? textW + padX * 2 : centerSize;
+    const boxH = isWatermark ? fontSize + padY * 2 : centerSize;
+    const boxR = clampRadius(boxW, boxH, isWatermark ? boxH / 2 : r);
+
+    ctx.fillStyle = "#ffffff";
+    drawRoundRect(ctx, cx - boxW / 2, cy - boxH / 2, boxW, boxH, boxR);
+    ctx.fill();
 
     ctx.fillStyle = darkColor;
     ctx.textAlign = "center";
@@ -218,12 +222,18 @@ export async function generateQRSvg(
 
   if (overlayText) {
     const isWatermark = overlayText === DEFAULT_WATERMARK;
-    const fontSize = isWatermark ? centerSize * 0.22 : centerSize * 0.32;
+    const fontSize = isWatermark ? size * 0.045 : centerSize * 0.32;
     const escaped = overlayText
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-    overlayParts.push(svgRoundRect(cx, cy, centerSize, centerSize, r));
+    const approxW = overlayText.length * fontSize * 0.58;
+    const padX = isWatermark ? fontSize * 0.7 : centerSize * 0.12;
+    const padY = isWatermark ? fontSize * 0.45 : centerSize * 0.1;
+    const boxW = isWatermark ? approxW + padX * 2 : centerSize;
+    const boxH = isWatermark ? fontSize + padY * 2 : centerSize;
+    const boxR = Math.min(boxW / 2, boxH / 2, isWatermark ? boxH / 2 : r);
+    overlayParts.push(svgRoundRect(cx, cy, boxW, boxH, boxR));
     overlayParts.push(
       `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" fill="${darkColor}" font-family="Inter, system-ui, sans-serif" font-weight="bold" font-size="${fontSize}">${escaped}</text>`,
     );

@@ -12,6 +12,7 @@ import {
   establishmentAccessWhere,
   requireEstablishmentAccess,
 } from "@/lib/establishment-access";
+import { parseEstablishmentIndustry } from "@/lib/establishment-industry";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -34,6 +35,7 @@ export async function GET() {
     id: e.id,
     isOwner: e.userId === userId,
     name: e.name,
+    industry: e.industry,
     address: e.address,
     phone: e.phone,
     yandexMapsUrl: e.yandexMapsUrl,
@@ -57,6 +59,10 @@ export async function POST(request: Request) {
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
   const { name, address, phone, yandexMapsUrl, twoGisUrl, avitoUrl, qrCodeId } = body;
+  const industry = parseEstablishmentIndustry(body.industry);
+  if (body.industry !== undefined && body.industry !== null && !industry) {
+    return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
+  }
 
   if (!name) {
     return NextResponse.json(
@@ -83,6 +89,7 @@ export async function POST(request: Request) {
   const establishment = await prisma.establishment.create({
     data: {
       name,
+      industry,
       address: address || null,
       phone: phone || null,
       yandexMapsUrl: yandexMapsUrl || null,

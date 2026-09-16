@@ -164,3 +164,11 @@ export function parseHttpUrl(raw: string): URL | null {
     return null;
   }
 }
+
+/** «Name» unless the name already contains quotes. */
+export function quotedEstablishmentName(name: string | null | undefined): string {
+  const t = (name ?? "").trim();
+  if (!t) return "";
+  if (/[«»""„“”]/.test(t)) return t;
+  return `«${t}»`;
+}

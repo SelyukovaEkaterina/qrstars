@@ -7,6 +7,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import MessengerContactsManager from "@/components/dashboard/MessengerContactsManager";
 import MonthlyReportSettings from "@/components/dashboard/MonthlyReportSettings";
+import AccountSettings from "@/components/dashboard/AccountSettings";
 import { Loader2 } from "lucide-react";
 
 interface Establishment {
@@ -51,7 +52,7 @@ export default function SettingsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-8">
         <div className="max-w-3xl mx-auto space-y-6">
           <h1 className="text-2xl font-bold text-gray-900">Настройки</h1>
 
@@ -120,6 +121,8 @@ export default function SettingsPage() {
               <p className="text-gray-500">Заведения не найдены.</p>
             </Card>
           )}
+
+          <AccountSettings />
         </div>
       </main>
     </div>

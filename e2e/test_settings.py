@@ -67,3 +67,39 @@ def test_settings_unauthenticated(base_url):
     s = req_lib.Session()
     r = s.get(f"{base_url}/api/settings")
     assert r.status_code == 401
+
+
+def test_send_test_email_to_owned_notification_contact(
+    owner_session, base_url, owner_establishment_id
+):
+    contacts_response = owner_session.get(f"{base_url}/api/messenger-contacts")
+    assert contacts_response.status_code == 200
+    email_contact = next(
+        contact
+        for contact in contacts_response.json()["contacts"]
+        if contact["provider"] == "EMAIL"
+    )
+
+    response = owner_session.post(
+        f"{base_url}/api/settings",
+        json={
+            "action": "test-email",
+            "establishmentId": owner_establishment_id,
+            "contactId": email_contact["id"],
+        },
+    )
+    assert response.status_code == 200, response.text
+
+
+def test_test_email_rejects_unknown_contact(
+    owner_session, base_url, owner_establishment_id
+):
+    response = owner_session.post(
+        f"{base_url}/api/settings",
+        json={
+            "action": "test-email",
+            "establishmentId": owner_establishment_id,
+            "contactId": "not-owned",
+        },
+    )
+    assert response.status_code == 404

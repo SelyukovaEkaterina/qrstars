@@ -225,7 +225,7 @@ export default function RoutingPreview({
             <div className="p-6 text-center space-y-3">
               <p className="font-semibold text-gray-900">{establishmentName || "Заведение"}</p>
               <p className="text-sm text-gray-500">Гость сразу ставит оценку 1–5★</p>
-              <div className="flex justify-center gap-1 text-2xl text-amber-400">
+              <div className="flex justify-center gap-1 text-2xl text-gray-300" aria-hidden>
                 ★★★★★
               </div>
             </div>

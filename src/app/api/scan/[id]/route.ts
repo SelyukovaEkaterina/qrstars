@@ -378,6 +378,7 @@ export async function GET(
     needsActivation: false,
     establishmentId: est.id,
     establishmentName: est.name,
+    industry: est.industry,
     qrCodeId: qrCode.id,
     reviewRouting: reviewRoutingToJson(reviewRouting),
     platformUrls: {

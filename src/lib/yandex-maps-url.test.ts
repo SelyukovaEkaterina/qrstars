@@ -4,11 +4,13 @@ import {
   YANDEX_MAPS_CARD_ERROR,
   YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR,
   extractYandexOrgTitle,
+  isGenericYandexMapsTitle,
   isValidYandexMapsUrl,
   isYandexMapsShortUrl,
   normalizeYandexMapsUrl,
   orgNameFromYandexPath,
   resolveYandexMapsPreview,
+  YANDEX_MAPS_GENERIC_ORG_ERROR,
   yandexMapsUrlError,
 } from "./yandex-maps-url";
 
@@ -127,6 +129,44 @@ describe("resolveYandexMapsPreview", () => {
     const result = await resolveYandexMapsPreview("https://yandex.ru/maps/search/кафе", async () => {
       throw new Error("should not fetch");
     });
+    assert.equal(result.ok, false);
+  });
+
+  it("rejects a generic homepage title on an org path", async () => {
+    const result = await resolveYandexMapsPreview(
+      "https://yandex.ru/maps/org/koleso/1043674692/",
+      async () =>
+        new Response(
+          `<title>Яндекс Карты — транспорт, навигация, поиск мест</title>`,
+          { status: 200 }
+        )
+    );
+    assert.equal(result.ok, false);
+    if (!result.ok) {
+      assert.equal(result.error, YANDEX_MAPS_GENERIC_ORG_ERROR);
+    }
+  });
+
+  it("does not fall back to the URL slug when the title is generic", async () => {
+    assert.equal(
+      isGenericYandexMapsTitle("Яндекс Карты — транспорт, навигация, поиск мест"),
+      true
+    );
+    const result = await resolveYandexMapsPreview(
+      "https://yandex.ru/maps/org/koleso/1043674692/",
+      async () =>
+        new Response(`<title>Яндекс Карты — транспорт, навигация, поиск мест</title>`, {
+          status: 200,
+        })
+    );
+    assert.equal(result.ok, false);
+  });
+
+  it("rejects non-OK HTTP status for an org URL", async () => {
+    const result = await resolveYandexMapsPreview(
+      "https://yandex.ru/maps/org/koleso/1/",
+      async () => new Response("not found", { status: 404 })
+    );
     assert.equal(result.ok, false);
   });
 });

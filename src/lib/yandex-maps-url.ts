@@ -19,6 +19,9 @@ export const YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR =
 export const YANDEX_MAPS_RESOLVE_ERROR =
   "Не удалось открыть карточку по этой ссылке. Скопируйте ссылку «Поделиться» с страницы организации (yandex.ru/maps/org/…).";
 
+export const YANDEX_MAPS_GENERIC_ORG_ERROR =
+  "По этой ссылке нет карточки организации. Проверьте, что скопировали ссылку «Поделиться» со страницы заведения, а не с главной Яндекс.Карт.";
+
 function isAllowedHost(hostname: string): boolean {
   return ALLOWED_HOSTS.has(hostname.toLowerCase());
 }
@@ -121,6 +124,18 @@ export function extractYandexOrgTitle(html: string): string | null {
   return decoded.replace(/\s+[—–-]\s+Яндекс.*$/i, "").trim() || null;
 }
 
+/** Главная / заглушка вместо карточки организации. */
+export function isGenericYandexMapsTitle(name: string | null | undefined): boolean {
+  const n = name?.trim() ?? "";
+  if (!n) return true;
+  if (/^яндекс(\s|\.|\s?карты|$)/i.test(n)) return true;
+  if (/^yandex(\s|\.|\s?maps|$)/i.test(n)) return true;
+  if (/транспорт,\s*навигация/i.test(n)) return true;
+  if (/поиск мест/i.test(n)) return true;
+  if (/^организация на яндекс/i.test(n)) return true;
+  return false;
+}
+
 export type YandexMapsPreview = {
   ok: true;
   name: string;
@@ -177,6 +192,10 @@ export async function resolveYandexMapsPreview(
       continue;
     }
 
+    if (!res.ok) {
+      return { ok: false, error: YANDEX_MAPS_GENERIC_ORG_ERROR };
+    }
+
     html = await res.text();
     break;
   }
@@ -189,10 +208,10 @@ export async function resolveYandexMapsPreview(
     return { ok: false, error: YANDEX_MAPS_RESOLVE_ERROR };
   }
 
-  const name =
-    extractYandexOrgTitle(html) ||
-    orgNameFromYandexPath(finalUrl.pathname) ||
-    "организация на Яндекс.Картах";
+  const name = extractYandexOrgTitle(html);
+  if (!name || isGenericYandexMapsTitle(name)) {
+    return { ok: false, error: YANDEX_MAPS_GENERIC_ORG_ERROR };
+  }
 
   return { ok: true, name, canonicalUrl: finalUrl.href };
 }

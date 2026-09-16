@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useState } from "react";
 import Input from "@/components/ui/Input";
 import {
   YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR,
@@ -13,64 +13,95 @@ type PreviewState =
   | { status: "error"; message: string }
   | { status: "ready"; name: string; canonicalUrl: string; confirmed: boolean };
 
-export default function YandexMapsOrgConfirm({
-  value,
-  onChange,
-  onConfirmedChange,
-  label,
-  required,
-  placeholder,
-}: {
-  value: string;
-  onChange: (url: string) => void;
-  onConfirmedChange?: (canonicalUrl: string | null) => void;
-  label: string;
-  required?: boolean;
-  placeholder?: string;
-}) {
+export type YandexMapsOrgConfirmHandle = {
+  check: () => Promise<boolean>;
+};
+
+const YandexMapsOrgConfirm = forwardRef<
+  YandexMapsOrgConfirmHandle,
+  {
+    value: string;
+    onChange: (url: string) => void;
+    onConfirmedChange?: (canonicalUrl: string | null) => void;
+    onConfirmed?: (canonicalUrl: string) => void;
+    label: string;
+    required?: boolean;
+    placeholder?: string;
+    error?: string;
+    previewOnBlur?: boolean;
+  }
+>(function YandexMapsOrgConfirm(
+  {
+    value,
+    onChange,
+    onConfirmedChange,
+    onConfirmed,
+    label,
+    required,
+    placeholder,
+    error,
+    previewOnBlur = true,
+  },
+  ref
+) {
   const [preview, setPreview] = useState<PreviewState>({ status: "idle" });
   const [fieldError, setFieldError] = useState("");
 
-  const runPreview = useCallback(async (raw: string) => {
-    const trimmed = raw.trim();
-    if (!trimmed) {
-      setFieldError("");
-      setPreview({ status: "idle" });
-      onConfirmedChange?.(null);
-      return;
-    }
-    const localErr = yandexMapsUrlError(trimmed);
-    if (localErr && localErr !== YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR) {
-      setFieldError(localErr);
-      setPreview({ status: "idle" });
-      return;
-    }
-    setFieldError("");
-    setPreview({ status: "loading" });
-    try {
-      const res = await fetch("/api/yandex-maps/preview", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: trimmed }),
-      });
-      const data = await res.json();
-      if (!res.ok || !data.ok) {
-        setPreview({
-          status: "error",
-          message: data.error || "Не удалось проверить ссылку",
-        });
-        return;
+  const runPreview = useCallback(
+    async (raw: string): Promise<boolean> => {
+      const trimmed = raw.trim();
+      if (!trimmed) {
+        setFieldError("");
+        setPreview({ status: "idle" });
+        onConfirmedChange?.(null);
+        return false;
       }
-      setPreview({
-        status: "ready",
-        name: data.name,
-        canonicalUrl: data.canonicalUrl,
-        confirmed: false,
-      });
-    } catch {
-      setPreview({ status: "error", message: "Не удалось проверить ссылку" });
-    }
-  }, []);
+      const localErr = yandexMapsUrlError(trimmed);
+      if (localErr && localErr !== YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR) {
+        setFieldError(localErr);
+        setPreview({ status: "idle" });
+        return false;
+      }
+      setFieldError("");
+      setPreview({ status: "loading" });
+      try {
+        const res = await fetch("/api/yandex-maps/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url: trimmed }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          setPreview({
+            status: "error",
+            message: data.error || "Не удалось проверить ссылку",
+          });
+          onConfirmedChange?.(null);
+          return false;
+        }
+        setPreview({
+          status: "ready",
+          name: data.name,
+          canonicalUrl: data.canonicalUrl,
+          confirmed: false,
+        });
+        return true;
+      } catch {
+        setPreview({ status: "error", message: "Не удалось проверить ссылку" });
+        onConfirmedChange?.(null);
+        return false;
+      }
+    },
+    [onConfirmedChange]
+  );
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      check: () => runPreview(value),
+    }),
+    [runPreview, value]
+  );
 
   useEffect(() => {
     if (!value.trim()) {
@@ -84,6 +115,7 @@ export default function YandexMapsOrgConfirm({
     onChange(preview.canonicalUrl);
     setPreview({ ...preview, confirmed: true });
     onConfirmedChange?.(preview.canonicalUrl);
+    onConfirmed?.(preview.canonicalUrl);
   };
 
   return (
@@ -94,14 +126,18 @@ export default function YandexMapsOrgConfirm({
         value={value}
         required={required}
         placeholder={placeholder || "https://yandex.ru/maps/org/ваше-заведение/…"}
-        error={fieldError || (preview.status === "error" ? preview.message : undefined)}
+        error={
+          error || fieldError || (preview.status === "error" ? preview.message : undefined)
+        }
         onChange={(e) => {
           onChange(e.target.value);
           setPreview({ status: "idle" });
           setFieldError("");
           onConfirmedChange?.(null);
         }}
-        onBlur={() => void runPreview(value)}
+        onBlur={() => {
+          if (previewOnBlur) void runPreview(value);
+        }}
       />
       {preview.status === "loading" && (
         <p className="text-xs text-gray-500">Проверяем карточку организации…</p>
@@ -119,14 +155,18 @@ export default function YandexMapsOrgConfirm({
               className="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900"
               onClick={confirm}
             >
-              Да, это мы — сохранить эту карточку
+              Да, это мы
             </button>
           )}
         </div>
       )}
     </div>
   );
-}
+});
+
+YandexMapsOrgConfirm.displayName = "YandexMapsOrgConfirm";
+
+export default YandexMapsOrgConfirm;
 
 export function yandexPreviewBlocksSubmit(value: string, confirmedCanonical: string | null) {
   const trimmed = value.trim();

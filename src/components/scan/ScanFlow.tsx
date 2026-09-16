@@ -27,6 +27,10 @@ import {
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
 import { openExternalUrl } from "@/lib/open-external";
+import {
+  industryReviewCopy,
+  parseEstablishmentIndustry,
+} from "@/lib/establishment-industry";
 
 type FlowStep = "rating" | "action" | "convince" | "thanks";
 
@@ -47,6 +51,7 @@ interface ScanFlowProps extends BrandThemeScanProps {
   isDemo?: boolean;
   isBg?: boolean;
   pdConsent?: PdConsent;
+  industry?: string | null;
 }
 
 export default function ScanFlow({
@@ -63,6 +68,7 @@ export default function ScanFlow({
   pageAppearance,
   isBg,
   pdConsent,
+  industry,
 }: ScanFlowProps) {
   const [step, setStep] = useState<FlowStep>("rating");
   const [rating, setRating] = useState(0);
@@ -85,6 +91,15 @@ export default function ScanFlow({
 
   const starStep = rating > 0 ? getStarStep(reviewRouting, rating) : null;
   const isComplaint = starStep ? isComplaintAction(starStep.action) : false;
+  const reviewCopy = industryReviewCopy(parseEstablishmentIndustry(industry));
+  const complaintTitle =
+    starStep?.promptTitle === "Нам очень жаль! Расскажите подробнее"
+      ? reviewCopy.complaintTitle
+      : starStep?.promptTitle;
+  const complaintSubtitle =
+    starStep?.promptSubtitle === "Ваше сообщение попадёт лично руководству"
+      ? reviewCopy.complaintSubtitle
+      : starStep?.promptSubtitle;
 
   const platforms: ResolvedPlatform[] = starStep && !isComplaint && starStep.action !== "THANKS"
     ? resolvePlatformUrls(starStep, platformUrls).filter((p) => p.url)
@@ -254,7 +269,7 @@ export default function ScanFlow({
         {!leavingTo && step === "rating" && (
           <div className="text-center space-y-6 mt-8">
             <p className="text-lg" style={{ color: mutedColor(isBg) }}>
-              Как вам всё понравилось?
+              {reviewCopy.ratingQuestion}
             </p>
             <div className="flex justify-center">
               <StarRating value={rating} onChange={handleRatingSelect} />
@@ -276,8 +291,8 @@ export default function ScanFlow({
           <div className="space-y-4 mt-8">
             <div className="text-center">
               <div className="text-4xl">{starStep.emoji}</div>
-              <p className={`text-lg font-semibold mt-2 ${isBg ? "text-white" : dark ? "text-white" : "text-gray-900"}`}>{starStep.promptTitle}</p>
-              <p className={`text-sm mt-1 ${isBg ? "text-white/70" : dark ? "text-slate-400" : "text-gray-500"}`}>{starStep.promptSubtitle}</p>
+              <p className={`text-lg font-semibold mt-2 ${isBg ? "text-white" : dark ? "text-white" : "text-gray-900"}`}>{complaintTitle}</p>
+              <p className={`text-sm mt-1 ${isBg ? "text-white/70" : dark ? "text-slate-400" : "text-gray-500"}`}>{complaintSubtitle}</p>
             </div>
             <Input
               label="Ваше имя (необязательно)"
@@ -307,7 +322,7 @@ export default function ScanFlow({
                       ? "bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 focus:ring-indigo-400"
                       : `border-gray-300 focus:ring-indigo-500`
                 }`}
-                placeholder="Что пошло не так? Мы хотим исправиться."
+                placeholder={reviewCopy.commentPlaceholder}
               />
             </div>
             {needsConsent && (

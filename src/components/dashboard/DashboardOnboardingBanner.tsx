@@ -2,7 +2,7 @@
 
 import { Store, QrCode, Plus, Link2, ArrowRight } from "lucide-react";
 import Button from "@/components/ui/Button";
-import { pluralize } from "@/lib/utils";
+import { pluralize, quotedEstablishmentName } from "@/lib/utils";
 
 interface Establishment {
   id: string;
@@ -77,7 +77,7 @@ export default function DashboardOnboardingBanner({
           {establishmentsWithoutQr.length === 1 ? (
             <div>
               <p className="font-medium">
-                У заведения «{establishmentsWithoutQr[0].name}» нет QR-кода
+                У заведения {quotedEstablishmentName(establishmentsWithoutQr[0].name)} нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
                 Выпустите новый код или привяжите уже существующий неактивный

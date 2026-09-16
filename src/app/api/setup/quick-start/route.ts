@@ -23,6 +23,12 @@ import {
   normalizeYandexMapsUrl,
   yandexMapsUrlError,
 } from "@/lib/yandex-maps-url";
+import {
+  industryQrStylePreset,
+  parseEstablishmentIndustry,
+} from "@/lib/establishment-industry";
+import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
+import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
 
 function resolveYandexMapsUrl(raw: string | undefined): {
   normalized: string | null;
@@ -56,6 +62,7 @@ export async function POST(request: Request) {
     legalName,
     inn,
     redirectUrl,
+    industry: rawIndustry,
     intent: rawIntent,
     establishmentId: rawEstablishmentId,
   } = body as {
@@ -66,6 +73,7 @@ export async function POST(request: Request) {
     legalName?: string;
     inn?: string;
     redirectUrl?: string;
+    industry?: string;
     intent?: string;
     establishmentId?: string;
   };
@@ -86,6 +94,11 @@ export async function POST(request: Request) {
   const trimmedRedirect = redirectUrl?.trim();
   const trimmedLegalName = legalName?.trim() || null;
   const trimmedInn = inn?.trim() || null;
+  const industry = parseEstablishmentIndustry(rawIndustry);
+  if (rawIndustry !== undefined && !industry) {
+    return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
+  }
+  const qrStyleTemplateId = qrStylePresetTemplateId(industryQrStylePreset(industry));
   const qualifiedOnboarding = intent === "reviews" || intent === "landing" || intent === "menu";
 
   if (intent === "redirect") {
@@ -195,6 +208,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Не удалось сгенерировать QR-код" }, { status: 500 });
   }
 
+  await ensureQrStylePresets();
+
   if (intent === "redirect") {
     const qrcode = await prisma.$transaction(async (tx) => {
       const qr = await tx.qRCode.create({
@@ -266,12 +281,18 @@ export async function POST(request: Request) {
     }
 
     const qrcode = await prisma.$transaction(async (tx) => {
-      const establishmentUpdate: { yandexMapsUrl?: string; legalName?: string; inn?: string } = {};
+      const establishmentUpdate: {
+        yandexMapsUrl?: string;
+        legalName?: string;
+        inn?: string;
+        industry?: string;
+      } = {};
       if (trimmedYandex && trimmedYandex !== establishment.yandexMapsUrl) {
         establishmentUpdate.yandexMapsUrl = trimmedYandex;
       }
       if (trimmedLegalName) establishmentUpdate.legalName = trimmedLegalName;
       if (trimmedInn) establishmentUpdate.inn = trimmedInn;
+      if (industry) establishmentUpdate.industry = industry;
       if (Object.keys(establishmentUpdate).length > 0) {
         await tx.establishment.update({
           where: { id: establishmentId },
@@ -300,6 +321,7 @@ export async function POST(request: Request) {
           source: "DASHBOARD",
           user: { connect: { id: userId } },
           establishment: { connect: { id: establishmentId } },
+          qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
           ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
         },
       });
@@ -333,6 +355,7 @@ export async function POST(request: Request) {
     const establishment = await tx.establishment.create({
       data: {
         name: trimmedName!,
+        industry,
         phone: phone?.trim() || null,
         yandexMapsUrl: trimmedYandex || null,
         twoGisUrl: twoGisUrl?.trim() || null,
@@ -364,6 +387,7 @@ export async function POST(request: Request) {
         source: "DASHBOARD",
         user: { connect: { id: userId } },
         establishment: { connect: { id: establishment.id } },
+        qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
         ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
       },
     });

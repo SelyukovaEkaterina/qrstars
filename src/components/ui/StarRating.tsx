@@ -27,6 +27,9 @@ export default function StarRating({ value, onChange, size = "lg", readonly = fa
           key={star}
           type="button"
           disabled={readonly}
+          aria-label={
+            star === 1 ? "1 звезда" : star === 5 ? "5 звёзд" : `${star} звезды`
+          }
           className={cn("transition-transform duration-150", !readonly && "hover:scale-110")}
           onMouseEnter={() => !readonly && setHovered(star)}
           onMouseLeave={() => !readonly && setHovered(0)}

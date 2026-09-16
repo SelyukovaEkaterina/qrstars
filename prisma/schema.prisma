@@ -129,6 +129,7 @@ model UserEvent {
 model Establishment {
   id          String    @id @default(cuid())
   name        String
+  industry    String?
   description String?
   address     String?
   phone       String?

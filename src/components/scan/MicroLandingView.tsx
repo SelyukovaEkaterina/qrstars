@@ -82,6 +82,7 @@ export interface CustomPageItem {
 
 interface MicroLandingViewProps {
   establishmentName: string;
+  industry?: string | null;
   establishmentId: string;
   qrCodeId: string;
   pageModules: PageModules;
@@ -154,6 +155,7 @@ function getCustomIcon(index: number) {
 
 export default function MicroLandingView({
   establishmentName,
+  industry,
   establishmentId,
   qrCodeId,
   pageModules,
@@ -316,6 +318,7 @@ export default function MicroLandingView({
       return (
         <ScanFlow
           establishmentName={establishmentName}
+          industry={industry}
           establishmentId={establishmentId}
           qrCodeId={qrCodeId}
           reviewRouting={reviewRouting}

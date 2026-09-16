@@ -12,10 +12,15 @@ import WorkingHoursEditor from "@/components/dashboard/WorkingHoursEditor";
 import EstablishmentTeamAccess from "@/components/dashboard/EstablishmentTeamAccess";
 import YandexMapsOrgConfirm from "@/components/dashboard/YandexMapsOrgConfirm";
 import { parseWorkingHours, type WorkingHours } from "@/lib/working-hours";
+import {
+  INDUSTRY_OPTIONS,
+  type EstablishmentIndustry,
+} from "@/lib/establishment-industry";
 
 interface EstablishmentSettings {
   id: string;
   name: string;
+  industry: EstablishmentIndustry | null;
   address: string | null;
   phone: string | null;
   legalName: string | null;
@@ -74,6 +79,7 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
         body: JSON.stringify({
           id: data.id,
           name: data.name,
+          industry: data.industry,
           address: data.address,
           phone: data.phone,
           legalName: data.legalName,
@@ -153,6 +159,21 @@ export default function EstablishmentSettingsPage({ params }: { params: Promise<
                 onChange={(e) => updateField("name", e.target.value)}
                 placeholder="Кафе, салон, клиника, автосервис…"
               />
+              <label className="block space-y-1">
+                <span className="block text-sm font-medium text-gray-700">Отрасль</span>
+                <select
+                  value={data.industry || ""}
+                  onChange={(e) => updateField("industry", e.target.value)}
+                  className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm transition-colors focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                >
+                  <option value="">Не выбрана</option>
+                  {INDUSTRY_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <Input
                 label="Адрес"
                 value={data.address || ""}

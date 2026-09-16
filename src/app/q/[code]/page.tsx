@@ -404,6 +404,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
   };
   const reviewProps = {
     establishmentName: est.name,
+    industry: est.industry,
     establishmentId: est.id,
     qrCodeId: qrCode.id,
     reviewRouting,
@@ -470,6 +471,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     return (
       <MicroLandingView
         establishmentName={est.name}
+        industry={est.industry}
         establishmentId={est.id}
         qrCodeId={qrCode.id}
         pageModules={pageModules}

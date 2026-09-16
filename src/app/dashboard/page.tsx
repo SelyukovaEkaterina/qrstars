@@ -156,18 +156,18 @@ export default async function DashboardPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
-        <div className="max-w-6xl mx-auto space-y-8">
+      <main className="flex-1 min-w-0 overflow-x-hidden p-4 sm:p-8">
+        <div className="max-w-6xl mx-auto space-y-8 min-w-0">
           <OverviewTabs />
 
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold text-gray-900">Сводка</h1>
               <p className="text-gray-500 mt-1">
                 Добро пожаловать, {session.user.name || "Владелец"}!
               </p>
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex shrink-0 items-center gap-3">
               <PlanBadge plan={plan} showChangeLink={!isPro} />
             </div>
           </div>
@@ -482,11 +482,11 @@ export default async function DashboardPage() {
                   <h2 className="text-lg font-semibold text-gray-900 mb-4">
                     Последние отзывы
                   </h2>
-                  <Card padding="sm">
-                    <div className="divide-y divide-gray-100">
+                  <Card padding="sm" className="min-w-0 overflow-hidden">
+                    <div className="divide-y divide-gray-100 min-w-0">
                       {recentReviews.slice(0, 5).map((review) => (
-                        <div key={review.id} className="px-4 py-3 flex items-center gap-4">
-                          <div className="flex items-center gap-1">
+                        <div key={review.id} className="px-4 py-3 flex items-center gap-4 min-w-0 overflow-hidden">
+                          <div className="flex items-center gap-1 shrink-0">
                             <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
                             <span className="font-semibold text-sm">{review.rating}</span>
                           </div>
@@ -499,7 +499,7 @@ export default async function DashboardPage() {
                               {new Date(review.createdAt).toLocaleDateString("ru-RU")}
                             </p>
                           </div>
-                          <Badge variant={review.isNegative ? "danger" : "success"}>
+                          <Badge className="shrink-0" variant={review.isNegative ? "danger" : "success"}>
                             {review.isNegative ? "Жалоба" : "Позитив"}
                           </Badge>
                         </div>

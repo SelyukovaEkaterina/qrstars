@@ -98,6 +98,8 @@ export default function MessengerContactsManager({
   const [emailLabel, setEmailLabel] = useState("");
   const [emailSaving, setEmailSaving] = useState(false);
   const [emailError, setEmailError] = useState("");
+  const [emailTestBusy, setEmailTestBusy] = useState(false);
+  const [emailTestStatus, setEmailTestStatus] = useState("");
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [savingToggle, setSavingToggle] = useState<ToggleField | null>(null);
   const [telegramBotUsername, setTelegramBotUsername] = useState<string | null>(null);
@@ -258,6 +260,32 @@ export default function MessengerContactsManager({
     }
   };
 
+  const handleTestEmail = async (contactId: string) => {
+    setEmailTestBusy(true);
+    setEmailTestStatus("");
+    try {
+      const res = await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "test-email",
+          establishmentId,
+          contactId,
+        }),
+      });
+      const data = await res.json();
+      setEmailTestStatus(
+        res.ok
+          ? "Тестовое письмо отправлено. Проверьте входящие и папку «Спам»."
+          : data.error || "Не удалось отправить тестовое письмо"
+      );
+    } catch {
+      setEmailTestStatus("Ошибка соединения");
+    } finally {
+      setEmailTestBusy(false);
+    }
+  };
+
   const handleCopyCode = () => {
     if (!userId) return;
     navigator.clipboard.writeText(messengerLinkCode(userId)).then(() => {
@@ -401,15 +429,32 @@ export default function MessengerContactsManager({
                   </td>
                   <td className="py-3 pr-1 text-right whitespace-nowrap">
                     {linked ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => handleDelete(connected.id)}
-                        className="text-red-600"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 mr-1" />
-                        Отключить
-                      </Button>
+                      <div className="flex justify-end gap-1">
+                        {channel.provider === "EMAIL" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleTestEmail(connected.id)}
+                            disabled={emailTestBusy}
+                          >
+                            {emailTestBusy ? (
+                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Mail className="mr-1 h-3.5 w-3.5" />
+                            )}
+                            Проверить
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(connected.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-3.5 h-3.5 mr-1" />
+                          Отключить
+                        </Button>
+                      </div>
                     ) : channel.provider === "EMAIL" ? (
                       <Button
                         size="sm"
@@ -450,6 +495,15 @@ export default function MessengerContactsManager({
       <p className="text-xs text-gray-400 mt-3">
         Отзывы — жалобы 1–3★. Заявки — формы на странице и заказы из меню.
       </p>
+      {emailTestStatus && (
+        <p
+          className={`mt-2 text-xs ${
+            emailTestStatus.startsWith("Тестовое") ? "text-green-700" : "text-red-600"
+          }`}
+        >
+          {emailTestStatus}
+        </p>
+      )}
 
       {showEmailForm && !primaryContact("EMAIL") && (
         <div className="mt-4 p-4 rounded-lg border border-gray-200 bg-gray-50 space-y-2">

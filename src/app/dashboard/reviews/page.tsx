@@ -39,6 +39,56 @@ interface EstablishmentOption {
   name: string;
 }
 
+function guestContactHref(raw: string): string | null {
+  const t = raw.trim();
+  if (!t) return null;
+  const telegram = t.match(/^(?:https?:\/\/)?(?:t\.me\/)?@([A-Za-z0-9_]{5,32})$/i)
+    || t.match(/^(?:https?:\/\/)?t\.me\/([A-Za-z0-9_]{5,32})\/?$/i);
+  if (telegram?.[1]) return `https://t.me/${telegram[1]}`;
+  const digits = t.replace(/[^\d+]/g, "");
+  if (/^\+?\d{10,15}$/.test(digits)) return `tel:${digits}`;
+  return null;
+}
+
+function ReviewComment({ comment }: { comment: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={() => setOpen((v) => !v)}
+      className="max-w-xs text-left"
+    >
+      <p className={`text-sm text-gray-700 ${open ? "whitespace-pre-wrap" : "truncate"}`}>
+        {comment}
+      </p>
+      <span className="text-xs font-medium text-indigo-600">
+        {open ? "Свернуть" : "Показать полностью"}
+      </span>
+    </button>
+  );
+}
+
+function GuestContact({ name, phone }: { name: string | null; phone: string | null }) {
+  const href = phone ? guestContactHref(phone) : null;
+  return (
+    <div className="text-sm text-gray-700">
+      {name && <p>{name}</p>}
+      {phone &&
+        (href ? (
+          <a
+            href={href}
+            target={href.startsWith("http") ? "_blank" : undefined}
+            rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-800"
+          >
+            {phone}
+          </a>
+        ) : (
+          <p className="text-xs text-gray-500">{phone}</p>
+        ))}
+    </div>
+  );
+}
 function RatingStars({ rating }: { rating: number }) {
   return (
     <div className="flex items-center gap-0.5">
@@ -367,11 +417,9 @@ export default function ReviewsPage() {
                               {r.isNegative ? "Жалоба" : "Позитив"}
                             </Badge>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 min-w-0">
                             {r.comment ? (
-                              <p className="text-sm text-gray-700 max-w-xs truncate">
-                                {r.comment}
-                              </p>
+                              <ReviewComment comment={r.comment} />
                             ) : (
                               <span className="text-sm text-gray-400">—</span>
                             )}
@@ -392,12 +440,7 @@ export default function ReviewsPage() {
                           </td>
                           <td className="px-4 py-3">
                             {r.guestName || r.guestPhone ? (
-                              <div className="text-sm text-gray-700">
-                                {r.guestName && <p>{r.guestName}</p>}
-                                {r.guestPhone && (
-                                  <p className="text-xs text-gray-500">{r.guestPhone}</p>
-                                )}
-                              </div>
+                              <GuestContact name={r.guestName} phone={r.guestPhone} />
                             ) : r.isNegative ? (
                               <p className="text-xs text-amber-700 max-w-[12rem]">
                                 Нет контакта. Гость оставляет телефон или Telegram в форме жалобы.

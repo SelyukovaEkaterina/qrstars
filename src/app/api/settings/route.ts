@@ -14,10 +14,13 @@ import {
 } from "@/lib/establishment-access";
 import { getOwnerReportFlags } from "@/lib/owner-messenger-notify";
 import { ownerHasMessengerProvider } from "@/lib/owner-messenger-notify";
+import { rateLimit } from "@/lib/rate-limit";
+import { parseEstablishmentIndustry } from "@/lib/establishment-industry";
 
 const establishmentSelect = {
   id: true,
   name: true,
+  industry: true,
   address: true,
   phone: true,
   yandexMapsUrl: true,
@@ -107,6 +110,13 @@ export async function PUT(request: Request) {
   const data: Record<string, unknown> = {};
 
   if (body.name !== undefined) data.name = body.name;
+  if (body.industry !== undefined) {
+    const industry = body.industry ? parseEstablishmentIndustry(body.industry) : null;
+    if (body.industry && !industry) {
+      return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
+    }
+    data.industry = industry;
+  }
   if (body.address !== undefined) data.address = body.address || null;
   if (body.workingHours !== undefined) {
     data.workingHours = body.workingHours === null ? null : parseWorkingHours(body.workingHours);
@@ -247,18 +257,56 @@ export async function POST(request: Request) {
   }
 
   if (action === "test-email") {
+    const userId = (session.user as Record<string, unknown>).id as string;
+    const establishmentId =
+      typeof body.establishmentId === "string" ? body.establishmentId : "";
+    const contactId = typeof body.contactId === "string" ? body.contactId : "";
+    if (!establishmentId || !contactId) {
+      return NextResponse.json({ error: "Не выбран email-канал" }, { status: 400 });
+    }
+
+    const limited = rateLimit(`test-email:${userId}`, 5, 60 * 60_000);
+    if (!limited.ok) {
+      return NextResponse.json(
+        { error: "Лимит тестовых писем исчерпан. Повторите позже." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } }
+      );
+    }
+
+    const [establishment, contact] = await Promise.all([
+      prisma.establishment.findFirst({
+        where: { id: establishmentId, ...establishmentAccessWhere(userId) },
+        select: { name: true },
+      }),
+      prisma.messengerContact.findFirst({
+        where: { id: contactId, userId, provider: "EMAIL" },
+        select: { externalId: true },
+      }),
+    ]);
+    if (!establishment || !contact) {
+      return NextResponse.json({ error: "Email-канал не найден" }, { status: 404 });
+    }
+
+    const safeName = establishment.name
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
     try {
-      await sendMail(
-        body.email,
-        `Тестовое уведомление QrStars.ru — ${body.establishmentName}`,
+      const sent = await sendMail(
+        contact.externalId,
+        `Тестовое уведомление QrStars.ru — ${establishment.name}`,
         `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
           <h2 style="color: #4f46e5;">Тестовое уведомление</h2>
-          <p>Email-уведомления настроены правильно для заведения <strong>${body.establishmentName}</strong>.</p>
+          <p>Email-уведомления настроены правильно для заведения <strong>${safeName}</strong>.</p>
           <p>Теперь негативные отзывы будут приходить на этот адрес.</p>
         </div>
         `
       );
+      if (!sent) {
+        return NextResponse.json({ error: "Почтовый сервер не принял письмо" }, { status: 502 });
+      }
       return NextResponse.json({ ok: true });
     } catch {
       return NextResponse.json({ error: "Не удалось отправить письмо" }, { status: 500 });
