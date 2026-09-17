@@ -19,7 +19,7 @@ import {
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
-import type { PdConsent } from "@/components/scan/ScanFlow";
+import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
 
 interface MenuViewProps extends BrandThemeScanProps {
   menu: MenuData;
@@ -324,8 +324,9 @@ export default function MenuView({
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const phoneEmailAllowed = isDemo || !pdConsent || pdConsent.ready;
-  const needsConsent = !isDemo && !!pdConsent?.ready && (menu.askPhone || menu.askEmail);
+  const contactFilled = guestPhone.trim() !== "" || guestEmail.trim() !== "";
+  const needsConsent = !isDemo && contactFilled;
+  const policyUrl = guestPdPolicyUrl(pdConsent);
 
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
 
@@ -428,7 +429,7 @@ export default function MenuView({
       setSubmitError("Укажите ваше имя");
       return;
     }
-    if (isIikoMenu && phoneEmailAllowed && !guestPhone.trim()) {
+    if (isIikoMenu && !guestPhone.trim()) {
       setSubmitError("Укажите телефон для заказа");
       return;
     }
@@ -877,7 +878,7 @@ export default function MenuView({
                     </FormField>
 
                     {/* Телефон — опционально или обязателен для iiko */}
-                    {(menu.askPhone || isIikoMenu) && phoneEmailAllowed && (
+                    {(menu.askPhone || isIikoMenu) && (
                       <FormField label={isIikoMenu ? "Телефон *" : "Телефон"} isBg={isBg}>
                         <input
                           type="tel"
@@ -891,7 +892,7 @@ export default function MenuView({
                     )}
 
                     {/* Email — опционально */}
-                    {menu.askEmail && phoneEmailAllowed && (
+                    {menu.askEmail && (
                       <FormField label="Email" isBg={isBg}>
                         <input
                           type="email"
@@ -934,11 +935,11 @@ export default function MenuView({
                     </FormField>
                   </div>
 
-                  {needsConsent && phoneEmailAllowed && (
+                  {needsConsent && (
                     <ConsentCheckbox
                       checked={consentChecked}
                       onChange={setConsentChecked}
-                      policyUrl={pdConsent!.policyUrl}
+                      policyUrl={policyUrl}
                       isBg={isBg}
                     />
                   )}
@@ -978,7 +979,7 @@ export default function MenuView({
                   <>
                     <button
                       type="button"
-                      disabled={submitting || (needsConsent && phoneEmailAllowed && !consentChecked)}
+                      disabled={submitting || (needsConsent && !consentChecked)}
                       onClick={handleSubmitOrder}
                       className="w-full py-3 rounded-xl font-semibold transition-opacity disabled:opacity-60"
                       style={primaryButtonStyle()}

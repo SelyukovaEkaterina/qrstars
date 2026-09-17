@@ -31,13 +31,11 @@ import {
   industryReviewCopy,
   parseEstablishmentIndustry,
 } from "@/lib/establishment-industry";
+import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
 
 type FlowStep = "rating" | "action" | "convince" | "thanks";
 
-export interface PdConsent {
-  ready: boolean;
-  policyUrl: string;
-}
+export type { PdConsent };
 
 interface ScanFlowProps extends BrandThemeScanProps {
   establishmentName: string;
@@ -83,7 +81,7 @@ export default function ScanFlow({
   const [leavingUrl, setLeavingUrl] = useState<string | null>(null);
   const [openedInNewTab, setOpenedInNewTab] = useState(false);
 
-  const policyUrl = pdConsent?.policyUrl || "https://qrstars.ru/politika-konfidencialnosti.html";
+  const policyUrl = guestPdPolicyUrl(pdConsent);
   const contactFilled = guestPhone.trim() !== "";
   const needsConsent = !isDemo && contactFilled;
 

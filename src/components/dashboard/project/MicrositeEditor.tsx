@@ -83,8 +83,11 @@ import {
   Banknote,
   ChevronRight,
   Cloud,
+  Home,
+  Lock,
 } from "lucide-react";
 import Link from "next/link";
+import { PLAN_PRICING, formatRub } from "@/lib/plans";
 
 interface EstablishmentOption {
   id: string;
@@ -487,6 +490,7 @@ function MyPageDashboardContent() {
   };
 
   const savePageModules = async (next: PageModules) => {
+    if (micrositeFrozen) return;
     setPageModules(next);
     await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
       method: "PUT",
@@ -496,6 +500,7 @@ function MyPageDashboardContent() {
   };
 
   const toggleModule = (key: string) => {
+    if (micrositeFrozen) return;
     if (isBuiltinModuleKey(key)) {
       const turningOn = !pageModules[key];
       const next = { ...pageModules, [key]: turningOn };
@@ -513,6 +518,7 @@ function MyPageDashboardContent() {
   };
 
   const saveModuleLabels = async (next: ModuleLabels) => {
+    if (micrositeFrozen) return;
     setModuleLabels(next);
     await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
       method: "PUT",
@@ -522,6 +528,7 @@ function MyPageDashboardContent() {
   };
 
   const saveModuleIcons = async (next: ModuleIcons) => {
+    if (micrositeFrozen) return;
     setModuleIcons(next);
     await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
       method: "PUT",
@@ -531,6 +538,7 @@ function MyPageDashboardContent() {
   };
 
   const saveModuleTypes = async (next: ModuleTypes) => {
+    if (micrositeFrozen) return;
     setModuleTypes(next);
     await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
       method: "PUT",
@@ -540,6 +548,7 @@ function MyPageDashboardContent() {
   };
 
   const saveModuleOrder = async (newOrder: ModuleKey[]) => {
+    if (micrositeFrozen) return;
     setModuleOrder(newOrder);
     await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
       method: "PUT",
@@ -549,6 +558,7 @@ function MyPageDashboardContent() {
   };
 
   const startEditLabel = (key: string) => {
+    if (micrositeFrozen) return;
     setEditLabelValue(getModuleLabel(key));
     setEditingLabel(key);
   };
@@ -575,6 +585,7 @@ function MyPageDashboardContent() {
   };
 
   const toggleCustomPage = async (id: string) => {
+    if (micrositeFrozen) return;
     const page = customPages.find((p) => p.id === id);
     if (!page) return;
     const res = await fetch("/api/custom-pages", {
@@ -591,6 +602,7 @@ function MyPageDashboardContent() {
   };
 
   const toggleTypedModuleLanding = async (key: string) => {
+    if (micrositeFrozen) return;
     const info = moduleTypes[key];
     if (!info) return;
     const currentlyOn = isTypedModuleLandingEnabled(
@@ -622,6 +634,7 @@ function MyPageDashboardContent() {
   };
 
   const deleteCustomPage = async (id: string) => {
+    if (micrositeFrozen) return;
     const res = await fetch(`/api/custom-pages?id=${id}`, { method: "DELETE" });
     if (res.ok) {
       setCustomPages((prev) => prev.filter((p) => p.id !== id));
@@ -686,6 +699,7 @@ function MyPageDashboardContent() {
   };
 
   const saveLandingSubtitle = async (value: string) => {
+    if (micrositeFrozen) return;
     const trimmed = value.trim();
     const toSave =
       trimmed && trimmed !== DEFAULT_LANDING_SUBTITLE ? trimmed.slice(0, 120) : null;
@@ -698,6 +712,7 @@ function MyPageDashboardContent() {
   };
 
   const saveShortSlug = async (value: string) => {
+    if (micrositeFrozen) return;
     const trimmed = value.trim().toLowerCase();
     if (trimmed && !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(trimmed)) {
       setShortSlugError("Только строчные латинские буквы, цифры, дефис, подчёркивание (2–32 символа)");
@@ -1054,6 +1069,7 @@ function MyPageDashboardContent() {
   };
 
   const handleAddMenu = async () => {
+    if (micrositeFrozen) return;
     setSaving(true);
     setError("");
     try {
@@ -1084,6 +1100,7 @@ function MyPageDashboardContent() {
   };
 
   const handleAddBusinessCard = async () => {
+    if (micrositeFrozen) return;
     setSaving(true);
     setError("");
     try {
@@ -1119,6 +1136,7 @@ function MyPageDashboardContent() {
   };
 
   const handleAddTips = () => {
+    if (micrositeFrozen) return;
     if (!pageModules.tips) {
       const next = { ...pageModules, tips: true };
       savePageModules(next);
@@ -1130,6 +1148,7 @@ function MyPageDashboardContent() {
   };
 
   const handleAddWifi = async () => {
+    if (micrositeFrozen) return;
     setSaving(true);
     setError("");
     try {
@@ -1164,6 +1183,7 @@ function MyPageDashboardContent() {
   };
 
   const deleteTypedModule = async (key: string) => {
+    if (micrositeFrozen) return;
     const info = moduleTypes[key];
     if (!info) return;
     const label = getModuleLabel(key);
@@ -1189,6 +1209,7 @@ function MyPageDashboardContent() {
   };
 
   const handleAddForm = async (presetId: string) => {
+    if (micrositeFrozen) return;
     setSaving(true);
     setError("");
     try {
@@ -1312,6 +1333,7 @@ function MyPageDashboardContent() {
           onChangeEstablishment={handleEstablishmentChange}
           shortSlug={shortSlug}
           lockProject={Boolean(lockedProjectId && !isUnassignedProjectId(lockedProjectId))}
+          micrositeFrozen={micrositeFrozen}
         />
 
         {establishments.length === 0 ? (
@@ -1336,19 +1358,36 @@ function MyPageDashboardContent() {
               </Link>
             </p>
 
-            {!isPro && (
+            {micrositeFrozen && (
+              <div className="rounded-2xl border border-indigo-200 bg-indigo-50/70 px-5 py-4">
+                <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Lock className="w-4 h-4 text-indigo-600 shrink-0" />
+                      <p className="font-semibold text-gray-900">
+                        Микросайт открыт для гостей, состав заморожен
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      Напечатанные QR продолжают вести на эту страницу. Нельзя менять набор,
+                      порядок и названия разделов, подзаголовок и короткий адрес. Можно править
+                      содержимое блоков — меню, визитку, Wi‑Fi, отзывы — и брендинг: логотип,
+                      обложку и цвет.
+                    </p>
+                  </div>
+                  <Link
+                    href="/dashboard/subscription"
+                    className="shrink-0 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                  >
+                    Продлить PRO · {formatRub(PLAN_PRICING.PRO.monthlyRub)}/мес
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {!isPro && !micrositeFrozen && (
               <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
-                {micrositeFrozen ? (
-                  <>
-                    Платный доступ закончился. Микросайт остался открытым для гостей — напечатанные
-                    QR работают, но состав его разделов заморожен. Оформление, меню, визитку, Wi‑Fi
-                    и сценарии отзывов можно править как обычно. Чтобы снова менять микросайт,{" "}
-                    <Link href="/dashboard/subscription" className="font-medium underline">
-                      подключите PRO
-                    </Link>
-                    .
-                  </>
-                ) : hasGrandfatheredLanding ? (
+                {hasGrandfatheredLanding ? (
                   <>
                     Контент этой страницы относится к сохранённому микросайту — гости по старым QR
                     его по-прежнему увидят. Новые QR «Микросайт» доступны на{" "}
@@ -1380,7 +1419,9 @@ function MyPageDashboardContent() {
                 <div className="flex items-center gap-2">
                   <Palette className="w-5 h-5 text-gray-500" />
                   <h3 className="font-semibold text-gray-900">Оформление</h3>
-                  <span className="text-xs text-gray-400">логотип, обложка, цвет, тема</span>
+                  <span className="text-xs text-gray-400">
+                    {micrositeFrozen ? "логотип, обложка, цвет — состав страницы заморожен" : "логотип, обложка, цвет, тема"}
+                  </span>
                 </div>
                 <ChevronRight
                   className={`w-5 h-5 text-gray-400 transition-transform ${appearanceOpen ? "rotate-90" : ""}`}
@@ -1410,10 +1451,13 @@ function MyPageDashboardContent() {
                   onBlur={() => saveLandingSubtitle(landingSubtitle)}
                   placeholder={DEFAULT_LANDING_SUBTITLE}
                   maxLength={120}
-                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                  disabled={micrositeFrozen}
+                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Текст под названием заведения. Пустое поле — стандартная фраза «{DEFAULT_LANDING_SUBTITLE}».
+                  {micrositeFrozen
+                    ? "Подзаголовок — часть микросайта, его можно сменить после продления PRO."
+                    : `Текст под названием заведения. Пустое поле — стандартная фраза «${DEFAULT_LANDING_SUBTITLE}».`}
                 </p>
               </div>
 
@@ -1430,14 +1474,20 @@ function MyPageDashboardContent() {
                     onBlur={() => saveShortSlug(shortSlug)}
                     placeholder="my-cafe"
                     maxLength={32}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                    disabled={micrositeFrozen}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-500"
                   />
                   {shortSlugSaving && <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />}
                 </div>
                 {shortSlugError && (
                   <p className="text-xs text-red-500 mt-1">{shortSlugError}</p>
                 )}
-                {shortSlug && !shortSlugError && (
+                {micrositeFrozen && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Короткий адрес заморожен вместе с микросайтом. Логотип, обложку и цвет ниже можно менять.
+                  </p>
+                )}
+                {shortSlug && !shortSlugError && !micrositeFrozen && (
                   <p className="text-xs text-gray-500 mt-1">
                     Страница доступна по адресу:{" "}
                     <a
@@ -1451,7 +1501,7 @@ function MyPageDashboardContent() {
                     . Используйте её как мобильный сайт заведения — ссылку можно добавить в соцсетях, мессенджерах, объявлениях и где угодно.
                   </p>
                 )}
-                {!shortSlug && (
+                {!shortSlug && !micrositeFrozen && (
                   <p className="text-xs text-gray-500 mt-1">
                     Необязательно. Задайте короткий адрес — латинские буквы, цифры, дефис или подчёркивание. Его можно публиковать как мобильный сайт заведения — в соцсетях, мессенджерах, объявлениях и где угодно.
                   </p>
@@ -1678,6 +1728,12 @@ function MyPageDashboardContent() {
                       Блоки на микро-лендинге
                     </h3>
                     <div className="relative" ref={addMenuRef}>
+                      {micrositeFrozen ? (
+                        <span className="inline-flex items-center gap-1.5 text-xs text-gray-500 px-2.5 py-1.5 rounded-lg bg-gray-50 border border-gray-200">
+                          <Lock className="w-3.5 h-3.5" />
+                          Состав заморожен
+                        </span>
+                      ) : (
                       <Button
                         variant="primary"
                         size="sm"
@@ -1686,7 +1742,8 @@ function MyPageDashboardContent() {
                         <Plus className="w-4 h-4 mr-1" />
                         Добавить блок
                       </Button>
-                      {addMenuOpen && (
+                      )}
+                      {!micrositeFrozen && addMenuOpen && (
                         <div className="absolute right-0 top-full mt-1 z-30 bg-white border border-gray-200 rounded-lg shadow-lg w-[280px] py-1">
                           <button
                             type="button"
@@ -1764,9 +1821,31 @@ function MyPageDashboardContent() {
                     </div>
                   </div>
                   <p className="text-sm text-gray-500 mb-4">
-                    Перемещайте, включайте и отключайте блоки. Гость увидит только
-                    включённые.
+                    {micrositeFrozen
+                      ? "Откройте раздел, чтобы править содержимое. Включить, выключить или переставить блоки можно после продления PRO."
+                      : "Перемещайте, включайте и отключайте блоки. Гость увидит только включённые."}
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setActiveEditor(null)}
+                    className={`w-full flex items-center gap-2 p-2 mb-2 rounded-lg border text-left transition-colors ${
+                      activeEditor === null
+                        ? "border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-200"
+                        : "border-gray-200 hover:bg-gray-50"
+                    }`}
+                  >
+                    <div className="w-7 h-7 rounded flex items-center justify-center shrink-0 bg-indigo-100 text-indigo-600">
+                      <Home className="w-3.5 h-3.5" />
+                    </div>
+                    <span
+                      className={`flex-1 text-sm font-medium truncate ${
+                        activeEditor === null ? "text-indigo-700" : "text-gray-800"
+                      }`}
+                    >
+                      Главная
+                    </span>
+                    <span className="text-xs text-gray-400 shrink-0">список разделов</span>
+                  </button>
                   <div className="space-y-1">
                     {landingOrder.map((key, idx) => {
                       const isCustom = !!customModuleKeyToId(key);
@@ -1816,12 +1895,17 @@ function MyPageDashboardContent() {
                       return (
                         <div
                           key={key}
-                          draggable
+                          draggable={!micrositeFrozen}
                           onDragStart={(e) => {
+                            if (micrositeFrozen) {
+                              e.preventDefault();
+                              return;
+                            }
                             setDragIndex(idx);
                             e.dataTransfer.effectAllowed = "move";
                           }}
                           onDragOver={(e) => {
+                            if (micrositeFrozen) return;
                             e.preventDefault();
                             e.dataTransfer.dropEffect = "move";
                             if (dragOverIndex !== idx) setDragOverIndex(idx);
@@ -1831,6 +1915,7 @@ function MyPageDashboardContent() {
                           }}
                           onDrop={(e) => {
                             e.preventDefault();
+                            if (micrositeFrozen) return;
                             if (dragIndex !== null) reorderModule(dragIndex, idx);
                             setDragIndex(null);
                             setDragOverIndex(null);
@@ -1847,6 +1932,7 @@ function MyPageDashboardContent() {
                                 : "border-gray-200 bg-gray-50"
                           } ${isDragging ? "opacity-40" : ""} ${isDragOver ? "border-indigo-500 border-dashed" : ""}`}
                         >
+                          {!micrositeFrozen && (
                           <div className="flex flex-col gap-0.5 shrink-0">
                             <button
                               type="button"
@@ -1865,11 +1951,16 @@ function MyPageDashboardContent() {
                               <ChevronDown className="w-3.5 h-3.5" />
                             </button>
                           </div>
+                          )}
 
-                          <GripVertical className="w-4 h-4 text-gray-400 shrink-0 cursor-grab active:cursor-grabbing" />
+                          {micrositeFrozen ? (
+                            <Lock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                          ) : (
+                            <GripVertical className="w-4 h-4 text-gray-400 shrink-0 cursor-grab active:cursor-grabbing" />
+                          )}
 
                           <div className={`w-7 h-7 rounded flex items-center justify-center shrink-0 ${iconBg}`}>
-                            {isBuiltinModuleKey(key) ? (
+                            {isBuiltinModuleKey(key) && !micrositeFrozen ? (
                               <EmojiPicker
                                 value={moduleIcons[key] ?? null}
                                 onChange={(e) => {
@@ -1917,7 +2008,7 @@ function MyPageDashboardContent() {
                             </button>
                           )}
 
-                          {isBuiltinModuleKey(key) && editingLabel !== key && (
+                          {isBuiltinModuleKey(key) && editingLabel !== key && !micrositeFrozen && (
                             <button
                               type="button"
                               onClick={() => startEditLabel(key)}
@@ -1952,7 +2043,7 @@ function MyPageDashboardContent() {
                             />
                           </div>
 
-                          {(isCustom || isTyped) && (
+                          {(isCustom || isTyped) && !micrositeFrozen && (
                             <button
                               type="button"
                               onClick={() => {
@@ -1976,7 +2067,7 @@ function MyPageDashboardContent() {
                 </Card>
 
                 <Card>
-                  {activeEditor && (
+                  {activeEditor ? (
                     <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
                       <Pencil className="w-3.5 h-3.5" />
                       <span>Редактирование:</span>
@@ -1985,6 +2076,18 @@ function MyPageDashboardContent() {
                           ? "Новая страница"
                           : getModuleLabel(activeEditor as string)}
                       </span>
+                    </div>
+                  ) : (
+                    <div className="flex items-start gap-3 text-sm text-gray-500">
+                      <Home className="w-4 h-4 mt-0.5 text-gray-400 shrink-0" />
+                      <div>
+                        <p className="font-medium text-gray-800">Главная</p>
+                        <p className="mt-1">
+                          {micrositeFrozen
+                            ? "Экран со списком разделов — его гость видит сразу после сканирования. Набор плиток сейчас заморожен: откройте блок слева, чтобы обновить содержимое, или продлите PRO, чтобы снова собирать страницу."
+                            : "Экран со списком разделов — его гость видит сразу после сканирования. Состав, порядок, названия и иконки плиток настраиваются в списке выше, логотип, обложка и цвета — в блоке «Оформление». Выберите блок в списке, чтобы отредактировать его содержимое."}
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -2073,7 +2176,7 @@ function MyPageDashboardContent() {
                       onSave={(data) => handleSaveForm(activeForm.id, data)}
                     />
                   )}
-                  {(activeEditor === "custom-new" || activeCustomPage) && !activeExtraMenu && !activeExtraBusinessCard && !activeExtraWifi && !activeForm && (
+                  {((activeEditor === "custom-new" && !micrositeFrozen) || activeCustomPage) && !activeExtraMenu && !activeExtraBusinessCard && !activeExtraWifi && !activeForm && (
                     <CustomPageEditor
                       key={activeEditor === "custom-new" ? "new" : activeCustomPage?.id}
                       initialData={activeCustomPage}
@@ -2112,6 +2215,7 @@ function MyPageDashboardContent() {
                        establishmentId={establishmentId}
                        qrCodeId="preview"
                        syncSection={previewSection}
+                       showEmptySectionPlaceholder
                        pageModules={pageModules}
                        moduleOrder={effectiveOrder}
                         moduleLabels={moduleLabels}
@@ -2255,6 +2359,7 @@ function MyPageHeader({
   onChangeEstablishment,
   shortSlug,
   lockProject = false,
+  micrositeFrozen = false,
 }: {
   autoSaveState: "idle" | "saving" | "saved";
   establishments: EstablishmentOption[];
@@ -2262,6 +2367,7 @@ function MyPageHeader({
   onChangeEstablishment: (id: string) => void;
   shortSlug: string;
   lockProject?: boolean;
+  micrositeFrozen?: boolean;
 }) {
   const current = establishments.find((e) => e.id === establishmentId);
   return (
@@ -2270,6 +2376,12 @@ function MyPageHeader({
         <div className="flex items-center gap-2 mb-1 flex-wrap">
           <Layout className="w-6 h-6 text-indigo-600" />
           <h1 className="text-2xl font-bold text-gray-900">Микросайт</h1>
+          {micrositeFrozen && (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+              <Lock className="w-3 h-3" />
+              Заморожен
+            </span>
+          )}
           {shortSlug && (
             <a
               href={`/a/${shortSlug}`}
@@ -2295,8 +2407,9 @@ function MyPageHeader({
           )}
         </div>
         <p className="text-gray-500">
-          Мобильная страница из блоков: визитка, ссылки, меню, Wi-Fi, отзывы и чаевые.
-          Настройте один раз — используйте в QR-кодах проекта.
+          {micrositeFrozen
+            ? "Страница по QR открыта для гостей. Состав разделов заморожен — содержимое блоков и брендинг можно править."
+            : "Мобильная страница из блоков: визитка, ссылки, меню, Wi-Fi, отзывы и чаевые. Настройте один раз — используйте в QR-кодах проекта."}
         </p>
       </div>
       <div className="min-h-[24px] flex items-center text-xs">

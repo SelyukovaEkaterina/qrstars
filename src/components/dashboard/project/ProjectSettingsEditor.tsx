@@ -15,6 +15,11 @@ import EstablishmentTeamAccess from "@/components/dashboard/EstablishmentTeamAcc
 import YandexMapsOrgConfirm from "@/components/dashboard/YandexMapsOrgConfirm";
 import { parseWorkingHours, type WorkingHours } from "@/lib/working-hours";
 import {
+  LEGAL_REQUISITES_HINT,
+  LEGAL_REQUISITES_INCOMPLETE,
+  LEGAL_REQUISITES_READY,
+} from "@/lib/pd-consent";
+import {
   INDUSTRY_OPTIONS,
   type EstablishmentIndustry,
 } from "@/lib/establishment-industry";
@@ -212,26 +217,26 @@ export default function EstablishmentSettingsPage() {
           <Card>
             <h3 className="font-semibold text-gray-900 mb-1">Реквизиты для политики персональных данных</h3>
             <p className="text-sm text-gray-500 mb-4">
-              Необходимо для форм, собирающих телефон или email гостей. Пока не заполнено — такие поля не будут показываться гостям.
+              {LEGAL_REQUISITES_HINT}
             </p>
             <div className="space-y-4">
               <Input
-                label="Юридическое наименование *"
+                label="Юридическое наименование"
                 value={data.legalName || ""}
                 onChange={(e) => updateField("legalName", e.target.value)}
                 placeholder="ИП Иванов Иван Иванович / ООО «Название»"
               />
               <Input
-                label="ИНН *"
+                label="ИНН"
                 value={data.inn || ""}
                 onChange={(e) => updateField("inn", e.target.value)}
                 placeholder="123456789012"
               />
             </div>
             {(data.legalName && data.inn) ? (
-              <p className="mt-3 text-xs text-green-600">✓ Политика ПД активна — формы с телефоном/email доступны гостям.</p>
+              <p className="mt-3 text-xs text-green-600">✓ {LEGAL_REQUISITES_READY}</p>
             ) : (
-              <p className="mt-3 text-xs text-amber-600">⚠ Заполните оба поля, чтобы разблокировать формы с телефоном и email.</p>
+              <p className="mt-3 text-xs text-amber-600">⚠ {LEGAL_REQUISITES_INCOMPLETE}</p>
             )}
           </Card>
 

@@ -517,6 +517,11 @@ model MessengerContact {
   provider   MessengerProvider
   externalId String
   label      String?
+  lastEmailStatus    String?
+  lastEmailAt        DateTime?
+  lastEmailError     String?
+  lastEmailKind      String?
+  lastEmailMessageId String?
   createdAt  DateTime           @default(now())
   updatedAt  DateTime           @updatedAt
 

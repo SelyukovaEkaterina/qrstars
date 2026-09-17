@@ -1,8 +1,6 @@
 import QRCodeLib from "qrcode";
 import { toSameOriginStorageUrl } from "@/lib/utils";
 
-const DEFAULT_WATERMARK = "qrstars.ru";
-
 function loadImage(src: string): Promise<HTMLImageElement> {
   const canvasSrc = toSameOriginStorageUrl(src);
   return new Promise((resolve, reject) => {
@@ -43,8 +41,6 @@ export interface QRCenterOptions {
   centerText?: string | null;
   centerLogoUrl?: string | null;
   isPro: boolean;
-  /** No center overlay on FREE (default shows qrstars.ru watermark). */
-  skipWatermark?: boolean;
 }
 
 export async function generateQRWithCenter(
@@ -81,8 +77,6 @@ export async function generateQRWithCenter(
     } else if (options.centerText) {
       overlayText = options.centerText;
     }
-  } else if (!options.skipWatermark) {
-    overlayText = DEFAULT_WATERMARK;
   }
 
   if (overlayLogoUrl) {
@@ -115,15 +109,12 @@ export async function generateQRWithCenter(
     } catch {
       if (options.isPro) {
         overlayText = options.centerText || null;
-      } else {
-        overlayText = overlayText || DEFAULT_WATERMARK;
       }
     }
   }
 
   if (overlayText) {
-    const isWatermark = overlayText === DEFAULT_WATERMARK;
-    const maxFontSize = isWatermark ? size * 0.045 : centerSize * 0.32;
+    const maxFontSize = centerSize * 0.32;
 
     let fontSize = maxFontSize;
     ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
@@ -132,12 +123,9 @@ export async function generateQRWithCenter(
       ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
     }
 
-    const textW = ctx.measureText(overlayText).width;
-    const padX = isWatermark ? fontSize * 0.7 : centerSize * 0.12;
-    const padY = isWatermark ? fontSize * 0.45 : centerSize * 0.1;
-    const boxW = isWatermark ? textW + padX * 2 : centerSize;
-    const boxH = isWatermark ? fontSize + padY * 2 : centerSize;
-    const boxR = clampRadius(boxW, boxH, isWatermark ? boxH / 2 : r);
+    const boxW = centerSize;
+    const boxH = centerSize;
+    const boxR = clampRadius(boxW, boxH, r);
 
     ctx.fillStyle = "#ffffff";
     drawRoundRect(ctx, cx - boxW / 2, cy - boxH / 2, boxW, boxH, boxR);
@@ -196,8 +184,6 @@ export async function generateQRSvg(
     } else if (options.centerText) {
       overlayText = options.centerText;
     }
-  } else if (!options.skipWatermark) {
-    overlayText = DEFAULT_WATERMARK;
   }
 
   const overlayParts: string[] = [];
@@ -214,25 +200,19 @@ export async function generateQRSvg(
     } catch {
       if (options.isPro) {
         overlayText = options.centerText || null;
-      } else {
-        overlayText = overlayText || DEFAULT_WATERMARK;
       }
     }
   }
 
   if (overlayText) {
-    const isWatermark = overlayText === DEFAULT_WATERMARK;
-    const fontSize = isWatermark ? size * 0.045 : centerSize * 0.32;
+    const fontSize = centerSize * 0.32;
     const escaped = overlayText
       .replace(/&/g, "&amp;")
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;");
-    const approxW = overlayText.length * fontSize * 0.58;
-    const padX = isWatermark ? fontSize * 0.7 : centerSize * 0.12;
-    const padY = isWatermark ? fontSize * 0.45 : centerSize * 0.1;
-    const boxW = isWatermark ? approxW + padX * 2 : centerSize;
-    const boxH = isWatermark ? fontSize + padY * 2 : centerSize;
-    const boxR = Math.min(boxW / 2, boxH / 2, isWatermark ? boxH / 2 : r);
+    const boxW = centerSize;
+    const boxH = centerSize;
+    const boxR = Math.min(boxW / 2, boxH / 2, r);
     overlayParts.push(svgRoundRect(cx, cy, boxW, boxH, boxR));
     overlayParts.push(
       `<text x="${cx}" y="${cy}" text-anchor="middle" dominant-baseline="central" fill="${darkColor}" font-family="Inter, system-ui, sans-serif" font-weight="bold" font-size="${fontSize}">${escaped}</text>`,

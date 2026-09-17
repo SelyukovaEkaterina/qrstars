@@ -414,6 +414,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     promoCode,
   };
 
+  // ready — опубликована политика заведения с ИНН; контактные поля гостя от этого не зависят
   const pdConsent = {
     ready: !!(est.legalName && est.inn),
     policyUrl: `/privacy/${est.id}`,

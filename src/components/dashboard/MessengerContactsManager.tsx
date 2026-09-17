@@ -28,6 +28,29 @@ export interface MessengerContactItem {
   externalId: string;
   label: string | null;
   createdAt: string;
+  lastEmailStatus?: string | null;
+  lastEmailAt?: string | null;
+  lastEmailError?: string | null;
+  lastEmailKind?: string | null;
+}
+
+function formatLastEmailStatus(contact: MessengerContactItem): string {
+  if (!contact.lastEmailAt || !contact.lastEmailStatus) {
+    return "Ещё не отправляли";
+  }
+  const when = new Date(contact.lastEmailAt).toLocaleString("ru-RU", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  if (contact.lastEmailStatus === "failed") {
+    return `Ошибка отправки ${when}${contact.lastEmailError ? `: ${contact.lastEmailError}` : ""}`;
+  }
+  if (contact.lastEmailStatus === "bounced") {
+    return `Не доставлено ${when}${contact.lastEmailError ? `: ${contact.lastEmailError}` : ""}`;
+  }
+  return `Отправлено ${when} (принято SMTP)`;
 }
 
 interface NotificationPrefs {
@@ -276,9 +299,12 @@ export default function MessengerContactsManager({
       const data = await res.json();
       setEmailTestStatus(
         res.ok
-          ? "Тестовое письмо отправлено. Проверьте входящие и папку «Спам»."
+          ? "Письмо принято почтовым сервером. Проверьте входящие (обычно до 2 минут) и папку «Спам»."
           : data.error || "Не удалось отправить тестовое письмо"
       );
+      if (res.ok || res.status === 502) {
+        await fetchContacts();
+      }
     } catch {
       setEmailTestStatus("Ошибка соединения");
     } finally {
@@ -389,6 +415,18 @@ export default function MessengerContactsManager({
                         <p className="text-xs text-gray-500">
                           {messengerProviderLabel(channel.provider)} · подключён
                         </p>
+                        {channel.provider === "EMAIL" && (
+                          <p
+                            className={`text-xs mt-1 ${
+                              connected.lastEmailStatus === "failed" ||
+                              connected.lastEmailStatus === "bounced"
+                                ? "text-red-600"
+                                : "text-gray-500"
+                            }`}
+                          >
+                            {formatLastEmailStatus(connected)}
+                          </p>
+                        )}
                       </div>
                     ) : isLinking ? (
                       <div className="flex items-center gap-2 text-indigo-600">
@@ -498,7 +536,7 @@ export default function MessengerContactsManager({
       {emailTestStatus && (
         <p
           className={`mt-2 text-xs ${
-            emailTestStatus.startsWith("Тестовое") ? "text-green-700" : "text-red-600"
+            emailTestStatus.startsWith("Письмо принято") ? "text-green-700" : "text-red-600"
           }`}
         >
           {emailTestStatus}

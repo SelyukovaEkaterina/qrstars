@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { sessionUserId } from "@/lib/session-user";
 import { requireEstablishmentAccess } from "@/lib/establishment-access";
 import { isReviewCapableQrMode } from "@/lib/qr-routing";
+import { pluralize } from "@/lib/utils";
 import {
   UNASSIGNED_PROJECT_ID,
   isUnassignedProjectId,
@@ -168,7 +169,8 @@ export default async function ProjectHomePage({
                   <div>
                     <p className="text-2xl font-bold text-gray-900">{avgRating}</p>
                     <p className="text-sm text-gray-500">
-                      Средняя оценка · {establishment._count.reviews}
+                      Средняя оценка · {establishment._count.reviews}{" "}
+                      {pluralize(establishment._count.reviews, "отзыв", "отзыва", "отзывов")}
                     </p>
                   </div>
                 </div>

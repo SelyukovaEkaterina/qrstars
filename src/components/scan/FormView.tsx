@@ -11,7 +11,7 @@ import {
 } from "@/lib/brand-theme-ui";
 import type { FormFieldType } from "@/lib/form-config";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
-import type { PdConsent } from "@/components/scan/ScanFlow";
+import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
 
 export interface FormViewField {
   id: string;
@@ -53,10 +53,13 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
 
-  const sensitiveAllowed = isDemo || !pdConsent || pdConsent.ready;
-  const hasSensitiveFields =
-    sensitiveAllowed && form.fields.some((f) => f.type === "phone" || f.type === "email");
-  const needsConsent = !isDemo && !!pdConsent?.ready && hasSensitiveFields;
+  const sensitiveFilled = form.fields.some((f) => {
+    if (f.type !== "phone" && f.type !== "email") return false;
+    const v = values[f.id];
+    return typeof v === "string" ? v.trim() !== "" : Boolean(v);
+  });
+  const needsConsent = !isDemo && sensitiveFilled;
+  const policyUrl = guestPdPolicyUrl(pdConsent);
 
   const setVal = (id: string, v: unknown) => setValues((prev) => ({ ...prev, [id]: v }));
 
@@ -65,8 +68,6 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
     setError("");
 
     for (const f of form.fields) {
-      const isSensitive = f.type === "phone" || f.type === "email";
-      if (isSensitive && !sensitiveAllowed) continue;
       if (f.required) {
         const v = values[f.id];
         if (v === undefined || v === null || v === "" || v === false) {
@@ -139,28 +140,22 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-3 bg-white rounded-2xl p-4 shadow-sm">
-        {form.fields.map((f) => {
-          const isSensitive = f.type === "phone" || f.type === "email";
-          if (isSensitive && !sensitiveAllowed) {
-            return null;
-          }
-          return (
-            <div key={f.id}>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {f.label}
-                {f.required && <span className="text-red-500"> *</span>}
-              </label>
-              {f.helpText && <p className="text-xs text-gray-500 mb-1">{f.helpText}</p>}
-              {renderInput(f, values[f.id], (v) => setVal(f.id, v))}
-            </div>
-          );
-        })}
+        {form.fields.map((f) => (
+          <div key={f.id}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {f.label}
+              {f.required && <span className="text-red-500"> *</span>}
+            </label>
+            {f.helpText && <p className="text-xs text-gray-500 mb-1">{f.helpText}</p>}
+            {renderInput(f, values[f.id], (v) => setVal(f.id, v))}
+          </div>
+        ))}
 
         {needsConsent && (
           <ConsentCheckbox
             checked={consentChecked}
             onChange={setConsentChecked}
-            policyUrl={pdConsent!.policyUrl}
+            policyUrl={policyUrl}
           />
         )}
 

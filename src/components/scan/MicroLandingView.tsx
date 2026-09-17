@@ -16,6 +16,7 @@ import {
   Download,
   MapPin,
   Phone,
+  Pencil,
 } from "lucide-react";
 import FileDownloadView from "@/components/scan/FileDownloadView";
 import type { PageModules, ModuleKey, BuiltinModuleKey, ModuleLabels, ModuleIcons, ModuleTypes } from "@/lib/page-modules";
@@ -128,6 +129,8 @@ interface MicroLandingViewProps {
   initialSection?: string;
   /** When set (e.g. dashboard preview), section follows the active editor tab. */
   syncSection?: string;
+  /** В превью кабинета: вместо молчаливого возврата на главную сказать, что раздел пуст. */
+  showEmptySectionPlaceholder?: boolean;
   embedded?: boolean;
   isDemo?: boolean;
   brandColor?: string | null;
@@ -183,6 +186,7 @@ export default function MicroLandingView({
   pdConsent,
   initialSection,
   syncSection,
+  showEmptySectionPlaceholder = false,
   embedded,
   isDemo = false,
   brandColor,
@@ -299,6 +303,20 @@ export default function MicroLandingView({
     else if (info.type === "wifi") hasContent[key] = !!extraWifiMap.get(info.instanceId);
     else if (info.type === "form") hasContent[key] = !!formsMap.get(info.instanceId);
   }
+
+  const getLabel = (key: string): string => {
+    if (isBuiltinModuleKey(key)) return getModuleLabel(key, moduleLabels);
+    const cId = customModuleKeyToId(key);
+    if (cId) return customPageMap.get(cId)?.menuItemLabel ?? "Страница";
+    if (isTypedModuleKey(key, moduleTypes)) {
+      const info = moduleTypes[key];
+      if (info.type === "menu") return extraMenuMap.get(info.instanceId)?.title || "Меню";
+      if (info.type === "businessCard") return extraBcMap.get(info.instanceId)?.fullName || "Визитка";
+      if (info.type === "wifi") return extraWifiMap.get(info.instanceId)?.ssid || "Wi-Fi";
+      if (info.type === "form") return formsMap.get(info.instanceId)?.title || "Форма";
+    }
+    return key;
+  };
 
   const sectionContent: React.ReactNode = (() => {
     if (section !== "home" && !hasContent[section]) return null;
@@ -485,6 +503,29 @@ export default function MicroLandingView({
     );
   }
 
+  if (showEmptySectionPlaceholder && section !== "home") {
+    return (
+      <div
+        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center min-h-[inherit]"
+        style={scanRootStyle(theme, { isBg: !!coverUrl, embedded })}
+      >
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center"
+          style={iconBoxStyle(!!coverUrl)}
+        >
+          <Pencil className="w-5 h-5" />
+        </div>
+        <p className="text-sm font-semibold" style={{ color: headingColor(!!coverUrl) }}>
+          Раздел «{getLabel(section)}» не заполнен
+        </p>
+        <p className="text-xs leading-relaxed" style={{ color: mutedColor(!!coverUrl) }}>
+          Заполните его в редакторе слева — тогда раздел появится здесь и на микросайте.
+          Пока он пуст, гость его не увидит.
+        </p>
+      </div>
+    );
+  }
+
   const enabledModules = resolveEnabledModuleOrder(
     pageModules,
     customPages,
@@ -494,20 +535,6 @@ export default function MicroLandingView({
   );
 
   const visibleModules = enabledModules.filter((key) => hasContent[key]);
-
-  const getLabel = (key: string): string => {
-    if (isBuiltinModuleKey(key)) return getModuleLabel(key, moduleLabels);
-    const cId = customModuleKeyToId(key);
-    if (cId) return customPageMap.get(cId)?.menuItemLabel ?? "Страница";
-    if (isTypedModuleKey(key, moduleTypes)) {
-      const info = moduleTypes[key];
-      if (info.type === "menu") return extraMenuMap.get(info.instanceId)?.title || "Меню";
-      if (info.type === "businessCard") return extraBcMap.get(info.instanceId)?.fullName || "Визитка";
-      if (info.type === "wifi") return extraWifiMap.get(info.instanceId)?.ssid || "Wi-Fi";
-      if (info.type === "form") return formsMap.get(info.instanceId)?.title || "Форма";
-    }
-    return key;
-  };
 
   const getIcon = (key: string, idx: number) => {
     if (isBuiltinModuleKey(key)) {
@@ -725,14 +752,16 @@ export default function MicroLandingView({
                 href="https://qrstars.ru?utm_source=microsite&utm_medium=watermark"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block rounded-2xl px-4 py-3 text-center transition-opacity hover:opacity-80"
-                style={moduleButtonStyle(isBg)}
+                className="block text-center pt-2 pb-1 transition-opacity hover:opacity-80"
               >
-                <p className="text-sm font-semibold" style={{ color: headingColor(isBg) }}>
-                  Сделано в QrStars.ru
+                <p
+                  className="text-[11px] uppercase tracking-wide"
+                  style={{ color: submutedColor(isBg) }}
+                >
+                  Сделано в QrStars
                 </p>
-                <p className="mt-0.5 text-xs" style={{ color: submutedColor(isBg) }}>
-                  Создайте такой же микросайт для своего бизнеса
+                <p className="mt-0.5 text-xs font-medium" style={{ color: mutedColor(isBg) }}>
+                  Свой микросайт для бизнеса →
                 </p>
               </a>
             ) : (

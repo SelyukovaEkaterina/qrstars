@@ -14,7 +14,7 @@ import {
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
-import type { PdConsent } from "@/components/scan/ScanFlow";
+import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
 
 interface SocialLink {
   type: string;
@@ -98,6 +98,7 @@ export default function BusinessCardView({
   const [contactSuccess, setContactSuccess] = useState(false);
 
   const needsConsent = !!pdConsent?.ready;
+  const policyUrl = guestPdPolicyUrl(pdConsent);
 
   const initials = card.fullName
     .split(" ")
@@ -364,7 +365,7 @@ export default function BusinessCardView({
                     <ConsentCheckbox
                       checked={consentChecked}
                       onChange={setConsentChecked}
-                      policyUrl={pdConsent!.policyUrl}
+                      policyUrl={policyUrl}
                       isBg={isBg}
                       dark={dark}
                     />

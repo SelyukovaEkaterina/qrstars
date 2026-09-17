@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { sendMail } from "@/lib/mailer";
+import { recordEmailDelivery, waitForSmtpBounce } from "@/lib/email-delivery";
 import { sendMaxMessage } from "@/lib/max";
 import prisma from "@/lib/prisma";
 import { getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
@@ -302,10 +303,24 @@ export async function POST(request: Request) {
           <p>Email-уведомления настроены правильно для заведения <strong>${safeName}</strong>.</p>
           <p>Теперь негативные отзывы будут приходить на этот адрес.</p>
         </div>
-        `
+        `,
+        { kind: "test" }
       );
       if (!sent) {
         return NextResponse.json({ error: "Почтовый сервер не принял письмо" }, { status: 502 });
+      }
+      const bounce = await waitForSmtpBounce(contact.externalId, 8_000);
+      if (bounce) {
+        await recordEmailDelivery({
+          to: contact.externalId,
+          status: "bounced",
+          kind: "test",
+          error: bounce,
+        });
+        return NextResponse.json(
+          { error: `Письмо не доставлено: ${bounce}` },
+          { status: 502 }
+        );
       }
       return NextResponse.json({ ok: true });
     } catch {

@@ -29,6 +29,8 @@ const YandexMapsOrgConfirm = forwardRef<
     placeholder?: string;
     error?: string;
     previewOnBlur?: boolean;
+    projectName?: string;
+    onPreviewReadyChange?: (ready: boolean) => void;
   }
 >(function YandexMapsOrgConfirm(
   {
@@ -41,6 +43,8 @@ const YandexMapsOrgConfirm = forwardRef<
     placeholder,
     error,
     previewOnBlur = true,
+    projectName,
+    onPreviewReadyChange,
   },
   ref
 ) {
@@ -53,6 +57,7 @@ const YandexMapsOrgConfirm = forwardRef<
       if (!trimmed) {
         setFieldError("");
         setPreview({ status: "idle" });
+        onPreviewReadyChange?.(false);
         onConfirmedChange?.(null);
         return false;
       }
@@ -60,10 +65,12 @@ const YandexMapsOrgConfirm = forwardRef<
       if (localErr && localErr !== YANDEX_MAPS_SHORT_UNCONFIRMED_ERROR) {
         setFieldError(localErr);
         setPreview({ status: "idle" });
+        onPreviewReadyChange?.(false);
         return false;
       }
       setFieldError("");
       setPreview({ status: "loading" });
+      onPreviewReadyChange?.(false);
       try {
         const res = await fetch("/api/yandex-maps/preview", {
           method: "POST",
@@ -76,6 +83,7 @@ const YandexMapsOrgConfirm = forwardRef<
             status: "error",
             message: data.error || "Не удалось проверить ссылку",
           });
+          onPreviewReadyChange?.(false);
           onConfirmedChange?.(null);
           return false;
         }
@@ -85,14 +93,16 @@ const YandexMapsOrgConfirm = forwardRef<
           canonicalUrl: data.canonicalUrl,
           confirmed: false,
         });
+        onPreviewReadyChange?.(true);
         return true;
       } catch {
         setPreview({ status: "error", message: "Не удалось проверить ссылку" });
+        onPreviewReadyChange?.(false);
         onConfirmedChange?.(null);
         return false;
       }
     },
-    [onConfirmedChange]
+    [onConfirmedChange, onPreviewReadyChange]
   );
 
   useImperativeHandle(
@@ -133,6 +143,7 @@ const YandexMapsOrgConfirm = forwardRef<
           onChange(e.target.value);
           setPreview({ status: "idle" });
           setFieldError("");
+          onPreviewReadyChange?.(false);
           onConfirmedChange?.(null);
         }}
         onBlur={() => {
@@ -144,15 +155,27 @@ const YandexMapsOrgConfirm = forwardRef<
       )}
       {preview.status === "ready" && (
         <div className="rounded-lg border border-indigo-100 bg-indigo-50 px-3 py-2 text-sm text-indigo-950">
-          <p>
-            Это ваша организация? <strong>{preview.name}</strong>
-          </p>
+          {projectName?.trim() ? (
+            <div className="space-y-1">
+              <p><span className="text-indigo-700">Проект:</span> <strong>{projectName.trim()}</strong></p>
+              <p><span className="text-indigo-700">Яндекс.Карты:</span> <strong>{preview.name}</strong></p>
+              {projectName.trim().toLocaleLowerCase("ru") !== preview.name.trim().toLocaleLowerCase("ru") && (
+                <p className="pt-1 text-xs text-amber-800">
+                  Названия отличаются — проверьте, что это карточка вашего заведения.
+                </p>
+              )}
+            </div>
+          ) : (
+            <p>
+              Это ваша организация? <strong>{preview.name}</strong>
+            </p>
+          )}
           {preview.confirmed ? (
             <p className="mt-1 text-xs text-green-700">Карточка подтверждена</p>
           ) : (
             <button
               type="button"
-              className="mt-2 text-xs font-semibold text-indigo-700 hover:text-indigo-900"
+              className="mt-3 inline-flex rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700"
               onClick={confirm}
             >
               Да, это мы

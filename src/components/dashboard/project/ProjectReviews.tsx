@@ -280,7 +280,7 @@ export default function ReviewsPage({ hideHeader = false }: { hideHeader?: boole
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{ratingSummary}</p>
-                  <p className="text-sm text-gray-500">Ср. рейтинг (стр.)</p>
+                  <p className="text-sm text-gray-500">Средний рейтинг на странице</p>
                 </div>
               </div>
             </Card>
@@ -291,7 +291,7 @@ export default function ReviewsPage({ hideHeader = false }: { hideHeader?: boole
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-gray-900">{negativeCount}</p>
-                  <p className="text-sm text-gray-500">Жалоб (стр.)</p>
+                  <p className="text-sm text-gray-500">Жалоб на странице</p>
                 </div>
               </div>
             </Card>

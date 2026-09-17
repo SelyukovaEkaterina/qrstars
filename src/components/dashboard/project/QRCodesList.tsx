@@ -587,9 +587,6 @@ function QRCodesPageContent() {
                       <Badge variant={qr.isActive ? "success" : "warning"}>
                         {qr.isActive ? "Активен" : "Неактивен"}
                       </Badge>
-                      <Badge variant={qr.source === "MARKETPLACE" ? "warning" : "info"}>
-                        {qr.source === "MARKETPLACE" ? "Табличка" : "Кабинет"}
-                      </Badge>
                       <Badge variant={qr.mode === "REDIRECT" ? "info" : qr.mode === "BUSINESS_CARD" ? "success" : qr.mode === "WIFI" || qr.mode === "FILE" ? "warning" : "default"}>
                         {qr.mode === "REDIRECT" ? (
                           <span className="flex items-center gap-1">

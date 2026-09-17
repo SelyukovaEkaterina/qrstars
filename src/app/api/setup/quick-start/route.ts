@@ -250,6 +250,7 @@ export async function POST(request: Request) {
         id: qrcode.id,
         code: qrcode.code,
         mode: qrcode.mode,
+        qrStyleTemplateId: null,
       },
     });
   }
@@ -344,6 +345,7 @@ export async function POST(request: Request) {
         id: qrcode.id,
         code: qrcode.code,
         mode: qrcode.mode,
+        qrStyleTemplateId,
       },
     });
   }
@@ -410,6 +412,7 @@ export async function POST(request: Request) {
       id: qrcode.id,
       code: qrcode.code,
       mode: qrcode.mode,
+      qrStyleTemplateId,
     },
   });
 }

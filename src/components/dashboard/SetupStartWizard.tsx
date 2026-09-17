@@ -7,7 +7,11 @@ import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
-import { generateQRWithCenter } from "@/lib/qr-generator";
+import { qrPreviewDataUrl } from "@/lib/qr-preview";
+import {
+  isBuiltInQrStyleTemplateId,
+  qrStylePresetTemplateId,
+} from "@/lib/qr-code-templates";
 import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
 import { scanUrlForCode, quotedEstablishmentName } from "@/lib/utils";
 import { trackEvent } from "@/lib/track-event";
@@ -32,10 +36,16 @@ import {
 } from "@/components/dashboard/StickerDesigner";
 import {
   inferIndustryFromUtm,
+  industryQrStylePreset,
   isHorecaIndustry,
   parseEstablishmentIndustry,
   type EstablishmentIndustry,
 } from "@/lib/establishment-industry";
+import {
+  LEGAL_REQUISITES_HINT,
+  LEGAL_REQUISITES_INCOMPLETE,
+  LEGAL_REQUISITES_READY,
+} from "@/lib/pd-consent";
 import { SETUP_GUIDE_DISMISS_KEY } from "@/lib/setup-wizard-path";
 import {
   projectHomePath,
@@ -68,6 +78,7 @@ import {
   Palette,
   UtensilsCrossed,
   Crown,
+  Copy,
   type LucideIcon,
 } from "lucide-react";
 
@@ -84,13 +95,6 @@ const ONBOARDING_TEMPLATES = BUILTIN_STICKER_TEMPLATES.map((preset) => ({
     ...preset.stickerConfig,
   } as StickerConfig,
 }));
-
-function qrPreviewOptions(intent: SetupIntent | null): { isPro: boolean; skipWatermark?: boolean } {
-  return {
-    isPro: false,
-    skipWatermark: intent === "reviews",
-  };
-}
 
 function StickerOnboardingPreview({
   cfg,
@@ -384,10 +388,12 @@ export default function SetupStartWizard({
   const [error, setError] = useState("");
   const [yandexUrlFieldError, setYandexUrlFieldError] = useState("");
   const [yandexConfirmedUrl, setYandexConfirmedUrl] = useState<string | null>(null);
+  const [yandexPreviewReady, setYandexPreviewReady] = useState(false);
   const yandexCheckRef = useRef<YandexMapsOrgConfirmHandle>(null);
   const creatingRef = useRef(false);
   const [qrImageUrl, setQrImageUrl] = useState("");
   const [guestPreviewOpened, setGuestPreviewOpened] = useState(false);
+  const [scanUrlCopied, setScanUrlCopied] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -400,7 +406,7 @@ export default function SetupStartWizard({
 
   const [result, setResult] = useState<{
     establishment?: { id: string; name: string };
-    qrcode: { id: string; code: string };
+    qrcode: { id: string; code: string; qrStyleTemplateId?: string | null };
     intent: SetupIntent;
   } | null>(null);
 
@@ -411,6 +417,10 @@ export default function SetupStartWizard({
     intentViewedSent.current = true;
     trackEvent("setup.intent_viewed");
   }, []);
+
+  useEffect(() => {
+    if (step !== "form") setYandexPreviewReady(false);
+  }, [step]);
 
   const selectedEstablishment = selectedEstablishmentId
     ? existingEstablishments.find((e) => e.id === selectedEstablishmentId) ?? null
@@ -479,16 +489,23 @@ export default function SetupStartWizard({
             intent === "redirect"
               ? undefined
               : { id: "demo", name: form.name.trim() || "Демо-заведение" },
-          qrcode: { id: "demo", code: demoCode },
+          qrcode: {
+            id: "demo",
+            code: demoCode,
+            qrStyleTemplateId:
+              intent === "redirect"
+                ? null
+                : qrStylePresetTemplateId(industryQrStylePreset(industry)),
+          },
           intent,
         };
         setResult(mockResult);
         trackEvent("setup.completed", { intent, rerun: true });
-        const img = await generateQRWithCenter(
-          scanUrlForCode(demoCode),
-          qrPreviewOptions(intent),
-          320,
-        );
+        const img = await qrPreviewDataUrl(scanUrlForCode(demoCode), {
+          qrStyleTemplateId: mockResult.qrcode.qrStyleTemplateId,
+          isPro: false,
+          size: 320,
+        });
         setQrImageUrl(img);
         setStep("success");
         return;
@@ -528,11 +545,11 @@ export default function SetupStartWizard({
         qrCodeId: data.qrcode.id,
         establishmentId: data.establishment?.id,
       });
-      const img = await generateQRWithCenter(
-        scanUrlForCode(data.qrcode.code),
-        qrPreviewOptions(intent),
-        320,
-      );
+      const img = await qrPreviewDataUrl(scanUrlForCode(data.qrcode.code), {
+        qrStyleTemplateId: data.qrcode.qrStyleTemplateId,
+        isPro: false,
+        size: 320,
+      });
       setQrImageUrl(img);
       setStep("success");
     } catch {
@@ -579,11 +596,11 @@ export default function SetupStartWizard({
         qrCodeId: data.qrcode.id,
         establishmentId: data.establishment?.id,
       });
-      const img = await generateQRWithCenter(
-        scanUrlForCode(data.qrcode.code),
-        qrPreviewOptions(value),
-        320,
-      );
+      const img = await qrPreviewDataUrl(scanUrlForCode(data.qrcode.code), {
+        qrStyleTemplateId: data.qrcode.qrStyleTemplateId,
+        isPro: false,
+        size: 320,
+      });
       setQrImageUrl(img);
       setStep("success");
     } catch {
@@ -696,6 +713,7 @@ export default function SetupStartWizard({
       transparentBackground: !!opts?.transparentBackground,
     });
     await downloadQrCode(format, scanUrlForCode(result.qrcode.code), `qr-${result.qrcode.code}`, {
+      qrStyleTemplateId: result.qrcode.qrStyleTemplateId,
       isPro: false,
       size: QR_EXPORT_SIZE,
       transparentBackground: opts?.transparentBackground,
@@ -964,11 +982,11 @@ export default function SetupStartWizard({
             </div>
 
             <div className="space-y-4 text-center">
-                <div className="text-center text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
-                  {isReviews
-                    ? "Скачайте PNG или SVG и передайте дизайнеру — или распечатайте сами. Менять ссылки можно без перепечатки QR."
-                    : "Скачайте QR-код в высоком разрешении (PNG или SVG) для печати или передачи дизайнеру."}
-                </div>
+                {!isReviews && (
+                  <div className="text-center text-xs text-gray-500 leading-relaxed max-w-sm mx-auto">
+                    Скачайте QR-код в высоком разрешении (PNG или SVG) для печати или передачи дизайнеру.
+                  </div>
+                )}
                 {qrImageUrl && (
                   <img
                     src={qrImageUrl}
@@ -976,7 +994,38 @@ export default function SetupStartWizard({
                     className="max-w-44 max-h-44 w-auto h-auto mx-auto rounded-xl border border-gray-100 shadow-sm object-contain"
                   />
                 )}
-                <p className="font-mono text-xs text-gray-400">{result.qrcode.code}</p>
+                <div className="mx-auto flex max-w-md items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2 text-left">
+                  <span className="min-w-0 flex-1 break-all font-mono text-xs text-gray-600">
+                    {scanUrl}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="shrink-0 bg-white"
+                    onClick={() => {
+                      const copy = async () => {
+                        if (navigator.clipboard) {
+                          await navigator.clipboard.writeText(scanUrl);
+                        } else {
+                          const textarea = document.createElement("textarea");
+                          textarea.value = scanUrl;
+                          textarea.style.position = "fixed";
+                          textarea.style.opacity = "0";
+                          document.body.appendChild(textarea);
+                          textarea.select();
+                          document.execCommand("copy");
+                          document.body.removeChild(textarea);
+                        }
+                        setScanUrlCopied(true);
+                        setTimeout(() => setScanUrlCopied(false), 2000);
+                      };
+                      void copy();
+                    }}
+                  >
+                    {scanUrlCopied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                    {scanUrlCopied ? "Готово" : "Скопировать"}
+                  </Button>
+                </div>
                 <div className="flex flex-wrap justify-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => void downloadQr("png")} disabled={!qrImageUrl}>
                     <Download className="w-4 h-4 mr-1" />
@@ -1003,7 +1052,17 @@ export default function SetupStartWizard({
                       onClick={() =>
                         openDashboardInNewTab(
                           "templates",
-                          `${TEMPLATE_ROUTES.qr}?bindQr=${result.qrcode.id}`,
+                          `${TEMPLATE_ROUTES.qr}?${new URLSearchParams({
+                            bindQr: result.qrcode.id,
+                            ...(result.qrcode.qrStyleTemplateId &&
+                            isBuiltInQrStyleTemplateId(result.qrcode.qrStyleTemplateId)
+                              ? {
+                                  preset: result.qrcode.qrStyleTemplateId.slice(
+                                    "qr-preset-".length,
+                                  ),
+                                }
+                              : {}),
+                          }).toString()}`,
                         )
                       }
                     >
@@ -1583,6 +1642,8 @@ export default function SetupStartWizard({
                   required={false}
                   previewOnBlur={false}
                   error={yandexUrlFieldError}
+                  projectName={selectedEstablishment?.name || form.name}
+                  onPreviewReadyChange={setYandexPreviewReady}
                   onChange={(url) => {
                     setYandexUrlFieldError("");
                     setForm({ ...form, yandexMapsUrl: url });
@@ -1656,9 +1717,7 @@ export default function SetupStartWizard({
                     Реквизиты для политики персональных данных
                   </p>
                   <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    Необязательно. Нужны, чтобы в формах для гостей появились поля телефона и email
-                    (заказ меню, жалобы, обратная связь). Пока не заполнены оба поля — эти поля
-                    гостям не показываются.
+                    {LEGAL_REQUISITES_HINT}
                   </p>
                 </div>
                 <Input
@@ -1675,11 +1734,11 @@ export default function SetupStartWizard({
                 />
                 {form.legalName.trim() && form.inn.trim() ? (
                   <p className="text-xs text-green-600">
-                    ✓ Политика ПД активна — формы с телефоном и email будут доступны гостям.
+                    ✓ {LEGAL_REQUISITES_READY}
                   </p>
                 ) : form.legalName.trim() || form.inn.trim() ? (
                   <p className="text-xs text-amber-600">
-                    ⚠ Заполните оба поля, чтобы разблокировать формы с телефоном и email.
+                    ⚠ {LEGAL_REQUISITES_INCOMPLETE}
                   </p>
                 ) : null}
               </div>
@@ -1701,7 +1760,7 @@ export default function SetupStartWizard({
               <Button
                 type={yandexNeedsCheck ? "button" : "submit"}
                 className="flex-1"
-                disabled={loading}
+                disabled={loading || (yandexNeedsCheck && yandexPreviewReady)}
                 onClick={
                   yandexNeedsCheck
                     ? () => {
@@ -1718,7 +1777,7 @@ export default function SetupStartWizard({
               >
                 {loading ? (
                   "Создаём..."
-                ) : yandexNeedsCheck ? (
+                ) : yandexNeedsCheck && !yandexPreviewReady ? (
                   "Проверить ссылку"
                 ) : (
                   <>

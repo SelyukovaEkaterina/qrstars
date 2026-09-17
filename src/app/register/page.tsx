@@ -138,8 +138,17 @@ function RegisterForm() {
     <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white flex items-center justify-center px-4">
       <form onSubmit={handleSubmit} noValidate className="max-w-sm w-full space-y-5">
         <div className="text-center">
-          <h1 className="text-3xl font-bold text-gray-900">QrStars.ru</h1>
+          <a
+            href="https://qrstars.ru"
+            className="inline-flex"
+            aria-label="Перейти на сайт QrStars"
+          >
+            <img src="/logo.svg" alt="QrStars" className="h-10 w-auto" />
+          </a>
           <p className="text-gray-500 mt-2">{registerSubtitle}</p>
+          <p className="mt-1 text-sm font-medium text-indigo-700">
+            Бесплатно навсегда · банковская карта не нужна
+          </p>
         </div>
 
         {invitePreview && (

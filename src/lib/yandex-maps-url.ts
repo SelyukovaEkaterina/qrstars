@@ -9,7 +9,7 @@ const ORG_PATH_PATTERNS = [/\/maps\/org\//i, /\/org\//i];
 const SHORT_PATH_PATTERN = /\/maps\/-\/[A-Za-z0-9_-]+/i;
 
 export const YANDEX_MAPS_CARD_ERROR =
-  "Вставьте ссылку на карточку заведения, а не на поиск или главную карт";
+  "Вставьте ссылку на карточку заведения, а не на поиск и не на главную страницу Яндекс.Карт";
 
 export const YANDEX_MAPS_INVALID_ERROR = "Некорректная ссылка на Яндекс.Карты";
 

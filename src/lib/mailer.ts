@@ -1,4 +1,10 @@
 import nodemailer from "nodemailer";
+import {
+  htmlToText,
+  recordEmailDelivery,
+  scheduleBounceCheck,
+  type EmailKind,
+} from "@/lib/email-delivery";
 
 const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const smtpSecure =
@@ -14,21 +20,49 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export async function sendMail(to: string, subject: string, html: string) {
+export async function sendMail(
+  to: string,
+  subject: string,
+  html: string,
+  options?: { kind?: EmailKind; text?: string }
+) {
+  const kind = options?.kind ?? "other";
   if (process.env.E2E_TESTING === "true") {
     return true;
   }
+  const from = process.env.SMTP_FROM || "QrStars.ru <noreply@qrstars.ru>";
   try {
     const info = await transporter.sendMail({
-      from: process.env.SMTP_FROM || "QrStars.ru <noreply@qrstars.ru>",
+      from,
       to,
       subject,
       html,
+      text: options?.text || htmlToText(html),
+      replyTo: process.env.SMTP_REPLY_TO || from,
     });
-    console.info("Email sent", { to, subject, messageId: info.messageId });
+    console.info("Email sent", {
+      to,
+      subject,
+      kind,
+      messageId: info.messageId,
+      response: info.response,
+      accepted: info.accepted,
+      rejected: info.rejected,
+    });
+    await recordEmailDelivery({
+      to,
+      status: "accepted",
+      kind,
+      messageId: info.messageId,
+    });
+    if (kind === "complaint" || kind === "welcome") {
+      scheduleBounceCheck(to, kind);
+    }
     return true;
   } catch (error) {
-    console.error("Email send error:", { to, subject, error });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("Email send error:", { to, subject, kind, error });
+    await recordEmailDelivery({ to, status: "failed", kind, error: message });
     return false;
   }
 }
@@ -52,7 +86,8 @@ export function sendWelcomeEmail(to: string, password: string, establishmentName
       </a>
       <p style="color:#666;margin-top:24px;font-size:12px;">Рекомендуем сменить пароль после первого входа.</p>
     </div>
-    `
+    `,
+    { kind: "welcome" }
   );
 }
 
@@ -137,7 +172,7 @@ export function sendNegativeReviewNotification(
   const safeContact = guestContact ? escapeHtml(guestContact) : "";
   return sendMail(
     to,
-    `⚠️ Негативный отзыв — ${establishmentName} (${rating}★)`,
+    `Негативный отзыв — ${establishmentName} (${rating}★)`,
     `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color: #dc2626;">Получен негативный отзыв</h2>
@@ -154,7 +189,8 @@ export function sendNegativeReviewNotification(
         Открыть жалобы в кабинете
       </a>
     </div>
-    `
+    `,
+    { kind: "complaint" }
   );
 }
 

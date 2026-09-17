@@ -34,7 +34,6 @@ import {
   parseCenterTextLines,
   renderQRTemplate,
   downloadQRTemplateAsPNG,
-  downloadQRTemplateAsJPG,
   downloadQRTemplateAsSVG,
   randomizeQRConfig,
   normalizeQRTemplateConfig,
@@ -467,11 +466,21 @@ export default function QRTemplateEditor({
     }
   };
 
-  const handleDownloadJPG = async () => {
+  const handleDownloadTransparentPNG = async () => {
     setBusy(true);
     try {
-      const c = await renderAtSize(QR_EXPORT_SIZE);
-      if (c) downloadQRTemplateAsJPG(c, downloadBaseName);
+      if (!payload) return;
+      const c = document.createElement("canvas");
+      const logoForRender = cfg.centerMode === "text" ? null : logoImage;
+      await renderQRTemplate(
+        c,
+        { ...cfg, bgTransparent: true },
+        payload,
+        QR_EXPORT_SIZE,
+        photoImage,
+        logoForRender,
+      );
+      downloadQRTemplateAsPNG(c, `${downloadBaseName}-transparent`);
     } finally {
       setBusy(false);
     }
@@ -1349,19 +1358,19 @@ export default function QRTemplateEditor({
                 </button>
                 <button
                   type="button"
+                  onClick={handleDownloadTransparentPNG}
+                  disabled={busy || !payload}
+                  className="flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40"
+                >
+                  <Download size={14} /> PNG без фона
+                </button>
+                <button
+                  type="button"
                   onClick={handleDownloadSVG}
                   disabled={busy || !payload}
                   className="flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40"
                 >
                   <Download size={14} /> SVG
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDownloadJPG}
-                  disabled={busy || !payload}
-                  className="flex items-center justify-center gap-1.5 py-2.5 border border-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 disabled:opacity-40"
-                >
-                  <Download size={14} /> JPG
                 </button>
               </div>
             </div>

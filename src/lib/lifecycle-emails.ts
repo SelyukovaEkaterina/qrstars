@@ -99,7 +99,9 @@ export async function sendLifecycleEmail(
   }
 
   const html = render(state);
-  const ok = await sendMail(state.email, subject, html);
+  const ok = await sendMail(state.email, subject, html, {
+    kind: campaignKey === "welcome" ? "welcome" : "lifecycle",
+  });
   if (!ok) {
     console.error(`[lifecycle-email] campaign=${campaignKey} userId=${userId} fail=smtp`);
     return {
