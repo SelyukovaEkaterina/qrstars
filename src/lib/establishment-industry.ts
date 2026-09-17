@@ -18,7 +18,7 @@ export const INDUSTRY_OPTIONS: Array<{
   { value: "AUTO", label: "Авто" },
   { value: "CLINIC", label: "Клиника" },
   { value: "HOTEL", label: "Отель" },
-  { value: "OTHER", label: "Другое" },
+  { value: "OTHER", label: "Спикер / мероприятие / другое" },
 ];
 
 export function parseEstablishmentIndustry(

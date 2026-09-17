@@ -101,10 +101,10 @@ export default function ReviewRoutingEditor({
       <p className="text-sm text-gray-500 mb-4">
         Для каждой оценки — действие и тексты до и после отправки. Ссылки на площадки — в{" "}
         <Link
-          href={`/dashboard/establishments/${establishmentId}`}
+          href={`/dashboard/projects/${establishmentId}/settings`}
           className="text-indigo-600 hover:text-indigo-800"
         >
-          настройках заведения
+          настройках проекта
           {establishmentName ? ` «${establishmentName}»` : ""}
         </Link>
         .

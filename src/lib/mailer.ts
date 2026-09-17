@@ -130,7 +130,7 @@ export function sendNegativeReviewNotification(
   guestContact?: string
 ) {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "https://app.qrstars.ru";
-  const reviewsUrl = `${base.replace(/\/$/, "")}/dashboard/reviews`;
+  const reviewsUrl = `${base.replace(/\/$/, "")}/dashboard`;
   const safeEst = escapeHtml(establishmentName);
   const safeComment = escapeHtml(comment || "Без комментария").replace(/\n/g, "<br>");
   const safeGuest = guestName ? escapeHtml(guestName) : "";

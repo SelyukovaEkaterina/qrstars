@@ -23,8 +23,18 @@ function clearStateCookie(response: NextResponse): NextResponse {
   return response;
 }
 
+// За nginx `request.url` содержит внутренний хост контейнера (localhost:3000),
+// поэтому абсолютные редиректы строим от настроенного домена.
+function appUrl(path: string, request: NextRequest): URL {
+  const base =
+    process.env.NEXTAUTH_URL?.trim() ||
+    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+    request.url;
+  return new URL(path, base.replace(/\/+$/, "") + "/");
+}
+
 function loginError(request: NextRequest, message: string): NextResponse {
-  const url = new URL("/login", request.url);
+  const url = appUrl("/login", request);
   url.searchParams.set("yandex_error", message);
   return clearStateCookie(NextResponse.redirect(url));
 }
@@ -88,7 +98,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const response = NextResponse.redirect(new URL("/dashboard", request.url));
+    const response = NextResponse.redirect(appUrl("/dashboard", request));
     const secure =
       process.env.NEXTAUTH_URL?.startsWith("https://") ??
       process.env.NODE_ENV === "production";

@@ -19,12 +19,22 @@ def _find_user_by_email(admin_session, base_url, email):
     return next((u for u in users if u["email"] == email), None)
 
 
-def reset_user_to_free(admin_session, base_url, email="demo@smartreview.ru"):
+def reset_user_to_free(
+    admin_session, base_url, email="demo@smartreview.ru", reset_paid_history=True
+):
+    """Возвращает пользователя на FREE.
+
+    По умолчанию стирает и историю платного доступа (`firstPaidAccessAt`),
+    иначе микросайт остаётся размороженным для следующих тестов.
+    """
     user = _find_user_by_email(admin_session, base_url, email)
     if user:
+        payload = {"subscriptionPlan": "FREE", "subscriptionStatus": "ACTIVE"}
+        if reset_paid_history:
+            payload["resetProTrial"] = True
         admin_session.patch(
             f"{base_url}/api/admin/users/{user['id']}",
-            json={"subscriptionPlan": "FREE", "subscriptionStatus": "ACTIVE"},
+            json=payload,
         )
 
 

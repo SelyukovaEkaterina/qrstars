@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { markFirstPaidAccess } from "@/lib/subscription-activate";
 
 export async function GET(
   _request: Request,
@@ -39,7 +40,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await request.json();
-  const { role, subscriptionPlan, subscriptionStatus, marketingEmailsEnabled, createdAt, reportsEmailEnabled, reportsTelegramEnabled, reportsMaxEnabled } = body;
+  const { role, subscriptionPlan, subscriptionStatus, marketingEmailsEnabled, createdAt, reportsEmailEnabled, reportsTelegramEnabled, reportsMaxEnabled, proTrialEndsAt, resetProTrial } = body;
 
   const user = await prisma.user.findUnique({ where: { id } });
   if (!user) {
@@ -77,7 +78,31 @@ export async function PATCH(
     await prisma.user.update({ where: { id }, data: userUpdate });
   }
 
+  // Управление пробным PRO для тестов: сдвинуть срок или выдать триал заново.
+  if (process.env.E2E_TESTING === "true") {
+    if (proTrialEndsAt) {
+      const parsed = new Date(proTrialEndsAt);
+      if (!Number.isNaN(parsed.getTime())) {
+        await prisma.subscription.updateMany({
+          where: { userId: id, isTrial: true },
+          data: { currentPeriodEnd: parsed },
+        });
+      }
+    }
+
+    if (resetProTrial) {
+      await prisma.subscription.deleteMany({ where: { userId: id, isTrial: true } });
+      await prisma.user.update({
+        where: { id },
+        data: { proTrialStartedAt: null, firstPaidAccessAt: null },
+      });
+    }
+  }
+
   if (subscriptionPlan) {
+    if (subscriptionPlan === "PRO" || subscriptionPlan === "NETWORK") {
+      await markFirstPaidAccess(id);
+    }
     const existing = await prisma.subscription.findFirst({ where: { userId: id } });
     if (existing) {
       await prisma.subscription.updateMany({

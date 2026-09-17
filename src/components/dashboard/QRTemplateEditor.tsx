@@ -358,7 +358,7 @@ export default function QRTemplateEditor({
 
   const goCreateDynamic = () => {
     onClose();
-    router.push("/dashboard/qrcodes/new");
+    router.push("/dashboard");
   };
 
   const handleRandomize = () => {

@@ -188,7 +188,7 @@ export async function POST(request: Request, context: RouteContext) {
       email,
       inviterName,
       establishment.name,
-      `${baseUrl}/dashboard/establishments`
+      `${baseUrl}/dashboard/projects`
     ).catch((err) => console.error("sendEstablishmentAccessGrantedEmail:", err));
 
     return NextResponse.json(

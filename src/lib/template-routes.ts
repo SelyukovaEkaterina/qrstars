@@ -7,6 +7,24 @@ export function isTableTentTemplateEditorPath(pathname: string): boolean {
 }
 
 export const TEMPLATE_ROUTES = {
-  qr: "/dashboard/templates/qr",
-  tableTents: "/dashboard/templates/table-tents",
+  qr: "/dashboard/settings/templates",
+  tableTents: "/dashboard/settings/templates",
 } as const;
+
+export function templateSettingsPath(
+  searchParams?: Record<string, string | string[] | undefined>,
+  dropKeys: string[] = [],
+): string {
+  if (!searchParams) return TEMPLATE_ROUTES.qr;
+  const qs = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (dropKeys.includes(key) || value == null) continue;
+    if (Array.isArray(value)) {
+      value.forEach((v) => qs.append(key, v));
+    } else {
+      qs.set(key, value);
+    }
+  }
+  const suffix = qs.toString() ? `?${qs.toString()}` : "";
+  return `${TEMPLATE_ROUTES.qr}${suffix}`;
+}

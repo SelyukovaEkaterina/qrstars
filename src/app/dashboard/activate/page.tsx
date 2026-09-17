@@ -169,7 +169,7 @@ export default function DashboardActivatePage() {
                   </div>
                 )}
                 <div className="flex gap-3 justify-center mt-4">
-                  <Button onClick={() => router.push("/dashboard/qrcodes")}>
+                  <Button onClick={() => router.push("/dashboard")}>
                     Перейти к QR-кодам
                   </Button>
                   <Button variant="outline" onClick={() => router.push("/dashboard")}>

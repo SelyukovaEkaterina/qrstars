@@ -31,6 +31,64 @@ export async function sendRenewalNoticeEmail(params: {
   );
 }
 
+export async function sendTrialEndingEmail(params: {
+  to: string;
+  endsAt: Date;
+  daysLeft: number;
+  monthlyAmount: number;
+}) {
+  const dateStr = params.endsAt.toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  return sendMail(
+    params.to,
+    `QrStars: пробный PRO заканчивается ${dateStr}`,
+    `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #111;">Пробный период PRO заканчивается</h2>
+      <p>Осталось <strong>${params.daysLeft} дн.</strong> — до <strong>${dateStr}</strong>.</p>
+      <p>
+        Списаний не будет: после этой даты тариф сам вернётся на FREE. Микросайт останется
+        открытым для гостей, напечатанные QR продолжат работать, но менять разделы и оформление
+        микросайта можно будет только на PRO.
+      </p>
+      <p>Чтобы сохранить PRO — ${formatRub(params.monthlyAmount)}/мес:</p>
+      <p><a href="${SUBSCRIPTION_PAGE_URL}" style="color: #4f46e5;">Подключить PRO</a></p>
+      <p style="color: #666; font-size: 13px;">QrStars.ru · support@qrstars.ru</p>
+    </div>
+    `
+  );
+}
+
+export async function sendTrialEndedEmail(params: {
+  to: string;
+  monthlyAmount: number;
+}) {
+  return sendMail(
+    params.to,
+    "QrStars: пробный период PRO закончился",
+    `
+    <div style="font-family: sans-serif; max-width: 560px; margin: 0 auto; padding: 24px;">
+      <h2 style="color: #111;">Пробный период PRO закончился</h2>
+      <p>
+        Тариф вернулся на FREE, деньги не списывались. Ваш микросайт по-прежнему открывается
+        у гостей — напечатанные QR работают. Меню, визитка, Wi‑Fi и сбор отзывов остаются
+        бесплатными.
+      </p>
+      <p>
+        Чтобы снова менять разделы и оформление микросайта, а также включить умную маршрутизацию
+        отзывов и расширенную аналитику, подключите PRO — ${formatRub(params.monthlyAmount)}/мес.
+      </p>
+      <p><a href="${SUBSCRIPTION_PAGE_URL}" style="color: #4f46e5;">Подключить PRO</a></p>
+      <p style="color: #666; font-size: 13px;">QrStars.ru · support@qrstars.ru</p>
+    </div>
+    `
+  );
+}
+
 export async function sendPriceChangeNoticeEmail(params: {
   to: string;
   previousAmount: number;

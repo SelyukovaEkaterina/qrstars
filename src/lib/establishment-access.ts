@@ -119,6 +119,26 @@ export async function establishmentHasPaidFeatures(establishmentId: string): Pro
   return hasPaidFeatures(sub?.plan);
 }
 
+/**
+ * Доступ к микросайту заведения: платный тариф владельца и был ли платный
+ * доступ раньше (оплата или пробный PRO) — тогда страница остаётся
+ * опубликованной, но её настройки заморожены.
+ */
+export async function establishmentMicrositeAccess(
+  establishmentId: string
+): Promise<{ hasPaidFeatures: boolean; hadPaidAccess: boolean }> {
+  const est = await prisma.establishment.findUnique({
+    where: { id: establishmentId },
+    select: { userId: true, user: { select: { firstPaidAccessAt: true } } },
+  });
+  if (!est) return { hasPaidFeatures: false, hadPaidAccess: false };
+  const sub = await findActiveSubscription(est.userId);
+  return {
+    hasPaidFeatures: hasPaidFeatures(sub?.plan),
+    hadPaidAccess: !!est.user.firstPaidAccessAt,
+  };
+}
+
 export async function acceptPendingInvitesForUser(
   userId: string,
   email: string

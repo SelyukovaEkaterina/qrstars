@@ -25,6 +25,14 @@ model User {
   reportsMaxEnabled       Boolean @default(false)
   registrationSource String?
   registrationUtm    Json?
+  /** Пробный PRO выдаётся один раз: дата первой активации. */
+  proTrialStartedAt  DateTime?
+  /**
+   * Когда у владельца впервые появился платный доступ (оплата или пробный PRO).
+   * Его микросайт остаётся опубликованным даже после возврата на FREE, чтобы
+   * напечатанные QR продолжали работать.
+   */
+  firstPaidAccessAt  DateTime?
   metrikaClientId    String?
   firstScanAt    DateTime?
   telegramForumTopicId Int?
@@ -343,6 +351,8 @@ model Subscription {
   id              String          @id @default(cuid())
   status          SubStatus       @default(ACTIVE)
   plan            Plan            @default(FREE)
+  /** Пробный период без оплаты: списаний нет, по currentPeriodEnd переходит в CANCELED. */
+  isTrial         Boolean         @default(false)
   invoiceId       Int?
   parentInvoiceId Int?
   billing         String?

@@ -49,13 +49,13 @@ export default function DashboardOnboardingBanner({
       <div className="flex flex-col gap-4 p-4 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 sm:flex-row sm:items-center">
         <Store className="w-5 h-5 shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="font-medium">У вас нет заведения</p>
+          <p className="font-medium">У вас нет проекта</p>
           <p className="text-sm opacity-90 mt-0.5">
-            Создайте заведение, чтобы привязать QR-код и начать собирать отзывы
+            Создайте проект, чтобы привязать QR-код и настроить микросайт
           </p>
         </div>
         <Button size="sm" onClick={onCreateEstablishment}>
-          Создать заведение
+          Создать проект
           <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
       </div>
@@ -77,7 +77,7 @@ export default function DashboardOnboardingBanner({
           {establishmentsWithoutQr.length === 1 ? (
             <div>
               <p className="font-medium">
-                У заведения {quotedEstablishmentName(establishmentsWithoutQr[0].name)} нет QR-кода
+                У проекта {quotedEstablishmentName(establishmentsWithoutQr[0].name)} нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
                 Выпустите новый код или привяжите уже существующий неактивный
@@ -86,10 +86,10 @@ export default function DashboardOnboardingBanner({
           ) : (
             <div>
               <p className="font-medium">
-                У {establishmentsWithoutQr.length} {pluralize(establishmentsWithoutQr.length, "заведения", "заведений", "заведений")} нет QR-кода
+                У {establishmentsWithoutQr.length} {pluralize(establishmentsWithoutQr.length, "проекта", "проектов", "проектов")} нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
-                Выпустите или привяжите код для каждого заведения
+                Выпустите или привяжите код для каждого проекта
               </p>
             </div>
           )}

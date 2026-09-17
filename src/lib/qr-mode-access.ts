@@ -38,13 +38,40 @@ export function canAssignLandingMode(opts: {
   return landingDenied();
 }
 
-/** Публичный показ микросайта: PRO/Сеть или grandfathered QR. */
+/**
+ * Публичный показ микросайта: PRO/Сеть, grandfathered QR или владелец, у
+ * которого платный доступ был раньше (оплата или пробный PRO) — его страница
+ * остаётся опубликованной, чтобы напечатанные таблички продолжали работать.
+ */
 export function canViewLandingPage(opts: {
   hasPaidFeatures: boolean;
   grandfathered?: boolean | null;
+  hadPaidAccess?: boolean | null;
 }): boolean {
-  return opts.hasPaidFeatures || opts.grandfathered === true;
+  return (
+    opts.hasPaidFeatures || opts.grandfathered === true || opts.hadPaidAccess === true
+  );
 }
+
+/**
+ * Микросайт заморожен: платный доступ закончился (оплата или триал), гостям
+ * страница открывается, но состав плиток и брендинг менять нельзя — это
+ * PRO-настройки. Контент разделов (меню, визитка, Wi-Fi, отзывы) остаётся
+ * доступным, он нужен для бесплатных QR. Legacy-микросайты
+ * (`landingGrandfathered`) не замораживаются — они и раньше правились на FREE.
+ */
+export function isMicrositeFrozen(opts: {
+  hasPaidFeatures: boolean;
+  grandfathered?: boolean | null;
+  hadPaidAccess?: boolean | null;
+}): boolean {
+  if (opts.hasPaidFeatures) return false;
+  if (opts.grandfathered === true) return false;
+  return opts.hadPaidAccess === true;
+}
+
+export const MICROSITE_FROZEN_ERROR =
+  "Платный доступ закончился: микросайт продолжает работать, но менять разделы и оформление можно на тарифе PRO";
 
 export async function resolveLandingPaidAccess(opts: {
   userId: string;
@@ -82,9 +109,15 @@ export async function establishmentCanShowPublicLanding(
   hasPaidFeatures: boolean
 ): Promise<boolean> {
   if (hasPaidFeatures) return true;
-  const legacy = await prisma.qRCode.findFirst({
-    where: { establishmentId, landingGrandfathered: true },
-    select: { id: true },
-  });
-  return !!legacy;
+  const [legacy, est] = await Promise.all([
+    prisma.qRCode.findFirst({
+      where: { establishmentId, landingGrandfathered: true },
+      select: { id: true },
+    }),
+    prisma.establishment.findUnique({
+      where: { id: establishmentId },
+      select: { user: { select: { firstPaidAccessAt: true } } },
+    }),
+  ]);
+  return !!legacy || !!est?.user.firstPaidAccessAt;
 }

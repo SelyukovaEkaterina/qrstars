@@ -90,22 +90,34 @@ QR-кодов внутри заведения — **без лимита** на �
 
 ## Архитектура контента и QR-маршрутизации
 
-- **Контент заведения** (меню, визитка, Wi-Fi, сценарии отзывов) хранится на уровне `Establishment` и редактируется в **`/dashboard/my-page`** («Моя страница»). Тумблеры `pageModules` управляют блоками микро-лендинга. **Оформление**: `brandColor` (7 пресетов + свой HEX), `pageAppearance` (`light` / `dark`), `coverUrl`, `logoUrl` — палитра UI генерируется в `src/lib/brand-theme.ts`; акцент визитки синхронизируется с `brandColor`.
-- **QR-код** (`/dashboard/qrcodes/[id]`) — только **маршрутизация**: 4 группы — **микросайт** (`LANDING`, PRO/«Сеть»; QR, которые были `LANDING` до перевода в платный тариф, сохраняют показ и редактирование на FREE через `landingGrandfathered`), **быстрый доступ к разделу** (`MENU` / `REVIEW` / `BUSINESS_CARD` / `WIFI`), **прямой редирект** (`REDIRECT`), **скачать файл** (`FILE`, файл привязан к QR). Новый `LANDING` и переключение в него на FREE — `403`. Отдельные REVIEW, меню, визитка, Wi‑Fi и редирект остаются бесплатными.
+- **Контент проекта** (меню, визитка, Wi-Fi, сценарии отзывов) хранится на уровне `Establishment` и в кабинете редактируется как **микросайт** (`/dashboard/projects/[projectId]/page`). Старые URL `/dashboard/my-page` редиректят сюда. Тумблеры `pageModules` управляют блоками. **Оформление**: `brandColor` (7 пресетов + свой HEX), `pageAppearance` (`light` / `dark`), `coverUrl`, `logoUrl` — палитра UI генерируется в `src/lib/brand-theme.ts`; акцент визитки синхронизируется с `brandColor`.
+- **QR-код** (`/dashboard/projects/[projectId]/qrcodes/[qrId]`, старые `/dashboard/qrcodes/[id]` редиректят) — только **маршрутизация**: 4 группы — **микросайт** (`LANDING`, PRO/«Сеть»; QR, которые были `LANDING` до перевода в платный тариф, сохраняют показ и редактирование на FREE через `landingGrandfathered`), **быстрый доступ к разделу** (`MENU` / `REVIEW` / `BUSINESS_CARD` / `WIFI`), **прямой редирект** (`REDIRECT`), **скачать файл** (`FILE`, файл привязан к QR). Новый `LANDING` и переключение в него на FREE — `403`. Отдельные REVIEW, меню, визитка, Wi‑Fi и редирект остаются бесплатными. На FREE карточка «Микросайт» не задизейблена: клик открывает paywall-модалку `src/components/dashboard/LandingProPaywall.tsx` (что такое микросайт, зачем нужен, остальные возможности PRO из `PLANS.PRO.features`, цена из `PLAN_PRICING.PRO`, кнопки «Подключить PRO» → `/dashboard/subscription` и демо `/q/demo-landing`).
 - При сканировании контент подставляется с заведения (fallback — старые FK на QR для обратной совместимости). API: `GET/PUT /api/establishments/[id]/page`.
+- **Пробный PRO (14 дней)**: выдаётся один раз на пользователя (`User.proTrialStartedAt`), подписка создаётся с `Subscription.isTrial = true` и без списаний — по `currentPeriodEnd` обычный cron продления переводит её в `CANCELED`. Константы и логика — `src/lib/pro-trial.ts` (`PRO_TRIAL_DAYS`, `getProTrialState`, `startProTrial`), API — `GET/POST /api/subscription/trial`, состояние дублируется в `GET /api/subscription` (поле `trial`). Запускается из мастера `/dashboard/start`, из paywall-модалки в карточке QR и со страницы `/dashboard/subscription`. Напоминания: баннер `src/components/dashboard/ProTrialBanner.tsx` в `DashboardChrome` + письма за `PRO_TRIAL_NOTICE_DAYS` дней и в день окончания (`sendTrialEndingEmail` / `sendTrialEndedEmail` из `runSubscriptionRenewalBatch`).
+- **После окончания платного доступа микросайт не выключается**: `User.firstPaidAccessAt` (ставится при первой оплате и при старте триала, бэкфилл в миграции `20260917000000_pro_trial` по существующим PRO/NETWORK-подпискам) держит страницу опубликованной, чтобы напечатанные таблички работали. Правки при этом заморожены: `isMicrositeFrozen` в `src/lib/qr-mode-access.ts`, `PUT /api/establishments/[id]/page` отдаёт `403` (`MICROSITE_FROZEN_ERROR`) на поля состава плиток и оформления, контент разделов (меню, визитка, Wi-Fi, отзывы) правится как обычно. Внизу такого микросайта — блок-ссылка на qrstars.ru (`micrositePromo` в `MicroLandingView`). Legacy-микросайты (`landingGrandfathered`) не замораживаются и остаются со скромной подписью, в демо подписи нет.
 - **Внешние редиректы** (`REDIRECT`, `CUSTOM_SECTION` типа `LINK`): URL прогоняется через `toHeaderSafeUrl` (`src/lib/redirect-url.ts`) — percent-кодирование не-ASCII (кириллица в ссылках Яндекс.Карт), punycode для домена, вырезание управляющих символов. Заголовок `Location` допускает только ASCII, иначе `TypeError: Invalid character in header content`. Нормализация применяется и при чтении (legacy-записи), и при сохранении в `POST/PUT /api/qrcodes`. Невалидный URL → заглушка «Ссылка указана неверно» вместо 500.
 - **Отдача загруженных файлов**: при загрузке MIME определяется по заголовку браузера, иначе по расширению (`normalizeContentType`), и в S3 пишется `Content-Disposition` (`buildContentDisposition` в `src/lib/file-assets.ts`). Картинки, текст, PDF, видео/аудио → `inline` (открываются в браузере), остальное → `attachment`. Активные типы (`text/html`, `image/svg+xml`, XML) всегда `attachment`: файлы отдаются с `/storage/` того же origin, что и сессия. Nginx на `/storage/` шлёт `X-Content-Type-Options: nosniff`. `FileDownloadView` для inline-типов делает основной кнопкой «Открыть» (для картинок — превью), скачивание — вторичной ссылкой.
 
 ## Ключевые маршруты фронтенда
 
-- `/scan/:id` — страница-роутер: активация, микро-лендинг, быстрый раздел, редирект, файл или сбор отзывов
-- `/dashboard/my-page` — единый контент заведения (меню, отзывы, визитка, Wi-Fi)
-- **Демо QR (без БД)**: коды с префиксом `demo-` (`demo-landing`, `demo-review`, `demo-2gis`, `demo-redirect`, `demo-business-card`, `demo-wifi`, `demo-file`, `demo-menu`) — конфиг в `src/lib/demo-qrcodes.ts`, рендер в `src/lib/render-demo-scan.tsx`. `demo-review` направляет 4–5★ на Яндекс, `demo-2gis` — в 2GIS. `demo-landing` — полный микро-лендинг со всеми разделами. На лендинге секция «Попробуйте демо». Префикс `demo-` нельзя занять при создании QR в API.
+- `/scan/:id` — страница-роутер: активация, микросайт, быстрый раздел, редирект, файл или сбор отзывов
+- **Кабинет проектов** (UI «Проект» = `Establishment`):
+  - `/dashboard` → последний или единственный проект
+  - `/dashboard/projects` — список проектов
+  - `/dashboard/projects/[projectId]` — главная проекта
+  - `/dashboard/projects/[projectId]/page` — микросайт (бывш. `/dashboard/my-page`)
+  - `/dashboard/projects/[projectId]/qrcodes` — QR-коды проекта
+  - `/dashboard/projects/[projectId]/inbox` — обратная связь (отзывы и заявки)
+  - `/dashboard/projects/[projectId]/stats` — статистика
+  - `/dashboard/projects/[projectId]/settings` — настройки проекта
+  - Старые URL `/dashboard/my-page`, `/dashboard/qrcodes`, `/dashboard/establishments`, `/dashboard/reviews`, `/dashboard/submissions`, `/dashboard/analytics` редиректят в проект
+- **Шаблоны оформления** (`/dashboard/settings/templates`, аккаунт): стили QR-кодов для всех проектов. Старые `/dashboard/templates`, `/dashboard/templates/qr` редиректят сюда. Привязка стиля — в карточке QR.
+- **Демо QR (без БД)**: коды с префиксом `demo-` (`demo-landing`, `demo-review`, `demo-2gis`, `demo-redirect`, `demo-business-card`, `demo-wifi`, `demo-file`, `demo-menu`) — конфиг в `src/lib/demo-qrcodes.ts`, рендер в `src/lib/render-demo-scan.tsx`. `demo-review` направляет 4–5★ на Яндекс, `demo-2gis` — в 2GIS. `demo-landing` — полный микросайт со всеми разделами. На лендинге секция «Попробуйте демо». Префикс `demo-` нельзя занять при создании QR в API.
 - **QR-визитка — «Связь» (опционально)**: в `/dashboard/settings` (блок «Каналы для уведомлений») email регистрации создаётся как канал по умолчанию (`ensureDefaultEmailContact`, тумблеры «Отзывы»/«Заявки» включены). Владелец **один раз** подключает Telegram (`/start link_mc_{userId}` или код `MC-{userId}`) или MAX; можно добавить другой email. В настройках **заведения** — галочки типов уведомлений; в конструкторе визитки — выбор канала для формы «Написать человеку». Гость указывает имя и сообщение; владелец получает в выбранный канал: название QR (label или code), IP, регион, браузер, устройство и текст. API: `GET/POST/DELETE /api/messenger-contacts`, `POST /api/business-cards/contact`.
 - **Личный кабинет владельца** (`/dashboard/*`): активация таблички, дашборд статистики, смена ссылок, оплата Pro-тарифа. Оболочка кабинета — `src/components/dashboard/DashboardChrome.tsx` (рендерится в `dashboard/layout.tsx`): сайдбар один на все страницы, на &lt;1024px скрыт в drawer с гамбургером. Отдельные страницы `Sidebar` **не** импортируют. `/dashboard/start` (мастер) — без сайдбара. 404 внутри кабинета — `src/app/dashboard/not-found.tsx`.
 - **Ссылка на Яндекс.Карты**: короткие `yandex.ru/maps/-/…` не сохраняются вслепую (могут вести на чужую организацию). `POST /api/yandex-maps/preview` резолвит редиректы (только yandex-хосты, таймаут 6 с) и возвращает название + канонический `/maps/org/…`; generic-заголовок главной Яндекс.Карт / org без карточки — ошибка, подтвердить нельзя. UI — `YandexMapsOrgConfirm` в мастере `/dashboard/start` и настройках заведения. В мастере отзывов: сначала «Проверить ссылку», после «Да, это мы» QR создаётся сразу. `PUT /api/settings` валидирует `yandexMapsUrl`. Поиск (`/maps/search/`) — по-прежнему ошибка.
-- **Отрасль заведения**: опциональное поле `Establishment.industry` (`HORECA`, `BEAUTY`, `AUTO`, `CLINIC`, `HOTEL`, `OTHER`) выбирается прямо на шаге сценариев `/dashboard/start`, может предзаполняться из UTM и редактируется в настройках заведения. Отрасль задаёт дефолтный QR-стиль и тексты формы отзыва; для не-HoReCa QR-меню уходит в конец списка.
-- **Настройки аккаунта** (`/dashboard/settings`): пароль можно сменить (OAuth-пользователь может создать первый пароль), удаление аккаунта оформляется как идемпотентный запрос в поддержку. У email-канала есть защищённая кнопка тестового письма; адрес берётся только из принадлежащего пользователю `MessengerContact`.
+- **Отрасль проекта**: опциональное поле `Establishment.industry` (`HORECA`, `BEAUTY`, `AUTO`, `CLINIC`, `HOTEL`, `OTHER`) выбирается на шаге сценариев `/dashboard/start`, может предзаполняться из UTM и редактируется в настройках проекта. `OTHER` в UI — «Спикер / мероприятие / другое». Отрасль задаёт дефолтный QR-стиль и тексты формы отзыва; для не-HoReCa QR-меню уходит в конец списка.
+- **Настройки аккаунта** (`/dashboard/settings`): каналы уведомлений, шаблоны оформления QR (`/dashboard/settings/templates`), пароль (OAuth-пользователь может создать первый пароль), удаление аккаунта как идемпотентный запрос в поддержку. У email-канала есть защищённая кнопка тестового письма; адрес берётся только из принадлежащего пользователю `MessengerContact`.
 - **Личный кабинет администратора** (`/admin/*`): обзор платформы (статистика, рост), управление пользователями (поиск, смена роли/тарифа), подписки и платежи, все отзывы, все заведения. Вход: `/admin/login`, доступ только с ролью `ADMIN` в БД. API-роуты: `/api/admin/*` (защищены `requireAdmin()`). Доступы тестового админа: `admin@smartreview.ru` / `admin1234`
 
 ## Вход через VK ID
@@ -320,12 +332,13 @@ src/
       webhook/robokassa # ResultURL Robokassa
       … ещё ~20 роутов
     admin/            # UI: панель администратора
-    dashboard/        # UI: ЛК владельца
+    dashboard/        # UI: ЛК владельца (проекты: /dashboard/projects/[id]/…)
+    dashboard/projects/  # Главная, микросайт, QR, обратная связь, статистика, настройки
     scan/[id]/        # UI: публичная страница при сканировании
     activate/[id]/    # UI: форма активации новой таблички
   components/
     ui/               # Базовые компоненты (Button, Input, Card, Badge…)
-    dashboard/        # Редакторы (Menu, BusinessCard, ReviewRouting, WifiConfig…)
+    dashboard/        # Редакторы + project/ (MicrositeEditor, QR-коды, список проектов)
     scan/             # Публичные вьюшки (MicroLanding, MenuView, BusinessCardView…)
     admin/            # Сайдбар и компоненты админки
     activate/         # Форма активации
@@ -366,7 +379,7 @@ public/               # Статика (изображения, стандарт
 ### Совместный доступ к заведению
 
 - **Модель**: `EstablishmentMember` (`PENDING` / `ACTIVE`), уникальность `(establishmentId, email)`.
-- **Владелец** приглашает по email в `/dashboard/establishments/[id]` (секция «Доступ команды»). API: `GET/POST /api/establishments/[id]/members`, `DELETE .../members/[memberId]`.
+- **Владелец** приглашает по email в `/dashboard/projects/[id]/settings` (секция «Доступ команды»). API: `GET/POST /api/establishments/[id]/members`, `DELETE .../members/[memberId]`.
 - **Зарегистрированный пользователь** → сразу `ACTIVE` + письмо о доступе. **Новый email** → `PENDING` + письмо со ссылкой `/register?establishmentInvite={token}`; превью: `GET /api/establishments/invite-preview?token=`.
 - **Участник**: полный edit (контент, QR, настройки, аналитика). **Только владелец**: удаление заведения, управление участниками.
 - **Лимиты**: 10 инвайтов/час на владельца, 5/час на заведение, макс. 10 участников. Чужие заведения не входят в лимит тарифа участника (`countUserEstablishments` — только `userId`).
@@ -375,7 +388,7 @@ public/               # Статика (изображения, стандарт
 ### Меню iiko (PRO / Сеть)
 
 - **Режим источника** `QRMenu.source`: `MANUAL` (редактор позиций) или `IIKO` (внешнее меню из iiko Cloud).
-- **Настройка**: `/dashboard/my-page` → меню → переключатель **iiko**, API-login, «Проверить подключение» → `POST /api/menus/iiko/discover`. Позиции редактируются в **iikoWeb → Внешние меню** (типичное имя: «Сайт/приложение»).
+- **Настройка**: микросайт проекта → меню → переключатель **iiko**, API-login, «Проверить подключение» → `POST /api/menus/iiko/discover`. Позиции редактируются в **iikoWeb → Внешние меню** (типичное имя: «Сайт/приложение»).
 - **Публичный показ**: при скане `/q/[code]` меню подгружается через `POST /api/2/menu/by_id` (кэш Redis 5 мин), рендер в `MenuView`.
 - **Корзина + iiko**: при `cartEnabled` заказ уходит в iiko (`POST /api/1/deliveries/create`, типы заказов «Доставка самовывоз» / «Доставка Сайт», оплата `SITE`) и дублируется владельцу (email/Telegram/MAX). В форме гостя: самовывоз/доставка, телефон обязателен.
 - **API**: `POST /api/menus/iiko/discover`, `POST /api/menus/iiko/preview`; поля iiko в `POST/PUT /api/menus`. API-login хранится зашифрованным (`IIKO_ENCRYPTION_KEY` или `NEXTAUTH_SECRET`), клиенту не отдаётся.

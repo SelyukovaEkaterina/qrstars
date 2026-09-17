@@ -4,7 +4,8 @@ import { useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import SupportChat from "@/components/dashboard/SupportChat";
-import { Headphones, Loader2 } from "lucide-react";
+import { Headphones, Lightbulb, Loader2 } from "lucide-react";
+import Link from "next/link";
 
 export default function DashboardSupportPage() {
   const { status } = useSession();
@@ -38,6 +39,13 @@ export default function DashboardSupportPage() {
             </p>
           </div>
           <SupportChat className="min-h-[420px]" />
+          <Link
+            href="/dashboard/ideas"
+            className="inline-flex items-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800"
+          >
+            <Lightbulb className="h-4 w-4" />
+            Есть идея? Напишите нам
+          </Link>
         </div>
       </main>
     </div>

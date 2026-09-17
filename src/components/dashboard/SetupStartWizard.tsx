@@ -21,6 +21,7 @@ import {
   normalizeYandexMapsUrl,
 } from "@/lib/yandex-maps-url";
 import YandexMapsUrlHelper from "@/components/dashboard/YandexMapsUrlHelper";
+import LandingProPaywall from "@/components/dashboard/LandingProPaywall";
 import YandexMapsOrgConfirm, {
   type YandexMapsOrgConfirmHandle,
 } from "@/components/dashboard/YandexMapsOrgConfirm";
@@ -30,12 +31,18 @@ import {
   type StickerConfig,
 } from "@/components/dashboard/StickerDesigner";
 import {
-  INDUSTRY_OPTIONS,
   inferIndustryFromUtm,
   isHorecaIndustry,
   parseEstablishmentIndustry,
   type EstablishmentIndustry,
 } from "@/lib/establishment-industry";
+import { SETUP_GUIDE_DISMISS_KEY } from "@/lib/setup-wizard-path";
+import {
+  projectHomePath,
+  projectPagePath,
+  projectQrPath,
+} from "@/lib/project-routes";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import {
   BUILTIN_STICKER_TEMPLATES,
   stickerPresetLayout,
@@ -157,7 +164,7 @@ const INTENT_OPTIONS: {
   {
     id: "menu",
     title: "QR-меню",
-    tagline: "Электронное меню для гостей",
+    tagline: "Электронное меню по QR-коду",
     icon: UtensilsCrossed,
     accent: "hover:border-rose-300 hover:shadow-rose-100/80 group-hover:ring-rose-200",
     iconWrap: "bg-gradient-to-br from-rose-100 to-orange-50 text-rose-700 ring-rose-200/60",
@@ -171,18 +178,18 @@ const INTENT_OPTIONS: {
   },
   {
     id: "landing",
-    title: "Сайт-визитка заведения",
-    tagline: "Всё важное в одном QR-коде",
+    title: "Микросайт с визиткой и ссылками",
+    tagline: "Для заведения, доклада или видео",
     icon: LayoutGrid,
     paid: true,
     accent: "hover:border-indigo-400 hover:shadow-indigo-100/80 group-hover:ring-indigo-300",
     iconWrap: "bg-gradient-to-br from-indigo-100 to-violet-50 text-indigo-700 ring-indigo-200/60",
     features: [
-      "Мобильная страница в фирменном стиле заведения",
-      "Меню, контакты, соцсети и пароль от Wi‑Fi в одном месте",
-      "Сбор отзывов можно включить прямо на визитке",
+      "Мобильная страница из блоков: контакты, ссылки, материалы",
+      "Подходит кафе, спикерам конференций и авторам видео",
+      "Сбор отзывов, меню и Wi-Fi можно включить рядом",
       "Простой визуальный редактор — справится каждый",
-      "Позже можно создать отдельные QR-коды для каждого раздела",
+      "Позже можно создать отдельные QR-коды для каждого блока",
     ],
   },
   {
@@ -285,7 +292,7 @@ function IntentOptionCard({
   );
 }
 
-type Step = "org" | "intent" | "form" | "success" | "landing-upsell";
+type Step = "org" | "intent" | "form" | "success";
 
 export type SetupEstablishmentOption = {
   id: string;
@@ -303,6 +310,9 @@ interface SetupStartWizardProps {
   existingEstablishments?: SetupEstablishmentOption[];
   canAddNewEstablishment?: boolean;
   hasPaidFeatures?: boolean;
+  /** Пробный PRO ещё не использован — микросайт можно открыть без оплаты. */
+  trialEligible?: boolean;
+  trialDays?: number;
   /** UTM из User.registrationUtm, если в URL нет меток. */
   initialRegistrationUtm?: RegistrationUtm | null;
 }
@@ -312,6 +322,8 @@ export default function SetupStartWizard({
   existingEstablishments = [],
   canAddNewEstablishment = true,
   hasPaidFeatures = false,
+  trialEligible = false,
+  trialDays = 14,
   initialRegistrationUtm = null,
 }: SetupStartWizardProps) {
   const router = useRouter();
@@ -354,6 +366,11 @@ export default function SetupStartWizard({
   }, [industry, utmContext]);
   const hasExistingOrgs = existingEstablishments.length > 0 && !rerun;
   const isFirstLaunch = existingEstablishments.length === 0 && !rerun;
+  /** Триал включается прямо в мастере, поэтому серверный проп может устареть. */
+  const [paidFeatures, setPaidFeatures] = useState(hasPaidFeatures);
+  const [landingPaywallOpen, setLandingPaywallOpen] = useState(false);
+  const [trialStarting, setTrialStarting] = useState(false);
+  const [trialError, setTrialError] = useState("");
   const [step, setStep] = useState<Step>(() => {
     if (hasExistingOrgs) return "org";
     if (autoSelectedIntent === "landing" && !hasPaidFeatures && !rerun) return "intent";
@@ -428,7 +445,7 @@ export default function SetupStartWizard({
     }
 
     if (!usingExistingOrg && intent !== "redirect" && !form.name.trim()) {
-      setError("Укажите название заведения");
+      setError("Укажите название проекта");
       return;
     }
 
@@ -500,7 +517,7 @@ export default function SetupStartWizard({
         setError(
           res.status === 401
             ? data.error || "Сессия устарела. Выйдите и войдите снова."
-            : data.error || "Не удалось создать заведение",
+            : data.error || "Не удалось создать проект",
         );
         return;
       }
@@ -577,19 +594,7 @@ export default function SetupStartWizard({
     }
   }
 
-  const chooseIntent = (value: SetupIntent) => {
-    trackEvent("setup.intent_selected", {
-      intent: value,
-      orgMode: usingExistingOrg ? "existing" : orgMode ?? "new",
-    });
-    setIntent(value);
-    setError("");
-
-    if (value === "landing" && !hasPaidFeatures && !rerun) {
-      setStep("landing-upsell");
-      return;
-    }
-
+  const proceedWithIntent = (value: SetupIntent) => {
     if (usingExistingOrg && selectedEstablishment) {
       setForm((prev) => ({
         ...prev,
@@ -608,6 +613,46 @@ export default function SetupStartWizard({
     }
 
     setStep("form");
+  };
+
+  const chooseIntent = (value: SetupIntent) => {
+    trackEvent("setup.intent_selected", {
+      intent: value,
+      orgMode: usingExistingOrg ? "existing" : orgMode ?? "new",
+    });
+    setIntent(value);
+    setError("");
+
+    if (value === "landing" && !paidFeatures && !rerun) {
+      setTrialError("");
+      setLandingPaywallOpen(true);
+      return;
+    }
+
+    proceedWithIntent(value);
+  };
+
+  const startLandingTrial = async () => {
+    if (trialStarting) return;
+    setTrialStarting(true);
+    setTrialError("");
+    try {
+      const res = await fetch("/api/subscription/trial", { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setTrialError(data.error || "Не удалось включить пробный период");
+        return;
+      }
+      trackEvent("setup.trial_started", { intent: "landing", days: trialDays });
+      setPaidFeatures(true);
+      setLandingPaywallOpen(false);
+      setIntent("landing");
+      proceedWithIntent("landing");
+    } catch {
+      setTrialError("Ошибка соединения");
+    } finally {
+      setTrialStarting(false);
+    }
   };
 
   useEffect(() => {
@@ -677,6 +722,17 @@ export default function SetupStartWizard({
     window.open(href, "_blank", "noopener,noreferrer");
   };
 
+  /** Уйти из мастера до создания проекта — иначе SetupGuideRedirect вернёт обратно. */
+  const leaveWizard = (href: string) => {
+    trackEvent("setup.wizard_dismissed", { intent: intent ?? null });
+    try {
+      sessionStorage.setItem(SETUP_GUIDE_DISMISS_KEY, "1");
+    } catch {
+      /* приватный режим — редирект просто вернёт в мастер */
+    }
+    router.push(href);
+  };
+
   const goNextStep = (destination: string, href: string) => {
     if (result) {
       trackEvent("setup.next_step_clicked", {
@@ -701,7 +757,7 @@ export default function SetupStartWizard({
     }
 
     if (rerun) {
-      const href = "/dashboard/templates/table-tents";
+      const href = TEMPLATE_ROUTES.tableTents;
       if (newTab) {
         newTab.location.href = href;
       } else {
@@ -754,7 +810,7 @@ export default function SetupStartWizard({
         intent: result.intent,
         destination: "table-template",
       });
-      const href = `/dashboard/templates/${tplId}`;
+      const href = TEMPLATE_ROUTES.qr;
       if (newTab) {
         newTab.location.href = href;
       } else {
@@ -847,12 +903,12 @@ export default function SetupStartWizard({
                 <>
                   QR-код ведёт на электронное меню заведения{" "}
                   <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
-                  Отредактируйте позиции и цены в разделе «Моя страница» и разместите QR на столах.
+                  Отредактируйте позиции и цены в разделе «Микросайт» и разместите QR на столах.
                 </>
               ) : (
                 <>
-                  QR-код ведёт на мобильную визитку заведения <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
-                  Перейдите в раздел «Моя страница», чтобы добавить меню, контакты, Wi-Fi и включить сбор отзывов.
+                  QR-код ведёт на микросайт проекта <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
+                  Перейдите в раздел «Микросайт», чтобы добавить ссылки, меню, контакты и отзывы.
                 </>
               )}
             </p>
@@ -947,7 +1003,7 @@ export default function SetupStartWizard({
                       onClick={() =>
                         openDashboardInNewTab(
                           "templates",
-                          `/dashboard/templates/qr?bindQr=${result.qrcode.id}`,
+                          `${TEMPLATE_ROUTES.qr}?bindQr=${result.qrcode.id}`,
                         )
                       }
                     >
@@ -1020,7 +1076,7 @@ export default function SetupStartWizard({
                         size="lg"
                         className="w-full"
                         onClick={() =>
-                          goNextStep("templates", `/dashboard/templates/qr?bindQr=${result.qrcode.id}`)
+                          goNextStep("templates", `${TEMPLATE_ROUTES.qr}?bindQr=${result.qrcode.id}`)
                         }
                       >
                         Оформить дизайн QR-кода
@@ -1031,7 +1087,9 @@ export default function SetupStartWizard({
                         variant="outline"
                         className="w-full"
                         onClick={() =>
-                          goNextStep("qrcode-settings", `/dashboard/qrcodes/${result.qrcode.id}?welcome=1`)
+                          goNextStep("qrcode-settings", result.establishment?.id
+                            ? `${projectQrPath(result.establishment.id, result.qrcode.id)}?welcome=1`
+                            : "/dashboard")
                         }
                       >
                         Настройки редиректа
@@ -1045,11 +1103,15 @@ export default function SetupStartWizard({
                       onClick={() =>
                         goNextStep(
                           isMenu ? "my-page-menu" : "my-page",
-                          isMenu ? "/dashboard/my-page?section=menu" : "/dashboard/my-page",
+                          result.establishment?.id
+                            ? isMenu
+                              ? `${projectPagePath(result.establishment.id)}?section=menu`
+                              : projectPagePath(result.establishment.id)
+                            : "/dashboard",
                         )
                       }
                     >
-                      {isMenu ? "Редактировать меню" : "Оформить и наполнить сайт-визитку"}
+                        {isMenu ? "Редактировать меню" : "Оформить и наполнить микросайт"}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </Button>
                   )}
@@ -1102,10 +1164,10 @@ export default function SetupStartWizard({
               Настройка QR
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              Для какого заведения создаём QR-код?
+              "Для какого проекта создаём QR-код?"
             </h1>
             <p className="mx-auto max-w-lg text-sm leading-relaxed text-slate-600 sm:text-base">
-              Выберите заведение из списка или добавьте новое. На следующем шаге вы сможете выбрать сценарий работы QR-кода.
+              Выберите проект из списка или создайте новый. Затем выберите, куда будет вести QR-код.
             </p>
           </div>
 
@@ -1131,9 +1193,9 @@ export default function SetupStartWizard({
                   <Store className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">Существующее заведение</p>
+                  <p className="font-semibold text-slate-900">Существующий проект</p>
                   <p className="mt-1 text-sm text-slate-500">
-                    Создать дополнительный QR-код для уже добавленного заведения
+                    Создать дополнительный QR-код для уже добавленного проекта
                   </p>
                 </div>
               </div>
@@ -1190,13 +1252,13 @@ export default function SetupStartWizard({
                   <Sparkles className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <p className="font-semibold text-slate-900">Новое заведение</p>
+                  <p className="font-semibold text-slate-900">Новый проект</p>
                   <p className="mt-1 text-sm text-slate-500">
                     {canAddNewEstablishment
-                      ? "Добавить новое заведение и сгенерировать для него первый QR-код"
+                      ? "Добавить новый проект и сгенерировать для него первый QR-код"
                       : (
                         <>
-                          Достигнут лимит заведений на вашем тарифе.{" "}
+                          Достигнут лимит проектов на вашем тарифе.{" "}
                           <Link
                             href="/dashboard/subscription"
                             className="font-medium text-indigo-600 hover:text-indigo-800"
@@ -1237,47 +1299,6 @@ export default function SetupStartWizard({
     );
   }
 
-  if (step === "landing-upsell") {
-    return (
-      <SetupWizardShell>
-        <div className="mx-auto max-w-lg w-full">
-          <Card className="p-8 space-y-5">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-              <Crown className="h-3.5 w-3.5" />
-              PRO
-            </div>
-            <h1 className="text-2xl font-bold text-slate-900">Микросайт — на тарифе PRO</h1>
-            <p className="text-sm leading-relaxed text-slate-600">
-              Одна страница со всеми разделами: меню, отзывы, визитка и Wi‑Fi в одном QR.
-              Сбор отзывов, отдельные QR-меню, визитка, Wi‑Fi и редирект остаются бесплатными.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Button
-                type="button"
-                className="flex-1"
-                onClick={() => router.push("/dashboard/subscription")}
-              >
-                Смотреть тарифы
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                className="flex-1"
-                onClick={() => {
-                  setIntent(null);
-                  setStep("intent");
-                }}
-              >
-                Выбрать другой сценарий
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </SetupWizardShell>
-    );
-  }
-
   if (step === "intent") {
     return (
       <SetupWizardShell>
@@ -1300,7 +1321,7 @@ export default function SetupStartWizard({
             <p className="mx-auto max-w-2xl text-sm leading-relaxed text-slate-600 sm:text-base">
               {usingExistingOrg
                 ? "Выберите сценарий работы для нового QR-кода. Вы сможете изменить его в любой момент."
-                : "Выберите основной сценарий. Мы автоматически создадим заведение и сгенерируем QR-код. Настройки можно будет изменить позже."}
+                : "Выберите основной сценарий. Мы создадим проект и сгенерируем QR-код. Настройки можно будет изменить позже."}
             </p>
           </div>
 
@@ -1316,7 +1337,7 @@ export default function SetupStartWizard({
                 className="flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition"
               >
                 <ChevronLeft className="w-4 h-4" />
-                Назад к выбору заведения
+                Назад к выбору проекта
               </button>
             </div>
           )}
@@ -1332,30 +1353,6 @@ export default function SetupStartWizard({
               Вы перешли по ссылке про электронное меню — начните с «QR-меню»: мы создадим заведение, базовое меню и QR-код для столов.
             </div>
           )}
-
-          <div className="mx-auto w-full max-w-2xl rounded-xl border border-slate-200 bg-white/80 p-4 shadow-sm">
-            <label className="block text-sm font-semibold text-slate-900" htmlFor="setup-industry">
-              Что у вас за бизнес?
-            </label>
-            <p className="mt-1 text-xs text-slate-500">
-              Необязательно — подберём тексты для гостей и готовый стиль QR.
-            </p>
-            <select
-              id="setup-industry"
-              value={industry || ""}
-              onChange={(e) =>
-                setIndustry((e.target.value || null) as EstablishmentIndustry | null)
-              }
-              className="mt-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            >
-              <option value="">Выбрать позже</option>
-              {INDUSTRY_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <div
             className={`grid gap-5 md:items-stretch ${
@@ -1410,6 +1407,32 @@ export default function SetupStartWizard({
                 ? "Нужны отзывы на картах? Выберите «Умный сбор отзывов» — или добавьте их позже в личном кабинете."
                 : "Нет карточки на картах? Выберите прямую ссылку или QR-меню. «Умный сбор отзывов» работает только со ссылкой на организацию в Яндекс.Картах."}
           </p>
+
+          {!rerun && (
+            <p className="text-center text-sm text-slate-500">
+              <button
+                type="button"
+                className="font-medium text-slate-600 underline-offset-2 hover:text-indigo-600 hover:underline"
+                onClick={() => leaveWizard(hasExistingOrgs ? "/dashboard" : "/dashboard/projects")}
+              >
+                Сначала осмотреться в кабинете
+              </button>
+            </p>
+          )}
+
+          <LandingProPaywall
+            open={landingPaywallOpen}
+            onClose={() => {
+              setLandingPaywallOpen(false);
+              setIntent(null);
+              setTrialError("");
+            }}
+            trialEligible={trialEligible}
+            trialDays={trialDays}
+            trialStarting={trialStarting}
+            trialError={trialError}
+            onStartTrial={() => void startLandingTrial()}
+          />
         </div>
       </SetupWizardShell>
     );
@@ -1526,7 +1549,7 @@ export default function SetupStartWizard({
             {!isRedirect && !usingExistingOrg && (
               <div>
                 <Input
-                  label="Название заведения *"
+                  label="Название проекта *"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   placeholder="Например: Кафе «Аромат», Салон красоты «Престиж»…"
@@ -1594,8 +1617,8 @@ export default function SetupStartWizard({
                 />
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
                   Дополнительные площадки (2GIS, Flamp, Авито) можно добавить позже в разделе{" "}
-                  <Link href="/dashboard/my-page" className="text-indigo-600 hover:text-indigo-800 font-medium">
-                    «Моя страница»
+                  <Link href="/dashboard/projects" className="text-indigo-600 hover:text-indigo-800 font-medium">
+                    настройках проекта
                   </Link>.
                 </p>
               </div>

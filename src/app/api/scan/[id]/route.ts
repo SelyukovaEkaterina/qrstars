@@ -362,6 +362,7 @@ export async function GET(
     !canViewLandingPage({
       hasPaidFeatures: isPro,
       grandfathered: qrCode.landingGrandfathered,
+      hadPaidAccess: !!est.user.firstPaidAccessAt,
     })
   ) {
     return NextResponse.json(

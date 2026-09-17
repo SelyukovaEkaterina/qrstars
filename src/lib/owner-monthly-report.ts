@@ -691,7 +691,7 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
     title: `Ваш отчёт за ${r.labelHuman}`,
     preheader: `Сканирования, отзывы и динамика за ${r.labelHuman.toLowerCase()}`,
     bodyHtml,
-    cta: base ? { label: "Открыть аналитику", href: `${base}/dashboard/analytics` } : undefined,
+    cta: base ? { label: "Открыть статистику", href: `${base}/dashboard` } : undefined,
     unsubscribe: { url: unsubscribeUrl, label: "Отписаться от отчётов" },
   });
 }

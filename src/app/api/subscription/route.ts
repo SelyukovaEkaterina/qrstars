@@ -16,6 +16,8 @@ import {
   findActiveSubscription,
 } from "@/lib/subscription-utils";
 import { buildRenewalPriceChangeNotice } from "@/lib/subscription-billing-utils";
+import { PRO_TRIAL_DAYS, getProTrialState } from "@/lib/pro-trial";
+import { markFirstPaidAccess } from "@/lib/subscription-activate";
 import { getPlatformTariffChangeBanner } from "@/lib/tariff-change-notice";
 import { notifyPaymentAttempt } from "@/lib/telegram-support";
 import { LEGAL_OFFER_URL, LEGAL_OFFER_VERSION } from "@/lib/legal-urls";
@@ -27,11 +29,13 @@ export async function GET() {
   }
 
   const userId = (session.user as Record<string, unknown>).id as string;
-  const [activeSubscription, latestSubscription, establishmentCount] = await Promise.all([
-    findActiveSubscription(userId),
-    findLatestSubscription(userId),
-    countUserEstablishments(userId),
-  ]);
+  const [activeSubscription, latestSubscription, establishmentCount, trial] =
+    await Promise.all([
+      findActiveSubscription(userId),
+      findLatestSubscription(userId),
+      countUserEstablishments(userId),
+      getProTrialState(userId),
+    ]);
 
   const ctx = buildSubscriptionContext(activeSubscription, establishmentCount);
 
@@ -48,6 +52,7 @@ export async function GET() {
     plans: PLANS,
     renewalPriceChange,
     platformTariffChange,
+    trial: { ...trial, days: PRO_TRIAL_DAYS },
   });
 }
 
@@ -87,16 +92,20 @@ export async function POST(request: Request) {
     const existing = await findActiveSubscription(userId);
     if (existing && hasPaidFeatures(existing.plan)) {
       const isUpgrade = existing.plan === "PRO" && plan === "NETWORK";
-      if (!isUpgrade) {
+      if (!isUpgrade && !existing.isTrial) {
         return NextResponse.json(
           { error: "У вас уже есть активная платная подписка" },
           { status: 400 }
         );
       }
-      await prisma.subscription.update({
-        where: { id: existing.id },
-        data: { status: "CANCELED", cancelAtPeriodEnd: false },
-      });
+      // Пробный период гасит сама оплата (handlePaidPaymentOrder), иначе
+      // брошенный чекаут отнимал бы у владельца остаток триала.
+      if (!existing.isTrial) {
+        await prisma.subscription.update({
+          where: { id: existing.id },
+          data: { status: "CANCELED", cancelAtPeriodEnd: false },
+        });
+      }
     }
 
     const establishmentCount = await countUserEstablishments(userId);
@@ -127,6 +136,8 @@ export async function POST(request: Request) {
           currentPeriodEnd: new Date(Date.now() + periodMs),
         },
       });
+
+      await markFirstPaidAccess(userId);
 
       void notifyPaymentAttempt({
         userId,

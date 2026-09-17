@@ -8,7 +8,8 @@ import Card from "@/components/ui/Card";
 import MessengerContactsManager from "@/components/dashboard/MessengerContactsManager";
 import MonthlyReportSettings from "@/components/dashboard/MonthlyReportSettings";
 import AccountSettings from "@/components/dashboard/AccountSettings";
-import { Loader2 } from "lucide-react";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
+import { Loader2, Palette } from "lucide-react";
 
 interface Establishment {
   id: string;
@@ -54,7 +55,29 @@ export default function SettingsPage() {
     <div className="flex min-h-screen bg-gray-50">
       <main className="min-w-0 flex-1 p-4 sm:p-8">
         <div className="max-w-3xl mx-auto space-y-6">
-          <h1 className="text-2xl font-bold text-gray-900">Настройки</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Аккаунт и уведомления</h1>
+
+          <Card>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <Palette className="w-5 h-5 text-indigo-600 shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-semibold text-gray-900">Шаблоны оформления</h3>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Стили QR-кодов на уровне аккаунта: цвета, логотип и готовые пресеты для любого проекта.
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(TEMPLATE_ROUTES.qr)}
+                className="shrink-0"
+              >
+                Открыть шаблоны
+              </Button>
+            </div>
+          </Card>
 
           {establishments.length > 1 && (
             <div className="flex gap-2">
@@ -81,28 +104,30 @@ export default function SettingsPage() {
                   <h3 className="font-semibold text-gray-900">{current.name}</h3>
                   <button
                     type="button"
-                    onClick={() => router.push(`/dashboard/establishments/${activeId}`)}
+                    onClick={() => router.push(`/dashboard/projects/${activeId}/settings`)}
                     className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
                   >
-                    Настройки заведения →
+                    Настройки проекта →
                   </button>
                 </div>
                 <p className="text-sm text-gray-500 mt-2">
-                  Площадки для отзывов (Яндекс.Карты, 2GIS, Авито) — в настройках заведения. Каналы уведомлений — ниже.
+                  Площадки для отзывов и команда — в настройках проекта. Каналы уведомлений аккаунта — ниже.
                 </p>
               </Card>
 
+              <div id="notification-channels">
               <MessengerContactsManager
                 establishmentId={activeId}
                 establishmentName={current.name}
               />
+              </div>
 
               <MonthlyReportSettings />
 
               <Card className="border-dashed">
                 <h3 className="font-semibold text-gray-900 mb-1">Мастер настройки QR</h3>
                 <p className="text-sm text-gray-500 mb-3">
-                  Создать новый QR для существующего заведения или добавить ещё одно — пошаговый мастер как при первом запуске.
+                  Создать новый QR для существующего проекта или добавить ещё один — пошаговый мастер как при первом запуске.
                 </p>
                 <div className="flex flex-wrap gap-2">
                   <Button
@@ -118,7 +143,7 @@ export default function SettingsPage() {
             </div>
           ) : (
             <Card className="text-center py-12">
-              <p className="text-gray-500">Заведения не найдены.</p>
+              <p className="text-gray-500">Проекты не найдены.</p>
             </Card>
           )}
 

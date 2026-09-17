@@ -146,3 +146,22 @@ def test_delete_template_not_found(owner_session, base_url):
 def test_delete_template_unauthorized(base_url):
     r = req_lib.delete(f"{base_url}/api/templates/some-id")
     assert r.status_code == 401
+
+
+def test_qr_templates_live_under_account_settings(owner_session, base_url):
+    r = owner_session.get(
+        f"{base_url}/dashboard/settings/templates",
+        allow_redirects=True,
+    )
+    assert r.status_code == 200
+    assert "Шаблон" in r.text
+
+
+def test_legacy_templates_qr_redirects_to_settings(owner_session, base_url):
+    r = owner_session.get(
+        f"{base_url}/dashboard/templates/qr",
+        allow_redirects=False,
+    )
+    assert r.status_code in (301, 302, 303, 307, 308), r.text
+    location = r.headers.get("Location", "")
+    assert "/dashboard/settings/templates" in location

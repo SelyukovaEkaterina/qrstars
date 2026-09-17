@@ -16,11 +16,28 @@ import {
 } from "@/lib/brand-theme";
 import {
   establishmentAccessWhere,
-  establishmentHasPaidFeatures,
+  establishmentMicrositeAccess,
 } from "@/lib/establishment-access";
+import { MICROSITE_FROZEN_ERROR, isMicrositeFrozen } from "@/lib/qr-mode-access";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 
 type RouteContext = { params: Promise<{ id: string }> };
+
+/**
+ * Поля самого микросайта — после окончания платного доступа они заморожены.
+ * Брендинг (`brandColor`, `pageAppearance`, `logoUrl`, `coverUrl`) сюда не
+ * входит: он применяется и к бесплатным страницам — отзывам, меню, визитке.
+ */
+const MICROSITE_SETTING_FIELDS = [
+  "pageModules",
+  "moduleOrder",
+  "moduleLabels",
+  "moduleIcons",
+  "moduleTypes",
+  "landingTheme",
+  "landingSubtitle",
+  "shortSlug",
+] as const;
 
 async function getAccessibleEstablishment(userId: string, establishmentId: string) {
   return prisma.establishment.findFirst({
@@ -54,7 +71,9 @@ export async function GET(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isPro = await establishmentHasPaidFeatures(id);
+  const micrositeAccess = await establishmentMicrositeAccess(id);
+  const isPro = micrositeAccess.hasPaidFeatures;
+  const micrositeFrozen = isMicrositeFrozen(micrositeAccess);
 
   const brand = resolveBrandSettings(establishment);
   const moduleTypes = parseModuleTypes(establishment.moduleTypes);
@@ -127,6 +146,8 @@ export async function GET(_request: Request, context: RouteContext) {
       forms: establishment.forms,
     },
     isPro,
+    micrositeFrozen,
+    hadPaidAccess: micrositeAccess.hadPaidAccess,
   });
 }
 
@@ -143,6 +164,16 @@ export async function PUT(request: Request, context: RouteContext) {
   const establishment = await getAccessibleEstablishment(userId, id);
   if (!establishment) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  if (MICROSITE_SETTING_FIELDS.some((field) => body[field] !== undefined)) {
+    const micrositeAccess = await establishmentMicrositeAccess(id);
+    if (isMicrositeFrozen(micrositeAccess)) {
+      return NextResponse.json(
+        { error: MICROSITE_FROZEN_ERROR, upgradeRequired: "PRO", micrositeFrozen: true },
+        { status: 403 }
+      );
+    }
   }
 
   const data: Record<string, unknown> = {};

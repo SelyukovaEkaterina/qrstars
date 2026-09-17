@@ -420,14 +420,21 @@ export default async function ScanPage({ params }: ScanPageProps) {
   };
 
   if (qrCode.mode === "LANDING") {
+    const hadPaidAccess = !!est.user.firstPaidAccessAt;
+    const grandfathered =
+      "landingGrandfathered" in qrCode ? qrCode.landingGrandfathered : false;
     if (
       !canViewLandingPage({
         hasPaidFeatures: isPro,
-        grandfathered: "landingGrandfathered" in qrCode ? qrCode.landingGrandfathered : false,
+        grandfathered,
+        hadPaidAccess,
       })
     ) {
       return <LandingLockedState />;
     }
+    // Промо-блок показываем только тем, кто вышел из платного доступа;
+    // legacy-микросайты остаются со скромной подписью, как раньше.
+    const micrositePromo = !isPro && hadPaidAccess && !grandfathered;
     incrementScan();
     const MicroLandingView = (await import("@/components/scan/MicroLandingView")).default;
     const pageModules = parsePageModules(est.pageModules);
@@ -505,6 +512,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
         forms={JSON.parse(JSON.stringify(est.forms || []))}
         platformUrls={platformUrls}
         watermarkEnabled={reviewProps.watermarkEnabled}
+        micrositePromo={micrositePromo}
         showPromo={reviewProps.showPromo}
         promoCode={promoCode}
         pdConsent={pdConsent}

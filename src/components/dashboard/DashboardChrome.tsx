@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
+import ProTrialBanner from "@/components/dashboard/ProTrialBanner";
 
 const START_PATH = "/dashboard/start";
 
@@ -59,10 +60,15 @@ export default function DashboardChrome({ children }: { children: React.ReactNod
           open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        <Sidebar onNavigate={() => setOpen(false)} />
+        <Suspense fallback={<aside className="w-64 h-full bg-white border-r border-gray-200 min-h-screen" />}>
+          <Sidebar onNavigate={() => setOpen(false)} />
+        </Suspense>
       </div>
 
-      <div className="flex-1 min-w-0 pt-14 lg:pt-0">{children}</div>
+      <div className="flex-1 min-w-0 pt-14 lg:pt-0">
+        <ProTrialBanner />
+        {children}
+      </div>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { PLANS, PLAN_PRICING, formatRub } from "@/lib/plans";
 import { renderEmailLayout, featureBlock, bulletList } from "@/lib/email-layout";
 import { createSignedFeedbackToken, getBaseUrl } from "@/lib/signed-user-token";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import type { LifecycleUserState } from "@/lib/lifecycle-email-state";
 
 function greeting(state: LifecycleUserState): string {
@@ -84,7 +85,7 @@ export function renderNoQrD1Email(state: LifecycleUserState): string {
       ${featureBlock("📱 Микролендинг", "Меню, Wi‑Fi, визитка и контакты — всё на одной удобной странице.")}
       ${featureBlock("🔗 Редирект", "Прямая ссылка на любой ваш ресурс — для акций, соцсетей или онлайн-записи.")}
     `,
-    cta: { label: "Создать первый QR-код", href: `${base}/dashboard/qrcodes` },
+    cta: { label: "Создать первый QR-код", href: `${base}/dashboard/projects` },
   });
 }
 
@@ -127,7 +128,7 @@ export function renderNoScansD2Email(state: LifecycleUserState): string {
         "Разместите готовый печатный материал на столах, стойке ресепшена или зеркале в зоне ожидания",
       ])}
     `,
-    cta: { label: "Оформить QR-код", href: `${base}/dashboard/templates/qr` },
+    cta: { label: "Оформить QR-код", href: `${base}${TEMPLATE_ROUTES.qr}` },
   });
 }
 
@@ -148,7 +149,7 @@ export function renderNoScansD5Email(state: LifecycleUserState): string {
         "<strong>На визитках у входа</strong> — для привлечения внимания прохожих",
       ])}
     `,
-    cta: { label: "Оформить QR-код", href: `${base}/dashboard/templates/qr` },
+    cta: { label: "Оформить QR-код", href: `${base}${TEMPLATE_ROUTES.qr}` },
   });
 }
 
@@ -170,7 +171,7 @@ export function renderNoReviewsD3Email(state: LifecycleUserState): string {
       ])}
       <p style="font-size:16px;color:#374151;">Обязательно укажите ссылку на Яндекс Карты в настройках заведения, иначе гостей с высокими оценками будет некуда направлять.</p>
     `,
-    cta: { label: "Настроить сценарии отзывов", href: `${base}/dashboard/my-page` },
+    cta: { label: "Настроить сценарии отзывов", href: `${base}/dashboard/projects` },
   });
 }
 

@@ -168,10 +168,10 @@ export default function FormSubmissionsPanel({
         <p className="font-medium text-gray-700">Заявок пока нет</p>
         <p className="text-sm mt-1">
           Добавьте блок «Форма» в{" "}
-          <a href="/dashboard/my-page" className="text-indigo-600 hover:underline">
-            Моя страница
+          <a href="/dashboard/projects" className="text-indigo-600 hover:underline">
+            микросайт
           </a>{" "}
-          — сюда будут попадать ответы гостей.
+          — сюда будут попадать ответы.
         </p>
       </div>
     );

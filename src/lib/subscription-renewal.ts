@@ -1,10 +1,12 @@
 import prisma from "@/lib/prisma";
 import {
+  PLAN_PRICING,
   calcSubscriptionAmount,
   formatPlanLabel,
   type BillingPeriod,
   type PlanId,
 } from "@/lib/plans";
+import { PRO_TRIAL_NOTICE_DAYS, proTrialDaysLeft } from "@/lib/pro-trial";
 import { countUserEstablishments } from "@/lib/subscription-utils";
 import { createRecurringPayment } from "@/lib/robokassa";
 import {
@@ -12,6 +14,8 @@ import {
   sendRenewalNoticeEmail,
   sendPriceChangeNoticeEmail,
   sendPlatformTariffChangeEmail,
+  sendTrialEndedEmail,
+  sendTrialEndingEmail,
 } from "@/lib/subscription-renewal-emails";
 import {
   calcUpcomingRenewalAmount,
@@ -34,6 +38,8 @@ export interface RenewalBatchResult {
   noticesSent: number;
   priceChangeNoticesSent: number;
   platformTariffEmailsSent: number;
+  trialEndingEmailsSent: number;
+  trialEndedEmailsSent: number;
   expired: number;
   renewalsInitiated: number;
   renewalsFailed: number;
@@ -45,6 +51,8 @@ export async function runSubscriptionRenewalBatch(): Promise<RenewalBatchResult>
     noticesSent: 0,
     priceChangeNoticesSent: 0,
     platformTariffEmailsSent: 0,
+    trialEndingEmailsSent: 0,
+    trialEndedEmailsSent: 0,
     expired: 0,
     renewalsInitiated: 0,
     renewalsFailed: 0,
@@ -68,7 +76,21 @@ export async function runSubscriptionRenewalBatch(): Promise<RenewalBatchResult>
       data: { status: "CANCELED" },
     });
     result.expired++;
+
+    if (sub.isTrial && sub.user.email) {
+      try {
+        await sendTrialEndedEmail({
+          to: sub.user.email,
+          monthlyAmount: PLAN_PRICING.PRO.monthlyRub,
+        });
+        result.trialEndedEmailsSent++;
+      } catch (err) {
+        console.error("sendTrialEndedEmail:", err);
+      }
+    }
   }
+
+  await sendTrialEndingNotices(now, result);
 
   await sendPlatformTariffChangeEmails(now, result);
 
@@ -253,6 +275,48 @@ export async function runSubscriptionRenewalBatch(): Promise<RenewalBatchResult>
   }
 
   return result;
+}
+
+/**
+ * Письмо за {@link PRO_TRIAL_NOTICE_DAYS} дней до конца пробного PRO.
+ * Идемпотентность — через `renewalNoticeSentAt`: у триала автосписаний нет,
+ * поэтому поле свободно и используется как отметка «предупредили».
+ */
+async function sendTrialEndingNotices(now: Date, result: RenewalBatchResult) {
+  const windowStart = new Date(now.getTime() + (PRO_TRIAL_NOTICE_DAYS - 1) * MS_DAY);
+  const windowEnd = new Date(now.getTime() + (PRO_TRIAL_NOTICE_DAYS + 1) * MS_DAY);
+
+  const trials = await prisma.subscription.findMany({
+    where: {
+      status: "ACTIVE",
+      isTrial: true,
+      currentPeriodEnd: { gte: windowStart, lte: windowEnd },
+      renewalNoticeSentAt: null,
+    },
+    include: { user: { select: { email: true } } },
+  });
+
+  for (const sub of trials) {
+    if (!sub.currentPeriodEnd || !sub.user.email) continue;
+
+    try {
+      await sendTrialEndingEmail({
+        to: sub.user.email,
+        endsAt: sub.currentPeriodEnd,
+        daysLeft: proTrialDaysLeft(sub.currentPeriodEnd, now),
+        monthlyAmount: PLAN_PRICING.PRO.monthlyRub,
+      });
+    } catch (err) {
+      console.error("sendTrialEndingEmail:", err);
+      continue;
+    }
+
+    await prisma.subscription.update({
+      where: { id: sub.id },
+      data: { renewalNoticeSentAt: now },
+    });
+    result.trialEndingEmailsSent++;
+  }
 }
 
 async function sendPlatformTariffChangeEmails(

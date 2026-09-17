@@ -180,7 +180,10 @@ def test_grandfathered_landing_stays_on_free(owner_session, admin_session, base_
     assert "временно недоступна" not in scan.text
 
 
-def test_paid_landing_locks_after_downgrade(owner_session, admin_session, base_url, owner_establishment_id):
+def test_paid_landing_survives_downgrade(
+    owner_session, admin_session, base_url, owner_establishment_id
+):
+    """После оплаты микросайт остаётся открытым, но его состав заморожен."""
     set_user_plan(admin_session, base_url, "PRO")
     try:
         created = owner_session.post(
@@ -196,12 +199,27 @@ def test_paid_landing_locks_after_downgrade(owner_session, admin_session, base_u
         assert qr["landingGrandfathered"] is False
         code = qr["code"]
     finally:
+        reset_user_to_free(admin_session, base_url, reset_paid_history=False)
+
+    try:
+        page = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
+        assert page.status_code == 200
+        assert "временно недоступна" not in page.text
+
+        api = requests.get(f"{base_url}/api/scan/{code}")
+        assert api.status_code == 200, api.text
+
+        frozen = owner_session.put(
+            f"{base_url}/api/establishments/{owner_establishment_id}/page",
+            json={"landingSubtitle": "После даунгрейда"},
+        )
+        assert frozen.status_code == 403, frozen.text
+
+        # Брендинг работает и на бесплатных страницах — его не замораживаем.
+        branding = owner_session.put(
+            f"{base_url}/api/establishments/{owner_establishment_id}/page",
+            json={"brandColor": "#4f46e5"},
+        )
+        assert branding.status_code == 200, branding.text
+    finally:
         reset_user_to_free(admin_session, base_url)
-
-    page = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
-    assert page.status_code == 200
-    assert "временно недоступна" in page.text
-
-    api = requests.get(f"{base_url}/api/scan/{code}")
-    assert api.status_code == 403
-    assert api.json().get("upgradeRequired") == "PRO"

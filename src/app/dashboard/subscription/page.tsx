@@ -56,6 +56,14 @@ interface SubscriptionResponse {
     message: string | null;
     daysUntilEffective: number;
   } | null;
+  trial?: {
+    active: boolean;
+    used: boolean;
+    eligible: boolean;
+    endsAt: string | null;
+    daysLeft: number | null;
+    days: number;
+  };
 }
 
 interface HistoryItem {
@@ -82,6 +90,8 @@ export default function SubscriptionPage() {
   const [recurringConsent, setRecurringConsent] = useState(false);
   const [consentError, setConsentError] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [trialStarting, setTrialStarting] = useState(false);
+  const [trialError, setTrialError] = useState("");
 
   const load = () =>
     fetch("/api/subscription")
@@ -161,6 +171,24 @@ export default function SubscriptionPage() {
     }
   };
 
+  const handleStartTrial = async () => {
+    setTrialStarting(true);
+    setTrialError("");
+    try {
+      const res = await fetch("/api/subscription/trial", { method: "POST" });
+      const json = await res.json();
+      if (!res.ok) {
+        setTrialError(json.error || "Не удалось включить пробный период");
+        return;
+      }
+      await load();
+    } catch {
+      setTrialError("Ошибка соединения");
+    } finally {
+      setTrialStarting(false);
+    }
+  };
+
   const handleCancel = async () => {
     if (
       !confirm(
@@ -190,6 +218,7 @@ export default function SubscriptionPage() {
 
   const subscription = data.subscription;
   const currentPlan = data.plan;
+  const trial = data.trial;
   const isPaidActive =
     data.hasPaidFeatures && subscription?.status === "ACTIVE";
   const estCount = data.establishmentCount;
@@ -222,8 +251,13 @@ export default function SubscriptionPage() {
                 <p className="text-sm text-gray-500">Ваш текущий тариф</p>
                 <div className="flex items-center gap-3 mt-1">
                   <PlanBadge plan={currentPlan} />
-                  {isPaidActive && (
-                    <Badge variant="success">Активна</Badge>
+                  {trial?.active ? (
+                    <Badge variant="default">
+                      Пробный период
+                      {trial.daysLeft != null ? ` — ${trial.daysLeft} дн.` : ""}
+                    </Badge>
+                  ) : (
+                    isPaidActive && <Badge variant="success">Активна</Badge>
                   )}
                   {subscription?.cancelAtPeriodEnd && (
                     <Badge variant="default">Отмена в конце периода</Badge>
@@ -243,13 +277,52 @@ export default function SubscriptionPage() {
                   </p>
                 )}
               </div>
-              {isPaidActive && !subscription?.cancelAtPeriodEnd && (
+              {isPaidActive && !trial?.active && !subscription?.cancelAtPeriodEnd && (
                 <Button variant="outline" size="sm" onClick={handleCancel}>
                   Отменить подписку
                 </Button>
               )}
             </div>
           </Card>
+
+          {trial?.eligible && (
+            <Card className="border-indigo-200 bg-indigo-50/60">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-semibold text-indigo-950">
+                    Попробуйте PRO бесплатно — {trial.days} дней
+                  </p>
+                  <p className="mt-1 text-sm text-indigo-900/80 leading-relaxed">
+                    Микросайт, умная маршрутизация отзывов, чаевые и расширенная аналитика.
+                    Карта не нужна, автосписаний нет — по окончании тариф сам вернётся на FREE.
+                  </p>
+                  {trialError && (
+                    <p className="mt-2 text-sm text-red-700">{trialError}</p>
+                  )}
+                </div>
+                <Button
+                  onClick={handleStartTrial}
+                  disabled={trialStarting}
+                  className="shrink-0"
+                >
+                  {trialStarting ? "Включаем…" : `Попробовать ${trial.days} дней`}
+                </Button>
+              </div>
+            </Card>
+          )}
+
+          {trial?.active && (
+            <Card className="border-amber-200 bg-amber-50/70">
+              <p className="font-semibold text-amber-950">
+                Идёт пробный период PRO
+                {trial.daysLeft != null ? `: осталось ${trial.daysLeft} дн.` : ""}
+              </p>
+              <p className="mt-1 text-sm text-amber-900/80 leading-relaxed">
+                После окончания микросайт останется открытым для гостей — напечатанные QR
+                продолжат работать. Чтобы менять разделы и оформление, подключите PRO ниже.
+              </p>
+            </Card>
+          )}
 
           <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg w-fit">
             <button

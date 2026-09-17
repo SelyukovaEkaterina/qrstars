@@ -22,6 +22,7 @@ import {
   BUILTIN_STICKER_TEMPLATES,
   isBuiltInStickerTemplateId,
 } from "@/lib/builtin-sticker-templates";
+import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import QRTemplateEditor from "@/components/dashboard/QRTemplateEditor";
 import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
 
@@ -86,8 +87,8 @@ const PAGE_META: Record<
   { title: string; subtitle: string; createLabel: string }
 > = {
   qr: {
-    title: "Шаблоны QR-кодов",
-    subtitle: "Стили оформления QR-кодов для скачивания и привязки к кодам",
+    title: "Шаблоны оформления",
+    subtitle: "Стили QR-кодов аккаунта: скачивание и привязка к любым кодам проектов",
     createLabel: "Новый шаблон QR-кода",
   },
   "table-tent": {
@@ -195,7 +196,7 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
       });
       if (!res.ok) return;
       const d = await res.json();
-      router.push(`/dashboard/templates/${d.template.id}`);
+      router.push(TEMPLATE_ROUTES.qr);
     } finally {
       setCreating(false);
     }
@@ -456,7 +457,7 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
                         className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md hover:border-indigo-200 transition-all"
                       >
                         <button
-                          onClick={() => router.push(`/dashboard/templates/${tpl.id}`)}
+                          onClick={() => router.push(TEMPLATE_ROUTES.qr)}
                           className="block w-full bg-gray-50 flex items-center justify-center p-3"
                           style={{ minHeight: 160 }}
                         >
@@ -476,7 +477,7 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
                           </div>
                           <div className="flex items-center gap-1.5">
                             <button
-                              onClick={() => router.push(`/dashboard/templates/${tpl.id}`)}
+                              onClick={() => router.push(TEMPLATE_ROUTES.qr)}
                               className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                             >
                               <Pencil size={11} /> Редактировать

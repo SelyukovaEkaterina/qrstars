@@ -1,5 +1,10 @@
-import TemplatesPageContent from "@/components/dashboard/TemplatesPageContent";
+import { redirect } from "next/navigation";
+import { templateSettingsPath } from "@/lib/template-routes";
 
-export default function QRTemplatesPage() {
-  return <TemplatesPageContent mode="qr" />;
+export default async function LegacyQrTemplatesRedirectPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  redirect(templateSettingsPath(await searchParams));
 }

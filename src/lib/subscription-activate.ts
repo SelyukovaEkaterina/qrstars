@@ -41,6 +41,17 @@ export async function createPartnerEarning(params: {
   });
 }
 
+/**
+ * Отмечает первый платный доступ владельца. По этой метке его микросайт
+ * остаётся опубликованным после возврата на FREE.
+ */
+export async function markFirstPaidAccess(userId: string) {
+  await prisma.user.updateMany({
+    where: { id: userId, firstPaidAccessAt: null },
+    data: { firstPaidAccessAt: new Date() },
+  });
+}
+
 export async function activateSubscription(params: {
   userId: string;
   plan: PlanId;
@@ -66,6 +77,8 @@ export async function activateSubscription(params: {
       priceChangeNoticeSentAt: null,
     },
   });
+
+  await markFirstPaidAccess(params.userId);
 
   await createPartnerEarning({
     userId: params.userId,

@@ -118,7 +118,7 @@ export async function POST(request: Request, context: RouteContext) {
       <p><strong>Заведение:</strong> ${escapeHtml(est.name)}</p>
       <p><strong>Форма:</strong> ${escapeHtml(form.title)}</p>
       <div style="background:#f9fafb;padding:16px;border-radius:8px;border-left:4px solid #4f46e5;white-space:pre-wrap;">${escapeHtml(textBody)}</div>
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/dashboard/my-page"
+      <a href="${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/dashboard/projects"
          style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">
         Открыть кабинет
       </a>

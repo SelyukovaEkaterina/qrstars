@@ -51,6 +51,7 @@ interface OrphanQrcode {
 interface Props {
   establishments: Establishment[];
   orphanQrcodes?: OrphanQrcode[];
+  lockedEstablishmentId?: string;
 }
 
 type Tab = "reviews" | "scans";
@@ -89,9 +90,9 @@ function ModeBadge({ mode }: { mode: string }) {
   );
 }
 
-export default function BasicAnalytics({ establishments, orphanQrcodes = [] }: Props) {
+export default function BasicAnalytics({ establishments, orphanQrcodes = [], lockedEstablishmentId }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>("reviews");
-  const [filterEstId, setFilterEstId] = useState<string>("");
+  const [filterEstId, setFilterEstId] = useState<string>(lockedEstablishmentId || "");
   const [filterQrId, setFilterQrId] = useState<string>("");
 
   const filteredEst = filterEstId && !isOrphanEstablishmentFilter(filterEstId)
@@ -217,6 +218,9 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [] }: P
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-1">
           <div className="flex items-center gap-2 flex-wrap">
             <Store className="w-4 h-4 text-gray-400 shrink-0" />
+            {lockedEstablishmentId ? (
+              <span className="text-sm text-gray-600">Статистика текущего проекта</span>
+            ) : (
             <select
               value={filterEstId}
               onChange={(e) => {
@@ -235,6 +239,7 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [] }: P
                 </option>
               )}
             </select>
+            )}
           </div>
           <div className="hidden sm:block w-px h-8 bg-gray-200" />
           <div className="flex items-center gap-2 flex-wrap">

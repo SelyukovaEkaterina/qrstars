@@ -105,6 +105,8 @@ interface MicroLandingViewProps {
     avitoUrl: string | null;
   };
   watermarkEnabled: boolean;
+  /** Платный доступ закончился — вместо подписи показываем блок-ссылку. */
+  micrositePromo?: boolean;
   tipsConfig?: {
     tipsType: string | null;
     tipsPhone?: string | null;
@@ -174,6 +176,7 @@ export default function MicroLandingView({
   forms = [],
   platformUrls,
   watermarkEnabled,
+  micrositePromo = false,
   tipsConfig,
   showPromo,
   promoCode,
@@ -712,11 +715,31 @@ export default function MicroLandingView({
           })}
         </div>
 
-        {!embedded && watermarkEnabled && (
+        {/* Демо показывает микросайт как у PRO-владельца — без подписи. */}
+        {!embedded && !isDemo && watermarkEnabled && (
           <div className="mt-auto pt-8 pb-2 w-full">
-            <p className="text-center text-xs" style={{ color: submutedColor(isBg) }}>
-              Сделано в QrStars.ru
-            </p>
+            {/* Заметный блок — только после окончания платного доступа.
+                Legacy-микросайты остаются со скромной подписью, как раньше. */}
+            {micrositePromo ? (
+              <a
+                href="https://qrstars.ru?utm_source=microsite&utm_medium=watermark"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block rounded-2xl px-4 py-3 text-center transition-opacity hover:opacity-80"
+                style={moduleButtonStyle(isBg)}
+              >
+                <p className="text-sm font-semibold" style={{ color: headingColor(isBg) }}>
+                  Сделано в QrStars.ru
+                </p>
+                <p className="mt-0.5 text-xs" style={{ color: submutedColor(isBg) }}>
+                  Создайте такой же микросайт для своего бизнеса
+                </p>
+              </a>
+            ) : (
+              <p className="text-center text-xs" style={{ color: submutedColor(isBg) }}>
+                Сделано в QrStars.ru
+              </p>
+            )}
           </div>
         )}
       </div>

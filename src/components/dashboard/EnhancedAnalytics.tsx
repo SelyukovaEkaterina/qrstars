@@ -259,12 +259,16 @@ function TrendBadge({
   );
 }
 
-export default function EnhancedAnalytics() {
+export default function EnhancedAnalytics({
+  lockedEstablishmentId,
+}: {
+  lockedEstablishmentId?: string;
+}) {
   const [activeTab, setActiveTab] = useState<Tab>("scans");
   const [queryStr, setQueryStr] = useState("period=30d");
   const [customFrom, setCustomFrom] = useState("");
   const [customTo, setCustomTo] = useState("");
-  const [filterEstId, setFilterEstId] = useState<string>("");
+  const [filterEstId, setFilterEstId] = useState<string>(lockedEstablishmentId || "");
   const [filterQrId, setFilterQrId] = useState<string>("");
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [fetchedKey, setFetchedKey] = useState("");
@@ -458,6 +462,9 @@ export default function EnhancedAnalytics() {
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-1">
             <div className="flex items-center gap-2 flex-wrap">
               <Store className="w-4 h-4 text-gray-400 shrink-0" />
+              {lockedEstablishmentId ? (
+                <span className="text-sm text-gray-600">Статистика текущего проекта</span>
+              ) : (
               <select
                 value={filterEstId}
                 onChange={(e) => {
@@ -471,6 +478,7 @@ export default function EnhancedAnalytics() {
                   <option key={est.id} value={est.id}>{est.name}</option>
                 ))}
               </select>
+              )}
             </div>
             <div className="hidden sm:block w-px h-8 bg-gray-200" />
             <div className="flex items-center gap-2 flex-wrap">
