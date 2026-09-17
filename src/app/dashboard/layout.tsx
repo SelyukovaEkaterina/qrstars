@@ -8,6 +8,11 @@ import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
 import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
 import { sessionUserId } from "@/lib/session-user";
 import DashboardChrome from "@/components/dashboard/DashboardChrome";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Кабинет — QrStars",
+};
 
 export default async function DashboardLayout({
   children,

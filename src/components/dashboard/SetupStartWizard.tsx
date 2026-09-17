@@ -18,6 +18,7 @@ import { trackEvent } from "@/lib/track-event";
 import type { RegistrationUtm } from "@/lib/registration-utm";
 import {
   orderSetupIntents,
+  parseSetupIntentParam,
   parseSetupUtmContext,
   resolveAutoSelectedIntent,
 } from "@/lib/setup-utm-intent";
@@ -348,9 +349,13 @@ export default function SetupStartWizard({
   const utmContext = useMemo(() => {
     return parseSetupUtmContext(utmCampaign, utmContent);
   }, [utmCampaign, utmContent]);
+  const requestedIntent = useMemo(
+    () => parseSetupIntentParam(searchParams.get("intent")),
+    [searchParams]
+  );
   const autoSelectedIntent = useMemo(
-    () => resolveAutoSelectedIntent(utmCampaign, utmContent),
-    [utmCampaign, utmContent]
+    () => requestedIntent ?? resolveAutoSelectedIntent(utmCampaign, utmContent),
+    [requestedIntent, utmCampaign, utmContent]
   );
   const visibleIntentOptions = useMemo(() => {
     const ids = orderSetupIntents(
@@ -397,6 +402,7 @@ export default function SetupStartWizard({
 
   const [form, setForm] = useState({
     name: "",
+    qrLabel: "",
     yandexMapsUrl: "",
     phone: "",
     redirectUrl: "",
@@ -454,7 +460,7 @@ export default function SetupStartWizard({
       }
     }
 
-    if (!usingExistingOrg && intent !== "redirect" && !form.name.trim()) {
+    if (!usingExistingOrg && !form.name.trim()) {
       setError("Укажите название проекта");
       return;
     }
@@ -485,17 +491,11 @@ export default function SetupStartWizard({
                 ? "demo-menu"
                 : "demo-landing";
         const mockResult = {
-          establishment:
-            intent === "redirect"
-              ? undefined
-              : { id: "demo", name: form.name.trim() || "Демо-заведение" },
+          establishment: { id: "demo", name: form.name.trim() || "Демо-проект" },
           qrcode: {
             id: "demo",
             code: demoCode,
-            qrStyleTemplateId:
-              intent === "redirect"
-                ? null
-                : qrStylePresetTemplateId(industryQrStylePreset(industry)),
+            qrStyleTemplateId: qrStylePresetTemplateId(industryQrStylePreset(industry)),
           },
           intent,
         };
@@ -698,6 +698,11 @@ export default function SetupStartWizard({
       return;
     }
     setError("");
+    if (autoSelectedIntent) {
+      autoIntentHandled.current = true;
+      chooseIntent(autoSelectedIntent);
+      return;
+    }
     setStep("intent");
   };
 
@@ -914,8 +919,8 @@ export default function SetupStartWizard({
                 </>
               ) : isRedirect ? (
                 <>
-                  Ваш динамический QR-код готов! При сканировании гости будут автоматически перенаправляться по указанной ссылке.
-                  Теперь вы можете настроить внешний вид QR-кода и скачать его для печати.
+                  QR-код проекта <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong> готов.
+                  При сканировании гости сразу перейдут по вашей ссылке — её можно поменять в кабинете без перепечатки.
                 </>
               ) : isMenu ? (
                 <>
@@ -1553,13 +1558,13 @@ export default function SetupStartWizard({
                       : " Подтвердите создание QR-кода для визитки."}
               </>
             ) : isReviews ? (
-              "Укажите название заведения и ссылку на Яндекс.Карты. Мы сгенерируем QR-код, который сразу начнёт собирать отзывы."
+              "Укажите название проекта и ссылку на Яндекс.Карты. Мы сгенерируем QR-код, который сразу начнёт собирать отзывы."
             ) : isRedirect ? (
-              "Укажите ссылку для перенаправления гостей. Вы сможете изменить её в личном кабинете без перепечатки QR-кода."
+              "Укажите название проекта и ссылку. QR можно печатать сразу — ссылку потом меняете в кабинете без перепечатки."
             ) : isMenu ? (
-              "Введите название заведения. Мы создадим базовое меню с примерами позиций и QR-код для гостей."
+              "Введите название проекта. Мы создадим базовое меню с примерами позиций и QR-код для гостей."
             ) : (
-              "Введите название заведения. Мы автоматически создадим для него мобильную визитку и рабочий QR-код."
+              "Введите название проекта. Мы автоматически создадим для него мобильную визитку и рабочий QR-код."
             )}
           </p>
         </div>
@@ -1588,49 +1593,59 @@ export default function SetupStartWizard({
         </div>
 
         <Card>
-          <button
-            type="button"
-            onClick={() => {
-              setStep("intent");
-              setError("");
-            }}
-            className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            Назад к выбору сценария
-          </button>
+          {!isRedirect && (
+            <button
+              type="button"
+              onClick={() => {
+                setStep("intent");
+                setError("");
+              }}
+              className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              Назад к выбору сценария
+            </button>
+          )}
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {error && (
               <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
             )}
 
-            {!isRedirect && !usingExistingOrg && (
+            {!usingExistingOrg && (
               <div>
                 <Input
                   label="Название проекта *"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Например: Кафе «Аромат», Салон красоты «Престиж»…"
+                  placeholder="Например: проект, кампания или заведение"
                 />
               </div>
             )}
 
             {isRedirect && (
-              <div>
+              <>
                 <Input
-                  label="Ссылка для перенаправления *"
-                  type="url"
-                  value={form.redirectUrl}
-                  onChange={(e) => setForm({ ...form, redirectUrl: e.target.value })}
-                  placeholder="https://example.com"
-                  required
+                  label="Название / метка QR"
+                  value={form.qrLabel}
+                  onChange={(e) => setForm({ ...form, qrLabel: e.target.value })}
+                  placeholder="Например: Сайт, Баннер, Telegram"
                 />
-                <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
-                  <ArrowUpRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-500" />
-                  При сканировании QR-кода гости будут сразу переходить по этой ссылке.
-                </p>
-              </div>
+                <div>
+                  <Input
+                    label="Ссылка для перенаправления *"
+                    type="url"
+                    value={form.redirectUrl}
+                    onChange={(e) => setForm({ ...form, redirectUrl: e.target.value })}
+                    placeholder="https://example.com"
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
+                    <ArrowUpRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-500" />
+                    При сканировании QR-кода гости будут сразу переходить по этой ссылке.
+                  </p>
+                </div>
+              </>
             )}
 
             {isReviews && (
@@ -1677,7 +1692,7 @@ export default function SetupStartWizard({
                   searchName={form.name || selectedEstablishment?.name || ""}
                 />
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                  Дополнительные площадки (2GIS, Flamp, Авито) можно добавить позже в разделе{" "}
+                  Дополнительные площадки (2GIS, Flamp, Авито) можно добавить позже в{" "}
                   <Link href="/dashboard/projects" className="text-indigo-600 hover:text-indigo-800 font-medium">
                     настройках проекта
                   </Link>.
@@ -1790,7 +1805,7 @@ export default function SetupStartWizard({
             {!isReviews && !isRedirect && (
               <p className="text-xs text-gray-500 text-center leading-relaxed pt-1">
                 {isMenu
-                  ? "Добавить фото, изменить цены и включить корзину можно в разделе «Моя страница»."
+                  ? "Добавить фото, изменить цены и включить корзину можно в разделе «Микросайт»."
                   : "Наполнить визитку (добавить меню, Wi‑Fi, ссылки на соцсети) можно будет в личном кабинете."}
               </p>
             )}

@@ -62,6 +62,7 @@ export async function POST(request: Request) {
     legalName,
     inn,
     redirectUrl,
+    qrLabel: rawQrLabel,
     industry: rawIndustry,
     intent: rawIntent,
     establishmentId: rawEstablishmentId,
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
     legalName?: string;
     inn?: string;
     redirectUrl?: string;
+    qrLabel?: string;
     industry?: string;
     intent?: string;
     establishmentId?: string;
@@ -92,6 +94,7 @@ export async function POST(request: Request) {
   const yandexResolved = resolveYandexMapsUrl(yandexMapsUrl);
   const trimmedYandex = yandexResolved.normalized;
   const trimmedRedirect = redirectUrl?.trim();
+  const trimmedQrLabel = rawQrLabel?.trim();
   const trimmedLegalName = legalName?.trim() || null;
   const trimmedInn = inn?.trim() || null;
   const industry = parseEstablishmentIndustry(rawIndustry);
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
   }
   const qrStyleTemplateId = qrStylePresetTemplateId(industryQrStylePreset(industry));
-  const qualifiedOnboarding = intent === "reviews" || intent === "landing" || intent === "menu";
+  const qualifiedOnboarding = true;
 
   if (intent === "redirect") {
     if (!trimmedRedirect) {
@@ -108,10 +111,10 @@ export async function POST(request: Request) {
     if (!parseHttpUrl(trimmedRedirect)) {
       return NextResponse.json({ error: "Некорректная ссылка для перенаправления" }, { status: 400 });
     }
-  } else if (!establishmentId) {
-    if (!trimmedName) {
-      return NextResponse.json({ error: "Укажите название заведения" }, { status: 400 });
-    }
+  }
+
+  if (!establishmentId && !trimmedName) {
+    return NextResponse.json({ error: "Укажите название проекта" }, { status: 400 });
   }
 
   if (intent === "reviews" && !establishmentId) {
@@ -155,13 +158,14 @@ export async function POST(request: Request) {
           ? "MENU"
           : "LANDING";
   const qrLabel =
-    intent === "reviews"
+    trimmedQrLabel ||
+    (intent === "reviews"
       ? "Отзывы"
       : intent === "redirect"
         ? "Редирект"
         : intent === "menu"
           ? "Меню"
-          : "Основной";
+          : "Основной");
 
   const ownedCount = await prisma.establishment.count({ where: { userId } });
   const subscription = await findActiveSubscription(userId);
@@ -182,7 +186,7 @@ export async function POST(request: Request) {
     if (!access.ok) {
       return NextResponse.json({ error: "Заведение не найдено" }, { status: 404 });
     }
-  } else if (intent !== "redirect" && !canAddEstablishment(plan, ownedCount)) {
+  } else if (!canAddEstablishment(plan, ownedCount)) {
     const hint = getUpgradeHint(plan, ownedCount);
     return NextResponse.json(
       {
@@ -209,51 +213,6 @@ export async function POST(request: Request) {
   }
 
   await ensureQrStylePresets();
-
-  if (intent === "redirect") {
-    const qrcode = await prisma.$transaction(async (tx) => {
-      const qr = await tx.qRCode.create({
-        data: {
-          code,
-          mode: qrMode,
-          label: qrLabel,
-          redirectUrl: trimmedRedirect,
-          isActive: true,
-          source: "DASHBOARD",
-          user: { connect: { id: userId } },
-          ...(establishmentId
-            ? { establishment: { connect: { id: establishmentId } } }
-            : {}),
-        },
-      });
-
-      await tx.user.update({
-        where: { id: userId },
-        data: { onboardingCompleted: false },
-      });
-
-      return qr;
-    });
-
-    const establishment =
-      establishmentId
-        ? await prisma.establishment.findUnique({
-            where: { id: establishmentId },
-            select: { id: true, name: true },
-          })
-        : null;
-
-    return NextResponse.json({
-      intent,
-      ...(establishment ? { establishment } : {}),
-      qrcode: {
-        id: qrcode.id,
-        code: qrcode.code,
-        mode: qrcode.mode,
-        qrStyleTemplateId: null,
-      },
-    });
-  }
 
   if (establishmentId) {
     const establishment = await prisma.establishment.findUnique({
@@ -323,6 +282,7 @@ export async function POST(request: Request) {
           user: { connect: { id: userId } },
           establishment: { connect: { id: establishmentId } },
           qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
+          ...(intent === "redirect" ? { redirectUrl: trimmedRedirect } : {}),
           ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
         },
       });
@@ -345,6 +305,7 @@ export async function POST(request: Request) {
         id: qrcode.id,
         code: qrcode.code,
         mode: qrcode.mode,
+        label: qrcode.label,
         qrStyleTemplateId,
       },
     });
@@ -390,6 +351,7 @@ export async function POST(request: Request) {
         user: { connect: { id: userId } },
         establishment: { connect: { id: establishment.id } },
         qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
+        ...(intent === "redirect" ? { redirectUrl: trimmedRedirect } : {}),
         ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
       },
     });
@@ -402,17 +364,18 @@ export async function POST(request: Request) {
     return { establishment, qrcode };
   });
 
-  return NextResponse.json({
-    intent,
-    establishment: {
-      id: establishment.id,
-      name: establishment.name,
-    },
-    qrcode: {
-      id: qrcode.id,
-      code: qrcode.code,
-      mode: qrcode.mode,
-      qrStyleTemplateId,
-    },
-  });
-}
+    return NextResponse.json({
+      intent,
+      establishment: {
+        id: establishment.id,
+        name: establishment.name,
+      },
+      qrcode: {
+        id: qrcode.id,
+        code: qrcode.code,
+        mode: qrcode.mode,
+        label: qrcode.label,
+        qrStyleTemplateId,
+      },
+    });
+  }

@@ -32,6 +32,7 @@ import {
   parseEstablishmentIndustry,
 } from "@/lib/establishment-industry";
 import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
+import { useConsentGate } from "@/components/scan/use-consent-gate";
 
 type FlowStep = "rating" | "action" | "convince" | "thanks";
 
@@ -73,7 +74,6 @@ export default function ScanFlow({
   const [comment, setComment] = useState("");
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
-  const [consentChecked, setConsentChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [skippedAction, setSkippedAction] = useState(false);
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
@@ -84,6 +84,8 @@ export default function ScanFlow({
   const policyUrl = guestPdPolicyUrl(pdConsent);
   const contactFilled = guestPhone.trim() !== "";
   const needsConsent = !isDemo && contactFilled;
+  const { consentChecked, setConsentChecked, consentHighlight, consentRef, ensureConsent } =
+    useConsentGate(needsConsent);
 
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
 
@@ -191,6 +193,7 @@ export default function ScanFlow({
   const handlePrimaryAction = async () => {
     if (!starStep) return;
     if (isComplaint) {
+      if (!ensureConsent()) return;
       await submitReview(true, comment);
       return;
     }
@@ -325,11 +328,13 @@ export default function ScanFlow({
             </div>
             {needsConsent && (
               <ConsentCheckbox
+                ref={consentRef}
                 checked={consentChecked}
                 onChange={setConsentChecked}
                 policyUrl={policyUrl}
                 isBg={isBg}
                 dark={dark}
+                highlight={consentHighlight}
               />
             )}
             <Button
@@ -337,7 +342,7 @@ export default function ScanFlow({
               className="w-full"
               style={!isBg ? primaryButtonStyle(false) : primaryButtonStyle(true)}
               onClick={handlePrimaryAction}
-              disabled={submitting || !comment || (needsConsent && !consentChecked)}
+              disabled={submitting || !comment}
             >
               {submitting ? "Отправляем..." : starStep.ctaLabel}
             </Button>

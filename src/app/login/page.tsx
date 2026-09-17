@@ -96,7 +96,10 @@ function LoginForm() {
         <div className="text-center space-y-1">
           <p className="text-sm text-gray-500">
             Нет аккаунта?{" "}
-            <a href="/register" className="text-indigo-600 hover:text-indigo-800 font-medium">
+            <a
+              href={searchParams.toString() ? `/register?${searchParams.toString()}` : "/register"}
+              className="text-indigo-600 hover:text-indigo-800 font-medium"
+            >
               Зарегистрироваться
             </a>
           </p>

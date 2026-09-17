@@ -47,17 +47,26 @@ export function parseSetupUtmContext(
 
 export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu";
 
+export function parseSetupIntentParam(raw: string | null | undefined): SetupIntentId | null {
+  const value = (raw ?? "").trim().toLowerCase();
+  if (value === "reviews" || value === "landing" || value === "redirect" || value === "menu") {
+    return value;
+  }
+  return null;
+}
+
 /**
- * No UTM skips the scenario picker: traffic source only prioritizes the
- * relevant card, so the owner keeps control over the first QR scenario.
+ * Auto-select only from explicit `intent` query (landing CTA).
+ * UTM still ranks cards via parseSetupUtmContext, but does not skip the picker.
  */
 export function resolveAutoSelectedIntent(
   utmCampaign: string | null,
-  utmContent: string | null
+  utmContent: string | null,
+  intentParam?: string | null
 ): SetupIntentId | null {
   void utmCampaign;
   void utmContent;
-  return null;
+  return parseSetupIntentParam(intentParam);
 }
 
 export function orderSetupIntents(

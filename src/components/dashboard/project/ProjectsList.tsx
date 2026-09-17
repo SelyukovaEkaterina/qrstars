@@ -297,11 +297,11 @@ function EstablishmentsPageContent() {
                   onChange={(e) =>
                     setForm({ ...form, name: e.target.value })
                   }
-                  placeholder="Кафе, салон, клиника, автосервис…"
+                  placeholder="Например: проект, кампания или заведение"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Адрес"
+                    label="Адрес (необязательно)"
                     value={form.address}
                     onChange={(e) =>
                       setForm({ ...form, address: e.target.value })
@@ -318,7 +318,7 @@ function EstablishmentsPageContent() {
                   />
                 </div>
                 <Input
-                  label="Ссылка на Яндекс.Карты"
+                  label="Ссылка на Яндекс.Карты (необязательно)"
                   type="url"
                   value={form.yandexMapsUrl}
                   onChange={(e) =>
@@ -328,7 +328,7 @@ function EstablishmentsPageContent() {
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="2GIS"
+                    label="2GIS (необязательно)"
                     type="url"
                     value={form.twoGisUrl}
                     onChange={(e) =>
@@ -337,7 +337,7 @@ function EstablishmentsPageContent() {
                     placeholder="https://2gis.ru/..."
                   />
                   <Input
-                    label="Авито"
+                    label="Авито (необязательно)"
                     type="url"
                     value={form.avitoUrl}
                     onChange={(e) =>

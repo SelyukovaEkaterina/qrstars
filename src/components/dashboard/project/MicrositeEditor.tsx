@@ -1823,7 +1823,7 @@ function MyPageDashboardContent() {
                   <p className="text-sm text-gray-500 mb-4">
                     {micrositeFrozen
                       ? "Откройте раздел, чтобы править содержимое. Включить, выключить или переставить блоки можно после продления PRO."
-                      : "Перемещайте, включайте и отключайте блоки. Гость увидит только включённые."}
+                      : "Перемещайте блоки. Галочка — отображать на странице; без неё раздел скрыт, но его можно открыть отдельным QR."}
                   </p>
                   <button
                     type="button"
@@ -2033,12 +2033,11 @@ function MyPageDashboardContent() {
                                 else if (isTyped) toggleTypedModuleLanding(key);
                               }}
                               className="w-4 h-4 text-indigo-600 rounded disabled:opacity-40"
+                              aria-label="Отображать на странице"
                               title={
                                 micrositeFrozen
                                   ? "Состав разделов микросайта доступен на тарифе PRO"
-                                  : isOn
-                                    ? "Скрыть на лендинге"
-                                    : "Показать на лендинге"
+                                  : "Отображать на странице"
                               }
                             />
                           </div>

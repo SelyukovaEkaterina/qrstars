@@ -19,6 +19,7 @@ import {
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
+import { useConsentGate } from "@/components/scan/use-consent-gate";
 import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
 
 interface MenuViewProps extends BrandThemeScanProps {
@@ -320,13 +321,14 @@ export default function MenuView({
   const [guestEmail, setGuestEmail] = useState("");
   const [guestAddress, setGuestAddress] = useState("");
   const [comment, setComment] = useState("");
-  const [consentChecked, setConsentChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   const contactFilled = guestPhone.trim() !== "" || guestEmail.trim() !== "";
   const needsConsent = !isDemo && contactFilled;
   const policyUrl = guestPdPolicyUrl(pdConsent);
+  const { consentChecked, setConsentChecked, consentHighlight, consentRef, ensureConsent } =
+    useConsentGate(needsConsent);
 
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
 
@@ -437,6 +439,7 @@ export default function MenuView({
       setSubmitError("Укажите адрес доставки");
       return;
     }
+    if (!ensureConsent()) return;
     if (isDemo) {
       setOrderStep("success");
       return;
@@ -937,10 +940,12 @@ export default function MenuView({
 
                   {needsConsent && (
                     <ConsentCheckbox
+                      ref={consentRef}
                       checked={consentChecked}
                       onChange={setConsentChecked}
                       policyUrl={policyUrl}
                       isBg={isBg}
+                      highlight={consentHighlight}
                     />
                   )}
 
@@ -979,7 +984,7 @@ export default function MenuView({
                   <>
                     <button
                       type="button"
-                      disabled={submitting || (needsConsent && !consentChecked)}
+                      disabled={submitting}
                       onClick={handleSubmitOrder}
                       className="w-full py-3 rounded-xl font-semibold transition-opacity disabled:opacity-60"
                       style={primaryButtonStyle()}

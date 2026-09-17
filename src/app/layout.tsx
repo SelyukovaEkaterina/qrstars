@@ -10,8 +10,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "QrStars.ru — Умный QR-отзывик",
-  description: "Перехватывайте негативные отзывы и получайте 5 звёзд от довольных клиентов",
+  title: "QrStars — платформа умных QR-кодов",
+  description:
+    "Платформа умных QR-кодов: отзывы, электронное меню, динамический редирект, визитки и аналитика в одном кабинете.",
   icons: {
     icon: "/favicon.ico",
   },

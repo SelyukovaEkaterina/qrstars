@@ -47,8 +47,10 @@ export function registrationUtmToSearchParams(utm: RegistrationUtm): URLSearchPa
 
 export function buildDashboardStartUrl(searchParams: URLSearchParams): string {
   const utm = parseRegistrationUtmFromSearchParams(searchParams);
-  if (!utm) return "/dashboard/start";
-  const qs = registrationUtmToSearchParams(utm).toString();
+  const params = utm ? registrationUtmToSearchParams(utm) : new URLSearchParams();
+  const intent = searchParams.get("intent")?.trim();
+  if (intent) params.set("intent", intent);
+  const qs = params.toString();
   return qs ? `/dashboard/start?${qs}` : "/dashboard/start";
 }
 
@@ -57,6 +59,19 @@ const DEFAULT_REGISTER_SUBTITLE =
 
 /** Подзаголовок на /register по UTM-кампании. */
 export function resolveRegistrationSubtitle(searchParams: URLSearchParams): string {
+  const intent = (searchParams.get("intent") ?? "").trim().toLowerCase();
+  if (intent === "redirect") {
+    return "Создайте динамический QR — ссылку можно менять после печати";
+  }
+  if (intent === "menu") {
+    return "Создайте электронное меню за 2 минуты";
+  }
+  if (intent === "reviews") {
+    return "Настройте QR для отзывов на Яндекс Картах";
+  }
+  if (intent === "landing") {
+    return "Соберите микросайт заведения на одном QR";
+  }
   const campaign = (searchParams.get("utm_campaign") ?? "").trim().toLowerCase();
   if (campaign.includes("menu") || campaign === "menu_search") {
     return "Создайте электронное меню за 2 минуты";

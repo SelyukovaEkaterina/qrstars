@@ -103,6 +103,8 @@ import {
   LayoutTemplate,
   Pencil,
   Crown,
+  Copy,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
@@ -191,6 +193,7 @@ export default function QRCodeSettingsPage() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
   const [qrImageUrl, setQrImageUrl] = useState("");
+  const [shortLinkCopied, setShortLinkCopied] = useState(false);
 
   const [qrData, setQrData] = useState<QRCodeData | null>(null);
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
@@ -329,12 +332,19 @@ export default function QRCodeSettingsPage() {
           }[];
           const sameEst = qrList.filter((q) => q.establishmentId === estFromUrl);
           const canUseLanding = qrListData.isPro || false;
+          const creatingWithoutProject = lockedProjectId === UNASSIGNED_PROJECT_ID;
           const preferReview =
-            !canUseLanding ||
-            sameEst.some((q) => q.mode === "REVIEW") ||
-            !!estMatch?.yandexMapsUrl;
+            !creatingWithoutProject &&
+            (
+              !canUseLanding ||
+              sameEst.some((q) => q.mode === "REVIEW") ||
+              !!estMatch?.yandexMapsUrl
+            );
           setEstablishmentId(estFromUrl);
-          if (preferReview) {
+          if (creatingWithoutProject) {
+            setRoutingGroup("REDIRECT");
+            setMode("REDIRECT");
+          } else if (preferReview) {
             setRoutingGroup("SECTION");
             setSectionTarget("REVIEW");
             setMode("REVIEW");
@@ -347,7 +357,7 @@ export default function QRCodeSettingsPage() {
             code: CREATE_PREVIEW_CODE,
             label: null,
             isActive: false,
-            mode: preferReview ? "REVIEW" : "LANDING",
+            mode: creatingWithoutProject ? "REDIRECT" : preferReview ? "REVIEW" : "LANDING",
             redirectUrl: null,
             customSectionId: null,
             scansCount: 0,
@@ -459,7 +469,15 @@ export default function QRCodeSettingsPage() {
         }
         setLoading(false);
       });
-  }, [status, router, qrId, generateQRImage, isCreateMode]);
+  }, [
+    status,
+    router,
+    qrId,
+    generateQRImage,
+    isCreateMode,
+    lockedEstId,
+    lockedProjectId,
+  ]);
 
   useEffect(() => {
     if (!qrData) return;
@@ -682,11 +700,6 @@ export default function QRCodeSettingsPage() {
       setError("Привяжите QR-код к проекту");
       return;
     }
-    if (isCreateMode && !establishmentId) {
-      setError("Создайте QR-код внутри проекта");
-      return;
-    }
-
     setSaving(true);
     setError("");
     setSaved(false);
@@ -926,6 +939,42 @@ export default function QRCodeSettingsPage() {
                     />
                   )}
                 </div>
+                {!isCreateMode && (
+                  <div className="mt-3 border-t border-gray-100 pt-3">
+                    <p className="mb-1 text-xs font-medium text-gray-500">Короткая ссылка</p>
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate rounded-lg bg-gray-50 px-3 py-2 font-mono text-xs text-gray-700">
+                        {scanUrlForCode(qrData.code)}
+                      </span>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const url = scanUrlForCode(qrData.code);
+                          const copyPromise = navigator.clipboard
+                            ? navigator.clipboard.writeText(url)
+                            : Promise.reject();
+                          copyPromise
+                            .then(() => {
+                              setShortLinkCopied(true);
+                              setTimeout(() => setShortLinkCopied(false), 2000);
+                            })
+                            .catch(() => {
+                              window.prompt("Скопируйте ссылку", url);
+                            });
+                        }}
+                      >
+                        {shortLinkCopied ? (
+                          <Check className="mr-1 h-4 w-4" />
+                        ) : (
+                          <Copy className="mr-1 h-4 w-4" />
+                        )}
+                        {shortLinkCopied ? "Скопировано" : "Копировать"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </Card>
 
               <Card>
@@ -968,10 +1017,10 @@ export default function QRCodeSettingsPage() {
                 </h3>
                 <div className="space-y-4">
                   <Input
-                    label="Метка"
+                    label="Название / метка"
                     value={label}
                     onChange={(e) => setLabel(e.target.value)}
-                    placeholder="Стол 1, Бар, Вход..."
+                    placeholder="Например: Сайт, Баннер, Telegram, Стол 1"
                   />
 
                   <div>
@@ -988,7 +1037,7 @@ export default function QRCodeSettingsPage() {
                       onChange={(e) => setEstablishmentId(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="">Не привязан (неактивный)</option>
+                      <option value="">Без проекта · Активен</option>
                       {establishments.map((est) => (
                         <option key={est.id} value={est.id}>
                           {est.name}
@@ -1222,20 +1271,11 @@ export default function QRCodeSettingsPage() {
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
                     >
                       <optgroup label="Основные разделы">
-                        {BUILTIN_SECTION_OPTIONS.map((opt) => {
-                          const moduleKey =
-                            opt.value === "BUSINESS_CARD"
-                              ? "businessCard"
-                              : opt.value === "TIPS"
-                                ? "tips"
-                                : opt.value.toLowerCase();
-                          const hiddenOnLanding = !pageModules[moduleKey as keyof PageModules];
-                          return (
+                        {BUILTIN_SECTION_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>
-                              {opt.label}{hiddenOnLanding ? " (скрыт на лендинге)" : ""}
+                              {opt.label}
                             </option>
-                          );
-                        })}
+                          ))}
                       </optgroup>
                       {customPages.length > 0 && (
                         <optgroup label="Кастомные страницы">
@@ -1243,7 +1283,6 @@ export default function QRCodeSettingsPage() {
                             <option key={cp.id} value={customSectionIdToTarget(cp.id)}>
                               {cp.menuItemLabel}
                               {cp.type === "FILE" ? " · файл" : ""}
-                              {!cp.enabled ? " (скрыта на лендинге)" : ""}
                             </option>
                           ))}
                         </optgroup>
@@ -1275,7 +1314,7 @@ export default function QRCodeSettingsPage() {
                     <p className="text-xs text-gray-400 mt-2">
                       Контент раздела — в{" "}
                       <Link href={lockedEstId || establishmentId ? projectPagePath(lockedEstId || establishmentId) : "/dashboard/projects"} className="text-indigo-600 hover:underline">
-                        Моей странице
+                        Микросайте
                       </Link>
                     </p>
                   </div>
@@ -1297,7 +1336,7 @@ export default function QRCodeSettingsPage() {
                     <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-sm text-amber-900">
                       Режим «Скачать файл» устарел. Создайте страницу типа «Скачать файл» в{" "}
                       <Link href={lockedEstId || establishmentId ? projectPagePath(lockedEstId || establishmentId) : "/dashboard/projects"} className="font-medium underline">
-                        Моей странице
+                        Микросайте
                       </Link>{" "}
                       и выберите её в «Быстрый доступ».
                     </div>

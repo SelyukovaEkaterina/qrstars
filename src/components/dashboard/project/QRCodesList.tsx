@@ -33,7 +33,7 @@ import {
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
 import { pickAutoLinkQrId } from "@/lib/dashboard-onboarding";
-import { scanUrlForCode } from "@/lib/utils";
+import { pluralize, scanUrlForCode } from "@/lib/utils";
 import type { QrStyleTemplateSource } from "@/lib/qr-code-templates";
 
 interface QRCodeItem {
@@ -306,11 +306,11 @@ function QRCodesPageContent() {
 
   const openCreateQr = (establishmentId: string) => {
     setError("");
-    if (!establishmentId || isUnassignedProjectId(establishmentId)) {
-      setError("Создайте QR-код внутри проекта");
-      return;
-    }
-    router.push(projectQrNewPath(establishmentId));
+    router.push(
+      establishmentId
+        ? projectQrNewPath(establishmentId)
+        : "/dashboard/qrcodes/new",
+    );
   };
 
   if (loading) {
@@ -335,17 +335,19 @@ function QRCodesPageContent() {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              {lockedEstId && (
-                <Button
-                  onClick={() => {
-                    setError("");
-                    router.push(projectQrNewPath(lockedEstId));
-                  }}
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Добавить QR-код
-                </Button>
-              )}
+              <Button
+                onClick={() => {
+                  setError("");
+                  router.push(
+                    lockedProjectId
+                      ? projectQrNewPath(lockedProjectId)
+                      : "/dashboard/qrcodes/new",
+                  );
+                }}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Добавить QR-код
+              </Button>
             </div>
           </div>
 
@@ -375,7 +377,7 @@ function QRCodesPageContent() {
           {!lockedProjectId && showCreateEst && (
             <Card>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold text-gray-900">Новое заведение</h3>
+                <h3 className="font-semibold text-gray-900">Новый проект</h3>
                 <button
                   onClick={() => {
                     setShowCreateEst(false);
@@ -396,18 +398,18 @@ function QRCodesPageContent() {
                   <div className="bg-indigo-50 text-indigo-800 px-4 py-3 rounded-lg text-sm">
                     Найден непривязанный QR-код{" "}
                     <span className="font-mono">{unlinkedQrcodes[0].code}</span> — после
-                    создания заведения он будет привязан автоматически
+                    создания проекта он будет привязан автоматически
                   </div>
                 )}
                 <Input
-                  label="Название заведения *"
+                  label="Название проекта *"
                   value={estForm.name}
                   onChange={(e) => setEstForm({ ...estForm, name: e.target.value })}
-                  placeholder="Кафе, салон, клиника, автосервис…"
+                  placeholder="Например: проект, кампания или заведение"
                 />
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Input
-                    label="Адрес"
+                    label="Адрес (необязательно)"
                     value={estForm.address}
                     onChange={(e) => setEstForm({ ...estForm, address: e.target.value })}
                     placeholder="г. Москва, ул. Примерная, 1"
@@ -420,7 +422,7 @@ function QRCodesPageContent() {
                   />
                 </div>
                 <Input
-                  label="Ссылка на Яндекс.Карты"
+                  label="Ссылка на Яндекс.Карты (необязательно)"
                   type="url"
                   value={estForm.yandexMapsUrl}
                   onChange={(e) =>
@@ -579,7 +581,7 @@ function QRCodesPageContent() {
                       <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1">
                         <Store className="w-3 h-3 shrink-0" />
                         <span className="truncate">
-                          {qr.establishment?.name || "Не привязан"}
+                          {qr.establishment?.name || "Без проекта"}
                         </span>
                       </p>
                     </div>
@@ -608,7 +610,7 @@ function QRCodesPageContent() {
                         )}
                       </Badge>
                       <span className="text-xs text-gray-400">
-                        {qr.scansCount} сканов
+                        {qr.scansCount} {pluralize(qr.scansCount, "скан", "скана", "сканов")}
                       </span>
                     </div>
                     <div className="space-y-2 pt-1">

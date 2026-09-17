@@ -67,7 +67,11 @@ class TestAdminFunnel:
         )
         qs = session.post(
             f"{base_url}/api/setup/quick-start",
-            json={"intent": "redirect", "redirectUrl": "https://example.com/funnel"},
+            json={
+                "intent": "redirect",
+                "name": "Funnel campaign",
+                "redirectUrl": "https://example.com/funnel",
+            },
         )
         assert qs.status_code == 200, qs.text
         qr_id = qs.json()["qrcode"]["id"]

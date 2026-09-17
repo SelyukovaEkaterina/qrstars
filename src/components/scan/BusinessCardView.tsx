@@ -14,6 +14,7 @@ import {
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
+import { useConsentGate } from "@/components/scan/use-consent-gate";
 import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
 
 interface SocialLink {
@@ -92,13 +93,14 @@ export default function BusinessCardView({
   const [contactOpen, setContactOpen] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [message, setMessage] = useState("");
-  const [consentChecked, setConsentChecked] = useState(false);
   const [sending, setSending] = useState(false);
   const [contactError, setContactError] = useState("");
   const [contactSuccess, setContactSuccess] = useState(false);
 
   const needsConsent = !!pdConsent?.ready;
   const policyUrl = guestPdPolicyUrl(pdConsent);
+  const { consentChecked, setConsentChecked, consentHighlight, consentRef, ensureConsent } =
+    useConsentGate(needsConsent);
 
   const initials = card.fullName
     .split(" ")
@@ -118,6 +120,7 @@ export default function BusinessCardView({
       setContactError("Напишите сообщение (минимум 2 символа)");
       return;
     }
+    if (!ensureConsent()) return;
 
     setSending(true);
     setContactError("");
@@ -363,11 +366,13 @@ export default function BusinessCardView({
                   </div>
                   {needsConsent && (
                     <ConsentCheckbox
+                      ref={consentRef}
                       checked={consentChecked}
                       onChange={setConsentChecked}
                       policyUrl={policyUrl}
                       isBg={isBg}
                       dark={dark}
+                      highlight={consentHighlight}
                     />
                   )}
                   {contactError && <p className="text-sm text-red-600">{contactError}</p>}
@@ -375,7 +380,7 @@ export default function BusinessCardView({
                     <Button
                       className="flex-1"
                       onClick={handleSendContact}
-                      disabled={sending || (needsConsent && !consentChecked)}
+                      disabled={sending}
                       style={{ backgroundColor: accent }}
                     >
                       {sending ? (

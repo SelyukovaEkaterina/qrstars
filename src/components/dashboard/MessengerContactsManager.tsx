@@ -366,14 +366,9 @@ export default function MessengerContactsManager({
       <h3 className="font-semibold text-gray-900 mb-1">Каналы для уведомлений</h3>
       <p className="text-sm text-gray-500 mb-4">
         Email аккаунта подключается автоматически. Telegram и MAX — один раз на аккаунт
-        {establishmentName ? (
-          <>
-            {" "}
-            ; для заведения «{establishmentName}» выберите типы уведомлений
-          </>
-        ) : (
-          "; выберите типы уведомлений для заведения"
-        )}
+        {establishmentName
+          ? `; для заведения «${establishmentName}» выберите типы уведомлений`
+          : "; выберите типы уведомлений для заведения"}
         .
       </p>
 

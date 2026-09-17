@@ -169,7 +169,7 @@ export default function EstablishmentSettingsPage() {
                 label="Название проекта"
                 value={data.name}
                 onChange={(e) => updateField("name", e.target.value)}
-                placeholder="Кафе, салон, клиника, автосервис…"
+                placeholder="Например: проект, кампания или заведение"
               />
               <label className="block space-y-1">
                 <span className="block text-sm font-medium text-gray-700">Отрасль</span>
@@ -187,7 +187,7 @@ export default function EstablishmentSettingsPage() {
                 </select>
               </label>
               <Input
-                label="Адрес"
+                label="Адрес (необязательно)"
                 value={data.address || ""}
                 onChange={(e) => updateField("address", e.target.value)}
                 placeholder="г. Москва, ул. Примерная, 42"
@@ -247,7 +247,7 @@ export default function EstablishmentSettingsPage() {
             </p>
             <div className="space-y-4">
               <YandexMapsOrgConfirm
-                label="Яндекс.Карты"
+                label="Яндекс.Карты (необязательно)"
                 value={data.yandexMapsUrl || ""}
                 onChange={(url) => updateField("yandexMapsUrl", url)}
                 onConfirmedChange={setYandexConfirmedUrl}

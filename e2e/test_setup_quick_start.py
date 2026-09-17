@@ -408,7 +408,7 @@ def test_quick_start_menu_creates_menu_mode_qr_with_items(base_url):
     assert onboarding.json().get("onboardingCompleted") is True
 
 
-def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
+def test_quick_start_redirect_creates_project(base_url):
     email = unique_email("qs4")
     password = "secure123"
     req_lib.post(
@@ -418,22 +418,40 @@ def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
     session = req_lib.Session()
     login(session, base_url, email, password)
 
-    r = session.post(
+    missing_name = session.post(
         f"{base_url}/api/setup/quick-start",
         json={
             "intent": "redirect",
             "redirectUrl": "https://example.com/promo",
         },
     )
+    assert missing_name.status_code == 400, missing_name.text
+
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "redirect",
+            "name": "Промо-кампания",
+            "redirectUrl": "https://example.com/promo",
+            "qrLabel": "Промо-баннер",
+        },
+    )
     assert r.status_code == 200, r.text
     data = r.json()
     assert data["intent"] == "redirect"
     assert data["qrcode"]["mode"] == "REDIRECT"
-    assert "establishment" not in data
+    assert data["qrcode"]["label"] == "Промо-баннер"
+    assert data["establishment"]["name"] == "Промо-кампания"
 
     ests = session.get(f"{base_url}/api/establishments")
     assert ests.status_code == 200
-    assert len(ests.json().get("establishments", [])) == 0
+    assert len(ests.json().get("establishments", [])) == 1
+
+    qrs = session.get(f"{base_url}/api/qrcodes")
+    assert qrs.status_code == 200
+    created = next(q for q in qrs.json().get("qrcodes", []) if q["id"] == data["qrcode"]["id"])
+    assert created["establishmentId"] == data["establishment"]["id"]
+    assert created["redirectUrl"] == "https://example.com/promo"
 
     status = session.get(f"{base_url}/api/setup/status")
     assert status.status_code == 200
@@ -441,7 +459,7 @@ def test_quick_start_redirect_without_establishment_skips_setup_guide(base_url):
 
     onboarding = session.get(f"{base_url}/api/user/onboarding")
     assert onboarding.status_code == 200
-    assert onboarding.json().get("onboardingCompleted") is False
+    assert onboarding.json().get("onboardingCompleted") is True
 
 
 def test_quick_start_redirect_rejects_invalid_protocol(base_url):

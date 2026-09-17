@@ -52,7 +52,11 @@ def test_events_stores_setup_funnel(base_url):
 
     qs = session.post(
         f"{base_url}/api/setup/quick-start",
-        json={"intent": "redirect", "redirectUrl": "https://example.com/promo"},
+        json={
+            "intent": "redirect",
+            "name": "Promo campaign",
+            "redirectUrl": "https://example.com/promo",
+        },
     )
     assert qs.status_code == 200, qs.text
     qr_id = qs.json()["qrcode"]["id"]

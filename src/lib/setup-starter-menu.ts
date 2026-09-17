@@ -37,7 +37,7 @@ export const STARTER_MENU_ITEMS = [
 export function starterMenuCreateInput(establishmentId: string, establishmentName: string) {
   return {
     title: `Меню «${establishmentName}»`,
-    description: "Отредактируйте позиции и цены в разделе «Моя страница».",
+    description: "Отредактируйте позиции и цены в разделе «Микросайт».",
     estId: establishmentId,
     items: {
       create: STARTER_MENU_ITEMS.map((item) => ({

@@ -7,12 +7,11 @@ import {
 } from "./setup-utm-intent";
 
 describe("resolveAutoSelectedIntent", () => {
-  it("does not auto-select a scenario for UTM traffic", () => {
-    assert.equal(resolveAutoSelectedIntent("menu_search", null), null);
-    assert.equal(resolveAutoSelectedIntent(null, "menu_search"), null);
-    assert.equal(resolveAutoSelectedIntent("my_menu_promo", null), null);
-    assert.equal(resolveAutoSelectedIntent("reviews_search", null), null);
-    assert.equal(resolveAutoSelectedIntent(null, null), null);
+  it("auto-selects only from explicit intent query", () => {
+    assert.equal(resolveAutoSelectedIntent("menu_search", null, "redirect"), "redirect");
+    assert.equal(resolveAutoSelectedIntent(null, null, "menu"), "menu");
+    assert.equal(resolveAutoSelectedIntent("reviews_search", null, "reviews"), "reviews");
+    assert.equal(resolveAutoSelectedIntent(null, null, "unknown"), null);
   });
 });
 

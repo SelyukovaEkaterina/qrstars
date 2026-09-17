@@ -12,6 +12,7 @@ import {
 import type { FormFieldType } from "@/lib/form-config";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
 import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
+import { useConsentGate } from "@/components/scan/use-consent-gate";
 
 export interface FormViewField {
   id: string;
@@ -48,7 +49,6 @@ const inputClass =
 export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brandColor, pageAppearance, pdConsent }: FormViewProps) {
   const { theme } = useBrandThemeScan({ brandColor, pageAppearance });
   const [values, setValues] = useState<Record<string, unknown>>({});
-  const [consentChecked, setConsentChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [done, setDone] = useState(false);
@@ -60,6 +60,8 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
   });
   const needsConsent = !isDemo && sensitiveFilled;
   const policyUrl = guestPdPolicyUrl(pdConsent);
+  const { consentChecked, setConsentChecked, consentHighlight, consentRef, ensureConsent } =
+    useConsentGate(needsConsent);
 
   const setVal = (id: string, v: unknown) => setValues((prev) => ({ ...prev, [id]: v }));
 
@@ -76,6 +78,8 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
         }
       }
     }
+
+    if (!ensureConsent()) return;
 
     if (isDemo) {
       setDone(true);
@@ -153,9 +157,11 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
 
         {needsConsent && (
           <ConsentCheckbox
+            ref={consentRef}
             checked={consentChecked}
             onChange={setConsentChecked}
             policyUrl={policyUrl}
+            highlight={consentHighlight}
           />
         )}
 
@@ -165,7 +171,7 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
 
         <button
           type="submit"
-          disabled={submitting || (needsConsent && !consentChecked)}
+          disabled={submitting}
           className="w-full py-3 rounded-xl font-semibold text-white shadow-sm transition-opacity disabled:opacity-60"
           style={{ backgroundColor: "var(--brand-600)" }}
         >
