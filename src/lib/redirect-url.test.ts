@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { toHeaderSafeUrl } from "./redirect-url";
+import { findRedirectUrlProblem, toHeaderSafeUrl } from "./redirect-url";
 
 describe("toHeaderSafeUrl", () => {
   it("percent-encodes cyrillic query values", () => {
@@ -49,5 +49,40 @@ describe("toHeaderSafeUrl", () => {
     assert.equal(toHeaderSafeUrl(null), null);
     assert.equal(toHeaderSafeUrl("   "), null);
     assert.equal(toHeaderSafeUrl("http://"), null);
+  });
+});
+
+describe("findRedirectUrlProblem", () => {
+  it("accepts ordinary links", () => {
+    assert.equal(findRedirectUrlProblem("https://yandex.ru/maps/org/foo/123/reviews/"), null);
+    assert.equal(findRedirectUrlProblem("example.com/page"), null);
+    assert.equal(findRedirectUrlProblem("https://app.qrstars.ru/q/bwitus"), null);
+    assert.equal(findRedirectUrlProblem("tel:+79990000000"), null);
+    assert.equal(findRedirectUrlProblem(""), null);
+  });
+
+  it("allows nested URLs in query string", () => {
+    assert.equal(
+      findRedirectUrlProblem("https://away.vk.com/away.php?to=https://example.com/a/b"),
+      null
+    );
+  });
+
+  it("rejects browser-local and script schemes", () => {
+    assert.match(
+      findRedirectUrlProblem("blob:https://alice.yandex.ru/f0320885-d320-4719") ?? "",
+      /blob:/
+    );
+    assert.ok(findRedirectUrlProblem("javascript:alert(1)"));
+    assert.ok(findRedirectUrlProblem("data:text/html,hi"));
+  });
+
+  it("detects a link pasted twice", () => {
+    assert.ok(findRedirectUrlProblem("https://app.qrstars.ru/q/nu4yx8tars.ru/q/nu4yx8"));
+    assert.ok(
+      findRedirectUrlProblem(
+        "https://alice.yandex.ru/f0320885blob:https://alice.yandex.ru/f0320885-d320-4719-ade8"
+      )
+    );
   });
 });

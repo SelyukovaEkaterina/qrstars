@@ -29,6 +29,7 @@ import {
 } from "@/lib/establishment-industry";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
+import { findRedirectUrlProblem } from "@/lib/redirect-url";
 
 function resolveYandexMapsUrl(raw: string | undefined): {
   normalized: string | null;
@@ -110,6 +111,10 @@ export async function POST(request: Request) {
     }
     if (!parseHttpUrl(trimmedRedirect)) {
       return NextResponse.json({ error: "Некорректная ссылка для перенаправления" }, { status: 400 });
+    }
+    const redirectProblem = findRedirectUrlProblem(trimmedRedirect);
+    if (redirectProblem) {
+      return NextResponse.json({ error: redirectProblem }, { status: 400 });
     }
   }
 
