@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import {
-  getOrCreateOpenTicket,
+  findOpenTicket,
   markSupportMessagesRead,
   sendUserSupportMessage,
   uploadUserSupportAttachment,
@@ -23,17 +23,20 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const ticket = await getOrCreateOpenTicket(userId);
-    await markSupportMessagesRead(userId);
+    // Тикет создаётся первым сообщением (sendUserSupportMessage), а не открытием чата.
+    const ticket = await findOpenTicket(userId);
+    if (ticket) await markSupportMessagesRead(userId);
 
     return NextResponse.json({
-      ticket: {
-        id: ticket.id,
-        status: ticket.status,
-        createdAt: ticket.createdAt,
-        updatedAt: ticket.updatedAt,
-      },
-      messages: ticket.messages.map(formatSupportMessageResponse),
+      ticket: ticket
+        ? {
+            id: ticket.id,
+            status: ticket.status,
+            createdAt: ticket.createdAt,
+            updatedAt: ticket.updatedAt,
+          }
+        : null,
+      messages: ticket ? ticket.messages.map(formatSupportMessageResponse) : [],
     });
   } catch (e) {
     return apiErrorResponse(e, "Не удалось загрузить чат поддержки");

@@ -27,6 +27,18 @@ export function formatSupportMessageResponse(m: {
   };
 }
 
+/** Открытый тикет без создания: просмотр чата не должен плодить пустые обращения. */
+export async function findOpenTicket(userId: string) {
+  return prisma.supportTicket.findFirst({
+    where: { userId, status: "OPEN" },
+    orderBy: { updatedAt: "desc" },
+    include: {
+      user: { select: { id: true, email: true, name: true } },
+      messages: { orderBy: { createdAt: "asc" } },
+    },
+  });
+}
+
 export async function getOrCreateOpenTicket(userId: string) {
   const existing = await prisma.supportTicket.findFirst({
     where: { userId, status: "OPEN" },
