@@ -6,6 +6,10 @@ import {
   YandexAuthError,
 } from "@/lib/yandex-auth";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import {
+  readOAuthRegistrationAttribution,
+  REGISTRATION_UTM_COOKIE,
+} from "@/lib/registration-utm";
 
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const YANDEX_STATE_COOKIE = "qrstars_yandex_oauth_state";
@@ -85,7 +89,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const user = await authenticateWithYandex(code);
+    const user = await authenticateWithYandex(
+      code,
+      readOAuthRegistrationAttribution((name) => request.cookies.get(name)?.value)
+    );
     const sessionToken = await encode({
       secret,
       maxAge: SESSION_MAX_AGE,
@@ -111,6 +118,7 @@ export async function GET(request: NextRequest) {
       path: "/",
       maxAge: SESSION_MAX_AGE,
     });
+    response.cookies.set({ name: REGISTRATION_UTM_COOKIE, value: "", path: "/", maxAge: 0 });
     return clearStateCookie(response);
   } catch (error) {
     if (error instanceof YandexAuthError) {

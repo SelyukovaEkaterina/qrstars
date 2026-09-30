@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import type { OAuthRegistrationAttribution } from "@/lib/registration-utm";
 import prisma from "@/lib/prisma";
 import {
   acceptPendingInvitesForUser,
@@ -154,11 +155,14 @@ async function getYandexProfile(code: string): Promise<{
   return { yandexId: profile.id, email, name };
 }
 
-async function findOrCreateYandexUser(profile: {
-  yandexId: string;
-  email: string;
-  name: string | null;
-}): Promise<{ user: YandexLoginUser; created: boolean }> {
+async function findOrCreateYandexUser(
+  profile: {
+    yandexId: string;
+    email: string;
+    name: string | null;
+  },
+  attribution?: OAuthRegistrationAttribution
+): Promise<{ user: YandexLoginUser; created: boolean }> {
   const byYandexId = await prisma.user.findUnique({
     where: { yandexId: profile.yandexId },
   });
@@ -201,6 +205,10 @@ async function findOrCreateYandexUser(profile: {
         name: profile.name,
         hashedPassword: null,
         registrationSource: "yandex_id",
+        ...(attribution?.registrationUtm
+          ? { registrationUtm: attribution.registrationUtm as Prisma.InputJsonValue }
+          : {}),
+        ...(attribution?.metrikaClientId ? { metrikaClientId: attribution.metrikaClientId } : {}),
       },
     });
     return { user, created: true };
@@ -246,10 +254,11 @@ async function afterYandexRegistration(user: YandexLoginUser): Promise<void> {
 }
 
 export async function authenticateWithYandex(
-  code: string
+  code: string,
+  attribution?: OAuthRegistrationAttribution
 ): Promise<YandexLoginUser> {
   const profile = await getYandexProfile(code);
-  const { user, created } = await findOrCreateYandexUser(profile);
+  const { user, created } = await findOrCreateYandexUser(profile, attribution);
   if (created) await afterYandexRegistration(user);
   return user;
 }

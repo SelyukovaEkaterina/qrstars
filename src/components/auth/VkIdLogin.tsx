@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as VKID from "@vkid/sdk";
 import type { AuthResponse } from "@vkid/sdk";
+import { rememberRegistrationUtm } from "@/lib/registration-utm";
 
 const VK_PKCE_STORAGE_KEY = "qrstars_vk_code_verifier";
 const VK_STATE_STORAGE_KEY = "qrstars_vk_state";
@@ -54,6 +55,10 @@ export default function VkIdLogin() {
     VK_IS_CONFIGURED ? "" : "Вход через VK пока не настроен"
   );
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    rememberRegistrationUtm(window.location.search);
+  }, []);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;

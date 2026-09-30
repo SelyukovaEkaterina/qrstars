@@ -1,7 +1,12 @@
 import { encode } from "next-auth/jwt";
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { authenticateWithVk, VkAuthError } from "@/lib/vk-auth";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import {
+  readOAuthRegistrationAttribution,
+  REGISTRATION_UTM_COOKIE,
+} from "@/lib/registration-utm";
 
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 
@@ -92,12 +97,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const user = await authenticateWithVk({
-      code,
-      deviceId,
-      codeVerifier,
-      state,
-    });
+    const cookieStore = await cookies();
+    const user = await authenticateWithVk(
+      { code, deviceId, codeVerifier, state },
+      readOAuthRegistrationAttribution((name) => cookieStore.get(name)?.value)
+    );
     const sessionToken = await encode({
       secret,
       maxAge: SESSION_MAX_AGE,
@@ -123,6 +127,7 @@ export async function POST(request: Request) {
       path: "/",
       maxAge: SESSION_MAX_AGE,
     });
+    response.cookies.set({ name: REGISTRATION_UTM_COOKIE, value: "", path: "/", maxAge: 0 });
     return response;
   } catch (error) {
     if (error instanceof VkAuthError) {

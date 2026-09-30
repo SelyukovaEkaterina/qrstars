@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import type { OAuthRegistrationAttribution } from "@/lib/registration-utm";
 import prisma from "@/lib/prisma";
 import {
   acceptPendingInvitesForUser,
@@ -161,11 +162,14 @@ async function getVkProfile(input: VkLoginInput): Promise<{
   return { vkId: String(user.user_id), email, name };
 }
 
-async function findOrCreateVkUser(profile: {
-  vkId: string;
-  email: string;
-  name: string | null;
-}): Promise<{ user: VkLoginUser; created: boolean }> {
+async function findOrCreateVkUser(
+  profile: {
+    vkId: string;
+    email: string;
+    name: string | null;
+  },
+  attribution?: OAuthRegistrationAttribution
+): Promise<{ user: VkLoginUser; created: boolean }> {
   const byVkId = await prisma.user.findUnique({ where: { vkId: profile.vkId } });
   if (byVkId) {
     const emailOwner =
@@ -204,6 +208,10 @@ async function findOrCreateVkUser(profile: {
         name: profile.name,
         hashedPassword: null,
         registrationSource: "vk_id",
+        ...(attribution?.registrationUtm
+          ? { registrationUtm: attribution.registrationUtm as Prisma.InputJsonValue }
+          : {}),
+        ...(attribution?.metrikaClientId ? { metrikaClientId: attribution.metrikaClientId } : {}),
       },
     });
     return { user, created: true };
@@ -243,9 +251,12 @@ async function afterVkRegistration(user: VkLoginUser): Promise<void> {
   );
 }
 
-export async function authenticateWithVk(input: VkLoginInput): Promise<VkLoginUser> {
+export async function authenticateWithVk(
+  input: VkLoginInput,
+  attribution?: OAuthRegistrationAttribution
+): Promise<VkLoginUser> {
   const profile = await getVkProfile(input);
-  const { user, created } = await findOrCreateVkUser(profile);
+  const { user, created } = await findOrCreateVkUser(profile, attribution);
   if (created) await afterVkRegistration(user);
   return user;
 }

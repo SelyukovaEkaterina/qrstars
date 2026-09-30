@@ -30,6 +30,61 @@ export function parseRegistrationUtmFromSearchParams(
   return parseRegistrationUtm(flat);
 }
 
+/**
+ * OAuth (VK ID, Яндекс ID) уводит пользователя с /register на чужой домен, и UTM
+ * из адреса теряются. Перед уходом страница кладёт их в эту cookie, а серверный
+ * обработчик входа читает её при создании пользователя.
+ */
+export const REGISTRATION_UTM_COOKIE = "qrstars_reg_utm";
+const REGISTRATION_UTM_COOKIE_MAX_AGE = 24 * 60 * 60;
+
+export function parseRegistrationUtmCookie(raw: string | null | undefined): RegistrationUtm | null {
+  if (!raw) return null;
+  for (const candidate of [raw, safeDecode(raw)]) {
+    if (!candidate) continue;
+    try {
+      return parseRegistrationUtm(JSON.parse(candidate));
+    } catch {
+      // Пробуем следующий вариант декодирования.
+    }
+  }
+  return null;
+}
+
+function safeDecode(value: string): string | null {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return null;
+  }
+}
+
+/** Браузер: запомнить UTM текущего адреса до перехода в OAuth. Пустой адрес cookie не трогает. */
+export function rememberRegistrationUtm(search: string): void {
+  if (typeof document === "undefined") return;
+  const utm = parseRegistrationUtmFromSearchParams(new URLSearchParams(search));
+  if (!utm) return;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie =
+    `${REGISTRATION_UTM_COOKIE}=${encodeURIComponent(JSON.stringify(utm))}` +
+    `; Path=/; Max-Age=${REGISTRATION_UTM_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+}
+
+/** Атрибуция нового OAuth-пользователя: UTM из cookie и Metrika ClientID из `_ym_uid`. */
+export type OAuthRegistrationAttribution = {
+  registrationUtm: RegistrationUtm | null;
+  metrikaClientId: string | null;
+};
+
+export function readOAuthRegistrationAttribution(
+  getCookie: (name: string) => string | undefined
+): OAuthRegistrationAttribution {
+  return {
+    registrationUtm: parseRegistrationUtmCookie(getCookie(REGISTRATION_UTM_COOKIE)),
+    metrikaClientId: normalizeMetrikaClientId(getCookie("_ym_uid")),
+  };
+}
+
 export function normalizeMetrikaClientId(raw: unknown): string | null {
   if (typeof raw !== "string") return null;
   const value = raw.trim().slice(0, 64);

@@ -1,4 +1,13 @@
+"use client";
+
+import { useEffect } from "react";
+import { rememberRegistrationUtm } from "@/lib/registration-utm";
+
 export default function YandexIdLogin() {
+  useEffect(() => {
+    rememberRegistrationUtm(window.location.search);
+  }, []);
+
   return (
     <a
       href="/auth/yandex"
