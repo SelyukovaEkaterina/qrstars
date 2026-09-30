@@ -21,15 +21,15 @@ export interface PlanDefinition {
 
 export const PLAN_PRICING = {
   PRO: {
-    monthlyRub: 390,
-    yearlyRub: 3900,
-    yearlyNote: "≈325 ₽/мес — 2 месяца в подарок",
+    monthlyRub: 270,
+    yearlyRub: 2700,
+    yearlyNote: "≈225 ₽/мес — 2 месяца в подарок",
   },
   NETWORK: {
-    monthlyRub: 890,
-    yearlyRub: 8900,
-    yearlyNote: "≈742 ₽/мес за базу — 2 месяца в подарок",
-    extraEstablishmentMonthlyRub: 210,
+    monthlyRub: 600,
+    yearlyRub: 6000,
+    yearlyNote: "≈500 ₽/мес за базу — 2 месяца в подарок",
+    extraEstablishmentMonthlyRub: 150,
     includedEstablishments: 2,
   },
 } as const;
@@ -82,10 +82,10 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       yearlyNote: PLAN_PRICING.NETWORK.yearlyNote,
     },
     establishmentLimit: null,
-    establishmentLimitNote: "2 заведения в базе, далее +210 ₽/мес за точку",
+    establishmentLimitNote: `2 заведения в базе, далее +${PLAN_PRICING.NETWORK.extraEstablishmentMonthlyRub} ₽/мес за точку`,
     features: [
       "Всё из PRO для каждой точки",
-      "2 заведения включено, далее +210 ₽/мес за точку",
+      `2 заведения включено, далее +${PLAN_PRICING.NETWORK.extraEstablishmentMonthlyRub} ₽/мес за точку`,
       "Сводный дашборд сети: рейтинг и динамика по точкам",
       "Роли доступа: управляющий видит свою точку",
       "White Label на уровне бренда сети",
