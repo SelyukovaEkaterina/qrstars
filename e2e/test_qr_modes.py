@@ -3,7 +3,13 @@ import time
 import pytest
 import requests
 
-from conftest import find_qrcode_by_code, upload_test_file_asset, unique_code
+from conftest import (
+    find_qrcode_by_code,
+    reset_user_to_free,
+    set_user_plan,
+    upload_test_file_asset,
+    unique_code,
+)
 
 
 # --- QR Code Mode CRUD ---
@@ -218,24 +224,100 @@ def test_create_qrcode_redirect_url_with_cyrillic_is_encoded(
     assert "%D0%9B%D0%BE%D0%BC%D0%B1%D0%B0%D1%80%D0%B4" in saved
 
 
-def test_scan_redirect_mode_with_cyrillic_url(base_url, owner_session, owner_establishment_id):
+def test_scan_redirect_mode_with_cyrillic_url(
+    base_url, owner_session, admin_session, owner_establishment_id
+):
     """Location допускает только ASCII — кириллица в URL не должна ломать /q/[code]."""
-    code = unique_code("scnredcyr")
-    owner_session.post(
+    set_user_plan(admin_session, base_url, "PRO")
+    try:
+        code = unique_code("scnredcyr")
+        owner_session.post(
+            f"{base_url}/api/qrcodes",
+            json={
+                "code": code,
+                "establishmentId": owner_establishment_id,
+                "mode": "REDIRECT",
+                "redirectUrl": "https://yandex.ru/maps/org/bar/2/reviews/?text=Кофейня Уют",
+            },
+        )
+
+        r = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
+        assert r.status_code in (302, 303, 307, 308), f"{r.status_code} {r.text[:300]}"
+        location = r.headers["location"]
+        assert location.isascii(), location
+        assert location.startswith("https://yandex.ru/maps/org/bar/2/reviews/")
+    finally:
+        reset_user_to_free(admin_session, base_url)
+
+
+# --- Scan: REDIRECT interstitial (FREE) ---
+
+
+def _create_redirect_qr(owner_session, base_url, establishment_id, target):
+    code = unique_code("scnint")
+    r = owner_session.post(
         f"{base_url}/api/qrcodes",
         json={
             "code": code,
-            "establishmentId": owner_establishment_id,
+            "establishmentId": establishment_id,
             "mode": "REDIRECT",
-            "redirectUrl": "https://yandex.ru/maps/org/bar/2/reviews/?text=Кофейня Уют",
+            "redirectUrl": target,
         },
+    )
+    assert r.status_code == 200, r.text
+    return code
+
+
+def test_free_redirect_shows_qrstars_interstitial(
+    base_url, owner_session, admin_session, owner_establishment_id
+):
+    reset_user_to_free(admin_session, base_url)
+    code = _create_redirect_qr(
+        owner_session, base_url, owner_establishment_id, "https://example.com/free-target"
     )
 
     r = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
-    assert r.status_code in (302, 303, 307, 308), f"{r.status_code} {r.text[:300]}"
-    location = r.headers["location"]
-    assert location.isascii(), location
-    assert location.startswith("https://yandex.ru/maps/org/bar/2/reviews/")
+    assert r.status_code == 200, f"{r.status_code} {r.text[:300]}"
+    html = r.text
+    assert "https://example.com/free-target" in html
+    assert "Перейти сейчас" in html
+    assert "utm_source=qr_interstitial" in html
+    assert 'http-equiv="refresh"' in html.lower()
+
+
+def test_free_redirect_interstitial_counts_scan(
+    base_url, owner_session, admin_session, owner_establishment_id
+):
+    reset_user_to_free(admin_session, base_url)
+    code = _create_redirect_qr(
+        owner_session, base_url, owner_establishment_id, "https://example.com/counted"
+    )
+    requests.get(f"{base_url}/q/{code}", allow_redirects=False)
+
+    deadline = time.time() + 15
+    scans = 0
+    while time.time() < deadline:
+        qr = find_qrcode_by_code(owner_session, base_url, code)
+        scans = (qr or {}).get("scansCount", 0)
+        if scans >= 1:
+            break
+        time.sleep(1)
+    assert scans >= 1
+
+
+def test_pro_redirect_skips_interstitial(
+    base_url, owner_session, admin_session, owner_establishment_id
+):
+    set_user_plan(admin_session, base_url, "PRO")
+    try:
+        code = _create_redirect_qr(
+            owner_session, base_url, owner_establishment_id, "https://example.com/pro-target"
+        )
+        r = requests.get(f"{base_url}/q/{code}", allow_redirects=False)
+        assert r.status_code in (302, 303, 307, 308), f"{r.status_code} {r.text[:300]}"
+        assert r.headers["location"] == "https://example.com/pro-target"
+    finally:
+        reset_user_to_free(admin_session, base_url)
 
 
 def test_scan_redirect_mode_without_establishment(base_url, owner_session):

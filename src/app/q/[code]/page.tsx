@@ -26,6 +26,9 @@ import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { menuHasLandingContent } from "@/lib/menu-content";
 import { menuNeedsDeferredLoad } from "@/lib/menu-deferred";
 import { toHeaderSafeUrl } from "@/lib/redirect-url";
+import { shouldShowRedirectInterstitial } from "@/lib/redirect-interstitial";
+import { hasPaidFeatures } from "@/lib/plans";
+import RedirectInterstitial from "@/components/scan/RedirectInterstitial";
 import { canViewLandingPage } from "@/lib/qr-mode-access";
 import LandingLockedState from "@/components/scan/LandingLockedState";
 
@@ -171,6 +174,7 @@ const qrMinimalSelect = {
   tipsPhone: true,
   tipsBankName: true,
   landingGrandfathered: true,
+  redirectGrandfathered: true,
 } as const;
 
 /** Relations shared by all non-REDIRECT render modes. */
@@ -350,6 +354,9 @@ export default async function ScanPage({ params }: ScanPageProps) {
       return <ScanEmptyState emoji="🔗" title="Ссылка указана неверно" desc="Проверьте адрес перехода в настройках QR-кода." />;
     }
     incrementScan();
+    if (await needsRedirectInterstitial(qrCode)) {
+      return <RedirectInterstitial code={code} target={target} />;
+    }
     redirect(target);
   }
 
@@ -726,6 +733,24 @@ export default async function ScanPage({ params }: ScanPageProps) {
   incrementScan();
   const ScanFlow = (await import("@/components/scan/ScanFlow")).default;
   return <ScanFlow {...reviewProps} {...brandProps} pdConsent={pdConsent} />;
+}
+
+/** FREE-владелец и QR создан после появления экрана QrStars → показать экран. */
+async function needsRedirectInterstitial(qrCode: {
+  userId: string | null;
+  redirectGrandfathered?: boolean;
+}): Promise<boolean> {
+  const grandfathered = qrCode.redirectGrandfathered ?? false;
+  if (!qrCode.userId || grandfathered) return false;
+  const paidSub = await prisma.subscription.findFirst({
+    where: { userId: qrCode.userId, status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
+    select: { plan: true },
+  });
+  return shouldShowRedirectInterstitial({
+    hasPaidPlan: hasPaidFeatures(paidSub?.plan),
+    grandfathered,
+    hasOwner: true,
+  });
 }
 
 function ScanEmptyState({

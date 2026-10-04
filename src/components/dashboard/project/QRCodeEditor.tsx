@@ -140,6 +140,7 @@ import {
   stickerPresetTemplateId,
 } from "@/lib/builtin-sticker-templates";
 import { TEMPLATE_ROUTES } from "@/lib/template-routes";
+import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
 
 interface QRCodeData {
   id: string;
@@ -154,6 +155,7 @@ interface QRCodeData {
   templateId: string | null;
   qrStyleTemplateId: string | null;
   landingGrandfathered?: boolean;
+  redirectGrandfathered?: boolean;
   establishment: {
     name: string;
     id: string;
@@ -1328,6 +1330,14 @@ export default function QRCodeSettingsPage() {
                       onChange={(e) => setRedirectUrl(e.target.value)}
                       placeholder="https://example.com"
                     />
+                    {!isPro && !qrData?.redirectGrandfathered && (
+                      <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">
+                        На бесплатном тарифе гость {REDIRECT_INTERSTITIAL_SECONDS} сек. видит экран QrStars, затем переходит по ссылке.{" "}
+                        <Link href="/dashboard/subscription" className="text-indigo-600 hover:underline">
+                          В PRO — переход сразу
+                        </Link>
+                      </p>
+                    )}
                   </div>
                 )}
 

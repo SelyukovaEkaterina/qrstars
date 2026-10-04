@@ -82,6 +82,7 @@ import {
   Copy,
   type LucideIcon,
 } from "lucide-react";
+import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
 
 export type SetupIntent = "reviews" | "landing" | "redirect" | "menu";
 
@@ -1721,7 +1722,9 @@ export default function SetupStartWizard({
                   />
                   <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
                     <ArrowUpRight className="w-3.5 h-3.5 shrink-0 mt-0.5 text-emerald-500" />
-                    При сканировании QR-кода гости будут сразу переходить по этой ссылке.
+                    {paidFeatures
+                      ? "При сканировании QR-кода гости будут сразу переходить по этой ссылке."
+                      : `На бесплатном тарифе гость ${REDIRECT_INTERSTITIAL_SECONDS} сек. видит экран QrStars и переходит по ссылке. В PRO — переход сразу.`}
                   </p>
                 </div>
               </>

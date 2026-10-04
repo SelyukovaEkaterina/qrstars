@@ -254,6 +254,8 @@ model QRCode {
 
   /// QR был в режиме LANDING до перевода микросайта на PRO — показ и редактирование этого QR сохраняются на FREE.
   landingGrandfathered Boolean @default(false)
+  /** QR создан до экрана QrStars перед редиректом — на FREE ведёт напрямую. */
+  redirectGrandfathered Boolean @default(false)
 
   centerText    String?
   centerLogoUrl String?
