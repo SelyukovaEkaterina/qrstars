@@ -23,22 +23,22 @@ const scenariosCoffee: DemoScenario[] = [
     featured: true,
   },
   {
-    name: 'Чаевые и контакты',
+    name: 'Визитка и чаевые',
     path: '/scan/demo-business-card',
     badge: 'Визитка сотрудника',
     button: 'Оставить чаевые',
   },
   {
-    name: 'Умные отзывы',
+    name: 'Сбор отзывов',
     path: '/scan/demo-review',
-    badge: 'Фильтр негатива',
+    badge: 'Оценки и отзывы на картах',
     button: 'Оценить заведение',
     showDisclaimer: true,
   },
   {
-    name: 'Все функции вместе',
+    name: 'Микросайт со всеми разделами',
     path: '/scan/demo-landing',
-    badge: 'Главное демо · PRO',
+    badge: 'Микросайт · PRO',
     button: 'Открыть микросайт',
   },
 ];
@@ -52,22 +52,22 @@ const scenariosTire: DemoScenario[] = [
     featured: true,
   },
   {
-    name: 'Чаевые и контакты',
+    name: 'Визитка и чаевые',
     path: '/scan/demo2-business-card',
     badge: 'Визитка мастера',
     button: 'Оставить чаевые',
   },
   {
-    name: 'Умные отзывы',
+    name: 'Сбор отзывов',
     path: '/scan/demo2-review',
-    badge: 'Фильтр негатива',
+    badge: 'Оценки и отзывы на картах',
     button: 'Оценить сервис',
     showDisclaimer: true,
   },
   {
-    name: 'Все функции вместе',
+    name: 'Микросайт со всеми разделами',
     path: '/scan/demo2-landing',
-    badge: 'Главное демо · PRO',
+    badge: 'Микросайт · PRO',
     button: 'Открыть микросайт',
   },
 ];
@@ -81,22 +81,22 @@ const scenariosClinic: DemoScenario[] = [
     featured: true,
   },
   {
-    name: 'Запись и контакты',
+    name: 'Визитка и запись',
     path: '/scan/demo3-business-card',
     badge: 'Визитка врача',
     button: 'Сохранить контакт',
   },
   {
-    name: 'Умные отзывы',
+    name: 'Сбор отзывов',
     path: '/scan/demo3-review',
-    badge: 'Фильтр негатива',
+    badge: 'Оценки и отзывы на картах',
     button: 'Оценить приём',
     showDisclaimer: true,
   },
   {
-    name: 'Все функции вместе',
+    name: 'Микросайт со всеми разделами',
     path: '/scan/demo3-landing',
-    badge: 'Главное демо · PRO',
+    badge: 'Микросайт · PRO',
     button: 'Открыть микросайт',
   },
 ];
@@ -167,14 +167,15 @@ const qrByPath = Object.fromEntries(
     <div class="text-center mb-12 lg:mb-16">
       <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-5 border border-primary/20">
         <i class="fa-solid fa-mobile-screen-button"></i>
-        Живые сценарии
+        Один QR — разные задачи
       </div>
-      <h2 class="text-3xl md:text-4xl font-bold mb-4">Посмотрите, как это выглядит для ваших гостей</h2>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Попробуйте динамический QR в деле</h2>
       <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
-        Отсканируйте QR-код своим телефоном или кликните по кнопке, чтобы открыть интерактивный микросайт (демо тарифа PRO) прямо на экране. Сбор отзывов на FREE работает так же — без приложения.
+        Отсканируйте QR телефоном или нажмите кнопку. Ссылку в QR можно сменить в кабинете без перепечатки, а тот же QR может вести на визитку, форму отзывов или микросайт со всеми разделами. Приложение гостю не нужно.
       </p>
 
-      <div class="flex justify-center mt-8 px-2">
+      <p class="mt-8 mb-3 text-sm text-slate-500">Выберите пример:</p>
+      <div class="flex justify-center px-2">
         <div class="flex flex-wrap justify-center bg-slate-100 rounded-2xl p-1.5 gap-1 max-w-full">
           {verticals.map((v, i) => (
             <button
@@ -342,7 +343,7 @@ const qrByPath = Object.fromEntries(
     })}
 
     <div class="text-center mt-12 text-slate-500 text-sm">
-      <p>В личном кабинете также доступны: мгновенное подключение к Wi-Fi, скачивание PDF-файлов и умные редиректы на любые ссылки.</p>
+      <p>Таким же QR можно открыть Wi-Fi, PDF-файл, меню или страницу оплаты — всё меняется в кабинете.</p>
     </div>
   </div>
 </section>
