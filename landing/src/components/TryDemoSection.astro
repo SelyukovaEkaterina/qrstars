@@ -105,7 +105,6 @@ interface Vertical {
   id: 'coffee' | 'tire' | 'clinic';
   icon: string;
   label: string;
-  micrositePath: string;
   scenarios: DemoScenario[];
   accentRing: string;
   accentBadge: string;
@@ -118,7 +117,6 @@ const verticals: Vertical[] = [
     id: 'coffee',
     icon: 'fa-mug-hot',
     label: 'Кофейня',
-    micrositePath: '/scan/demo-review',
     scenarios: scenariosCoffee,
     accentRing: 'border-primary/30 ring-2 ring-primary/15',
     accentBadge: 'bg-primary/10 text-primary border-primary/20',
@@ -129,7 +127,6 @@ const verticals: Vertical[] = [
     id: 'tire',
     icon: 'fa-wrench',
     label: 'Шиномонтаж',
-    micrositePath: '/scan/demo2-review',
     scenarios: scenariosTire,
     accentRing: 'border-amber-400/30 ring-2 ring-amber-500/15',
     accentBadge: 'bg-amber-50 text-amber-700 border-amber-200',
@@ -140,7 +137,6 @@ const verticals: Vertical[] = [
     id: 'clinic',
     icon: 'fa-tooth',
     label: 'Стоматология',
-    micrositePath: '/scan/demo3-review',
     scenarios: scenariosClinic,
     accentRing: 'border-sky-400/30 ring-2 ring-sky-500/15',
     accentBadge: 'bg-sky-50 text-sky-700 border-sky-200',
@@ -150,6 +146,7 @@ const verticals: Vertical[] = [
 ];
 
 const allScenarios = verticals.flatMap((v) => v.scenarios);
+const isRedirect = (s: DemoScenario) => s.path.endsWith('-redirect');
 
 const qrByPath = Object.fromEntries(
   await Promise.all(
@@ -192,72 +189,35 @@ const qrByPath = Object.fromEntries(
       </div>
     </div>
 
-    {verticals.map((v, vIdx) => {
-      const micrositeUrl = getDemoUrl(v.micrositePath);
-      return (
-        <div data-demo-content={v.id} class:list={[vIdx !== 0 && 'hidden']}>
-          <div class="flex flex-col items-center mb-16 lg:mb-20">
-            <div
-              class="phone-shell relative shrink-0 w-full max-w-[390px] aspect-[390/844] bg-slate-900 rounded-[2.75rem] shadow-2xl p-[10px] overflow-hidden"
-            >
-              <div class="absolute top-[10px] left-1/2 -translate-x-1/2 w-28 h-5 bg-slate-900 rounded-b-2xl z-10 pointer-events-none"></div>
-              <div class="phone-screen relative w-full h-full bg-white overflow-hidden" style="border-radius: 2rem; clip-path: inset(0 round 2rem);">
-                <iframe
-                  data-demo-iframe={v.id}
-                  data-src={micrositeUrl}
-                  src={vIdx === 0 ? micrositeUrl : undefined}
-                  title={`Демо: ${v.label}`}
-                  loading="lazy"
-                  referrerpolicy="no-referrer-when-downgrade"
-                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-                  class="phone-iframe absolute top-0 left-0 border-0 bg-white"
-                  style="width: 390px; height: 844px; transform-origin: top left; border-radius: 2.1rem;"
-                ></iframe>
-              </div>
-            </div>
-            <div class="flex items-center gap-3 mt-4 text-xs text-slate-500">
-              <span class="font-medium">Живой микросайт · app.qrstars.ru{v.micrositePath}</span>
-              <a
-                href={micrositeUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="inline-flex items-center gap-1 font-semibold text-primary hover:underline"
-              >
-                Открыть в новой вкладке <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-              </a>
-            </div>
-            <p class="mt-2 text-[11px] text-slate-400 text-center max-w-sm">
-              Переход на Яндекс.Карты и 2ГИС откроется в новой вкладке — эти сайты нельзя показать внутри демо-экрана.
-            </p>
-          </div>
-
-          <div class="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-            <!-- Левая колонка: Вкладки -->
-            <div class="w-full lg:w-1/3 flex flex-col gap-3 shrink-0">
-              <div class="flex overflow-x-auto lg:flex-col gap-2 pb-4 lg:pb-0 scrollbar-hide snap-x snap-mandatory">
-                {v.scenarios.map((scenario, sIdx) => (
-                  <button
-                    type="button"
-                    data-scenario-tab={`${v.id}-${sIdx}`}
-                    data-vertical={v.id}
-                    data-accent-ring={v.accentRing}
-                    aria-selected={sIdx === 0 ? "true" : "false"}
-                    class:list={[
-                      'scenario-tab-btn snap-start shrink-0 lg:shrink text-left px-5 py-4 rounded-2xl border transition-all w-[260px] lg:w-full',
-                      sIdx === 0 
-                        ? `bg-white shadow-md border-transparent ring-1 ring-slate-900/5 ${v.accentRing}` 
-                        : 'bg-transparent border-slate-200 hover:bg-white hover:border-slate-300'
-                    ]}
-                  >
-                    <div class="font-bold text-slate-900 text-sm sm:text-base mb-1">{scenario.name}</div>
-                    <div class="text-xs text-slate-500 line-clamp-1">{scenario.badge}</div>
-                  </button>
-                ))}
-              </div>
+    {verticals.map((v, vIdx) => (
+      <div data-demo-content={v.id} class:list={[vIdx !== 0 && 'hidden']}>
+        <div class="grid lg:grid-cols-[minmax(0,1fr)_340px] gap-8 lg:gap-12 items-start">
+          <!-- Левая колонка: сценарии и QR -->
+          <div class="flex flex-col gap-4 min-w-0">
+            <div class="flex overflow-x-auto lg:grid lg:grid-cols-2 gap-2 pb-2 lg:pb-0 scrollbar-hide snap-x snap-mandatory">
+              {v.scenarios.map((scenario, sIdx) => (
+                <button
+                  type="button"
+                  data-scenario-tab={`${v.id}-${sIdx}`}
+                  data-vertical={v.id}
+                  data-accent-ring={v.accentRing}
+                  data-frame-url={isRedirect(scenario) ? '' : qrByPath[scenario.path].url}
+                  data-frame-path={scenario.path}
+                  aria-selected={sIdx === 0 ? "true" : "false"}
+                  class:list={[
+                    'scenario-tab-btn snap-start shrink-0 lg:shrink text-left px-5 py-4 rounded-2xl border transition-all w-[220px] lg:w-full',
+                    sIdx === 0
+                      ? `bg-white shadow-md border-transparent ring-1 ring-slate-900/5 ${v.accentRing}`
+                      : 'bg-transparent border-slate-200 hover:bg-white hover:border-slate-300'
+                  ]}
+                >
+                  <div class="font-bold text-slate-900 text-sm sm:text-base mb-1">{scenario.name}</div>
+                  <div class="text-xs text-slate-500 line-clamp-1">{scenario.badge}</div>
+                </button>
+              ))}
             </div>
 
-            <!-- Правая колонка: Детали сценария -->
-            <div class="w-full lg:w-2/3 bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 lg:p-10 relative overflow-hidden">
+            <div class="w-full bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 relative overflow-hidden">
               {v.scenarios.map((scenario, sIdx) => {
                 const { url, qr } = qrByPath[scenario.path];
                 return (
@@ -338,9 +298,50 @@ const qrByPath = Object.fromEntries(
               })}
             </div>
           </div>
+
+          <!-- Правая колонка: телефон с выбранным сценарием -->
+          <div class="flex flex-col items-center lg:sticky lg:top-24">
+            <div
+              class="phone-shell relative shrink-0 w-full max-w-[320px] aspect-[390/844] bg-slate-900 rounded-[2.5rem] shadow-2xl p-[9px] overflow-hidden"
+            >
+              <div class="absolute top-[9px] left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-900 rounded-b-2xl z-10 pointer-events-none"></div>
+              <div class="phone-screen relative w-full h-full bg-white overflow-hidden" style="border-radius: 1.9rem; clip-path: inset(0 round 1.9rem);">
+                <iframe
+                  data-phone-iframe={v.id}
+                  title={`Демо: ${v.label}`}
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                  class="phone-iframe hidden absolute top-0 left-0 border-0 bg-white"
+                  style="width: 390px; height: 844px; transform-origin: top left; border-radius: 2.1rem;"
+                ></iframe>
+                <div data-phone-redirect={v.id} class="absolute inset-0 flex flex-col bg-gradient-to-b from-indigo-50 to-white px-5 pt-14 pb-6 text-center">
+                  <div class="mx-auto w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl mb-4">
+                    <i class="fa-solid fa-link"></i>
+                  </div>
+                  <p class="font-bold text-lg text-slate-900 leading-snug mb-1">Гость сразу попадает на&nbsp;вашу ссылку</p>
+                  <p class="text-sm text-slate-500 mb-7">Открывается в браузере, приложение не нужно</p>
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Куда ведёт этот QR сейчас</p>
+                  <div class="rounded-xl border border-primary/20 bg-white shadow-sm px-3 py-3 text-sm font-semibold text-slate-800">
+                    <span data-redirect-cycle class="inline-block transition-opacity duration-300">yandex.ru/maps · карточка</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-5 leading-relaxed">
+                    Сменили ссылку в кабинете — тот же напечатанный QR ведёт на новую.
+                  </p>
+                  <div class="mt-auto text-[11px] text-slate-400">Отсканируйте QR слева или нажмите «Открыть ссылку»</div>
+                </div>
+              </div>
+            </div>
+            <div class="flex items-center gap-3 mt-4 text-xs text-slate-500">
+              <span class="font-medium" data-phone-caption={v.id}>Динамическая ссылка</span>
+            </div>
+            <p class="mt-2 text-[11px] text-slate-400 text-center max-w-[300px]">
+              Яндекс Карты и 2ГИС откроются в новой вкладке — их нельзя показать внутри демо-экрана.
+            </p>
+          </div>
         </div>
-      );
-    })}
+      </div>
+    ))}
 
     <div class="text-center mt-12 text-slate-500 text-sm">
       <p>Таким же QR можно открыть Wi-Fi, PDF-файл, меню или страницу оплаты — всё меняется в кабинете.</p>
@@ -370,8 +371,7 @@ const qrByPath = Object.fromEntries(
   document.addEventListener('DOMContentLoaded', () => {
     const modeBtns = document.querySelectorAll<HTMLButtonElement>('.demo-mode-btn');
     const contents = document.querySelectorAll<HTMLElement>('[data-demo-content]');
-    const iframes = document.querySelectorAll<HTMLIFrameElement>('iframe[data-demo-iframe]');
-    const screens = document.querySelectorAll<HTMLElement>('.phone-screen');
+        const screens = document.querySelectorAll<HTMLElement>('.phone-screen');
 
     const IFRAME_W = 390;
     const IFRAME_H = 844;
@@ -391,15 +391,60 @@ const qrByPath = Object.fromEntries(
       });
     }
 
+    /** Телефон показывает выбранный сценарий; для редиректа — заглушка (внешний сайт во фрейме не открыть). */
+    function applyPhone(tab: HTMLButtonElement) {
+      const vertical = tab.dataset.vertical;
+      if (!vertical) return;
+      const frame = document.querySelector<HTMLIFrameElement>(`iframe[data-phone-iframe="${vertical}"]`);
+      const stub = document.querySelector<HTMLElement>(`[data-phone-redirect="${vertical}"]`);
+      const caption = document.querySelector<HTMLElement>(`[data-phone-caption="${vertical}"]`);
+      const url = tab.dataset.frameUrl || '';
+      if (caption) {
+        caption.textContent = url
+          ? `Живая страница · app.qrstars.ru${tab.dataset.framePath ?? ''}`
+          : 'Динамическая ссылка';
+      }
+      if (!frame || !stub) return;
+      if (!url) {
+        frame.classList.add('hidden');
+        stub.classList.remove('hidden');
+        return;
+      }
+      if (frame.dataset.loaded !== url) {
+        frame.src = url;
+        frame.dataset.loaded = url;
+      }
+      stub.classList.add('hidden');
+      frame.classList.remove('hidden');
+      requestAnimationFrame(fitIframes);
+    }
+
+    const cycleTargets = [
+      'yandex.ru/maps · карточка',
+      'ваш-сайт.ru/akciya · акция недели',
+      'rutube.ru · видеообзор',
+      'menu.pdf · актуальное меню',
+    ];
+    let cycleIdx = 0;
+    setInterval(() => {
+      cycleIdx = (cycleIdx + 1) % cycleTargets.length;
+      document.querySelectorAll<HTMLElement>('[data-redirect-cycle]').forEach((el) => {
+        el.style.opacity = '0';
+        setTimeout(() => {
+          el.textContent = cycleTargets[cycleIdx];
+          el.style.opacity = '1';
+        }, 300);
+      });
+    }, 2400);
+
     function showMode(mode: string) {
       contents.forEach((el) => {
         el.classList.toggle('hidden', el.dataset.demoContent !== mode);
       });
-      iframes.forEach((frame) => {
-        if (frame.dataset.demoIframe === mode && !frame.src && frame.dataset.src) {
-          frame.src = frame.dataset.src;
-        }
-      });
+      const selected = document.querySelector<HTMLButtonElement>(
+        `.scenario-tab-btn[data-vertical="${mode}"][aria-selected="true"]`
+      );
+      if (selected) applyPhone(selected);
       // Newly-visible iframes need a refit (clientWidth is 0 when hidden)
       requestAnimationFrame(fitIframes);
     }
@@ -447,6 +492,8 @@ const qrByPath = Object.fromEntries(
             c.classList.remove('flex');
           }
         });
+
+        applyPhone(btn);
       });
     });
 
