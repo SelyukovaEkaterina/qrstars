@@ -73,8 +73,10 @@ export async function POST(request: Request) {
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
   const { action, plan: targetPlan, billing: billingRaw, recurringConsent } = body;
+  const requestedPlan = body.plan as string | undefined;
+  // PRO продаётся только на год (PLAN_PRICING.PRO.yearlyOnly).
   const billing: BillingPeriod =
-    billingRaw === "yearly" ? "yearly" : "monthly";
+    billingRaw === "yearly" || requestedPlan === "PRO" ? "yearly" : "monthly";
 
   if (action === "subscribe") {
     const plan = targetPlan as "PRO" | "NETWORK";

@@ -6,6 +6,8 @@ export interface PlanPricing {
   monthlyRub: number;
   yearlyRub: number;
   yearlyNote: string;
+  /** Тариф продаётся только на год: помесячной оплаты нет. */
+  yearlyOnly?: boolean;
 }
 
 export interface PlanDefinition {
@@ -20,10 +22,12 @@ export interface PlanDefinition {
 }
 
 export const PLAN_PRICING = {
+  /** PRO продаётся только на год (решение 2026-10-04). monthlyRub — лишь эквивалент для MRR и подписей. */
   PRO: {
-    monthlyRub: 270,
-    yearlyRub: 2700,
-    yearlyNote: "≈225 ₽/мес — 2 месяца в подарок",
+    monthlyRub: 83,
+    yearlyRub: 990,
+    yearlyNote: "≈83 ₽/мес",
+    yearlyOnly: true,
   },
   NETWORK: {
     monthlyRub: 600,
@@ -56,17 +60,17 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   PRO: {
     id: "PRO",
     name: "PRO",
-    tagline: "Усиление для одиночной точки",
+    tagline: "Прямой переход без экрана и усиление отзывов",
     pricing: PLAN_PRICING.PRO,
     establishmentLimit: 1,
     establishmentLimitNote: "1 заведение",
     highlighted: true,
     features: [
+      "Прямой переход по QR-ссылке — без экрана QrStars",
       "Микросайт — страница со всеми разделами в одном QR",
       "Умная ротация площадок для 5★ (Яндекс / 2GIS / Авито / Flamp)",
       "Жалобы в Telegram и MAX — мгновенно, вместо email",
       "White Label — логотип заведения вместо вотермарки",
-      "Прямой переход по QR-ссылке — без экрана QrStars",
       "Промокод за отзыв 5★, интеграция чаевых",
       "Расширенная аналитика: конверсия, разрезы по дням и устройствам",
       "QR-кодов в заведении — без лимита",
@@ -134,11 +138,7 @@ export function calcSubscriptionAmount(
   billing: BillingPeriod,
   establishmentCount: number
 ): number {
-  if (plan === "PRO") {
-    return billing === "yearly"
-      ? PLAN_PRICING.PRO.yearlyRub
-      : PLAN_PRICING.PRO.monthlyRub;
-  }
+  if (plan === "PRO") return PLAN_PRICING.PRO.yearlyRub;
   const monthly = calcNetworkMonthlyPrice(Math.max(establishmentCount, 2));
   if (billing === "yearly") {
     const extra = Math.max(0, establishmentCount - PLAN_PRICING.NETWORK.includedEstablishments);

@@ -84,7 +84,7 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<string | null>(null);
-  const [billing, setBilling] = useState<BillingPeriod>("monthly");
+  const [billing, setBilling] = useState<BillingPeriod>("yearly");
   const [data, setData] = useState<SubscriptionResponse | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -227,7 +227,7 @@ export default function SubscriptionPage() {
 
   const priceFor = (planId: "PRO" | "NETWORK") => {
     const p = PLANS[planId].pricing;
-    if (billing === "yearly") {
+    if (billing === "yearly" || p.yearlyOnly) {
       return { main: p.yearlyRub, suffix: "/ год", note: p.yearlyNote };
     }
     const monthly =
@@ -423,7 +423,7 @@ export default function SubscriptionPage() {
             )}
             {billing === "monthly" && (
               <p className="text-xs text-gray-500 pl-7">
-                При выборе PRO: {formatRub(calcSubscriptionAmount("PRO", "monthly", estCount))} каждый месяц.
+                PRO: {formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} раз в год (только годовая оплата).
                 При выборе Сеть: от {formatRub(calcNetworkMonthlyPrice(Math.max(estCount, 2)))} каждый месяц
                 (зависит от числа заведений).
               </p>

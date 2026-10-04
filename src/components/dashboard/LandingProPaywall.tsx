@@ -190,9 +190,9 @@ export default function LandingProPaywall({
         <div className="sticky bottom-0 border-t border-gray-100 bg-white/95 px-6 py-4 backdrop-blur">
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-gray-900">
-              {formatRub(PLAN_PRICING.PRO.monthlyRub)}/мес
+              {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год
             </span>{" "}
-            или {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год — {PLAN_PRICING.PRO.yearlyNote}
+            — {PLAN_PRICING.PRO.yearlyNote}
           </p>
 
           {trialError && (
@@ -256,7 +256,7 @@ export default function LandingProPaywall({
               Карта не нужна, автоматических списаний нет. Через {trialDays} дней микросайт
               останется открытым для гостей — напечатанные QR не сломаются, но менять разделы и
               оформление можно будет только на PRO за{" "}
-              {formatRub(PLAN_PRICING.PRO.monthlyRub)}/мес.{" "}
+              {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год.{" "}
               <Link
                 href="/q/demo-landing"
                 target="_blank"

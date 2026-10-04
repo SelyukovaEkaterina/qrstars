@@ -291,7 +291,7 @@ export function renderProHintD14Email(state: LifecycleUserState): string {
         "Собственный бренд (White Label) — ваш логотип на странице вместо вотермарки QrStars",
         "Расширенную аналитику сканирований и возможность дарить промокоды за отзывы",
       ])}
-      <p style="font-size:16px;color:#374151;">Стоимость тарифа PRO — ${formatRub(PLAN_PRICING.PRO.monthlyRub)} в месяц. Подключите его, если вам нужны эти возможности.</p>
+      <p style="font-size:16px;color:#374151;">Стоимость тарифа PRO — ${formatRub(PLAN_PRICING.PRO.yearlyRub)} в год. Подключите его, если вам нужны эти возможности.</p>
     `,
     cta: { label: "Подключить тариф PRO", href: `${base}/dashboard/subscription` },
   });

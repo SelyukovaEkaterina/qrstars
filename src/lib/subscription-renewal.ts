@@ -81,7 +81,7 @@ export async function runSubscriptionRenewalBatch(): Promise<RenewalBatchResult>
       try {
         await sendTrialEndedEmail({
           to: sub.user.email,
-          monthlyAmount: PLAN_PRICING.PRO.monthlyRub,
+          yearlyAmount: PLAN_PRICING.PRO.yearlyRub,
         });
         result.trialEndedEmailsSent++;
       } catch (err) {
@@ -304,7 +304,7 @@ async function sendTrialEndingNotices(now: Date, result: RenewalBatchResult) {
         to: sub.user.email,
         endsAt: sub.currentPeriodEnd,
         daysLeft: proTrialDaysLeft(sub.currentPeriodEnd, now),
-        monthlyAmount: PLAN_PRICING.PRO.monthlyRub,
+        yearlyAmount: PLAN_PRICING.PRO.yearlyRub,
       });
     } catch (err) {
       console.error("sendTrialEndingEmail:", err);

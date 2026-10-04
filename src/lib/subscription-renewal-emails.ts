@@ -35,7 +35,7 @@ export async function sendTrialEndingEmail(params: {
   to: string;
   endsAt: Date;
   daysLeft: number;
-  monthlyAmount: number;
+  yearlyAmount: number;
 }) {
   const dateStr = params.endsAt.toLocaleDateString("ru-RU", {
     day: "numeric",
@@ -55,7 +55,7 @@ export async function sendTrialEndingEmail(params: {
         открытым для гостей, напечатанные QR продолжат работать, но менять разделы и оформление
         микросайта можно будет только на PRO.
       </p>
-      <p>Чтобы сохранить PRO — ${formatRub(params.monthlyAmount)}/мес:</p>
+      <p>Чтобы сохранить PRO — ${formatRub(params.yearlyAmount)}/год:</p>
       <p><a href="${SUBSCRIPTION_PAGE_URL}" style="color: #4f46e5;">Подключить PRO</a></p>
       <p style="color: #666; font-size: 13px;">QrStars.ru · support@qrstars.ru</p>
     </div>
@@ -65,7 +65,7 @@ export async function sendTrialEndingEmail(params: {
 
 export async function sendTrialEndedEmail(params: {
   to: string;
-  monthlyAmount: number;
+  yearlyAmount: number;
 }) {
   return sendMail(
     params.to,
@@ -80,7 +80,7 @@ export async function sendTrialEndedEmail(params: {
       </p>
       <p>
         Чтобы снова менять разделы и оформление микросайта, а также включить умную маршрутизацию
-        отзывов и расширенную аналитику, подключите PRO — ${formatRub(params.monthlyAmount)}/мес.
+        отзывов и расширенную аналитику, подключите PRO — ${formatRub(params.yearlyAmount)}/год.
       </p>
       <p><a href="${SUBSCRIPTION_PAGE_URL}" style="color: #4f46e5;">Подключить PRO</a></p>
       <p style="color: #666; font-size: 13px;">QrStars.ru · support@qrstars.ru</p>

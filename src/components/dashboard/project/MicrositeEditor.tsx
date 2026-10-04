@@ -1379,7 +1379,7 @@ function MyPageDashboardContent() {
                     href="/dashboard/subscription"
                     className="shrink-0 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
                   >
-                    Продлить PRO · {formatRub(PLAN_PRICING.PRO.monthlyRub)}/мес
+                    Продлить PRO · {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год
                   </Link>
                 </div>
               </div>

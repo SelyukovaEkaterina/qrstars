@@ -460,8 +460,8 @@ export default function PartnerPage() {
                     <div>
                       <p className="text-sm font-medium text-gray-900">Пример заработка</p>
                       <p className="text-xs text-gray-500">
-                        10 рефералов × {formatRub(PLAN_PRICING.PRO.monthlyRub)}/мес × 15% ={" "}
-                        {formatRub(Math.round(PLAN_PRICING.PRO.monthlyRub * 10 * 0.15))}/мес пассивного дохода.
+                        10 рефералов × {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год × 15% ={" "}
+                        {formatRub(Math.round(PLAN_PRICING.PRO.yearlyRub * 10 * 0.15))}/год пассивного дохода.
                       </p>
                     </div>
                   </div>
