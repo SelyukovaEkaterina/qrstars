@@ -1,0 +1,79 @@
+---
+import { generateBrandedQrDataUrl } from '../lib/brandedQr';
+
+interface Props {
+  scanUrl: string;
+  modeLabel: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const {
+  scanUrl,
+  modeLabel,
+  title = 'Попробуйте живой пример',
+  subtitle = 'Отсканируйте QR-код камерой телефона — откроется демо, как у ваших клиентов',
+} = Astro.props;
+
+const qrDataUrl = await generateBrandedQrDataUrl(scanUrl);
+---
+
+<section class="py-16 lg:py-20 bg-gradient-to-b from-indigo-50/80 to-white border-y border-indigo-100">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-4xl mx-auto">
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-lg shadow-indigo-500/10 p-8 md:p-10 flex flex-col md:flex-row gap-8 md:gap-12 items-center">
+        <div class="shrink-0 text-center">
+          <div class="relative inline-block p-3 bg-white rounded-2xl border border-slate-100 shadow-md">
+            <img
+              src={qrDataUrl}
+              width="280"
+              height="280"
+              alt={`QR-код QrStars: ${modeLabel}`}
+              class="rounded-xl block"
+              loading="lazy"
+            />
+            <div
+              class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-primary rounded-xl flex items-center justify-center text-white font-extrabold text-sm shadow-lg ring-4 ring-white pointer-events-none"
+              aria-hidden="true"
+            >
+              QR
+            </div>
+          </div>
+          <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-primary">qrstars.ru</p>
+        </div>
+
+        <div class="flex-1 text-center md:text-left">
+          <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-primary/20">
+            <i class="fa-solid fa-qrcode"></i>
+            Демо · {modeLabel}
+          </div>
+          <h2 class="text-2xl md:text-3xl font-bold mb-3">{title}</h2>
+          <p class="text-slate-600 mb-6 leading-relaxed">{subtitle}</p>
+          <ul class="space-y-2 text-sm text-slate-700 mb-6 text-left max-w-md mx-auto md:mx-0">
+            <li class="flex items-start gap-2">
+              <i class="fa-solid fa-camera text-primary mt-0.5"></i>
+              <span>Наведите камеру смартфона на код</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="fa-solid fa-mobile-screen text-primary mt-0.5"></i>
+              <span>Откроется сценарий в приложении QrStars</span>
+            </li>
+            <li class="flex items-start gap-2">
+              <i class="fa-solid fa-palette text-primary mt-0.5"></i>
+              <span>Брендирование: цвета и логотип QrStars</span>
+            </li>
+          </ul>
+          <a
+            href={scanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="inline-flex items-center justify-center gap-2 text-primary font-semibold hover:underline"
+          >
+            Открыть демо в браузере
+            <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

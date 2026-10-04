@@ -1,0 +1,40 @@
+---
+interface Step {
+  icon: string;
+  title: string;
+  text: string;
+}
+
+interface Props {
+  title?: string;
+  subtitle?: string;
+  steps: Step[];
+}
+
+const {
+  title = 'Как это работает',
+  subtitle = 'Создайте QR-код за 30 секунд — без программистов и сложных настроек.',
+  steps,
+} = Astro.props;
+---
+
+<section id="how-it-works" class="py-16 lg:py-20 bg-white border-y border-slate-200">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-12 max-w-2xl mx-auto">
+      <h2 class="text-3xl font-bold mb-4">{title}</h2>
+      <p class="text-slate-600">{subtitle}</p>
+    </div>
+    <div class={`grid grid-cols-1 gap-8 ${steps.length <= 3 ? 'md:grid-cols-3' : 'md:grid-cols-2 lg:grid-cols-4'}`}>
+      {steps.map((step, i) => (
+        <div class="bg-slate-50 p-8 rounded-2xl text-center border border-slate-100 relative">
+          <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center font-bold text-lg">
+            {i + 1}
+          </div>
+          <i class={`${step.icon} text-4xl text-primary mb-6 mt-2`}></i>
+          <h3 class="font-bold text-xl mb-3">{step.title}</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">{step.text}</p>
+        </div>
+      ))}
+    </div>
+  </div>
+</section>

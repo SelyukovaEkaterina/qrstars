@@ -1,0 +1,6379 @@
+{
+  "exportedAt": "2026-05-28T19:14:11.770611+00:00",
+  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+  "organizationName": "ИП Ядыкин М.В.",
+  "externalMenuId": 82415,
+  "menuName": "Сайт/приложение",
+  "categories": [
+    {
+      "id": "03326264-e08b-4bae-b8ca-9ad9ce509523",
+      "name": "Печенье ручной работы",
+      "description": "",
+      "items": [
+        {
+          "itemId": "04ebbc58-6a20-4395-90b4-4e22bd44e66c",
+          "sku": "02726",
+          "name": "Печенье Сладкое Предсказание",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 150.0
+                }
+              ],
+              "sku": "02726"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4bee976a-60ee-41d5-af99-eb767079061f",
+          "sku": "02739",
+          "name": "Орешки с кремом 1 шт",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 120.0
+                }
+              ],
+              "sku": "02739"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "bc3150a3-6430-49b0-b3a2-f6d26e28a971",
+          "sku": "02740",
+          "name": "Орешки с кремом набор",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02740"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "09fd5bb4-619f-43f3-94ca-cbbbafce900e",
+      "name": "ФИЛЬТР-КОФЕ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "97ad2b04-fa2d-4c1d-8e4b-dc8d79bc894f",
+          "sku": "00876",
+          "name": "ФИЛЬТР-КОФЕ 250",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "00876"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1fb3b98d-86eb-42af-a3e2-b3a390ace727",
+          "sku": "00878",
+          "name": "ФИЛЬТР-КОФЕ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00878"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "7e25008d-4859-4eeb-be6f-353b47ecf118",
+          "sku": "02086",
+          "name": "ФИЛЬТР-КОФЕ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "02086"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "bb2c94cb-ca82-4c6a-a4ee-2690e9819399",
+          "sku": "00877",
+          "name": "ФИЛЬТР-КОФЕ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "00877"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "0f404f8b-4c08-4285-8823-d18e2716cffd",
+      "name": "БАБЛ ТИ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "aede40c0-0c3d-49ed-b37f-0fc61ce0be3b",
+          "sku": "02744",
+          "name": " Бабл Ти Тропикано 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02744"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e900e113-1efd-4387-bb58-fef88ba7976f",
+          "sku": "02743",
+          "name": " Бабл Ти Тропикано 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 450.0
+                }
+              ],
+              "sku": "02743"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "ffc216c4-c4f3-4878-89f2-94c59bed487d",
+          "sku": "02557",
+          "name": "Балийский закат 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 450.0
+                }
+              ],
+              "sku": "02557"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "dc05e037-662f-487f-933d-e07a68b4ad13",
+          "sku": "02384",
+          "name": "Молочная Жемчужина 600 Hot",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02384"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "f750109b-d30a-49c1-af94-4d6017d069a2",
+          "sku": "02558",
+          "name": "Балийский закат 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02558"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "78a930bc-f451-4a0a-b080-b173b115795d",
+          "sku": "02383",
+          "name": "Молочная Жемчужина 500 Hot",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 450.0
+                }
+              ],
+              "sku": "02383"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "156fa1ce-cd2b-402b-8453-2b4fbfa8c34d",
+      "name": "Сытное",
+      "description": "",
+      "items": [
+        {
+          "itemId": "940d62e1-e2c6-44d0-a794-dbeba2271a3f",
+          "sku": "02682",
+          "name": "Венские вафли с ветчиной и сыром СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "02682"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "16f773be-ce99-4d8a-bd35-a2f443ac9bf8",
+      "name": "ТОВАР КОФЕЙНЯ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "2bccaf08-00df-4413-97eb-715a1e17f16c",
+          "sku": "00117",
+          "name": "КОНФЕТЫ КОКО",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 70.0
+                }
+              ],
+              "sku": "00117"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b2ac817f-48aa-4abe-8049-2362bb6c38b5",
+          "sku": "01875",
+          "name": "ИРИСКА",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 90.0
+                }
+              ],
+              "sku": "01875"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "31bdbb14-eb14-44f8-bf21-fe512bffad85",
+          "sku": "00121",
+          "name": "ОРБИТ/ДИРОЛ ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 55.0
+                }
+              ],
+              "sku": "00121"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "2af29e04-58c7-41c5-9290-bdf7356d30c2",
+      "name": "Арахисовый бум",
+      "description": "",
+      "items": [
+        {
+          "itemId": "1d349645-1da0-4089-b9a3-06bdf17e20f2",
+          "sku": "01616",
+          "name": "Арахисовый бум 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "01616"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "603974ba-ac58-4534-be92-2a936197aaa6",
+          "sku": "02387",
+          "name": "Арахисовый бум 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02387"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "aaadc51e-5794-49a3-936c-8bad07c111ab",
+          "sku": "01617",
+          "name": "Арахисовый бум 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "01617"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "2dadb67d-c98b-4621-a700-53ecb8188fd1",
+      "name": "ЗИМА 2025",
+      "description": "",
+      "items": [
+        {
+          "itemId": "c53e2d47-15d8-462d-8ae1-5313d3594993",
+          "sku": "02720",
+          "name": "Раф Мандариновое печенье 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02720"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "bf1f0ace-d285-41a6-8138-9c5b61deaf64",
+          "sku": "02717",
+          "name": "Ваниль-Бурбон 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02717"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e229619c-bf6d-45d6-a6e7-5d2c4eb05016",
+          "sku": "02713",
+          "name": "Хвойный Раф 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02713"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "87e440de-7af6-4c39-8769-0c56e2d2bc2a",
+          "sku": "02718",
+          "name": "Ваниль-Бурбон 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02718"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "01d02886-0ce1-47a5-97ef-25cd7ca27fd3",
+          "sku": "01986",
+          "name": "ВИШНЕВЫЙ ГЛИНТВЕЙН 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "01986"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "004ba0b3-cf06-403b-b163-72da66452b5b",
+          "sku": "02709",
+          "name": "Ваниль-Бурбон 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02709"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4fb3fbb9-e22c-4bdf-8491-ec045128bcb2",
+          "sku": "01985",
+          "name": "ВИШНЕВЫЙ ГЛИНТВЕЙН 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 320.0
+                }
+              ],
+              "sku": "01985"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6a6dbbf9-24d1-49a3-b644-c349e49ee6ef",
+          "sku": "02722",
+          "name": "Хвойный Раф 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02722"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c2469e27-6afc-4d53-89e8-2432ed8fc7b7",
+          "sku": "02711",
+          "name": "Раф Мандариновое печенье 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 380.0
+                }
+              ],
+              "sku": "02711"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1013480b-9096-4cc8-8f12-8e269daa544d",
+          "sku": "02721",
+          "name": "Хвойный Раф 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02721"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2844b2dc-7944-4efa-9117-ae4ba59385fe",
+          "sku": "02723",
+          "name": "ВИШНЕВЫЙ ГЛИНТВЕЙН 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02723"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "58c997d6-0f78-433f-8407-62774a84515b",
+          "sku": "02719",
+          "name": "Раф Мандариновое печенье 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 450.0
+                }
+              ],
+              "sku": "02719"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "2e46c042-e4ba-4be4-84f9-8284efffb39c",
+      "name": "ЧАЙ В АССОРТИМЕНТЕ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "4bc68c56-574a-46c3-9b59-6142eef2c273",
+          "sku": "00414",
+          "name": "ПРЯНЫЙ ЧАЙ ЛАТТЕ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 340.0
+                }
+              ],
+              "sku": "00414"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "aa13bd54-d52d-44c5-97cd-7e3757fcc451",
+          "sku": "02255",
+          "name": "МАЛИНА-ИМБИРЬ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02255"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "47da65bb-d78d-4fb2-8662-2122301c18ed",
+          "sku": "00386",
+          "name": "МАЛИНА-ИМБИРЬ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 320.0
+                }
+              ],
+              "sku": "00386"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6cb075be-efdc-4d66-8bf7-92f7bc19cea6",
+          "sku": "02081",
+          "name": "ПРЯНЫЙ ЧАЙ ЛАТТЕ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 460.0
+                }
+              ],
+              "sku": "02081"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4491234e-5702-4185-817c-b38e164b126b",
+          "sku": "00387",
+          "name": "МАЛИНА-ИМБИРЬ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "00387"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "583d896f-a39f-461d-813e-a64d2172dfba",
+          "sku": "02665",
+          "name": "Малина-Вишня 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "02665"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0312d107-050c-4eed-b26a-c81e02204b6f",
+          "sku": "02254",
+          "name": "ВИТАМИН 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02254"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "94973231-3c67-4f61-8f7c-7981ca53607b",
+          "sku": "00417",
+          "name": "ЧАЙ ЛИСТОВОЙ 450 ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "00417"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5f242830-09e2-416f-bf4c-5773eb78d871",
+          "sku": "00382",
+          "name": "ВИТАМИН 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 320.0
+                }
+              ],
+              "sku": "00382"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a3a94784-2052-4794-a264-642e5129bebf",
+          "sku": "02668",
+          "name": "Клюква-Облепиха 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "02668"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "867f0d1a-7f06-4e5f-b04a-f14f9c67f3e1",
+          "sku": "02664",
+          "name": "Малина-Вишня 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 320.0
+                }
+              ],
+              "sku": "02664"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2a3bcf16-0b7d-42bd-8d88-1f23d6a4f224",
+          "sku": "00415",
+          "name": "ПРЯНЫЙ ЧАЙ ЛАТТЕ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "00415"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2112af60-002a-42b9-a083-d7e1dab57531",
+          "sku": "02667",
+          "name": "Клюква-Облепиха 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 320.0
+                }
+              ],
+              "sku": "02667"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "afe2c2a4-beee-40d4-adfb-d86e28d4b19a",
+          "sku": "00383",
+          "name": "ВИТАМИН 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "00383"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a6b1835d-0a1f-426d-850d-3758e4ffe81d",
+          "sku": "02669",
+          "name": "Клюква-Облепиха 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02669"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5031621d-75b2-4f1a-8d36-cd208f20b947",
+          "sku": "00901",
+          "name": "ЧАЙ ЛИСТОВОЙ 350 ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 180.0
+                }
+              ],
+              "sku": "00901"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5127cdf5-b9b0-4817-a3e0-247b2f464015",
+          "sku": "02666",
+          "name": "Малина-Вишня 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02666"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "34b270e7-5a17-4009-b04e-013a4e7d2687",
+      "name": "ВАФЛИ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "a78bd09d-96f0-4486-a846-5d916b28333e",
+          "sku": "01061",
+          "name": "Хрустик в ассортименте",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "01061"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3c919d0f-f727-43c1-aa1b-e259529f987e",
+          "sku": "01050",
+          "name": "Вафли в ассортименте с начинкой",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "01050"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "370ad078-da9d-4130-9826-052d6faf7365",
+      "name": "СМУЗИ/ЛИМОНАД/МК",
+      "description": "",
+      "items": [
+        {
+          "itemId": "5802733a-25a8-4138-b1f4-a2d9485777ca",
+          "sku": "01907",
+          "name": "МОЛОЧНЫЙ КОКТЕЙЛЬ 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 430.0
+                }
+              ],
+              "sku": "01907"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "62056d6e-5c02-4677-9056-4fdbb1a95767",
+          "sku": "01906",
+          "name": "МОЛОЧНЫЙ КОКТЕЙЛЬ 300",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "01906"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "391cdfe5-8f53-4f7b-933f-e5b047572a5a",
+      "name": "ПАРТИК",
+      "description": "",
+      "items": [
+        {
+          "itemId": "a984b5b5-9876-452d-927a-60c909b97e79",
+          "sku": "01457",
+          "name": " Блинчики в ассортименте ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "01457"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "4f4e5dcb-0d8f-4525-ad44-fec87916d6dc",
+      "name": "Десерты",
+      "description": "",
+      "items": [
+        {
+          "itemId": "911731b6-1fdf-4dc9-b172-55f1fec8594c",
+          "sku": "02829",
+          "name": "СХ Кукис с карамелью и арахисом",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 140.0
+                }
+              ],
+              "sku": "02829"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4adeeedd-7505-4a99-b4bb-feb4a66a3e1a",
+          "sku": "02481",
+          "name": "пирожное Сердечко",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 290.0
+                }
+              ],
+              "sku": "02481"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "bc5d0875-d57b-402b-a4b6-090111b404a1",
+          "sku": "02831",
+          "name": "СХ Грилатта с курицей и сыром",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "02831"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "85040eda-3f1d-4423-a415-f2411fc4149f",
+          "sku": "02830",
+          "name": "СХ Штрудель яблочный ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "02830"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "38fb56fa-e04c-42c6-a859-237ce8d6c49a",
+          "sku": "02132",
+          "name": "Тарталетка Малиновая",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 280.0
+                }
+              ],
+              "sku": "02132"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "da996459-bfc5-402a-9f2a-059ce95ddcff",
+          "sku": "02828",
+          "name": "СХ Кукис с шоколадом и кусочками глазури",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 140.0
+                }
+              ],
+              "sku": "02828"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6b90089c-2bc1-447c-9a01-b9138ccb0f78",
+          "sku": "02826",
+          "name": "СХ Слойка с творогом (Ватрушка)",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 100.0
+                }
+              ],
+              "sku": "02826"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "aa501844-d1fd-4dd8-afd8-41c8dfad0031",
+          "sku": "02138",
+          "name": "Торт Фисташка- Малина",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 330.0
+                }
+              ],
+              "sku": "02138"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "caf2af6d-4cb6-4c66-8f06-20243f468234",
+          "sku": "02131",
+          "name": "Чизкейк \"НЬЮ-ЙОРК",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "02131"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "525e4577-055d-427a-9fb1-2fc66c5719c5",
+          "sku": "02838",
+          "name": "СХ Штрудель Вишневый",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 270.0
+                }
+              ],
+              "sku": "02838"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "51d851b4-54e5-4ab8-bc10-b6c934124db4",
+      "name": "СР ВТОРЫЕ БЛЮДА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "56f43b5e-54cc-4f0c-8438-3d9ccdb211f7",
+          "sku": "02136",
+          "name": "СР Болоньезе",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 290.0
+                }
+              ],
+              "sku": "02136"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "767477aa-5562-47a2-a98b-28e2d6fe3571",
+          "sku": "02559",
+          "name": "СР Карбонара",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02559"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "5471d727-68e7-41a8-9d76-5865bbe5e1e8",
+      "name": "ВКУС ДЕТСТВА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "edd9ec44-d9d1-4a9c-b1b5-36b5563144e8",
+          "sku": "00380",
+          "name": "ВКУС ДЕТСТВА 250",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "00380"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c667a038-04ab-46e8-91fd-aba1f41eabab",
+          "sku": "02075",
+          "name": "ВКУС ДЕТСТВА 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02075"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4ee8ae2c-26b5-422a-b67e-35a4c36c9059",
+          "sku": "01239",
+          "name": "ВКУС ДЕТСТВА 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 350.0
+                }
+              ],
+              "sku": "01239"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5d07af12-d1f7-4f6f-b085-704ffa1014a0",
+          "sku": "01238",
+          "name": "ВКУС ДЕТСТВА 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "01238"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "564256e7-4c8b-4ee0-8706-28e74259a748",
+      "name": "Вода и энергетики",
+      "description": "",
+      "items": [
+        {
+          "itemId": "1a12a2ab-485f-4acf-afee-92b17598b1ca",
+          "sku": "01897",
+          "name": "Минская (вода 0,5)",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 90.0
+                }
+              ],
+              "sku": "01897"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1df13315-027b-4f36-8141-f61d063d2586",
+          "sku": "01815",
+          "name": "Your Water (вода 0,5)",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 90.0
+                }
+              ],
+              "sku": "01815"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6599163f-1507-4374-a95c-41e0866269f4",
+          "sku": "00134",
+          "name": "ЖИВЕЯ ВОДА 0,5",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 110.0
+                }
+              ],
+              "sku": "00134"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "80bc6994-7bcf-4ccb-96a4-7b658aac6d7a",
+          "sku": "02834",
+          "name": "Вода АКВА ВИТАМИН В АСС",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 150.0
+                }
+              ],
+              "sku": "02834"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "fa8ff776-144d-4d50-ac76-4dcf3f74efc0",
+          "sku": "02833",
+          "name": "Вода ВИТА МИКС В АСС",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 140.0
+                }
+              ],
+              "sku": "02833"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "144b790b-5363-4fe6-b576-e537e4bf143d",
+          "sku": "02587",
+          "name": "Энергетик Lit Energy",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 170.0
+                }
+              ],
+              "sku": "02587"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "586f14c4-61a0-42ed-9ab5-f7a1fe3fb430",
+      "name": "КАПУЧИНО",
+      "description": "",
+      "items": [
+        {
+          "itemId": "939c20b2-97af-4a9d-b63b-3b3a5dd74ad5",
+          "sku": "00408",
+          "name": "КАПУЧИНО 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00408"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c37c903f-9eed-4891-8d46-ef20fbde59a2",
+          "sku": "02065",
+          "name": "КАПУЧИНО 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "02065"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "11d46bae-d95d-44d1-84e3-0134c8be0438",
+          "sku": "00006",
+          "name": "КАПУЧИНО 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "00006"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "588eba19-38b4-40bf-ae58-3b45f2ce6523",
+      "name": "КОФЕ ЗЕРНО",
+      "description": "",
+      "items": [
+        {
+          "itemId": "d64d9888-21b0-46d1-940f-464680ddc654",
+          "sku": "01729",
+          "name": "КОФЕ БРАЗИЛИЯ  1КГ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 2500.0
+                }
+              ],
+              "sku": "01729"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "95ff06ae-af9c-4378-b62f-5d32874fc917",
+          "sku": "01733",
+          "name": "ГВАТЕМАЛА 250гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 1100.0
+                }
+              ],
+              "sku": "01733"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "eee9e76b-3851-4cdc-98d9-13d1fe1fdebc",
+          "sku": "01731",
+          "name": "ЭФИОПИЯ  250 гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 1200.0
+                }
+              ],
+              "sku": "01731"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6629a92c-5e7a-4f33-a738-2179b3684aab",
+          "sku": "02488",
+          "name": "КОЛУМБИЯ ДЕКАФ 250 гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 1350.0
+                }
+              ],
+              "sku": "02488"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "25c37204-212e-4ecb-bedd-09cef7cbdb9a",
+          "sku": "02822",
+          "name": "КОФЕ ЭФИОПИЯ  1КГ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 2500.0
+                }
+              ],
+              "sku": "02822"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "5ac95367-1e57-4667-8dbb-429dea536a79",
+      "name": "Весна 2026",
+      "description": "",
+      "items": [
+        {
+          "itemId": "519e2109-cbbd-43d1-a36e-7e0942ab818c",
+          "sku": "02007",
+          "name": "Латте С прибамбасами)) 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02007"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1921facc-142f-4057-b21e-cded4962c4c5",
+          "sku": "02780",
+          "name": "Раф Черничная Жвачка 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02780"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "867b9727-03aa-48c0-8465-cdb0fe6a0983",
+          "sku": "02749",
+          "name": "Взрывная матча 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02749"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2ded5232-5c7b-4260-9b6e-b765b81a2d05",
+          "sku": "02751",
+          "name": "Взрывная матча 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02751"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a64ad6af-93cd-4d17-805b-57154bdb42ad",
+          "sku": "02752",
+          "name": "Взрывная матча 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02752"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "dd91d720-779b-4635-8734-657c49a25609",
+          "sku": "02747",
+          "name": "Какао Сказочная свежесть 300",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02747"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "48ca3d84-4d8d-4bbf-9746-07ae8e5b99e6",
+          "sku": "02781",
+          "name": "Раф Черничная Жвачка 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02781"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "94df47a5-68a2-4fc4-a8df-76b4f857f26b",
+          "sku": "02782",
+          "name": "Раф Черничная Жвачка 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02782"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "d5a2ac5f-621f-4ca3-85b9-141ba6edb545",
+          "sku": "02750",
+          "name": "Какао Сказочная свежесть 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02750"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "686c133f-e546-44cf-a6f2-0fef8e35b42c",
+          "sku": "02748",
+          "name": "Какао Сказочная свежесть 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02748"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "5b9e06f2-4cf0-46d5-9666-022ddb0b3029",
+      "name": "ЕДА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "c3dfe08b-1d6a-44c3-afdc-f3bb84cb4459",
+          "sku": "02049",
+          "name": "МЯГКОЕ МОРОЖЕНОЕ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 1000.0
+                }
+              ],
+              "sku": "02049"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b1e9971a-b4fb-4aaf-a4d2-1a92f3181d76",
+          "sku": "00080",
+          "name": "СЫРНИКИ Фуд3 ШТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 240.0
+                }
+              ],
+              "sku": "00080"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "061ea242-d3e9-430f-ad12-c97353965c35",
+          "sku": "00521",
+          "name": "КОНФЕТЫ Коко 5 шт",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 350.0
+                }
+              ],
+              "sku": "00521"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "63db6b8c-232d-4741-808c-2c5876e7aee9",
+      "name": "ФРЕШ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "644efbf7-4733-4427-9b19-74b08abde0f8",
+          "sku": "00561",
+          "name": "АПЕЛЬСИНОВЫЙ ФРЕШ 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 500.0
+                }
+              ],
+              "sku": "00561"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b699f1cd-caf5-44a8-bfc9-75a8732ddd11",
+          "sku": "02425",
+          "name": "АПЕЛЬСИНОВЫЙ ФРЕШ 400",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 430.0
+                }
+              ],
+              "sku": "02425"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "21996fbf-2ca7-4044-90b4-e8e474234b63",
+          "sku": "00560",
+          "name": "АПЕЛЬСИНОВЫЙ ФРЕШ 300",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 380.0
+                }
+              ],
+              "sku": "00560"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "6b12c4ee-ce60-44a2-a6c0-09fa0640b355",
+      "name": "ГРИЛЬ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "394a50e7-948c-4ff5-95eb-9755a38e8edd",
+          "sku": "01624",
+          "name": "Гриль Сэндвич с Форелью СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 410.0
+                }
+              ],
+              "sku": "01624"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c4b87f85-9f85-48e4-a95e-57b9d9c1325d",
+          "sku": "02856",
+          "name": "Гриль Сэндвич с курицей СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02856"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a44ed7de-7ebd-40c9-9be5-580f77a760d6",
+          "sku": "01623",
+          "name": "Гриль Сэндвич Ветчина и Сыр СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 340.0
+                }
+              ],
+              "sku": "01623"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "6bfa2811-4ebd-4c1f-a3e7-3e2f8eee76b6",
+      "name": "ЛАТТЕ СОЛЕНАЯ КАРАМЕЛЬ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "c63825e4-7852-4bd6-9622-afd88f3ae1fb",
+          "sku": "01311",
+          "name": "ЛАТТЕ СОЛЕНАЯ КАРАМЕЛЬ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "01311"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "da5fbb04-bdb3-4b31-9a24-ef47f474b863",
+          "sku": "01310",
+          "name": "ЛАТТЕ СОЛЕНАЯ КАРАМЕЛЬ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 310.0
+                }
+              ],
+              "sku": "01310"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "811723ff-71ec-442b-b5d2-312e23f3f41c",
+          "sku": "02080",
+          "name": "ЛАТТЕ СОЛЕНАЯ КАРАМЕЛЬ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02080"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "6c180c0c-7d34-4bb2-a38c-abdc6125e2eb",
+      "name": "Печенье/Батончики/ Великоросс",
+      "description": "",
+      "items": [
+        {
+          "itemId": "de01356e-c5b0-4754-950e-31f69803aa48",
+          "sku": "01483",
+          "name": "ВЕЛ Печенье Чикалаб",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 240.0
+                }
+              ],
+              "sku": "01483"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4c635fb9-3677-4fe1-9dd1-e991b41e616c",
+          "sku": "01462",
+          "name": "ВЕЛ батончик БУМБАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "01462"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6237f409-faf9-4355-91c4-788390bdd647",
+          "sku": "02698",
+          "name": "ВЕЛ Брауни FitnesShock",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "02698"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "32a04e38-e69d-4ecd-a100-5902ab13cb30",
+          "sku": "02027",
+          "name": "ВЕЛ печенье KULTLAB ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "02027"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6ab210c7-621e-45c9-a95e-8e69c1961dfc",
+          "sku": "01463",
+          "name": "Батончик КоКо",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 130.0
+                }
+              ],
+              "sku": "01463"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "8b91f559-4aa2-4928-9fc2-c089b090007b",
+          "sku": "02705",
+          "name": "ВЕЛ батончик NUTELLA B-readi",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 180.0
+                }
+              ],
+              "sku": "02705"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "7a2c8d5e-7a57-42e5-bc17-c4cd025e0e34",
+          "sku": "02706",
+          "name": "ВЕЛ Конфеты SCANDIC в асс",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 120.0
+                }
+              ],
+              "sku": "02706"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "991335dd-f849-448d-bc64-7bc23e09c69d",
+          "sku": "02683",
+          "name": "ВЕЛ Батончик Snaqer",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 240.0
+                }
+              ],
+              "sku": "02683"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "49de8d3f-8d9f-4e26-b970-39c3804e0aba",
+          "sku": "01485",
+          "name": "ВЕЛ Печенье БУМБАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "01485"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "27fe00a5-ff4b-4f9e-8195-4003e6b186f5",
+          "sku": "02697",
+          "name": "ВЕЛ Батончик SHOCKS",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 160.0
+                }
+              ],
+              "sku": "02697"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3c017bb0-5351-42e9-b97e-9dcccbeb9ba7",
+          "sku": "02684",
+          "name": "ВЕЛ Батончик FitnesShock",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 160.0
+                }
+              ],
+              "sku": "02684"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "74251263-b229-46a2-aade-116f192b4161",
+      "name": "БАМБЛ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "683a8a4f-eb54-49d8-88df-332dfb83a54e",
+          "sku": "01525",
+          "name": "Бамбл Кофе Апельсиновый Фреш 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 490.0
+                }
+              ],
+              "sku": "01525"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "026aaba2-2046-4093-9942-614f7349dd2f",
+          "sku": "01227",
+          "name": "БАМБЛ 500 АЙС",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "01227"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "965e831c-2177-4b4f-bf47-edb032055b98",
+          "sku": "02386",
+          "name": "Бамбл Кофе Апельсиновый Фреш 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 530.0
+                }
+              ],
+              "sku": "02386"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6dffc01c-c889-4224-bb76-4bd5a7afffc9",
+          "sku": "02376",
+          "name": "БАМБЛ горячий 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02376"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a8b04397-6b31-457b-b3db-cb1c3775a602",
+          "sku": "02375",
+          "name": "БАМБЛ горячий 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "02375"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6c92d2e5-9d14-40e4-8be5-76d718a93d07",
+          "sku": "02377",
+          "name": "БАМБЛ горячий 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02377"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1bdfe634-ca0a-423b-a481-e98501217092",
+          "sku": "01226",
+          "name": "БАМБЛ 300 АЙС",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "01226"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "84f9a2a1-8a64-4ddb-849d-170e9e851d4c",
+          "sku": "02374",
+          "name": "БАМБЛ 600 АЙС",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02374"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "7a1d166e-3a2c-4f6c-bf9f-e51533e9bcde",
+      "name": "АМЕРИКАНО",
+      "description": "",
+      "items": [
+        {
+          "itemId": "1aed5ad1-b8ef-4231-b490-5840b0991414",
+          "sku": "00402",
+          "name": "АМЕРИКАНО 250",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "00402"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "51353609-3d98-4354-9001-8b340c2d8432",
+          "sku": "02058",
+          "name": "АМЕРИКАНО 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "02058"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5e6740b3-f52d-49de-8f68-aef9e4b10bba",
+          "sku": "00404",
+          "name": "АМЕРИКАНО 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00404"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6464ba0f-adc5-46fb-a124-eb7cdba615c4",
+          "sku": "00403",
+          "name": "АМЕРИКАНО 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "00403"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "877c8986-6b9f-4204-8451-f01cce2875fb",
+      "name": "КРУАССАНЫ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "445b2d3c-6872-4b02-bb14-dac227fa5680",
+          "sku": "02839",
+          "name": "КРУАССАН С АБРИКОСОМ ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "02839"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "710b27d1-3efc-4606-8916-225a78cc3430",
+          "sku": "00635",
+          "name": "КРУАССАН С МИНДАЛЕМ ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "00635"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5ca40d88-66de-49a9-a1f4-571264a3b21e",
+          "sku": "01486",
+          "name": "КРУАССАН С ВЕТЧИНОЙ И СЫРОМ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 210.0
+                }
+              ],
+              "sku": "01486"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "225211b7-4daa-4359-b518-333250295ea5",
+          "sku": "00125",
+          "name": "КРУАССАН С ЛИМОНОМ ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "00125"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "9cbbd5ab-830a-4e37-88d9-0eb999c2eea5",
+          "sku": "00124",
+          "name": "КРУАССАН классический товар",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 150.0
+                }
+              ],
+              "sku": "00124"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "9483bf12-2eb2-44a1-88b9-050cbac79969",
+          "sku": "01506",
+          "name": "КРУАССАН С МАЛИНОЙ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 210.0
+                }
+              ],
+              "sku": "01506"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "52be6452-7a66-4720-a838-40516d442eab",
+          "sku": "00123",
+          "name": "КРУАССАН С ШОКОЛАДОМ ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 210.0
+                }
+              ],
+              "sku": "00123"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "04efa6d1-390b-498c-b88a-f7f2f82417bc",
+          "sku": "02827",
+          "name": "КРУАССАН С МАРЦИПАНОМ ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "02827"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "893170d4-9ce0-48b8-b685-da7b6187447f",
+      "name": "Смузи",
+      "description": "",
+      "items": [
+        {
+          "itemId": "57463b31-3cbc-4e09-ae22-8292de1a65bb",
+          "sku": "01904",
+          "name": "СМУЗИ 300",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 350.0
+                }
+              ],
+              "sku": "01904"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5f026eee-530a-4c03-a7c8-e90319dc6f56",
+          "sku": "01905",
+          "name": "СМУЗИ 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "01905"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "941402ee-4189-4b65-9c1c-c372f25feed0",
+          "sku": "02716",
+          "name": "Арахисовый смузи 300",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 450.0
+                }
+              ],
+              "sku": "02716"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "8da60307-80d8-41a8-a9e7-d74397628e9f",
+      "name": "ШОКОЛАД",
+      "description": "",
+      "items": [
+        {
+          "itemId": "37690681-019b-48bb-b3b3-4746256530c4",
+          "sku": "01937",
+          "name": "ШОКОЛАД BERRY",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "01937"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "34c9f470-790f-42a7-83e6-2071c9a6be12",
+          "sku": "02583",
+          "name": "Шоколад Milky дубайский шоколад",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "02583"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e514cf1e-5646-40ae-91c5-008ff47e7ea9",
+          "sku": "00118",
+          "name": "РИТТЕР СПОРТ ШОКОЛАД",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "00118"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5205e345-bf09-45b3-a99f-39cfd1445d06",
+          "sku": "02489",
+          "name": "Дубайски шоколад",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 900.0
+                }
+              ],
+              "sku": "02489"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "d47c822b-ff4b-4481-9147-4b23dca54d45",
+          "sku": "02707",
+          "name": "Шоколад MILKA с печеньем OREO",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 310.0
+                }
+              ],
+              "sku": "02707"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0a651ec2-1d5b-46f6-884e-8692b4abd789",
+          "sku": "02301",
+          "name": "ШОКОЛАД LUBAICA в асс",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "02301"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "8dfba832-6175-4884-9cfe-c78067ab7343",
+      "name": "Сырники, запеканка",
+      "description": "",
+      "items": [
+        {
+          "itemId": "a0f26d79-adbe-4d5b-b807-b2af97752f49",
+          "sku": "02784",
+          "name": "Сырники Манго 2шт  СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 240.0
+                }
+              ],
+              "sku": "02784"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "54711bde-64e4-42ce-86e7-a777de1e7866",
+          "sku": "02313",
+          "name": "Сырники 2шт  СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "02313"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b59f8fb0-bda9-4cb2-affc-3257b2436b12",
+          "sku": "02785",
+          "name": "Сырники Нутелла 2 шт СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 290.0
+                }
+              ],
+              "sku": "02785"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3e678d54-4dbd-4183-8b47-1432b45560a2",
+          "sku": "02307",
+          "name": "Запеканка творожная СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "02307"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "97875761-4ddd-422e-bbe5-e2b993eb96aa",
+      "name": "ЛАТТЕ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "0076f30f-bdbb-4e79-9275-f582922631fe",
+          "sku": "00409",
+          "name": "ЛАТТЕ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "00409"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "09dddd9f-fa2b-4e07-8acc-e82f250bb15d",
+          "sku": "02072",
+          "name": "ЛАТТЕ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "02072"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "bd6312a6-4f9a-44f0-b9d1-eb4b9ce701b2",
+          "sku": "00410",
+          "name": "ЛАТТЕ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00410"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "9d72bb64-8b14-48bd-9853-97588f8dc2bc",
+      "name": "кофе зерно товар",
+      "description": "",
+      "items": [
+        {
+          "itemId": "144d252a-6e98-42f1-ab8b-fdd7ae3ded62",
+          "sku": "00139",
+          "name": "ЗЕРНО для ЭСПРЕССО товар",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 2500.0
+                }
+              ],
+              "sku": "00139"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "47128384-e13b-4ee8-a4ba-29ae864ad3a8",
+          "sku": "02118",
+          "name": "ЗЕРНО для ФИЛЬТРА",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 0.0
+                }
+              ],
+              "sku": "02118"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "a9de3395-29cb-4b73-b711-f077e24394ce",
+      "name": "Трубочки, бискотти, орешки",
+      "description": "",
+      "items": [
+        {
+          "itemId": "a1b01405-20d9-43ef-b914-d0750ceae2a3",
+          "sku": "02469",
+          "name": "Орешек с нутеллой СП 3шт",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 230.0
+                }
+              ],
+              "sku": "02469"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "80fee585-1db1-4e84-bdcb-8a64d2545085",
+          "sku": "02341",
+          "name": "БИСКОТТИ 3 шт с курагой СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 130.0
+                }
+              ],
+              "sku": "02341"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e52a72e0-7d55-41e2-bd3e-14396ea77aac",
+          "sku": "02346",
+          "name": "Пирожное картошка СП 1 ШТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 110.0
+                }
+              ],
+              "sku": "02346"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "568a8d3c-06cf-4556-a9e6-57083cce7a8c",
+          "sku": "02468",
+          "name": "Орешек со сгущенкой СП 3 шт ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 150.0
+                }
+              ],
+              "sku": "02468"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2537b498-606a-4ca0-bfb6-e9585a4e0717",
+          "sku": "02269",
+          "name": "Трубочка с вареной сгущенкой СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 120.0
+                }
+              ],
+              "sku": "02269"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "ac188f61-1ea1-40be-8519-b90990b712e4",
+      "name": "Блины Сытные",
+      "description": "",
+      "items": [
+        {
+          "itemId": "c6f8f7e9-6db7-4168-9d30-b956687cdcb7",
+          "sku": "02178",
+          "name": "Блин Жульен с Курицей и сыром СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 365.0
+                }
+              ],
+              "sku": "02178"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "84b12171-c0c1-448b-8317-c31005c4a4f7",
+          "sku": "02203",
+          "name": "Блин Ветчина Сыр СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 270.0
+                }
+              ],
+              "sku": "02203"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6b650c51-c8fa-496b-ada9-63e4103c111b",
+          "sku": "02769",
+          "name": "Блин с Яйцом Сыром Зеленью СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 260.0
+                }
+              ],
+              "sku": "02769"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "bd987bde-66a6-45c2-b094-b5208809d51e",
+          "sku": "02182",
+          "name": "Блин Филадельфия СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02182"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "af44c36d-26a4-449b-b366-73166289201e",
+      "name": "чиабатты СП",
+      "description": "",
+      "items": [
+        {
+          "itemId": "c0bf1a39-504d-4cdd-86d0-ffc78b0ce726",
+          "sku": "02852",
+          "name": "Чиабатта с песто и  пастрами индейки СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02852"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b0924e9d-7116-4424-9894-f1439e61f0d4",
+          "sku": "02853",
+          "name": "Чиабатта с песто и моцарелой  СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 550.0
+                }
+              ],
+              "sku": "02853"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "048d6717-80dc-4744-8aa5-550a5b8952ea",
+          "sku": "02837",
+          "name": "Чиабатта с пастрами из индейки СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 430.0
+                }
+              ],
+              "sku": "02837"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0b548861-7ba3-4b4f-8dfc-0ae6bdc37154",
+          "sku": "02787",
+          "name": "Чиабатта Курица Тар-Тар СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "02787"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "b11c4fd5-6315-4d7d-9ba7-3fe02e4a4f7d",
+      "name": "комбо СП",
+      "description": "",
+      "items": [
+        {
+          "itemId": "28270668-84e2-4cd1-ba4d-efdf47b30efb",
+          "sku": "02797",
+          "name": "Комбо Фри+ стрипсы СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 290.0
+                }
+              ],
+              "sku": "02797"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2380cf6f-cd91-4718-a51e-49d44645cf6e",
+          "sku": "02805",
+          "name": "Комбо Фри+ сырные палочки СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 390.0
+                }
+              ],
+              "sku": "02805"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "f201a664-b4c3-4f25-b112-09cc12a10d99",
+          "sku": "02796",
+          "name": "Комбо Фри+ наггетсы СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "02796"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "b2d1efb6-b1ef-4a9c-ae1f-704c0daf7d49",
+      "name": "МОККАЧИНО",
+      "description": "",
+      "items": [
+        {
+          "itemId": "186a8614-fef3-454d-8236-7605bd882947",
+          "sku": "00411",
+          "name": "МОККАЧИНО 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 310.0
+                }
+              ],
+              "sku": "00411"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "d02a3af6-c90d-4891-b7e7-ba821485cb03",
+          "sku": "02079",
+          "name": "МОККАЧИНО 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02079"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "273feb61-71ec-448f-8725-112c1f85e493",
+          "sku": "00412",
+          "name": "МОККАЧИНО 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "00412"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "b7a3201c-45b3-4520-b55a-48238b81894c",
+      "name": "Батончики",
+      "description": "",
+      "items": [
+        {
+          "itemId": "81441c43-2248-443e-8f75-be0752feda4e",
+          "sku": "02699",
+          "name": "Печенье  KERLLI протеиновое SOJ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 140.0
+                }
+              ],
+              "sku": "02699"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "26f64645-33b4-4fca-a547-d207ab30bc26",
+          "sku": "02116",
+          "name": "Батончик  злаковый KERLLI",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 100.0
+                }
+              ],
+              "sku": "02116"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "afedcdd2-e1ec-4eab-9ec2-bf553586dc8b",
+          "sku": "02731",
+          "name": "Батончик FizIQ протеиновый SOJ в асс",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 170.0
+                }
+              ],
+              "sku": "02731"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3fad5247-2086-4a6f-8525-7d150ed249ab",
+          "sku": "02732",
+          "name": "Печенье FizIQ SNEAKIQ протеиновое SOJ в асс",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 170.0
+                }
+              ],
+              "sku": "02732"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4a05cb88-5036-4ecb-b9c9-82616a6aef6e",
+          "sku": "02700",
+          "name": "Батончик PROTEIN  Soj",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 130.0
+                }
+              ],
+              "sku": "02700"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e84fe5fe-a83c-4be1-b670-f887acae79a8",
+          "sku": "02734",
+          "name": "Батончик  COCOnitto SOJ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 120.0
+                }
+              ],
+              "sku": "02734"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e819808e-b029-43c4-9abe-f36033f495fc",
+          "sku": "02029",
+          "name": "Печенье  Protein Cookie SOJ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 180.0
+                }
+              ],
+              "sku": "02029"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "891dc34a-ee81-4121-82d2-0d1791920c97",
+          "sku": "02733",
+          "name": "Печенье COCOnitto SOJ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 170.0
+                }
+              ],
+              "sku": "02733"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "fad0f6e6-bc19-4658-b15a-143cd9837610",
+          "sku": "01870",
+          "name": "Батончик PROTEIN  BAR Soj",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 210.0
+                }
+              ],
+              "sku": "01870"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "b7dae36f-8504-4760-a2ce-bf603f38fa3e",
+      "name": "МАТЧА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "d4a04f2d-d4b9-466e-9e9a-63a5c50b950a",
+          "sku": "00860",
+          "name": "МАТЧА 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 340.0
+                }
+              ],
+              "sku": "00860"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "971f19c3-f9ff-4a19-85ba-ecd40b9b36ae",
+          "sku": "00861",
+          "name": "МАТЧА 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 390.0
+                }
+              ],
+              "sku": "00861"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "af5b2084-544d-4bcf-8db0-3007dc9b05bc",
+          "sku": "02545",
+          "name": "Айс Матча Малиновая 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 410.0
+                }
+              ],
+              "sku": "02545"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "9679a385-1353-463f-bef6-cc3dbb92a738",
+          "sku": "02076",
+          "name": "МАТЧА 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 440.0
+                }
+              ],
+              "sku": "02076"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "dc912d40-8046-402a-abbc-de9479131903",
+          "sku": "02546",
+          "name": "Айс Матча Малиновая 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 460.0
+                }
+              ],
+              "sku": "02546"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4b3d46f6-6a83-43a6-8958-e675d4a6dcd9",
+          "sku": "01232",
+          "name": "АЙС-МАТЧА 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "01232"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "eb3e3a60-0d83-4708-ac92-a75dbcceec9b",
+          "sku": "02543",
+          "name": "АЙС-МАТЧА 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 450.0
+                }
+              ],
+              "sku": "02543"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "b7e47f22-1219-4f7d-a686-5e3a32e24033",
+      "name": "КЛАССИКА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "b65eede6-1356-429f-b7cb-2a2c7d1849d0",
+          "sku": "00413",
+          "name": "ФЛЭТ УАЙТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 250.0
+                }
+              ],
+              "sku": "00413"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a49d24bc-303d-4c8a-9417-23c38e92f3a7",
+          "sku": "01896",
+          "name": "ЭСПРЕССО-ТОНИК 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "01896"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "af353789-4e2e-4d81-861a-777fecd206b4",
+          "sku": "00401",
+          "name": "ДВОЙНОЙ ЭСПРЕССО",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "00401"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "6ad252a3-388e-4b67-89fe-33b066f88373",
+          "sku": "01895",
+          "name": "ЭСПРЕССО-ТОНИК 300",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 350.0
+                }
+              ],
+              "sku": "01895"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "b9689b32-2a7b-4073-93ff-de1e1210cfda",
+      "name": "ВЫПЕЧКА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "6e9aa1b6-a555-495c-a1fa-0d4bf07d35f8",
+          "sku": "00119",
+          "name": "ПЕЧЕНЬЕ С ПРЕДСКАЗ.ТОВАР",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 40.0
+                }
+              ],
+              "sku": "00119"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "8dd565c5-d522-41a9-9206-0f0efad2cf04",
+          "sku": "00129",
+          "name": "УЛИТКА ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 170.0
+                }
+              ],
+              "sku": "00129"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b1bbf365-9dbc-4f99-acdb-882bfc1c11c4",
+          "sku": "01741",
+          "name": "КОСИЧКА С ПЕКАНОМ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 200.0
+                }
+              ],
+              "sku": "01741"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "c2838aa1-cc27-40d3-8528-23a0bed1d335",
+      "name": "АКЦИИ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "67dbab45-af1e-447c-804f-a223e4f70eeb",
+          "sku": "02823",
+          "name": "Сырники 2штСП + кофе 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 410.0
+                }
+              ],
+              "sku": "02823"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "c38acfbd-18bc-4bbb-b7fb-c1ed96457807",
+      "name": "КАКАО",
+      "description": "",
+      "items": [
+        {
+          "itemId": "427ef40e-5814-4a55-9745-fecdb1f88dc6",
+          "sku": "02074",
+          "name": "КАКАО КЛАССИЧЕСКИЙ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 390.0
+                }
+              ],
+              "sku": "02074"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e46c4277-ec4d-40a3-92d3-8703e3e2f05a",
+          "sku": "00373",
+          "name": "КАКАО КЛАССИЧЕСКИЙ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 290.0
+                }
+              ],
+              "sku": "00373"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0b559d22-2cc8-44a6-b68d-b001ca60fe0f",
+          "sku": "02399",
+          "name": "КАКАО ВОЛШЕБНЫЙ 350 CF",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "02399"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "59f6ab31-26b2-478d-8737-6da0a028b130",
+          "sku": "02401",
+          "name": "КАКАО ВОЛШЕБНЫЙ 600 CF",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 400.0
+                }
+              ],
+              "sku": "02401"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1bce9c9c-b327-40ea-ae59-f2a7466ffa06",
+          "sku": "02400",
+          "name": "КАКАО ВОЛШЕБНЫЙ 450 CF",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 350.0
+                }
+              ],
+              "sku": "02400"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "39207179-3aaa-4d80-a67e-bd4a92e864b9",
+          "sku": "00374",
+          "name": "КАКАО КЛАССИЧЕСКИЙ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 340.0
+                }
+              ],
+              "sku": "00374"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "c99df023-fdeb-49a3-a63c-b79a08eb4a9b",
+      "name": "Блины Сладкие",
+      "description": "",
+      "items": [
+        {
+          "itemId": "ad595460-aedc-4a14-92d6-57e172c152b3",
+          "sku": "02776",
+          "name": "Блин с Вареной сгущенкой СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 220.0
+                }
+              ],
+              "sku": "02776"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b63d4fb5-8a55-474e-beaf-5cc198806432",
+          "sku": "02209",
+          "name": "Блин Нутелла Банан СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 350.0
+                }
+              ],
+              "sku": "02209"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "819931ee-8ea5-4194-9672-334fb2da3163",
+          "sku": "02232",
+          "name": "Блин классический с маслом СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 75.0
+                }
+              ],
+              "sku": "02232"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "dc3f8423-4f1f-46da-8fff-6a6882c39ea0",
+          "sku": "02778",
+          "name": "Блин с Творогом и Вареньем СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "02778"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "cdf4f51d-7cb6-4e25-b20e-150c7a014108",
+      "name": "АЙС КЛАССИКА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "29dfb9aa-6fb0-4fa4-99d7-d4967f18e3e7",
+          "sku": "00545",
+          "name": "АЙС АМЕРИКАНО 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "00545"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "842649d7-60af-41fc-be8a-d3c469371b8c",
+          "sku": "02505",
+          "name": "АЙС КАПУЧИНО 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 390.0
+                }
+              ],
+              "sku": "02505"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "34bab3b0-06d9-4a50-8661-bab6e1885584",
+          "sku": "00549",
+          "name": "АЙС ЛАТТЕ 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "00549"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "29196144-8e0e-4a9a-b16a-4c4dd74c06e2",
+          "sku": "02507",
+          "name": "АЙС АМЕРИКАНО 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 390.0
+                }
+              ],
+              "sku": "02507"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "9bd2f2c7-e14b-472e-9b34-b320e80628b0",
+          "sku": "00548",
+          "name": "АЙС ЛАТТЕ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00548"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a5c6ed1a-0798-4407-a104-5e323044f62e",
+          "sku": "00547",
+          "name": "АЙС КАПУЧИНО 500",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 360.0
+                }
+              ],
+              "sku": "00547"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "388f648f-4c6f-4047-afff-e08ed5a925be",
+          "sku": "02506",
+          "name": "АЙС ЛАТТЕ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 390.0
+                }
+              ],
+              "sku": "02506"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2200a58d-08bd-465e-9856-57b9b42a2ce6",
+          "sku": "00546",
+          "name": "АЙС КАПУЧИНО 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00546"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "633fb02c-8192-4b6d-a946-57c16eb24f31",
+          "sku": "00544",
+          "name": "АЙС АМЕРИКАНО 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 300.0
+                }
+              ],
+              "sku": "00544"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "d3436cd4-71dd-4c8a-adda-d498eae125cd",
+      "name": "ДОБАВКИ Блинная",
+      "description": "",
+      "items": [
+        {
+          "itemId": "83d6c8d6-00a2-47ac-9c83-410fad0d925a",
+          "sku": "02685",
+          "name": "Сгущеное молоко 30гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02685"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b0945108-1cd5-4326-85dd-00cd3fbc7b2d",
+          "sku": "02574",
+          "name": "Соус Цезарь 30 доп",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02574"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "8b622250-7f7d-4aa8-b62e-ac515ee7027c",
+          "sku": "02801",
+          "name": "Соус Кетчуп 30 доп",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02801"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3c3dccac-a1aa-45ad-9cf5-aedf1e0eb337",
+          "sku": "02445",
+          "name": "Соус сырный 30 доп",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02445"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "f4be9b63-5353-4c31-9550-55c6a9d331cf",
+          "sku": "02282",
+          "name": "Варенье 30",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02282"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "be79af80-954c-495c-a28e-74dce87a05e9",
+          "sku": "02433",
+          "name": "Соус Тартар 30 доп",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02433"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "dc2b4048-45be-4a6d-8aec-21d894dbe219",
+      "name": "Кукисы",
+      "description": "",
+      "items": [
+        {
+          "itemId": "e1007acb-5cf2-405c-a68a-b6a342aa8bfd",
+          "sku": "02738",
+          "name": "Кукис Вишневый Чизкейк СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 130.0
+                }
+              ],
+              "sku": "02738"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "327d10ce-0150-46c7-981a-656f6f8d6c66",
+          "sku": "02737",
+          "name": "Кукис два шоколада СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 130.0
+                }
+              ],
+              "sku": "02737"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5919414c-339c-40b9-9b23-97de11d662d0",
+          "sku": "02622",
+          "name": "Овсяное печенье СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 130.0
+                }
+              ],
+              "sku": "02622"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "dfa654f9-b701-4865-8ae7-0626f67965ee",
+      "name": "В ЛАВАШЕ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "32a63275-215d-492f-bbc8-01806aecf7a8",
+          "sku": "02729",
+          "name": "Ролл ветчина и сыр СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 310.0
+                }
+              ],
+              "sku": "02729"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a6427b8d-dbc1-4b71-ab47-81e5c1732ccf",
+          "sku": "02854",
+          "name": "Ролл Филадельфия СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 460.0
+                }
+              ],
+              "sku": "02854"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4d449810-6e30-4518-a1eb-e75569a0c69a",
+          "sku": "02414",
+          "name": "Шаурма СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 410.0
+                }
+              ],
+              "sku": "02414"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4cb24736-6838-4315-881b-334a21f5bdca",
+          "sku": "02358",
+          "name": "Ролл Цезарь СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 340.0
+                }
+              ],
+              "sku": "02358"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b7de75fe-fdc5-4bf0-8d4b-15e8458a0ffc",
+          "sku": "02855",
+          "name": "Бургер Шаурма СП",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 590.0
+                }
+              ],
+              "sku": "02855"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "e4e8a83e-9298-4d76-b4ae-3e78af2e310f",
+      "name": "УПАКОВКА/ХОЗКА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "822b9803-43b5-48cf-87e9-92127952d455",
+          "sku": "00164",
+          "name": "СТАКАН 300 ПЭТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 20.0
+                }
+              ],
+              "sku": "00164"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3d809b75-dbe9-4a9c-af5c-177b692441fe",
+          "sku": "00142",
+          "name": "СТАКАН 250 ЛОГО",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 15.0
+                }
+              ],
+              "sku": "00142"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "f8c412c5-a682-4091-966f-dacbdde89d97",
+          "sku": "00147",
+          "name": "СТАКАН 450 ЛОГО",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 30.0
+                }
+              ],
+              "sku": "00147"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5177fd05-f863-42d3-8d85-c2a2cb6a5b87",
+          "sku": "00145",
+          "name": "СТАКАН 350 ЛОГО",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 20.0
+                }
+              ],
+              "sku": "00145"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "09114bbe-f8b4-41e1-bc46-0609ade090c0",
+          "sku": "02303",
+          "name": "СТАКАН 600 ПЭТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 30.0
+                }
+              ],
+              "sku": "02303"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "826d017c-29e3-4e3d-99dd-6fc4dfc1998d",
+          "sku": "02064",
+          "name": "СТАКАН 600  ЛОГО",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 30.0
+                }
+              ],
+              "sku": "02064"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c4e6a695-ed50-403e-bcf7-aa4e6a323155",
+          "sku": "00165",
+          "name": "СТАКАН 400 ПЭТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 30.0
+                }
+              ],
+              "sku": "00165"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "18816a64-0e81-4952-a2cb-0ea667efd140",
+          "sku": "00262",
+          "name": "СТАКАН 500 ПЭТ",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 30.0
+                }
+              ],
+              "sku": "00262"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "f3e7cba3-b4a4-4f4c-bcb0-4c85709fe6c8",
+      "name": "СР САЛАТЫ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "e9ac8d2f-f11f-4f8f-936d-2af79267b4ad",
+          "sku": "01388",
+          "name": "СР Салат Цезарь Курица",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 310.0
+                }
+              ],
+              "sku": "01388"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "f91f85b9-4df3-4add-b5f7-54a5809356f1",
+      "name": "ДОБАВКИ  КОФЕЙНЯ блюдо",
+      "description": "",
+      "items": [
+        {
+          "itemId": "3a4e1513-1dd3-4ca0-8444-cf172e9f022d",
+          "sku": "02105",
+          "name": "Джус боллы 50",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 100.0
+                }
+              ],
+              "sku": "02105"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3d851b17-feed-4858-b70e-24e5b77778fa",
+          "sku": "01677",
+          "name": "Маршмеллоу 10гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01677"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3b4b0fe5-609a-44d3-a680-c3894ca1b9ff",
+          "sku": "02018",
+          "name": "Мороженое 50гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02018"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "5de0dcfa-0fff-44f3-a86c-938603727676",
+          "sku": "01960",
+          "name": "Джем 30",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01960"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "aa2b75a7-df8a-43be-a155-aeb02ee5ab63",
+          "sku": "01675",
+          "name": "Корица 10",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 0.0
+                }
+              ],
+              "sku": "01675"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "ba1fbb11-e88d-4f1c-b306-98e91fcb2a1c",
+          "sku": "01680",
+          "name": "Сгущеное молоко 30гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01680"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "59eefa6a-da27-42ae-a60d-36a614e0fc3b",
+          "sku": "02100",
+          "name": "Взбитые Сливки 50",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02100"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0026c3a0-6978-4f0b-884c-cdc2b87f3f2f",
+          "sku": "01682",
+          "name": "Сливки 50",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01682"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "d14f9516-e1b3-4c7d-9b23-7acc9375f54d",
+          "sku": "01684",
+          "name": "Эспрессо",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01684"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "4dd37896-9184-4009-95bb-7d507a90ae7b",
+          "sku": "02042",
+          "name": "Сметана 30",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "02042"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3ed7f02d-fa3a-4da4-98af-12423434b4b2",
+          "sku": "01674",
+          "name": "Сахар 10",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 0.0
+                }
+              ],
+              "sku": "01674"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "e2399b5d-6ce0-49d2-8fd8-373e358345a0",
+          "sku": "01678",
+          "name": "Мед 20",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01678"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "a62276da-2c90-4fbe-9084-8eac9672d542",
+          "sku": "01679",
+          "name": "Молоко 50мл",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 0.0
+                }
+              ],
+              "sku": "01679"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3e83a0e0-b24a-42ec-86bd-67de2272a02f",
+          "sku": "01676",
+          "name": "Лимон 10",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 25.0
+                }
+              ],
+              "sku": "01676"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "cbcac2d7-e2b8-4728-a55b-985b1408b670",
+          "sku": "01694",
+          "name": "Альтернатива доп 50мл",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 120.0
+                }
+              ],
+              "sku": "01694"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c23ff45e-9252-433b-9e55-dda5f8b69034",
+          "sku": "01683",
+          "name": "Топинг 20",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01683"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "12e90ca5-4601-4019-834f-707ec69a299e",
+          "sku": "01681",
+          "name": "Сироп 20",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01681"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "fddfa221-766a-48a4-9e6e-936efb2520cb",
+          "sku": "01927",
+          "name": "ВАНИЛЬ 15 гр",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 50.0
+                }
+              ],
+              "sku": "01927"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "fc18d7f5-196a-4392-a891-d0ca08899088",
+      "name": "РАФ",
+      "description": "",
+      "items": [
+        {
+          "itemId": "f5a8ac15-bc0f-4943-bc8f-3bb96b4f9840",
+          "sku": "02059",
+          "name": "РАФ 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "02059"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "1f3355d8-04ca-44f2-b114-486d9ad378a7",
+          "sku": "00044",
+          "name": "РАФ 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "00044"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "2e022e0e-b488-48f3-aa68-1a200e453c7d",
+          "sku": "00045",
+          "name": "РАФ 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 310.0
+                }
+              ],
+              "sku": "00045"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    },
+    {
+      "id": "fce966c9-d56b-4a5b-a0d9-1f8a77693326",
+      "name": "СЕЗОНКА",
+      "description": "",
+      "items": [
+        {
+          "itemId": "da634a7c-d5ca-4510-8f75-35706011e5bf",
+          "sku": "02530",
+          "name": "РАФ Дубайский шоколад 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 380.0
+                }
+              ],
+              "sku": "02530"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "25619f06-5e7e-477c-b57a-2c8aba968b3d",
+          "sku": "02373",
+          "name": "Сбитень 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 210.0
+                }
+              ],
+              "sku": "02373"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "7f43bcb6-f893-49a4-ba8c-374a6be89d5b",
+          "sku": "01801",
+          "name": " Клубничное мороженое  350 Hot",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 370.0
+                }
+              ],
+              "sku": "01801"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0a902e9f-5de5-43c3-9233-bbce4f401a5e",
+          "sku": "02366",
+          "name": " Клубничное мороженое  600 Hot",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02366"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "c81bf02f-28a2-4c3a-bd41-5a6f5fbcd116",
+          "sku": "02532",
+          "name": "РАФ Дубайский шоколад 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 600.0
+                }
+              ],
+              "sku": "02532"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "b96301cd-ae14-45fb-bac1-a5b4e2af7812",
+          "sku": "01802",
+          "name": " Клубничное мороженое  450 Hot",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 420.0
+                }
+              ],
+              "sku": "01802"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "24068493-6187-41c3-a362-6c50c140f63b",
+          "sku": "02372",
+          "name": "Сбитень 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 190.0
+                }
+              ],
+              "sku": "02372"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0b80eb91-ca93-4d4f-a4de-d586624ceba4",
+          "sku": "02531",
+          "name": "РАФ Дубайский шоколад 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02531"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "d453ed5e-94ae-474d-83af-ec31eecd8cc7",
+          "sku": "02650",
+          "name": "Канадский клен 450",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 480.0
+                }
+              ],
+              "sku": "02650"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "3a505733-20bb-4c29-9e74-a4bfd659cdcc",
+          "sku": "02649",
+          "name": "Канадский клен 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 380.0
+                }
+              ],
+              "sku": "02649"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "0226cacb-9733-4f05-a555-97feded2ccf9",
+          "sku": "02371",
+          "name": "Сбитень 350",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 170.0
+                }
+              ],
+              "sku": "02371"
+            }
+          ],
+          "imageLinks": null
+        },
+        {
+          "itemId": "949f43ea-5c8a-40a9-ae23-301b36bddaca",
+          "sku": "02651",
+          "name": "Канадский клен 600",
+          "description": "",
+          "orderItemType": "Product",
+          "modifierGroups": null,
+          "sizes": [
+            {
+              "sizeId": null,
+              "sizeName": "",
+              "prices": [
+                {
+                  "organizationId": "c6f5eaae-fe5b-4cdd-bf9f-d260c99ae356",
+                  "price": 600.0
+                }
+              ],
+              "sku": "02651"
+            }
+          ],
+          "imageLinks": null
+        }
+      ]
+    }
+  ]
+}

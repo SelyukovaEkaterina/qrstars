@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Технические и юридические страницы не индексируем
+Disallow: /politika-konfidencialnosti.html
+Disallow: /soglasie-pd.html
+
+Sitemap: https://qrstars.ru/sitemap-index.xml

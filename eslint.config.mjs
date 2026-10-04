@@ -18,6 +18,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Лендинг (Astro) живёт в landing/ и собирается отдельно
+    "landing/**",
   ]),
 ]);
 

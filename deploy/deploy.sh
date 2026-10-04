@@ -9,6 +9,7 @@ rsync -az --delete \
   --exclude node_modules \
   --exclude .next \
   --exclude .git \
+  --exclude /landing \
   --exclude .env \
   --exclude e2e/__pycache__ \
   --exclude deploy/.active_app \

@@ -1,0 +1,33 @@
+---
+interface Link {
+  slug?: string;
+  href?: string;
+  label: string;
+}
+
+interface Props {
+  links: Link[];
+  title?: string;
+}
+
+const { links, title = 'Смотрите также' } = Astro.props;
+---
+
+{links.length > 0 && (
+  <section class="py-12 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-xl font-bold mb-6 text-slate-800">{title}</h2>
+      <div class="flex flex-wrap gap-3">
+        {links.map((link) => (
+          <a
+            href={link.href ?? `/${link.slug}.html`}
+            class="inline-flex items-center gap-2 text-sm font-medium text-primary bg-primary/5 hover:bg-primary/10 px-4 py-2 rounded-lg border border-primary/20 transition"
+          >
+            {link.label}
+            <i class="fa-solid fa-arrow-right text-xs"></i>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+)}

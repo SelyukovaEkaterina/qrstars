@@ -1,0 +1,180 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DemoQrScan from '../components/DemoQrScan.astro';
+
+const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
+---
+
+<Layout title="QR-файлы по QR-коду" description="QR-меню, прайсы и каталоги для ресторанов и локального бизнеса. Клиент сканирует код и сразу открывает PDF — без приложений и бумажных папок.">
+    <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="z-10">
+                    <div class="flex flex-wrap items-center gap-2 mb-6">
+                        <div class="inline-block bg-orange-100 text-orange-800 font-semibold px-4 py-1.5 rounded-full text-sm border border-orange-200">
+                            🍽️ Меню, прайсы, каталоги
+                        </div>
+                        <div class="inline-block bg-amber-100 text-amber-800 font-semibold px-3 py-1.5 rounded-full text-xs border border-amber-200">
+                            Pro-модуль
+                        </div>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+                        <span class="text-primary">QR-файлы</span> <br/>
+                        по одному QR-коду
+                    </h1>
+                    <p class="text-lg md:text-xl text-slate-600 mb-8 max-w-lg leading-relaxed">
+                        Современное меню без бумаги: гость сканирует QR и получает актуальный PDF за секунду. Вы обновляете цены и позиции в кабинете — без перепечатки и лишних затрат.
+                    </p>
+
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Меню, десерты, бизнес-ланч — отдельные файлы или одна страница с кнопками</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Обновили блюда — заменили PDF в кабинете, QR на столах тот же</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Статистика: сколько раз открыли меню и какой файл скачали чаще</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Работает вместе с умными отзывами и QR на столиках</span></li>
+                    </ul>
+
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href="/#buy" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                            Подключить Pro
+                        </a>
+                        <a href="/smart-reviews.html" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
+                            Умные отзывы
+                        </a>
+                    </div>
+                </div>
+
+                <div class="relative flex justify-center">
+                    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800" alt="QR-меню в ресторане" class="rounded-3xl shadow-2xl -rotate-2 hover:rotate-0 transition duration-500" />
+                    <div class="absolute -bottom-4 -right-2 sm:right-4 bg-white p-4 rounded-xl shadow-xl border border-slate-100 max-w-[240px]">
+                        <div class="flex items-center gap-3 mb-3">
+                            <div class="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center shrink-0">
+                                <i class="fa-solid fa-file-pdf"></i>
+                            </div>
+                            <div>
+                                <div class="font-bold text-sm text-slate-800">Меню_весна.pdf</div>
+                                <div class="text-slate-500 text-xs">2,4 МБ · открыто 847 раз</div>
+                            </div>
+                        </div>
+                        <div class="flex gap-2 text-xs">
+                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Основное</span>
+                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Бар</span>
+                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Детское</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <DemoQrScan
+        scanUrl={DEMO_SCAN_URL}
+        modeLabel="QR-файл"
+        title="Отсканируйте демо файла"
+        subtitle="Гость получает меню, прайс или каталог в PDF сразу после сканирования — без приложений"
+    />
+
+    <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4">Что можно отдавать по QR</h2>
+                <p class="text-slate-600">Не только рестораны — любой офлайн-бизнес, где клиенту нужен документ «здесь и сейчас».</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <i class="fa-solid fa-utensils text-2xl text-orange-500 mb-4"></i>
+                    <h3 class="font-bold text-lg mb-2">QR-меню</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Основное меню, сезонные позиции, завтраки и доставка — без печати новых папок каждый месяц.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <i class="fa-solid fa-wine-glass text-2xl text-purple-500 mb-4"></i>
+                    <h3 class="font-bold text-lg mb-2">Винная карта и бар</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Отдельный PDF для коктейлей и вина — гость не листает простыню основного меню.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <i class="fa-solid fa-tags text-2xl text-green-500 mb-4"></i>
+                    <h3 class="font-bold text-lg mb-2">Прайс-листы</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Салоны, автосервисы, клиники — актуальные цены и услуги в одном скане с ресепшена.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <i class="fa-solid fa-book-open text-2xl text-blue-500 mb-4"></i>
+                    <h3 class="font-bold text-lg mb-2">Каталоги и брошюры</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Магазины и шоурумы — PDF с коллекцией, размерами и артикулами вместо тяжёлого каталога.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <i class="fa-solid fa-calendar-days text-2xl text-pink-500 mb-4"></i>
+                    <h3 class="font-bold text-lg mb-2">Афиши и программы</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">События, мастер-классы, концерты — расписание на неделю в файле, который легко обновить.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <i class="fa-solid fa-clipboard-list text-2xl text-teal-500 mb-4"></i>
+                    <h3 class="font-bold text-lg mb-2">Инструкции и регламенты</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Правила посещения, аллергены, состав блюд — всё, что гость должен прочитать до заказа.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 lg:py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4">Как это работает</h2>
+                <p class="text-slate-600">Три шага — от загрузки файла до гостя с телефоном в руках.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">1</div>
+                    <h3 class="font-bold text-lg mb-2">Загрузите файлы</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">PDF, изображения или ссылки — соберите страницу с кнопками «Меню», «Бар», «Акции» в личном кабинете.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">2</div>
+                    <h3 class="font-bold text-lg mb-2">Разместите QR</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Наклейка на стол, тейбл-тент или NFC-табличка QrStars — гость сканирует без установки приложений.</p>
+                </div>
+                <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                    <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">3</div>
+                    <h3 class="font-bold text-lg mb-2">Гость открывает файл</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Меню открывается в браузере. Вы видите статистику просмотров и при необходимости меняете файлы за минуту.</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap justify-center gap-4 text-sm text-slate-600">
+                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-file-pdf text-red-400"></i> PDF</span>
+                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-image text-blue-400"></i> JPG / PNG</span>
+                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-link text-slate-400"></i> Ссылки на Google Drive</span>
+                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-language text-slate-400"></i> Несколько языков</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-slate-50 border-t border-slate-200">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-white rounded-3xl border border-slate-200 p-8 md:p-10 flex flex-col md:flex-row gap-8 items-center">
+                <div class="flex-1">
+                    <h2 class="text-2xl font-bold mb-3">Связка для HoReCa</h2>
+                    <p class="text-slate-600 text-sm leading-relaxed mb-4">
+                        На одном столике — умные отзывы (5★ на карты, негатив вам в Telegram), QR-меню для гостя и при желании чаевые официанту. Один кабинет, одна аналитика.
+                    </p>
+                    <a href="/smart-reviews.html" class="text-primary font-semibold text-sm hover:underline">Подробнее про умные отзывы →</a>
+                </div>
+                <div class="flex flex-wrap gap-3 justify-center">
+                    <span class="inline-flex items-center gap-2 bg-amber-50 text-amber-800 px-4 py-2 rounded-full text-sm font-medium border border-amber-100"><i class="fa-solid fa-star"></i> Отзывы</span>
+                    <span class="inline-flex items-center gap-2 bg-orange-50 text-orange-800 px-4 py-2 rounded-full text-sm font-medium border border-orange-100"><i class="fa-solid fa-file-lines"></i> Меню</span>
+                    <span class="inline-flex items-center gap-2 bg-blue-50 text-blue-800 px-4 py-2 rounded-full text-sm font-medium border border-blue-100"><i class="fa-solid fa-coins"></i> Чаевые</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-white">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl font-bold mb-4">Доступно в подписке Pro</h2>
+            <p class="text-slate-600 mb-8">QR-файлы входят в экосистему QrStars вместе с QR-визитками, white label и расширенной аналитикой. При покупке NFC-таблички — 3 месяца Pro в подарок.</p>
+            <a href="/#buy" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
+                Выбрать тариф
+            </a>
+        </div>
+    </section>
+</Layout>

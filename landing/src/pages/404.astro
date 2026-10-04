@@ -1,0 +1,55 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const popularLinks = [
+  { href: '/', label: 'Главная QrStars', text: 'Умные QR-коды для бизнеса' },
+  { href: '/smart-reviews.html', label: 'Умные отзывы', text: 'Собирайте отзывы на Яндекс Картах и 2GIS' },
+  { href: '/qr-menu.html', label: 'QR-меню', text: 'Электронное меню для кафе и ресторанов' },
+  { href: '/dynamic-qr.html', label: 'Динамические QR', text: 'Меняйте ссылку после печати' },
+  { href: '/free-qr-generator.html', label: 'Генератор QR', text: 'Создайте QR-код бесплатно' },
+  { href: '/blog.html', label: 'Блог', text: 'Гайды по QR-кодам и репутации' },
+];
+---
+
+<Layout
+  title="Страница не найдена"
+  description="Страница QrStars не найдена. Перейдите на главную, в генератор QR-кодов, умные отзывы, QR-меню или блог."
+  canonical="https://qrstars.ru/404.html"
+>
+  <section class="relative overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900 text-white">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(59,130,246,0.25),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.18),transparent_35%)]"></div>
+    <div class="relative max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 text-center">
+      <p class="inline-flex items-center rounded-full bg-white/10 px-4 py-2 text-sm font-semibold text-indigo-100 ring-1 ring-white/20">
+        Ошибка 404
+      </p>
+      <h1 class="mt-6 text-4xl sm:text-5xl font-extrabold tracking-tight">
+        Такой страницы нет
+      </h1>
+      <p class="mt-5 max-w-2xl mx-auto text-lg text-slate-200">
+        Ссылка могла измениться или страница была удалена. Выберите нужный раздел ниже — все QR-коды, отзывы, меню и генератор доступны с этих страниц.
+      </p>
+      <div class="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+        <a href="/" class="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3 text-sm font-bold text-slate-950 hover:bg-indigo-50 transition">
+          На главную
+        </a>
+        <a href="/free-qr-generator.html" class="inline-flex items-center justify-center rounded-xl border border-white/30 px-6 py-3 text-sm font-bold text-white hover:bg-white/10 transition">
+          Создать QR-код
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-14 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl font-bold text-slate-900 text-center">Популярные разделы</h2>
+      <div class="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {popularLinks.map((link) => (
+          <a href={link.href} class="group rounded-2xl border border-slate-200 bg-slate-50 p-5 hover:border-indigo-300 hover:bg-white transition">
+            <span class="text-base font-bold text-slate-900 group-hover:text-indigo-700">{link.label}</span>
+            <p class="mt-2 text-sm text-slate-600">{link.text}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="QrStars">
+  <title>QrStars</title>
+  <rect width="120" height="120" rx="24" fill="#4F46E5"/>
+  <text x="60" y="72" text-anchor="middle" font-family="Inter, Helvetica Neue, Arial, system-ui, sans-serif" font-size="42" font-weight="800" fill="#ffffff">QR</text>
+  <path d="M88 28 L92 40 L104 40 L94.5 48 L98 60 L88 52 L78 60 L81.5 48 L72 40 L84 40 Z" fill="#e89a0c"/>
+</svg>

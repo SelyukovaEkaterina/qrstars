@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100mm" height="100mm" viewBox="0 0 100 100">
+  <title>&#x41A;&#x440;&#x443;&#x433;&#x43B;&#x430;&#x44F; &#x43D;&#x430;&#x43A;&#x43B;&#x435;&#x439;&#x43A;&#x430; QRStars: &#x43E;&#x441;&#x442;&#x430;&#x432;&#x44C;&#x442;&#x435; &#x43E;&#x442;&#x437;&#x44B;&#x432;</title>
+  <desc>&#x41F;&#x435;&#x447;&#x430;&#x442;&#x43D;&#x44B;&#x439; SVG-&#x43C;&#x430;&#x43A;&#x435;&#x442; 100x100 &#x43C;&#x43C; &#x434;&#x43B;&#x44F; &#x43E;&#x442;&#x437;&#x44B;&#x432;&#x43E;&#x432; &#x441; QR-&#x43A;&#x43E;&#x434;&#x43E;&#x43C; &#x43D;&#x430; &#x434;&#x435;&#x43C;&#x43E;-&#x441;&#x442;&#x440;&#x430;&#x43D;&#x438;&#x446;&#x443; qrstars.ru.</desc>
+  <defs>
+    <linearGradient id="paper" x1="18" y1="12" x2="84" y2="92" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#fffaf0"/>
+      <stop offset="54%" stop-color="#f2dfb4"/>
+      <stop offset="100%" stop-color="#c9954e"/>
+    </linearGradient>
+    <filter id="paperShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.1" stdDeviation="1.15" flood-color="#4a2d1d" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <rect width="100" height="100" fill="#f7f0e6"/>
+  <circle cx="50" cy="50" r="47" fill="url(#paper)" filter="url(#paperShadow)"/>
+  <circle cx="50" cy="50" r="47" fill="none" stroke="#b98949" stroke-width="0.35" stroke-dasharray="1.6 1.6" opacity="0.7"/>
+  <circle cx="50" cy="50" r="42" fill="none" stroke="#fff8e8" stroke-width="0.38" opacity="0.86"/>
+
+  <text x="50" y="22.4" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="4.6" letter-spacing="0.7" textLength="62" lengthAdjust="spacingAndGlyphs" fill="#1f1713">&#x412;&#x410;&#x428;&#x415; &#x41C;&#x41D;&#x415;&#x41D;&#x418;&#x415; &#x412;&#x410;&#x416;&#x41D;&#x41E;</text>
+  <g fill="none" stroke="#1f1713" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round" opacity="0.92">
+    <path d="M19.9 42.2h10.3c1.4 0 2.5 1.1 2.5 2.5v5.2c0 1.4-1.1 2.5-2.5 2.5h-5.8l-4.7 3.7v-3.7h-0.9c-1.4 0-2.5-1.1-2.5-2.5v-5.2c0-1.4 1.1-2.5 2.5-2.5z"/>
+    <path d="M21.1 46.2h7.2"/>
+    <path d="M21.1 49.1h4.3"/>
+    <path d="M76.5 40.5l1.3 2.6 2.9 0.4-2.1 2 0.5 2.9-2.6-1.4-2.6 1.4 0.5-2.9-2.1-2 2.9-0.4z"/>
+    <path d="M80.7 55.3l0.9 1.8 2 0.3-1.4 1.4 0.3 2-1.8-0.9-1.8 0.9 0.3-2-1.4-1.4 2-0.3z"/>
+  </g>
+
+  <g transform="translate(34 31) scale(0.8205128205128205)" shape-rendering="crispEdges">
+    <path fill="#fff8e6" d="M0 0h39v39H0z"/><path stroke="#1f1713" d="M1 1.5h7m1 0h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m3 0h1m2 0h7M1 2.5h1m5 0h1m1 0h2m1 0h3m3 0h1m1 0h3m2 0h1m1 0h3m1 0h1m5 0h1M1 3.5h1m1 0h3m1 0h1m5 0h1m2 0h4m1 0h1m2 0h2m2 0h2m1 0h1m1 0h3m1 0h1M1 4.5h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m2 0h1m1 0h1m2 0h1m2 0h2m2 0h1m1 0h3m1 0h1M1 5.5h1m1 0h3m1 0h1m1 0h2m3 0h1m2 0h1m2 0h1m1 0h2m1 0h1m1 0h2m2 0h1m1 0h3m1 0h1M1 6.5h1m5 0h1m1 0h1m2 0h4m1 0h1m4 0h2m1 0h1m2 0h2m1 0h1m5 0h1M1 7.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M11 8.5h3m1 0h1m1 0h2m2 0h1m1 0h2m1 0h1M4 9.5h1m2 0h1m4 0h3m2 0h2m4 0h2m2 0h3m2 0h3m1 0h2M4 10.5h1m4 0h2m1 0h1m1 0h4m2 0h1m1 0h3m3 0h1m1 0h2m3 0h3M1 11.5h4m1 0h4m2 0h3m1 0h1m1 0h5m1 0h2m3 0h1m1 0h3m3 0h1M1 12.5h2m2 0h1m3 0h2m1 0h3m2 0h2m1 0h1m1 0h2m2 0h1m2 0h1m3 0h1m2 0h1M2 13.5h2m2 0h3m2 0h3m1 0h3m1 0h4m1 0h3m2 0h3m4 0h2M2 14.5h2m1 0h2m2 0h4m1 0h1m6 0h1m1 0h1m7 0h2m1 0h1m1 0h2M2 15.5h1m1 0h4m1 0h3m1 0h3m1 0h2m1 0h1m1 0h1m3 0h1m3 0h4m1 0h3M3 16.5h1m8 0h3m1 0h6m2 0h4m1 0h1m1 0h2m3 0h1M1 17.5h2m1 0h1m1 0h2m3 0h1m5 0h3m1 0h1m1 0h3m1 0h5m2 0h2m1 0h1M1 18.5h3m2 0h1m2 0h3m4 0h1m1 0h1m1 0h5m1 0h2m1 0h3m1 0h1m1 0h1m1 0h1M1 19.5h1m5 0h1m1 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m1 0h1m8 0h1m4 0h2M1 20.5h1m2 0h1m1 0h1m4 0h1m3 0h2m1 0h3m1 0h4m1 0h3m5 0h2M4 21.5h1m1 0h4m3 0h2m2 0h2m5 0h1m1 0h2m1 0h1m1 0h4m1 0h1M2 22.5h2m4 0h1m2 0h2m5 0h3m1 0h1m2 0h2m3 0h2m3 0h3M1 23.5h4m2 0h1m1 0h1m2 0h1m1 0h4m2 0h1m2 0h1m1 0h3m4 0h6M2 24.5h2m1 0h1m3 0h4m8 0h1m1 0h1m2 0h1m3 0h1m2 0h1m2 0h1M1 25.5h2m2 0h3m6 0h2m1 0h1m2 0h1m1 0h1m4 0h5m2 0h1m1 0h1M5 26.5h2m1 0h1m1 0h6m1 0h3m1 0h1m1 0h2m2 0h1m2 0h3m1 0h2m1 0h1M1 27.5h1m3 0h3m2 0h2m3 0h2m2 0h1m3 0h2m4 0h3m1 0h3m1 0h1M2 28.5h3m8 0h2m1 0h1m1 0h3m2 0h2m1 0h2m1 0h1m1 0h1m1 0h1m2 0h2M1 29.5h2m1 0h2m1 0h3m2 0h1m3 0h2m1 0h1m5 0h1m2 0h6m1 0h1m1 0h1M9 30.5h1m1 0h1m4 0h1m1 0h1m1 0h1m3 0h1m3 0h2m3 0h1m2 0h2M1 31.5h7m3 0h3m1 0h1m1 0h1m1 0h1m2 0h1m3 0h1m1 0h2m1 0h1m1 0h1m1 0h3M1 32.5h1m5 0h1m2 0h3m1 0h1m2 0h2m2 0h3m1 0h1m2 0h2m3 0h1m1 0h2M1 33.5h1m1 0h3m1 0h1m2 0h1m1 0h4m4 0h3m2 0h3m1 0h6m1 0h2M1 34.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h3m1 0h1m1 0h2m1 0h4m1 0h3m1 0h2M1 35.5h1m1 0h3m1 0h1m2 0h3m1 0h1m2 0h4m1 0h5m1 0h3m2 0h2m2 0h1M1 36.5h1m5 0h1m4 0h2m1 0h3m1 0h1m2 0h5m1 0h3M1 37.5h7m3 0h2m3 0h1m1 0h1m1 0h1m2 0h4m1 0h2m1 0h1m1 0h2m1 0h2"/>
+  </g>
+  <text x="50" y="74.2" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="4.65" letter-spacing="0.65" textLength="61" lengthAdjust="spacingAndGlyphs" fill="#1f1713">&#x41E;&#x421;&#x422;&#x410;&#x412;&#x42C;&#x422;&#x415; &#x41E;&#x422;&#x417;&#x42B;&#x412;</text>
+  <text x="50" y="81.5" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="3.05" letter-spacing="0.3" fill="#6d4527">&#x44D;&#x442;&#x43E; &#x437;&#x430;&#x439;&#x43C;&#x435;&#x442; &#x43C;&#x435;&#x43D;&#x44C;&#x448;&#x435; &#x43C;&#x438;&#x43D;&#x443;&#x442;&#x44B;</text>
+  <text x="50" y="88.8" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="2.8" letter-spacing="0.35" fill="#1f1713">qrstars.ru</text>
+</svg>

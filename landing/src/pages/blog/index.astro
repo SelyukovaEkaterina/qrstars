@@ -1,0 +1,53 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const posts = await getCollection('blog');
+posts.sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<Layout title="Блог о репутации бизнеса" description="Практические руководства по работе с отзывами, SEO на картах и увеличению выручки.">
+    <!-- Заголовок блога -->
+    <section class="pt-32 pb-16 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Блог о репутации бизнеса</h1>
+            <p class="text-xl text-slate-600 max-w-2xl mx-auto">Практические руководства по работе с отзывами, SEO на картах и увеличению выручки для HoReCa, бьюти-сферы и автосервисов.</p>
+        </div>
+    </section>
+
+    <!-- Сетка статей -->
+    <section class="py-16 bg-slate-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {posts.map((post) => (
+                    <article class="bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-md transition flex flex-col">
+                        {post.data.image && (
+                            <div class="h-48 bg-slate-200 shrink-0">
+                                <img src={post.data.image} class="w-full h-full object-cover" loading="lazy" alt={post.data.title} />
+                            </div>
+                        )}
+                        <div class="p-6 flex flex-col flex-grow">
+                            {post.data.tags && post.data.tags.length > 0 && (
+                                <div class="text-xs font-bold text-primary mb-2 uppercase tracking-wide">{post.data.tags[0]}</div>
+                            )}
+                            <h3 class="font-bold text-xl mb-3"><a href={`/blog/${post.slug}.html`} class="hover:text-primary transition">{post.data.title}</a></h3>
+                            <p class="text-slate-600 text-sm mb-4 flex-grow">{post.data.description}</p>
+                            <div class="text-xs text-slate-400 border-t border-slate-100 pt-4 mt-auto">
+                                {post.data.pubDate.toLocaleDateString('ru-RU', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric',
+                                })}
+                            </div>
+                        </div>
+                    </article>
+                ))}
+                {posts.length === 0 && (
+                    <div class="col-span-full text-center py-12 text-slate-500">
+                        Статьи скоро появятся. Возвращайтесь позже!
+                    </div>
+                )}
+            </div>
+        </div>
+    </section>
+</Layout>

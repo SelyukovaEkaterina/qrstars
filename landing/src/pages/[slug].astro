@@ -1,0 +1,263 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../layouts/Layout.astro';
+import SeoHero from '../components/seo/SeoHero.astro';
+import HowItWorks from '../components/seo/HowItWorks.astro';
+import ForWhom from '../components/seo/ForWhom.astro';
+import Faq from '../components/seo/Faq.astro';
+import QrExamples from '../components/seo/QrExamples.astro';
+import DemoQrScan from '../components/DemoQrScan.astro';
+import SeoCta from '../components/seo/SeoCta.astro';
+import RelatedPages from '../components/seo/RelatedPages.astro';
+import StickyRegisterCta from '../components/seo/StickyRegisterCta.astro';
+import {
+  appendAttributionParams,
+  isAppUrl,
+  REVIEWS_LANDING_SLUGS,
+  MENU_LANDING_SLUGS,
+  menuRegisterUrl,
+  generatorRegisterUrl,
+  reviewsRegisterUrl,
+  redirectRegisterUrl,
+  withSetupIntent,
+} from '../lib/utm';
+
+export async function getStaticPaths() {
+  const seoPages = await getCollection('seo');
+  return seoPages.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const d = entry.data;
+
+const rawCtaHref = d.ctaHref;
+let ctaHref = isAppUrl(rawCtaHref) ? appendAttributionParams(rawCtaHref, Astro.url.searchParams) : rawCtaHref;
+
+if (entry.slug === 'qr-kod-dlya-restorana') {
+  ctaHref = menuRegisterUrl('restorana', Astro.url.searchParams);
+} else if (REVIEWS_LANDING_SLUGS.has(entry.slug)) {
+  const contentId = entry.slug.replace('qr-kod-dlya-', '');
+  ctaHref = reviewsRegisterUrl(contentId, Astro.url.searchParams);
+} else if (entry.slug === 'qr-kod-dlya-video') {
+  ctaHref = generatorRegisterUrl('qr-kod-dlya-video', Astro.url.searchParams);
+} else if (entry.slug === 'dinamicheskiy-qr-kod') {
+  ctaHref = redirectRegisterUrl('dinamicheskiy-qr-kod', Astro.url.searchParams);
+} else if (isAppUrl(ctaHref) && ctaHref.includes('/register')) {
+  const campaign = new URL(ctaHref).searchParams.get('utm_campaign') ?? '';
+  if (campaign.includes('menu')) ctaHref = withSetupIntent(ctaHref, 'menu');
+  else if (campaign.includes('reviews')) ctaHref = withSetupIntent(ctaHref, 'reviews');
+  else if (campaign.includes('generator')) ctaHref = withSetupIntent(ctaHref, 'redirect');
+}
+
+const ctaExternal = isAppUrl(ctaHref);
+const ctaGoal = d.ctaGoal ?? (ctaExternal ? 'hero_start' : undefined);
+
+const rawSecondaryHref = d.ctaSecondaryHref;
+const ctaSecondaryHref = (() => {
+  if (!rawSecondaryHref) return rawSecondaryHref;
+  const href = isAppUrl(rawSecondaryHref)
+    ? appendAttributionParams(rawSecondaryHref, Astro.url.searchParams)
+    : rawSecondaryHref;
+  return isAppUrl(href) && href.includes('/register') ? withSetupIntent(href, 'redirect') : href;
+})();
+const ctaSecondaryExternal = Boolean(rawSecondaryHref && isAppUrl(rawSecondaryHref));
+const ctaSecondaryGoal =
+  d.ctaSecondaryGoal ?? (ctaSecondaryExternal ? 'qr_dynamic_cta' : undefined);
+
+const showStickyCta = d.stickyCta ?? (REVIEWS_LANDING_SLUGS.has(entry.slug) || MENU_LANDING_SLUGS.has(entry.slug));
+
+const pageCanonical = d.canonical ?? `https://qrstars.ru/${entry.slug}.html`;
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://qrstars.ru/' },
+    { '@type': 'ListItem', position: 2, name: d.h1, item: pageCanonical },
+  ],
+};
+
+const softwareApplicationSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'QrStars',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'Web',
+  url: pageCanonical,
+  description: d.description,
+  inLanguage: 'ru-RU',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'RUB',
+    availability: 'https://schema.org/InStock',
+    url: pageCanonical,
+  },
+  publisher: {
+    '@type': 'Organization',
+    name: 'QrStars',
+    url: 'https://qrstars.ru',
+  },
+};
+
+const defaultSteps = [
+  { icon: 'fa-solid fa-link', title: 'Вставьте ссылку', text: 'Укажите URL, контакты или выберите шаблон для отзывов, меню или WiFi.' },
+  { icon: 'fa-solid fa-palette', title: 'Настройте дизайн', text: 'Добавьте логотип, фирменные цвета и рамку — код останется читаемым.' },
+  { icon: 'fa-solid fa-download', title: 'Скачайте QR', text: 'Получите PNG или SVG для печати на табличках, визитках и меню.' },
+  { icon: 'fa-solid fa-chart-line', title: 'Смотрите аналитику', text: 'Отслеживайте сканирования и меняйте ссылку без перепечатки (динамический QR).' },
+];
+
+const defaultIndustries = [
+  { icon: 'fa-solid fa-utensils', name: 'Кафе и рестораны' },
+  { icon: 'fa-solid fa-scissors', name: 'Салоны красоты' },
+  { icon: 'fa-solid fa-hospital', name: 'Клиники' },
+  { icon: 'fa-solid fa-store', name: 'Магазины' },
+  { icon: 'fa-solid fa-calendar', name: 'Мероприятия' },
+];
+
+const faqPageSchema = d.faq && d.faq.length > 0 ? {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: d.faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.a,
+    },
+  })),
+} : null;
+---
+
+<Layout
+  title={d.title}
+  description={d.description}
+  fullTitle={d.fullTitle}
+  canonical={pageCanonical}
+  noindex={d.noindex}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(softwareApplicationSchema)} />
+  {faqPageSchema && <script type="application/ld+json" set:html={JSON.stringify(faqPageSchema)} />}
+  <SeoHero
+    badge={d.badge}
+    h1={d.h1}
+    intro={d.intro}
+    ctaText={d.ctaText}
+    ctaHref={ctaHref}
+    ctaSecondaryText={d.ctaSecondaryText}
+    ctaSecondaryHref={ctaSecondaryHref}
+    ctaGoal={ctaGoal}
+    ctaExternal={ctaExternal}
+    ctaSecondaryGoal={ctaSecondaryGoal}
+    ctaSecondaryExternal={ctaSecondaryExternal}
+  />
+
+  {d.demoScanUrl && (
+    <DemoQrScan
+      scanUrl={d.demoScanUrl}
+      modeLabel={d.demoScanLabel ?? d.h1}
+      title={d.demoScanTitle}
+      subtitle={d.demoScanSubtitle}
+    />
+  )}
+
+  <section class="py-12 lg:py-16 bg-white">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <article class="prose prose-slate lg:prose-lg max-w-none">
+        <Content />
+      </article>
+    </div>
+  </section>
+
+  <HowItWorks steps={d.howItWorks ?? defaultSteps} />
+  <ForWhom industries={d.forWhom ?? defaultIndustries} />
+  {!d.demoScanUrl && <QrExamples />}
+  <Faq items={d.faq} />
+  {d.related && <RelatedPages links={d.related} />}
+  <SeoCta ctaText={d.ctaText} ctaHref={ctaHref} ctaGoal={ctaGoal} ctaExternal={ctaExternal} />
+  {showStickyCta && ctaExternal && (
+    <StickyRegisterCta href={ctaHref} />
+  )}
+
+  <script is:inline define:vars={{ slug: entry.slug }}>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var utmCampaign = params.get('utm_campaign');
+      
+      // Task 2: Specific overrides for qr-kod-dlya-restorana when utm_campaign=menu_search
+      if (slug === 'qr-kod-dlya-restorana' && utmCampaign === 'menu_search') {
+        // 1. Update Badge
+        var badgeEl = document.querySelector('section.pt-32 .inline-block');
+        if (badgeEl) {
+          badgeEl.innerHTML = '🍔 Электронное меню';
+        }
+        // 2. Update H1
+        var h1El = document.querySelector('section.pt-32 h1');
+        if (h1El) {
+          h1El.innerHTML = 'Электронное QR-меню <br class="hidden sm:inline" />для ресторана и кафе';
+        }
+        // 3. Update Intro
+        var introEl = document.querySelector('section.pt-32 p');
+        if (introEl) {
+          introEl.innerHTML = 'Создайте удобное цифровое меню в нашем гибком конструкторе. Больше никаких перепечаток при изменении цен — обновляйте позиции и стоп-листы в пару кликов.';
+        }
+        // 4. Update Primary CTA button text
+        var ctaBtn = document.querySelector('section.pt-32 a.bg-primary');
+        if (ctaBtn) {
+          ctaBtn.innerHTML = 'Создать меню бесплатно <i class="fa-solid fa-arrow-right ml-2"></i>';
+        }
+        // 5. Update Secondary CTA button text and destination (to prevent leak)
+        var secondaryCta = document.querySelector('section.pt-32 a.bg-white');
+        if (secondaryCta) {
+          secondaryCta.innerHTML = 'Как это работает';
+          secondaryCta.setAttribute('href', '#how-it-works');
+          secondaryCta.removeAttribute('target');
+          secondaryCta.removeAttribute('rel');
+        }
+      }
+
+      // Task 3: Runtime UTM update for all register links on the page (adblock-friendly and robust)
+      var links = document.querySelectorAll('a[href*="app.qrstars.ru/register"]');
+      links.forEach(function (link) {
+        try {
+          var url = new URL(link.href);
+          var currentCampaign = url.searchParams.get('utm_campaign');
+          
+          if (params.has('utm_medium')) {
+            url.searchParams.set('utm_medium', params.get('utm_medium'));
+          }
+          
+          if (utmCampaign === 'reviews_search' && currentCampaign === 'reviews_landing') {
+            url.searchParams.set('utm_campaign', 'reviews_search');
+          }
+
+          if (params.has('intent')) {
+            url.searchParams.set('intent', params.get('intent'));
+          } else if (!url.searchParams.get('intent')) {
+            var campaign = url.searchParams.get('utm_campaign') || '';
+            var path = window.location.pathname;
+            if (campaign.indexOf('menu') !== -1) url.searchParams.set('intent', 'menu');
+            else if (campaign.indexOf('reviews') !== -1) url.searchParams.set('intent', 'reviews');
+            else if (campaign.indexOf('generator') !== -1 || path.indexOf('dinamicheskiy') !== -1) url.searchParams.set('intent', 'redirect');
+          }
+          
+          for (var entry of params.entries()) {
+            var key = entry[0];
+            var value = entry[1];
+            if (key.startsWith('utm_') || key === 'yclid' || key === 'ymclid') {
+              if (key !== 'utm_content' && (key !== 'utm_campaign' || utmCampaign === 'reviews_search')) {
+                url.searchParams.set(key, value);
+              }
+            }
+          }
+          link.href = url.toString();
+        } catch (_) {}
+      });
+    })();
+  </script>
+</Layout>

@@ -1,0 +1,45 @@
+---
+interface Props {
+  href: string;
+  text?: string;
+}
+
+const {
+  href,
+  text = 'Создать QR для отзывов — бесплатно',
+} = Astro.props;
+---
+
+<div
+  id="sticky-register-cta"
+  class="fixed bottom-0 inset-x-0 z-50 translate-y-full transition-transform duration-300 ease-out pointer-events-none"
+  aria-hidden="true"
+>
+  <div class="max-w-lg mx-auto px-4 pb-4 sm:pb-6 pointer-events-auto">
+    <a
+      href={href}
+      data-goal="hero_start"
+      data-goal-params='{"source":"sticky"}'
+      target="_blank"
+      rel="noopener noreferrer"
+      class="flex items-center justify-center gap-2 w-full bg-primary text-white px-6 py-4 rounded-2xl font-bold text-base sm:text-lg shadow-2xl shadow-indigo-500/40 hover:bg-indigo-700 transition"
+    >
+      {text}
+      <i class="fa-solid fa-arrow-right text-sm"></i>
+    </a>
+  </div>
+</div>
+
+<script>
+  const bar = document.getElementById('sticky-register-cta');
+  if (bar) {
+    const threshold = 400;
+    const update = () => {
+      const visible = window.scrollY > threshold;
+      bar.classList.toggle('translate-y-full', !visible);
+      bar.setAttribute('aria-hidden', visible ? 'false' : 'true');
+    };
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+  }
+</script>

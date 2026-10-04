@@ -1,0 +1,182 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DemoQrScan from '../components/DemoQrScan.astro';
+import MenuStickerPreview from '../components/MenuStickerPreview.astro';
+import StickyRegisterCta from '../components/seo/StickyRegisterCta.astro';
+import { menuRegisterUrl } from '../lib/utm';
+
+const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-menu';
+const REGISTER_URL = menuRegisterUrl('qr-menu-hero', Astro.url.searchParams);
+const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchParams);
+---
+
+<Layout
+  title="QR-меню для ресторана и кафе — электронное меню по QR-коду | QrStars"
+  description="Создайте электронное QR-меню для ресторана или кафе за 2 минуты. Актуальные цены, фото блюд, наклейки на столики. Попробуйте QrStars бесплатно."
+  fullTitle={true}
+>
+    <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="z-10">
+                    <div class="flex flex-wrap items-center gap-2 mb-6">
+                        <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm border border-primary/20">
+                            🍔 Меню всегда актуально
+                        </div>
+                        <div class="inline-block bg-emerald-100 text-emerald-800 font-semibold px-3 py-1.5 rounded-full text-xs border border-emerald-200">
+                            Попробовать бесплатно
+                        </div>
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+                        Электронное <span class="text-primary">QR-меню</span> <br/>
+                        для ресторана и кафе
+                    </h1>
+                    <p class="text-lg md:text-xl text-slate-600 mb-8 max-w-lg leading-relaxed">
+                        Создайте удобное цифровое меню в нашем гибком конструкторе страниц. Больше никаких перепечаток при изменении цен — обновляйте позиции в пару кликов.
+                    </p>
+                    
+                    <ul class="space-y-4 mb-8">
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Гибкий конструктор страниц: блоки, фото, категории</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Моментальное обновление цен и стоп-листов</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Идеально для NFC-наклеек на столики и тейбл-тентов</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Аналитика просмотров по каждому столику (при разных метках)</span></li>
+                    </ul>
+
+                    <p class="text-sm text-slate-500 mb-6 max-w-lg">
+                        Гости сканируют QR-код на столике и мгновенно получают доступ к красивому меню со смартфона. Без установки приложений.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href={REGISTER_URL} data-goal="hero_start" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                            Создать меню бесплатно
+                        </a>
+                        <a href={DEMO_SCAN_URL} target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
+                            Посмотреть демо
+                        </a>
+                    </div>
+                </div>
+
+                <div class="relative flex justify-center">
+                    <video
+                        src="/video/qrmenu.mp4"
+                        poster="/video/qrmenu-poster.jpg"
+                        autoplay
+                        muted
+                        loop
+                        playsinline
+                        class="rounded-3xl shadow-2xl rotate-3 hover:rotate-0 transition duration-500 max-h-[min(70vh,640px)] w-auto"
+                        aria-label="Демо QR-меню на смартфоне"
+                    ></video>
+                    <div class="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-slate-100 flex items-center gap-4 max-w-[240px]">
+                        <i class="fa-solid fa-mobile-screen text-2xl text-primary shrink-0"></i>
+                        <div>
+                            <div class="font-bold text-sm text-slate-800">Удобно со смартфона</div>
+                            <div class="text-slate-500 text-xs">Адаптивный дизайн меню</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <DemoQrScan
+        scanUrl={DEMO_SCAN_URL}
+        modeLabel="QR-меню"
+        title="Отсканируйте демо меню"
+        subtitle="Электронное меню в браузере: категории, фото блюд и актуальные цены — как на столике в зале"
+    />
+
+    <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12 max-w-2xl mx-auto">
+                <h2 class="text-3xl font-bold mb-4">Почему это удобно</h2>
+                <p class="text-slate-600">Экономьте на полиграфии и повышайте средний чек за счёт красочных фотографий блюд в смартфоне гостя.</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-paintbrush"></i></div>
+                    <h3 class="font-bold text-lg mb-2">Простой конструктор</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Собирайте страницу меню из готовых блоков: заголовки, списки блюд, галереи изображений и кнопки.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-rotate"></i></div>
+                    <h3 class="font-bold text-lg mb-2">Обновление за секунды</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Закончилось блюдо или изменилась цена? Отредактируйте меню с телефона, и гости сразу увидят изменения.</p>
+                </div>
+                <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                    <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-tags"></i></div>
+                    <h3 class="font-bold text-lg mb-2">Наклейки на столики</h3>
+                    <p class="text-slate-600 text-sm leading-relaxed">Разместите QR-коды и NFC-метки на каждом столике. Гостям не нужно ждать официанта, чтобы посмотреть меню.</p>
+                </div>
+            </div>
+            
+            <div class="flex flex-wrap justify-center gap-4 text-sm text-slate-600 mt-8">
+                <span class="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-utensils text-slate-400"></i> Рестораны</span>
+                <span class="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-mug-hot text-slate-400"></i> Кофейни</span>
+                <span class="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-burger text-slate-400"></i> Фастфуд</span>
+                <span class="inline-flex items-center gap-2 bg-white px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-martini-glass text-slate-400"></i> Бары</span>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 lg:py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div class="flex justify-center">
+                    <MenuStickerPreview />
+                </div>
+                <div>
+                    <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm border border-primary/20 mb-4">
+                        🏷️ Готовая наклейка
+                    </div>
+                    <h2 class="text-3xl md:text-4xl font-bold mb-4">Наклейте на столик — <span class="text-primary">готово</span></h2>
+                    <p class="text-lg text-slate-600 mb-6 leading-relaxed">
+                        Распечатайте наклейку с QR-кодом и разместите на каждом столике. Гости сканируют код и мгновенно видят меню — без приложений, без ожидания.
+                    </p>
+                    <ul class="space-y-3 mb-8">
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Печать на самоклеящейся плёнке</span></li>
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Индивидуальный дизайн под ваш бренд</span></li>
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Работает с NFC-метками</span></li>
+                    </ul>
+                    <a href={REGISTER_URL} data-goal="hero_start" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                        Создать меню бесплатно
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-white border-t border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-2xl mb-8">
+                <h2 class="text-3xl font-bold mb-4">QR-меню для разных форматов заведений</h2>
+                <p class="text-slate-600">
+                    Для ресторанов, кофеен и доставок QR-меню часто работает вместе с отзывами, чаевыми и Wi-Fi. Посмотрите готовый отраслевой сценарий для HoReCa.
+                </p>
+            </div>
+            <div class="flex flex-wrap gap-3">
+                <a href="/qr-kod-dlya-restorana.html" class="inline-flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-lg border border-primary/20 font-semibold hover:bg-primary/10 transition">
+                    QR для ресторана
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </a>
+                <a href="/otraslevye-resheniya.html" class="inline-flex items-center gap-2 bg-slate-50 text-slate-700 px-4 py-2 rounded-lg border border-slate-200 font-semibold hover:bg-slate-100 transition">
+                    Все отраслевые решения
+                    <i class="fa-solid fa-arrow-right text-xs"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-slate-50 border-t border-slate-200">
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl font-bold mb-4">Быстрый и бесплатный старт</h2>
+            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты наклеек на столы. Тариф Pro можно подключить в любой момент для расширенной аналитики, маршрутизации отзывов или NFC-табличек.</p>
+            <a href={REGISTER_URL} data-goal="hero_start" target="_blank" rel="noopener noreferrer" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
+                Создать меню бесплатно
+            </a>
+        </div>
+    </section>
+
+    <StickyRegisterCta href={STICKY_REGISTER_URL} text="Создать меню бесплатно" />
+</Layout>

@@ -1,0 +1,251 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Faq from '../components/seo/Faq.astro';
+import { redirectRegisterUrl } from '../lib/utm';
+
+const APP_URL = redirectRegisterUrl('dynamic_qr', Astro.url.searchParams);
+
+const useCases = [
+  {
+    icon: 'fa-rectangle-ad',
+    title: 'Баннеры и наружная реклама',
+    text: 'Меняйте лендинг акции, UTM-метки или форму заявки уже после печати баннера.',
+  },
+  {
+    icon: 'fa-calendar-days',
+    title: 'Конференции и выставки',
+    text: 'Ведите гостей на регистрацию, программу, Telegram-чат или презентацию с одного QR.',
+  },
+  {
+    icon: 'fa-id-badge',
+    title: 'Бейджи, стойки и стенды',
+    text: 'Создавайте отдельные QR для зон мероприятия и сравнивайте, что сканируют чаще.',
+  },
+  {
+    icon: 'fa-box-open',
+    title: 'Упаковка и печатные материалы',
+    text: 'QR на коробке, листовке или инструкции остается прежним, даже если сайт изменился.',
+  },
+];
+
+const benefits = [
+  'Произвольный редирект на любой URL: сайт, форму, мессенджер, карту, PDF или оплату.',
+  'Ссылка меняется в кабинете без перепечатки баннеров, афиш, флаеров и тейбл-тентов.',
+  'Короткий URL делает QR-код проще и стабильнее для сканирования с расстояния.',
+  'Статистика показывает сканы по дням, устройствам и отдельным размещениям.',
+];
+
+const faqList = [
+  {
+    q: 'Можно ли заменить ссылку в QR-коде после печати?',
+    a: 'Да! В этом и заключается главное преимущество динамического QR-кода. Сам код на баннере или листовке остается неизменным, а целевой адрес перенаправления вы можете поменять в личном кабинете QrStars в любой момент за пару кликов.',
+  },
+  {
+    q: 'Как поменять ссылку на динамическом QR-коде в личном кабинете?',
+    a: 'Зайдите в панель управления QrStars, найдите нужный QR-код в списке проектов, нажмите кнопку «Редактировать», введите новый URL-адрес и сохраните изменения. Перенаправление обновится мгновенно по всему миру.',
+  },
+  {
+    q: 'Динамический QR-код предоставляется бесплатно?',
+    a: 'Да, в QrStars базовое создание динамических кодов доступно бесплатно на тарифе FREE: отзывы, редирект, отдельные QR-меню, визитка и Wi‑Fi. Микросайт (все разделы на одной странице) входит в тарифы PRO и «Сеть». Вы можете изменять ссылки, использовать базовую статистику сканирований и скачивать код высокого разрешения без оплаты.',
+  },
+  {
+    q: 'Чем динамический QR-код отличается от статического?',
+    a: 'Статический код содержит вшитую ссылку навсегда, её невозможно отредактировать. Динамический код ведет на промежуточную короткую ссылку QrStars, благодаря чему вы можете менять целевой URL и собирать подробную статистику сканирований.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqList.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.a,
+    },
+  })),
+};
+---
+
+<Layout
+  title="Создать динамический QR-код бесплатно — поменять ссылку в личном кабинете"
+  description="Создавайте QR-коды с произвольным редиректом для баннеров, конференций, выставок и печатной рекламы. Меняйте ссылку после печати и смотрите статистику сканирований."
+>
+  <section class="pt-32 pb-16 lg:pt-40 lg:pb-24 bg-white overflow-hidden relative">
+    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[620px] h-[620px] bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div class="grid lg:grid-cols-2 gap-12 items-center">
+        <div>
+          <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20">
+            <i class="fa-solid fa-route"></i>
+            QR-коды с изменяемой ссылкой
+          </div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+            Динамические QR-коды для
+            <span class="bg-gradient-to-r from-primary to-purple-500 gradient-text"> рекламы и мероприятий</span>
+          </h1>
+          <p class="text-lg md:text-xl text-slate-600 mb-8 max-w-xl leading-relaxed">
+            Разместите QR на баннере, бейдже, стенде или листовке. Если акция,
+            лендинг или форма регистрации изменились, просто замените целевой адрес
+            в кабинете — сам QR-код останется прежним.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a href={APP_URL} data-goal="dynamic_qr_start" class="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+              Создать динамический QR
+              <i class="fa-solid fa-arrow-right text-sm"></i>
+            </a>
+            <a href="#use-cases" class="inline-flex items-center justify-center bg-white text-slate-700 border border-slate-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition shadow-sm">
+              Где использовать
+            </a>
+          </div>
+        </div>
+
+        <div class="bg-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-2xl shadow-slate-900/20">
+          <div class="bg-white rounded-2xl p-5 text-slate-900 mb-5">
+            <div class="flex items-center justify-between gap-4 mb-5">
+              <div>
+                <div class="text-xs font-bold text-primary uppercase tracking-wide">Редирект</div>
+                <div class="font-bold">app.qrstars.ru/q/spring-sale</div>
+              </div>
+              <div class="w-16 h-16 bg-slate-900 rounded-xl grid grid-cols-3 gap-1 p-2">
+                <span class="bg-white rounded-sm"></span><span class="bg-white rounded-sm"></span><span class="bg-white rounded-sm"></span>
+                <span class="bg-white rounded-sm"></span><span class="bg-primary rounded-sm"></span><span class="bg-white rounded-sm"></span>
+                <span class="bg-white rounded-sm"></span><span class="bg-white rounded-sm"></span><span class="bg-white rounded-sm"></span>
+              </div>
+            </div>
+            <div class="space-y-3 text-sm">
+              <div class="flex items-center justify-between gap-4 bg-slate-50 rounded-xl px-4 py-3">
+                <span class="text-slate-500">Сегодня ведет на</span>
+                <span class="font-semibold text-slate-800">promo.ru/sale</span>
+              </div>
+              <div class="flex items-center justify-between gap-4 bg-slate-50 rounded-xl px-4 py-3">
+                <span class="text-slate-500">Завтра можно заменить на</span>
+                <span class="font-semibold text-slate-800">forms.yandex.ru</span>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-3 text-center">
+            <div class="bg-white/10 border border-white/10 rounded-2xl p-4">
+              <div class="text-2xl font-bold">1 248</div>
+              <div class="text-xs text-slate-300">сканов</div>
+            </div>
+            <div class="bg-white/10 border border-white/10 rounded-2xl p-4">
+              <div class="text-2xl font-bold">37%</div>
+              <div class="text-xs text-slate-300">моб. iOS</div>
+            </div>
+            <div class="bg-white/10 border border-white/10 rounded-2xl p-4">
+              <div class="text-2xl font-bold">4</div>
+              <div class="text-xs text-slate-300">площадки</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid lg:grid-cols-[0.9fr_1.1fr] gap-10 items-start">
+        <div>
+          <div class="inline-block bg-rose-50 text-rose-600 font-semibold px-4 py-1.5 rounded-full text-sm mb-4 border border-rose-100">
+            Проблема печатной рекламы
+          </div>
+          <h2 class="text-3xl font-bold mb-4">QR напечатан, а ссылка уже устарела</h2>
+          <p class="text-slate-600 leading-relaxed mb-4">
+            В статическом QR-коде адрес зашит навсегда. Ошибка в UTM, новая форма,
+            другой лендинг или перенос мероприятия означают новую печать. Динамический
+            QR решает это через короткую ссылку QrStars, которая перенаправляет туда,
+            куда нужно сейчас.
+          </p>
+          <p class="text-sm text-slate-500 leading-relaxed">
+            Если вам нужен стандартный неизменяемый код без регистрации, воспользуйтесь нашим <a href="/free-qr-generator.html" class="text-primary font-semibold hover:underline">бесплатным генератором QR-кодов</a>. Но помните — динамический формат защищает вас от ошибок в будущем!
+          </p>
+        </div>
+        <div class="grid sm:grid-cols-2 gap-4">
+          {benefits.map((benefit) => (
+            <div class="bg-white border border-slate-100 rounded-2xl p-5 flex gap-3">
+              <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
+              <p class="text-sm text-slate-600 leading-relaxed">{benefit}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="use-cases" class="py-16 lg:py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <h2 class="text-3xl font-bold mb-4">Где динамический QR особенно полезен</h2>
+        <p class="text-slate-600">
+          Делайте отдельный код для каждого размещения и сравнивайте эффективность
+          офлайн-каналов без сложной аналитики.
+        </p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {useCases.map((item) => (
+          <div class="bg-slate-50 border border-slate-100 rounded-2xl p-6">
+            <div class="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center text-xl mb-5">
+              <i class={`fa-solid ${item.icon}`}></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2">{item.title}</h3>
+            <p class="text-slate-600 text-sm leading-relaxed">{item.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-900 text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <div class="inline-block bg-white/10 border border-white/20 text-white font-semibold px-4 py-1.5 rounded-full text-sm mb-5">
+          Запуск за 3 шага
+        </div>
+        <h2 class="text-3xl font-bold mb-4">От ссылки до сканов за несколько минут</h2>
+      </div>
+      <div class="grid md:grid-cols-3 gap-6">
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <div class="text-5xl font-extrabold text-white/20 mb-4">1</div>
+          <h3 class="font-bold text-lg mb-2">Создайте QR</h3>
+          <p class="text-slate-300 text-sm leading-relaxed">Укажите короткое имя кампании и целевой URL: лендинг, форму, Telegram, PDF или карту.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <div class="text-5xl font-extrabold text-white/20 mb-4">2</div>
+          <h3 class="font-bold text-lg mb-2">Разместите в макете</h3>
+          <p class="text-slate-300 text-sm leading-relaxed">Скачайте QR и добавьте его на баннер, афишу, флаер, бейдж или стойку регистрации.</p>
+        </div>
+        <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+          <div class="text-5xl font-extrabold text-white/20 mb-4">3</div>
+          <h3 class="font-bold text-lg mb-2">Меняйте ссылку и смотрите сканы</h3>
+          <p class="text-slate-300 text-sm leading-relaxed">После печати редактируйте редирект в кабинете и сравнивайте разные размещения.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-20 bg-gradient-to-br from-primary to-purple-600 text-white relative overflow-hidden">
+    <div class="absolute -top-16 -right-16 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Создайте QR для следующей кампании</h2>
+      <p class="text-indigo-100 text-lg mb-8 max-w-xl mx-auto">
+        Бесплатный тариф подойдет для старта. Карта не нужна, QR-коды открываются
+        в обычном браузере телефона.
+      </p>
+      <a href={APP_URL} data-goal="dynamic_qr_bottom" class="inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-100 transition shadow-lg">
+        Начать бесплатно
+        <i class="fa-solid fa-arrow-right text-sm"></i>
+      </a>
+    </div>
+  </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
+  <section class="py-16 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-extrabold text-center mb-10 text-slate-900">Часто задаваемые вопросы по динамическим QR</h2>
+      <Faq items={faqList} />
+    </div>
+  </section>
+</Layout>

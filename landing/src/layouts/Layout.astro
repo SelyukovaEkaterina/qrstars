@@ -1,0 +1,159 @@
+---
+import Nav from '../components/Nav.astro';
+import Footer from '../components/Footer.astro';
+import YandexMetrika from '../components/YandexMetrika.astro';
+import {
+  NO_ANALYTICS_COOKIE,
+  NO_ANALYTICS_COOKIE_VALUE,
+  NO_ANALYTICS_QUERY_PARAM,
+  NO_ANALYTICS_COOKIE_MAX_AGE_SEC,
+  NO_ANALYTICS_COOKIE_DOMAIN,
+} from '../lib/analytics-exclusion';
+
+interface Props {
+  title: string;
+  description?: string;
+  /** If true, title is used as-is without appending " | QrStars" */
+  fullTitle?: boolean;
+  canonical?: string;
+  noindex?: boolean;
+  ogImage?: string;
+  /** Schema.org type for structured data. 'WebSite' on homepage, 'WebPage' elsewhere */
+  pageType?: 'WebSite' | 'WebPage';
+  yandexVerification?: string;
+}
+
+const {
+  title,
+  description = 'QR-экосистема для локального бизнеса. Динамические QR-коды для отзывов, меню, визиток и оплаты.',
+  fullTitle = false,
+  canonical,
+  noindex = false,
+  // Замените og-default.jpg на реальную OG-картинку 1200×630 px
+  ogImage = 'https://qrstars.ru/og-default.jpg',
+  yandexVerification,
+} = Astro.props;
+
+const pageTitle = fullTitle ? title : `${title} | QrStars`;
+const canonicalUrl = canonical ?? new URL(Astro.url.pathname, 'https://qrstars.ru').href;
+
+const websiteSchema = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': 'https://qrstars.ru/#organization',
+      name: 'QrStars',
+      alternateName: 'qrstars',
+      url: 'https://qrstars.ru',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://qrstars.ru/favicon.svg',
+      },
+      sameAs: [],
+    },
+    {
+      '@type': 'WebSite',
+      '@id': 'https://qrstars.ru/#website',
+      url: 'https://qrstars.ru',
+      name: 'QrStars',
+      description: 'QR-экосистема для локального бизнеса',
+      publisher: { '@id': 'https://qrstars.ru/#organization' },
+      inLanguage: 'ru-RU',
+    },
+  ],
+};
+---
+
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon-120.png" type="image/png" sizes="120x120" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/favicon-120.png" sizes="120x120" />
+    <title>{pageTitle}</title>
+    <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+    {yandexVerification && <meta name="yandex-verification" content={yandexVerification} />}
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta property="og:site_name" content="QrStars" />
+    <meta property="og:title" content={pageTitle} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImage} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={pageTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <!-- Preconnect для ускорения загрузки шрифтов и иконок -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Глобальная структурированная разметка: Organization + WebSite -->
+    <script type="application/ld+json" set:html={JSON.stringify(websiteSchema)} />
+
+    <!-- QA mode: set cookie from ?no_analytics=1 before any Metrika scripts -->
+    <script
+      is:inline
+      define:vars={{
+        NO_ANALYTICS_QUERY_PARAM,
+        NO_ANALYTICS_COOKIE,
+        NO_ANALYTICS_COOKIE_VALUE,
+        NO_ANALYTICS_COOKIE_MAX_AGE_SEC,
+        NO_ANALYTICS_COOKIE_DOMAIN,
+      }}
+    >
+      (function () {
+        var params = new URLSearchParams(location.search);
+        if (params.get(NO_ANALYTICS_QUERY_PARAM) === '1') {
+          var host = location.hostname.toLowerCase();
+          var useProdDomain = host === 'qrstars.ru' || host.endsWith('.qrstars.ru');
+          var cookie =
+            NO_ANALYTICS_COOKIE +
+            '=' +
+            NO_ANALYTICS_COOKIE_VALUE +
+            ';path=/;max-age=' +
+            NO_ANALYTICS_COOKIE_MAX_AGE_SEC +
+            ';SameSite=Lax';
+          if (useProdDomain) cookie += ';domain=' + NO_ANALYTICS_COOKIE_DOMAIN;
+          document.cookie = cookie;
+        }
+        var disabled = document.cookie.split(';').some(function (part) {
+          var bits = part.trim().split('=');
+          return bits[0] === NO_ANALYTICS_COOKIE && bits.slice(1).join('=') === NO_ANALYTICS_COOKIE_VALUE;
+        });
+        if (disabled) window.__QRSTARS_NO_ANALYTICS__ = true;
+      })();
+    </script>
+    <YandexMetrika />
+
+    <style is:global>
+      .gradient-text {
+        background-clip: text;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+      }
+      .feature-card:hover i {
+        transform: scale(1.1);
+        transition: transform 0.3s;
+      }
+      @tailwind base;
+      @tailwind components;
+      @tailwind utilities;
+    </style>
+  </head>
+  <body class="font-sans text-slate-800 bg-slate-50 antialiased flex flex-col min-h-screen">
+    <Nav />
+    <main class="flex-grow">
+      <slot />
+    </main>
+    <Footer />
+  </body>
+</html>

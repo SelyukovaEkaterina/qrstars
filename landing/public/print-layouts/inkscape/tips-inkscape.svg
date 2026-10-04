@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="106mm" height="106mm" viewBox="0 0 106 106" version="1.1" inkscape:version="1.4.4">
+  <title>QRStars наклейка чаевые по QR</title>
+  <defs>
+    <radialGradient id="paper" cx="43%" cy="32%" r="74%">
+      <stop offset="0%" stop-color="#fff8e8"/>
+      <stop offset="63%" stop-color="#e8c98b"/>
+      <stop offset="100%" stop-color="#b67b37"/>
+    </radialGradient>
+    <filter id="soft-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#4d321e" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <g inkscape:groupmode="layer" inkscape:label="01 Background / bleed" id="layer-bleed">
+    <rect width="106" height="106" fill="#f6efe5"/>
+    <circle cx="53" cy="53" r="53" fill="url(#paper)"/>
+  </g>
+
+  <g inkscape:groupmode="layer" inkscape:label="02 Artwork" id="layer-artwork">
+    <circle cx="53" cy="53" r="50" fill="url(#paper)" filter="url(#soft-shadow)"/>
+    <circle cx="53" cy="53" r="44" fill="none" stroke="#fff9ea" stroke-width="0.55" opacity="0.9"/>
+    <g id="top-icon" fill="none" stroke="#231914" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"><path d="M53 25.8c2.1-3.1 7.1-2.1 7.1 2.1 0 4.7-7.1 8.1-7.1 8.1s-7.1-3.4-7.1-8.1c0-4.2 5-5.2 7.1-2.1z"/></g>
+    <text x="53" y="20" text-anchor="middle" font-family="Montserrat, Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="3.2" letter-spacing="0.55" fill="#6f4b2b">СКАНИРУЙТЕ QR</text>
+    <rect x="33" y="39" width="40" height="40" rx="1.2" fill="#fffdf6"/>
+    <g id="qr-code" transform="translate(34.6 40.6) scale(0.897560975609756)" shape-rendering="crispEdges"><path fill="#fffdf6" d="M0 0h41v41H0z"/><path stroke="#231914" d="M2 2.5h7m1 0h1m1 0h1m1 0h1m2 0h1m1 0h2m1 0h1m1 0h2m3 0h1m2 0h7M2 3.5h1m5 0h1m1 0h2m1 0h3m3 0h1m1 0h3m2 0h1m1 0h3m1 0h1m5 0h1M2 4.5h1m1 0h3m1 0h1m5 0h1m2 0h4m1 0h1m2 0h2m2 0h2m1 0h1m1 0h3m1 0h1M2 5.5h1m1 0h3m1 0h1m1 0h2m2 0h2m1 0h1m2 0h1m1 0h1m2 0h1m2 0h2m2 0h1m1 0h3m1 0h1M2 6.5h1m1 0h3m1 0h1m1 0h2m3 0h1m2 0h1m2 0h1m1 0h2m1 0h1m1 0h2m2 0h1m1 0h3m1 0h1M2 7.5h1m5 0h1m1 0h1m2 0h4m1 0h1m4 0h2m1 0h1m2 0h2m1 0h1m5 0h1M2 8.5h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7M12 9.5h3m1 0h1m1 0h2m2 0h1m1 0h2m1 0h1M5 10.5h1m2 0h1m4 0h3m2 0h2m4 0h2m2 0h3m2 0h3m1 0h2M5 11.5h1m4 0h2m1 0h1m1 0h4m2 0h1m1 0h3m3 0h1m1 0h2m3 0h3M2 12.5h4m1 0h4m2 0h3m1 0h1m1 0h5m1 0h2m3 0h1m1 0h3m3 0h1M2 13.5h2m2 0h1m3 0h2m1 0h3m2 0h2m1 0h1m1 0h2m2 0h1m2 0h1m3 0h1m2 0h1M3 14.5h2m2 0h3m2 0h3m1 0h3m1 0h4m1 0h3m2 0h3m4 0h2M3 15.5h2m1 0h2m2 0h4m1 0h1m6 0h1m1 0h1m7 0h2m1 0h1m1 0h2M3 16.5h1m1 0h4m1 0h3m1 0h3m1 0h2m1 0h1m1 0h1m3 0h1m3 0h4m1 0h3M4 17.5h1m8 0h3m1 0h6m2 0h4m1 0h1m1 0h2m3 0h1M2 18.5h2m1 0h1m1 0h2m3 0h1m5 0h3m1 0h1m1 0h3m1 0h5m2 0h2m1 0h1M2 19.5h3m2 0h1m2 0h3m4 0h1m1 0h1m1 0h5m1 0h2m1 0h3m1 0h1m1 0h1m1 0h1M2 20.5h1m5 0h1m1 0h1m1 0h1m1 0h1m1 0h2m1 0h1m1 0h1m1 0h1m8 0h1m4 0h2M2 21.5h1m2 0h1m1 0h1m4 0h1m3 0h2m1 0h3m1 0h4m1 0h3m5 0h2M5 22.5h1m1 0h4m3 0h2m2 0h2m5 0h1m1 0h2m1 0h1m1 0h4m1 0h1M3 23.5h2m4 0h1m2 0h2m5 0h3m1 0h1m2 0h2m3 0h2m3 0h3M2 24.5h4m2 0h1m1 0h1m2 0h1m1 0h4m2 0h1m2 0h1m1 0h3m4 0h6M3 25.5h2m1 0h1m3 0h4m8 0h1m1 0h1m2 0h1m3 0h1m2 0h1m2 0h1M2 26.5h2m2 0h3m6 0h2m1 0h1m2 0h1m1 0h1m4 0h5m2 0h1m1 0h1M6 27.5h2m1 0h1m1 0h6m1 0h3m1 0h1m1 0h2m2 0h1m2 0h3m1 0h2m1 0h1M2 28.5h1m3 0h3m2 0h2m3 0h2m2 0h1m3 0h2m4 0h3m1 0h3m1 0h1M3 29.5h3m8 0h2m1 0h1m1 0h3m2 0h2m1 0h2m1 0h1m1 0h1m1 0h1m2 0h2M2 30.5h2m1 0h2m1 0h3m2 0h1m3 0h2m1 0h1m5 0h1m2 0h6m1 0h1m1 0h1M10 31.5h1m1 0h1m4 0h1m1 0h1m1 0h1m3 0h1m3 0h2m3 0h1m2 0h2M2 32.5h7m3 0h3m1 0h1m1 0h1m1 0h1m2 0h1m3 0h1m1 0h2m1 0h1m1 0h1m1 0h3M2 33.5h1m5 0h1m2 0h3m1 0h1m2 0h2m2 0h3m1 0h1m2 0h2m3 0h1m1 0h2M2 34.5h1m1 0h3m1 0h1m2 0h1m1 0h4m4 0h3m2 0h3m1 0h6m1 0h2M2 35.5h1m1 0h3m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m2 0h3m1 0h1m1 0h2m1 0h4m1 0h3m1 0h2M2 36.5h1m1 0h3m1 0h1m2 0h3m1 0h1m2 0h4m1 0h5m1 0h3m2 0h2m2 0h1M2 37.5h1m5 0h1m4 0h2m1 0h3m1 0h1m2 0h5m1 0h3M2 38.5h7m3 0h2m3 0h1m1 0h1m1 0h1m2 0h4m1 0h2m1 0h1m1 0h2m1 0h2"/></g>
+    <text x="53" y="86.2" text-anchor="middle" font-family="Montserrat, Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="4.4" letter-spacing="0.55" fill="#231914" font-weight="600">ЧАЕВЫЕ ПО QR</text>
+    <text x="53" y="92.6" text-anchor="middle" font-family="Montserrat, Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="2.75" letter-spacing="0.32" fill="#6f4b2b">поблагодарите команду</text>
+    <text x="53" y="98.2" text-anchor="middle" font-family="Montserrat, Avenir Next, Helvetica Neue, Arial, sans-serif" font-size="2.5" letter-spacing="0.35" fill="#231914">qrstars.ru</text>
+  </g>
+
+  <g inkscape:groupmode="layer" inkscape:label="03 Safe zone - do not print" id="layer-safe" style="display:inline">
+    <circle cx="53" cy="53" r="45" fill="none" stroke="#36a3ff" stroke-width="0.25" stroke-dasharray="1.4 1.4" opacity="0.45"/>
+  </g>
+
+  <g inkscape:groupmode="layer" inkscape:label="04 Cut contour" id="layer-cut">
+    <circle id="CutContour" cx="53" cy="53" r="50" fill="none" stroke="#d09a49" stroke-width="0.35" stroke-dasharray="1.8 1.8"/>
+  </g>
+</svg>

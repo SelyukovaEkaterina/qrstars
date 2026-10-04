@@ -1,0 +1,40 @@
+---
+import { uxcheckUrl } from '../lib/utm';
+
+interface Props {
+    /** utm_content — обычно слаг страницы, где стоит блок. */
+    content: string;
+    class?: string;
+}
+
+const { content, class: className = '' } = Astro.props;
+const href = uxcheckUrl(content);
+---
+
+<div class={`bg-slate-900 rounded-2xl border border-slate-800 p-6 md:p-8 text-white ${className}`}>
+    <div class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300 bg-emerald-400/10 px-2.5 py-1 rounded-full mb-4">
+        <i class="fa-solid fa-flask"></i> Ещё один наш сервис
+    </div>
+    <h3 class="font-bold text-xl md:text-2xl mb-3">Сайт теряет заявки? UXCheck покажет, где именно</h3>
+    <p class="text-slate-300 leading-relaxed mb-5 max-w-2xl">
+        ИИ проходит ваш сайт в реальном браузере — от первого экрана до отправки заявки. Находит мёртвые кнопки, сломанную вёрстку на мобильных, трение в формах и тексты, которые не продают. На выходе список задач для разработчика с точными селекторами.
+    </p>
+    <ul class="grid gap-2.5 sm:grid-cols-2 text-sm text-slate-300 mb-6 max-w-2xl">
+        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i> Первый аудит бесплатно, без карты</li>
+        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i> Проверка под вашу аудиторию: розница, B2B, услуги</li>
+        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i> Скриншоты, приоритеты и селекторы элементов</li>
+        <li class="flex items-start gap-2"><i class="fa-solid fa-check text-emerald-400 mt-0.5 shrink-0"></i> Еженедельный прогон — видно, что сломалось после релиза</li>
+    </ul>
+    <a
+        href={href}
+        target="_blank"
+        rel="noopener"
+        data-goal="partner_click"
+        data-goal-params={`{"partner":"uxcheck","source":"${content}"}`}
+        class="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3.5 rounded-xl font-bold text-base hover:bg-slate-100 transition"
+    >
+        Проверить сайт бесплатно
+        <i class="fa-solid fa-arrow-right text-sm"></i>
+    </a>
+    <p class="mt-4 text-xs text-slate-500">uxcheck.ru &middot; бесплатный аудит для домена, который ещё не проверяли</p>
+</div>

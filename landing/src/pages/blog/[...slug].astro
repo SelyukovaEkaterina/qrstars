@@ -1,0 +1,136 @@
+---
+import { getCollection } from 'astro:content';
+import Layout from '../../layouts/Layout.astro';
+import SeoCta from '../../components/seo/SeoCta.astro';
+import Faq from '../../components/seo/Faq.astro';
+import { appendAttributionParams, isAppUrl, reviewsRegisterUrl, menuRegisterUrl, withSetupIntent } from '../../lib/utm';
+
+export async function getStaticPaths() {
+  const blogEntries = await getCollection('blog');
+  return blogEntries.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props;
+const { Content } = await entry.render();
+const d = entry.data;
+const displayTitle = d.h1 ?? d.title.replace(/\s*\|\s*QrStars\s*$/i, '');
+
+const rawCtaHref = d.ctaHref ?? '/#features';
+const isReviewArticle = /qr-kod-dlya-otzyvov-(2gis|yandeks-karty)/.test(entry.slug);
+const ctaHref = isReviewArticle
+  ? reviewsRegisterUrl(`blog-${entry.slug}`, Astro.url.searchParams)
+  : entry.slug === 'qr-kod-dlya-menu-restorana'
+    ? menuRegisterUrl('blog-menu', Astro.url.searchParams)
+    : isAppUrl(rawCtaHref)
+      ? withSetupIntent(appendAttributionParams(rawCtaHref, Astro.url.searchParams), 'redirect')
+      : rawCtaHref;
+const ctaExternal = isAppUrl(ctaHref);
+const ctaGoal = ctaExternal ? 'hero_start' : undefined;
+
+const canonicalUrl = `https://qrstars.ru/blog/${entry.slug}.html`;
+
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: displayTitle,
+  description: d.description,
+  image: d.image ? [d.image] : [],
+  datePublished: d.pubDate.toISOString(),
+  dateModified: (d.updatedDate ?? d.pubDate).toISOString(),
+  author: {
+    '@type': 'Organization',
+    name: 'QrStars',
+    url: 'https://qrstars.ru',
+  },
+  publisher: {
+    '@type': 'Organization',
+    '@id': 'https://qrstars.ru/#organization',
+    name: 'QrStars',
+    logo: {
+      '@type': 'ImageObject',
+      url: 'https://qrstars.ru/favicon.svg',
+    },
+  },
+  mainEntityOfPage: {
+    '@type': 'WebPage',
+    '@id': canonicalUrl,
+  },
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://qrstars.ru/' },
+    { '@type': 'ListItem', position: 2, name: 'Блог', item: 'https://qrstars.ru/blog.html' },
+    { '@type': 'ListItem', position: 3, name: displayTitle, item: canonicalUrl },
+  ],
+};
+
+const faqPageSchema = d.faq && d.faq.length > 0 ? {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: d.faq.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.a,
+    },
+  })),
+} : null;
+---
+
+<Layout
+  title={d.title}
+  description={d.description}
+  fullTitle={d.fullTitle ?? false}
+  canonical={canonicalUrl}
+  ogImage={d.image}
+>
+  <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />
+  {faqPageSchema && <script type="application/ld+json" set:html={JSON.stringify(faqPageSchema)} />}
+  <article class="pt-32 pb-12 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <header class="mb-8">
+      {d.tags && d.tags.length > 0 && (
+        <div class="flex flex-wrap gap-2 mb-4">
+          {d.tags.map((tag: string) => (
+            <span class="text-xs font-semibold bg-primary/10 text-primary px-3 py-1 rounded-full">{tag}</span>
+          ))}
+        </div>
+      )}
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">{displayTitle}</h1>
+      <time class="text-slate-500" datetime={(d.updatedDate ?? d.pubDate).toISOString()}>
+        {d.pubDate.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })}
+        {d.updatedDate && d.updatedDate.valueOf() !== d.pubDate.valueOf() && (
+          <span> · обновлено {d.updatedDate.toLocaleDateString('ru-RU', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+        )}
+      </time>
+    </header>
+    {d.image && (
+      <div class="w-full h-64 md:h-96 rounded-2xl overflow-hidden mb-12">
+        <img src={d.image} alt={displayTitle} loading="lazy" class="w-full h-full object-cover" />
+      </div>
+    )}
+    <div class="prose prose-slate lg:prose-lg max-w-none">
+      <Content />
+    </div>
+    {d.faq && d.faq.length > 0 && (
+      <div class="mt-16 border-t border-slate-200 pt-12">
+        <Faq items={d.faq} />
+      </div>
+    )}
+  </article>
+  <SeoCta
+    ctaText={d.ctaText ?? 'Создать QR-код бесплатно'}
+    ctaHref={ctaHref}
+    ctaGoal={ctaGoal}
+    ctaExternal={ctaExternal}
+    title="Готовы попробовать?"
+    text="Создайте QR-код в QrStars за 30 секунд — динамический, с логотипом и аналитикой."
+  />
+</Layout>

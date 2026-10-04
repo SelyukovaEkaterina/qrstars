@@ -1,0 +1,139 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { registerUrl } from '../lib/utm';
+
+const APP_URL = registerUrl('industries', Astro.url.searchParams);
+
+const industryPages = [
+  {
+    href: '/qr-kod-dlya-restorana.html',
+    label: 'Рестораны и кафе',
+    badge: 'HoReCa',
+    icon: 'fa-solid fa-utensils',
+    text: 'QR-меню, отзывы на столиках, чаевые, Wi-Fi и акции без перепечатки табличек.',
+  },
+  {
+    href: '/qr-kod-dlya-salona-krasoty.html',
+    label: 'Салоны красоты',
+    badge: 'Beauty',
+    icon: 'fa-solid fa-scissors',
+    text: 'Отзывы на зеркалах, QR-визитки мастеров, чаевые, прайс и запись в один клик.',
+  },
+  {
+    href: '/qr-kod-dlya-stomatologii.html',
+    label: 'Стоматологии и клиники',
+    badge: 'Медицина',
+    icon: 'fa-solid fa-tooth',
+    text: 'Отзывы о врачах, памятки пациентам, прайсы, повторная запись и приватная обратная связь.',
+  },
+  {
+    href: '/qr-kod-dlya-avtoservisa.html',
+    label: 'Автосервисы',
+    badge: 'Авто',
+    icon: 'fa-solid fa-car',
+    text: 'Отзывы после ремонта, прайс, запись, рекламные QR и аналитика офлайн-носителей.',
+  },
+];
+
+const scenarioLinks = [
+  { href: '/smart-reviews.html', label: 'Умные отзывы', text: 'Для рейтинга на Яндекс Картах, 2GIS, Авито и Google.' },
+  { href: '/qr-menu.html', label: 'QR-меню', text: 'Для кафе, ресторанов, баров, доставок и фудкортов.' },
+  { href: '/qr-business-cards.html', label: 'QR-визитки', text: 'Для мастеров, врачей, менеджеров, официантов и администраторов.' },
+  { href: '/file-sharing.html', label: 'QR-файлы', text: 'Для прайсов, PDF-меню, инструкций, каталогов и памяток.' },
+  { href: '/dynamic-qr.html', label: 'Динамические QR', text: 'Для баннеров, листовок, мероприятий и рекламных кампаний.' },
+  { href: '/free-qr-generator.html', label: 'Бесплатный генератор', text: 'Для быстрых статических QR-кодов с цветами и логотипом.' },
+];
+---
+
+<Layout
+  title="Отраслевые решения QrStars"
+  description="QR-решения QrStars для ресторанов, салонов красоты, стоматологий, клиник, автосервисов и офлайн-рекламы: отзывы, меню, визитки, файлы и динамические QR-коды."
+  canonical="https://qrstars.ru/otraslevye-resheniya.html"
+>
+  <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 bg-slate-950 text-white overflow-hidden relative">
+    <div class="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.25),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.16),transparent_35%)]"></div>
+    <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-3xl">
+        <div class="inline-flex items-center gap-2 bg-white/10 text-indigo-100 font-semibold px-4 py-1.5 rounded-full text-sm border border-white/15 mb-6">
+          <i class="fa-solid fa-layer-group"></i>
+          Отраслевые решения
+        </div>
+        <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+          QR-сценарии под вашу нишу
+        </h1>
+        <p class="text-lg md:text-xl text-slate-200 leading-relaxed max-w-2xl">
+          Выберите отрасль и получите готовую связку: отзывы, меню, визитки, Wi-Fi, файлы, редиректы и аналитику. Один кабинет QrStars закрывает несколько точек контакта с клиентом.
+        </p>
+        <div class="mt-8 flex flex-col sm:flex-row gap-4">
+          <a href={APP_URL} class="inline-flex items-center justify-center bg-white text-slate-950 px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-50 transition">
+            Начать бесплатно
+          </a>
+          <a href="#industries" class="inline-flex items-center justify-center border border-white/25 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/10 transition">
+            Смотреть отрасли
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="industries" class="py-16 lg:py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-2xl mb-10">
+        <h2 class="text-3xl font-bold text-slate-900 mb-4">Готовые отраслевые страницы</h2>
+        <p class="text-slate-600">
+          Эти лендинги раскрывают конкретные боли и сценарии: где поставить QR, что показывать после скана и как измерять результат.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {industryPages.map((page) => (
+          <a href={page.href} class="group bg-slate-50 border border-slate-200 rounded-2xl p-6 hover:bg-white hover:border-primary/40 hover:shadow-sm transition">
+            <div class="flex items-start gap-4">
+              <div class="w-12 h-12 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <i class={`${page.icon} text-xl`}></i>
+              </div>
+              <div>
+                <div class="inline-flex text-xs font-bold text-primary bg-primary/10 rounded-full px-2.5 py-1 mb-3">{page.badge}</div>
+                <h3 class="text-xl font-bold text-slate-900 group-hover:text-primary transition">{page.label}</h3>
+                <p class="mt-2 text-sm text-slate-600 leading-relaxed">{page.text}</p>
+                <span class="inline-flex mt-4 text-sm font-semibold text-primary group-hover:underline">Открыть решение →</span>
+              </div>
+            </div>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-slate-50 border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="max-w-2xl mb-10">
+        <h2 class="text-3xl font-bold text-slate-900 mb-4">Популярные QR-сценарии</h2>
+        <p class="text-slate-600">
+          Если нужна не отрасль, а конкретная задача, начните с одного из продуктовых сценариев.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {scenarioLinks.map((link) => (
+          <a href={link.href} class="bg-white border border-slate-200 rounded-xl p-5 hover:border-primary/40 transition group">
+            <h3 class="font-bold text-slate-900 group-hover:text-primary transition">{link.label}</h3>
+            <p class="mt-2 text-sm text-slate-600 leading-relaxed">{link.text}</p>
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-white">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl font-bold text-slate-900 mb-4">Не нашли свою отрасль?</h2>
+      <p class="text-lg text-slate-600 mb-8">
+        QrStars подходит для магазинов, отелей, мероприятий, фитнес-клубов, образовательных центров и сервисных компаний. Начните с динамического QR и подключите нужные модули.
+      </p>
+      <a href={APP_URL} class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+        Собрать свой сценарий
+      </a>
+    </div>
+  </section>
+</Layout>

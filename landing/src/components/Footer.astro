@@ -1,0 +1,125 @@
+---
+import { LEGAL_LINKS } from '../lib/legal';
+import { appendAttributionParams } from '../lib/utm';
+
+const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.searchParams);
+
+const seoLinks = [
+  { href: '/free-qr-generator.html', label: 'Бесплатный генератор QR' },
+  { href: '/qr-kod-dlya-yandeks-kart.html', label: 'QR для Яндекс Карт' },
+  { href: '/qr-kod-dlya-2gis.html', label: 'QR для 2ГИС' },
+  { href: '/qr-kod-dlya-otzyvov.html', label: 'QR для отзывов' },
+  { href: '/krasivyy-qr-kod.html', label: 'Красивый QR-код' },
+  { href: '/qr-kod-dlya-video.html', label: 'QR для видео' },
+  { href: '/dinamicheskiy-qr-kod.html', label: 'Динамический QR' },
+];
+
+const industryLinks = [
+  { href: '/otraslevye-resheniya.html', label: 'Все отрасли' },
+  { href: '/qr-kod-dlya-restorana.html', label: 'Рестораны и кафе' },
+  { href: '/qr-kod-dlya-salona-krasoty.html', label: 'Салоны красоты' },
+  { href: '/qr-kod-dlya-stomatologii.html', label: 'Стоматологии' },
+  { href: '/qr-kod-dlya-avtoservisa.html', label: 'Автосервисы' },
+];
+---
+
+<footer class="bg-white py-12 border-t border-slate-200 mt-auto">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid grid-cols-1 md:grid-cols-6 gap-8 mb-8">
+      <div class="col-span-1 md:col-span-2">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white font-bold">QR</div>
+          <span class="font-bold text-xl tracking-tight">QrStars</span>
+        </div>
+        <p class="text-slate-500 text-sm max-w-sm mb-4">
+          Умные QR-коды для локального бизнеса и офлайн-рекламы: отзывы на Яндекс Картах и 2GIS, электронное меню, динамические редиректы, визитки, Wi-Fi и аналитика — в одном кабинете.
+        </p>
+        <a href="mailto:support@qrstars.ru" class="inline-flex items-center gap-2 text-slate-500 text-sm hover:text-primary transition">
+          <i class="fa-solid fa-envelope"></i> support@qrstars.ru
+        </a>
+      </div>
+      <div>
+        <h4 class="font-bold text-slate-800 mb-4">Продукты</h4>
+        <ul class="space-y-2 text-sm text-slate-500">
+          <li id="footer-generator-item"><a href="/free-qr-generator.html" data-goal="qr_generator_link" data-goal-params='{"source":"footer"}' class="hover:text-emerald-600 transition font-semibold text-emerald-600">Бесплатный QR-генератор</a></li>
+          <li><a href="/smart-reviews.html" class="hover:text-primary transition">Умные отзывы</a></li>
+          <li><a href="/dynamic-qr.html" class="hover:text-primary transition">Динамические QR</a></li>
+          <li><a href="/qr-business-cards.html" class="hover:text-primary transition">QR-визитки</a></li>
+          <li><a href="/qr-menu.html" class="hover:text-primary transition">QR-меню</a></li>
+          <li><a href="/file-sharing.html" class="hover:text-primary transition">QR-файлы</a></li>
+          <li><a href="/#features" class="hover:text-primary transition">Конструктор QR</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold text-slate-800 mb-4">SEO-гайды</h4>
+        <ul class="space-y-2 text-sm text-slate-500">
+          {seoLinks.map((link) => (
+            <li>
+              <a href={link.href} class="hover:text-primary transition">{link.label}</a>
+            </li>
+          ))}
+          <li><a href="/qr-kod-s-logotipom.html" class="hover:text-primary transition">QR с логотипом</a></li>
+          <li><a href="/sozdat-qr-kod.html" class="hover:text-primary transition">Создать QR-код</a></li>
+          <li><a href="/generator-qr-kodov.html" class="hover:text-primary transition">Сравнение генераторов</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold text-slate-800 mb-4">Отраслевые решения</h4>
+        <ul class="space-y-2 text-sm text-slate-500">
+          {industryLinks.map((link) => (
+            <li>
+              <a href={link.href} class="hover:text-primary transition">{link.label}</a>
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-bold text-slate-800 mb-4">Платформа</h4>
+        <ul class="space-y-2 text-sm text-slate-500">
+          <li><a href="/blog.html" class="hover:text-primary transition">Блог</a></li>
+          <li><a href="/#buy" class="hover:text-primary transition">Тарифы</a></li>
+          <li><a href={APP_URL} class="hover:text-primary transition">Вход в кабинет</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center text-slate-400 text-sm">
+      <div class="flex flex-col items-center md:items-start gap-2">
+        <p>© 2026 QrStars.ru. Все права защищены.</p>
+        <p id="qa-mode-badge" class="hidden items-center gap-1.5 rounded-full border border-amber-300/70 bg-amber-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-900">
+          <span class="inline-block h-1.5 w-1.5 rounded-full bg-amber-500" aria-hidden="true"></span>
+          QA mode
+        </p>
+      </div>
+      <div class="flex flex-wrap gap-x-4 gap-y-2 mt-4 md:mt-0 justify-center md:justify-end">
+        <a href={LEGAL_LINKS.offer} class="hover:text-primary transition">Публичная оферта</a>
+        <a href={LEGAL_LINKS.terms} class="hover:text-primary transition">Пользовательское соглашение</a>
+        <a href={LEGAL_LINKS.privacy} class="hover:text-primary transition">Политика конфиденциальности</a>
+        <a href={LEGAL_LINKS.consent} class="hover:text-primary transition">Согласие на ПД</a>
+        <a href={LEGAL_LINKS.payment} class="hover:text-primary transition">Оплата и возврат</a>
+        <a href={LEGAL_LINKS.unsubscribe} class="hover:text-primary transition">Отмена подписки</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script is:inline>
+  (function () {
+    var badge = document.getElementById('qa-mode-badge');
+    if (badge && window.__QRSTARS_NO_ANALYTICS__ === true) {
+      badge.classList.remove('hidden');
+      badge.classList.add('inline-flex');
+    }
+
+    var params = new URLSearchParams(window.location.search);
+    var utmMedium = params.get('utm_medium');
+    var utmCampaign = params.get('utm_campaign');
+    var isPaidTraffic = utmMedium === 'cpc' || utmCampaign === 'reviews_search' || utmCampaign === 'menu_search';
+    
+    if (isPaidTraffic) {
+      var generatorItem = document.getElementById('footer-generator-item');
+      if (generatorItem) {
+        generatorItem.style.display = 'none';
+      }
+    }
+  })();
+</script>

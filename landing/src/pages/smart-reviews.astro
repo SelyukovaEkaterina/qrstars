@@ -1,0 +1,380 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DemoQrScan from '../components/DemoQrScan.astro';
+
+import { appendAttributionParams, reviewsRegisterUrl } from '../lib/utm';
+
+const APP_URL = reviewsRegisterUrl('hero', Astro.url.searchParams);
+const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-review';
+---
+
+<Layout
+  title="QR-код для отзывов на Яндекс Картах и 2ГИС — умные отзывы | QrStars"
+  description="Создайте QR-код для отзывов на Яндекс Картах и в 2ГИС: 5★ уходят на карты, негатив — вам в личку. PNG/SVG коды бесплатно. Попробуйте QrStars."
+  fullTitle={true}
+  canonical="https://qrstars.ru/smart-reviews.html"
+>
+    <section class="pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden bg-slate-50 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <!-- Левая часть: Текст -->
+                <div class="z-10">
+                    <div class="inline-block bg-blue-100 text-blue-700 font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-blue-200">
+                        QR-код для отзывов · Яндекс Карты и 2ГИС
+                    </div>
+                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+                        QR-код для отзывов:<br>
+                        <span class="text-transparent bg-clip-text bg-gradient-to-r from-yandex to-orange-500">Отличные оценки</span> на карты,
+                        <span class="text-red-500">негатив</span> — вам
+                    </h1>
+                    <p class="text-lg md:text-xl text-slate-600 mb-6 max-w-lg leading-relaxed">
+                        Один куаркод на столе или кассе: довольные гости оставляют отзыв на Яндекс Картах и в 2ГИС, недовольные пишут вам лично — до публикации в интернете.
+                    </p>
+                    <p class="text-sm text-slate-500 mb-8 max-w-lg leading-relaxed">
+                        <strong class="text-slate-700">Простая установка:</strong> создайте профиль компании, укажите ссылки на карты и скачайте ваш QR-код в личном кабинете.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <a href={APP_URL} class="flex items-center justify-center gap-3 bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                            Создать QR-код
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Правая часть: Интерактивное демо -->
+                <div class="relative flex justify-center lg:justify-end">
+                    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-72 h-72 bg-blue-400 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-pulse"></div>
+                    
+                    <!-- Телефон -->
+                    <div class="phone-mockup w-[320px] h-[600px] z-10 bg-white flex flex-col shadow-2xl border-[8px] border-slate-800 rounded-[2.5rem] relative overflow-hidden">
+                        <div class="w-full h-6 bg-slate-800 absolute top-0 z-20 flex justify-center">
+                            <div class="w-1/3 h-4 bg-slate-800 rounded-b-xl"></div>
+                        </div>
+                        
+                        <!-- Экран демо -->
+                        <div class="flex-1 flex flex-col p-6 pt-12 relative transition-opacity duration-300" id="demo-main">
+                            <div class="text-center mb-8 mt-4">
+                                <div class="w-16 h-16 bg-slate-100 rounded-full mx-auto mb-4 flex items-center justify-center">
+                                    <i class="fa-solid fa-mug-hot text-2xl text-slate-500"></i>
+                                </div>
+                                <h3 class="font-bold text-xl">Ваша компания</h3>
+                                <p class="text-slate-500 text-sm">Оцените качество услуг</p>
+                            </div>
+                            
+                            <!-- Звезды -->
+                            <div class="flex justify-center gap-2 mb-12">
+                                <button class="star-btn text-4xl text-slate-300 hover:scale-125 transition-transform" data-rating="1"><i class="fa-solid fa-star pointer-events-none"></i></button>
+                                <button class="star-btn text-4xl text-slate-300 hover:scale-125 transition-transform" data-rating="2"><i class="fa-solid fa-star pointer-events-none"></i></button>
+                                <button class="star-btn text-4xl text-slate-300 hover:scale-125 transition-transform" data-rating="3"><i class="fa-solid fa-star pointer-events-none"></i></button>
+                                <button class="star-btn text-4xl text-slate-300 hover:scale-125 transition-transform" data-rating="4"><i class="fa-solid fa-star pointer-events-none"></i></button>
+                                <button class="star-btn text-4xl text-slate-300 hover:scale-125 transition-transform" data-rating="5"><i class="fa-solid fa-star pointer-events-none"></i></button>
+                            </div>
+
+                            <div class="mt-auto text-center">
+                                <p class="text-xs text-slate-400">Нажмите на любую звезду для проверки 👆</p>
+                            </div>
+                        </div>
+
+                        <!-- Экран: Плохой отзыв -->
+                        <div class="hidden flex-1 flex-col p-6 pt-20 text-center bg-red-50" id="demo-bad">
+                            <i class="fa-solid fa-face-frown text-5xl text-red-400 mb-4"></i>
+                            <h3 class="font-bold text-lg mb-2">Нам очень жаль!</h3>
+                            <p class="text-sm text-slate-600 mb-6">Расскажите, что пошло не так? Сообщение будет отправлено напрямую руководству.</p>
+                            <textarea class="w-full h-32 p-3 rounded-xl border border-red-200 text-sm mb-4 bg-white" placeholder="Например: долго ждал заказ..."></textarea>
+                            <button class="reset-demo-btn w-full bg-slate-900 text-white py-3 rounded-xl font-bold">Отправить отзыв руководству</button>
+                            <p class="text-xs text-red-500 mt-4 font-semibold"><i class="fa-solid fa-shield-halved"></i> Отзыв не попадёт в интернет</p>
+                        </div>
+
+                        <!-- Экран: Хороший отзыв -->
+                        <div class="hidden flex-1 flex-col p-6 pt-20 text-center bg-green-50" id="demo-good">
+                            <i class="fa-solid fa-face-smile text-5xl text-green-500 mb-4"></i>
+                            <h3 class="font-bold text-lg mb-2">Спасибо за оценку!</h3>
+                            <p class="text-sm text-slate-600 mb-8">Пожалуйста, поделитесь своим мнением на картах.</p>
+                            <button class="reset-demo-btn w-full bg-yandex text-black py-3 rounded-xl font-bold mb-3 flex items-center justify-center gap-2">
+                                Оставить отзыв на Яндекс Картах
+                            </button>
+                            <button class="reset-demo-btn w-full bg-dgis text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2">
+                                Оставить отзыв в 2ГИС
+                            </button>
+                            <p class="text-xs text-green-600 mt-4 font-semibold"><i class="fa-solid fa-arrow-trend-up"></i> Ваш рейтинг растёт</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ───────────── Социальное доказательство ───────────── -->
+    <section class="py-16 bg-white border-b border-slate-100">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-gradient-to-br from-indigo-900 via-slate-900 to-indigo-950 rounded-3xl p-8 lg:p-12 relative overflow-hidden shadow-2xl shadow-indigo-900/20">
+                <!-- Декоративные элементы -->
+                <div class="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-indigo-500 rounded-full mix-blend-screen filter blur-[80px] opacity-40 pointer-events-none"></div>
+                <div class="absolute bottom-0 left-0 -ml-16 -mb-16 w-64 h-64 bg-purple-500 rounded-full mix-blend-screen filter blur-[80px] opacity-30 pointer-events-none"></div>
+                
+                <div class="relative z-10 flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+                    <div class="flex-1 text-center lg:text-left text-white">
+                        <div class="inline-flex items-center gap-2 bg-indigo-500/20 text-indigo-300 font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-indigo-400/20">
+                            <i class="fa-solid fa-chart-line"></i> Реальные результаты
+                        </div>
+                        <h2 class="text-3xl lg:text-4xl font-bold mb-5 leading-tight">
+                            В среднем рейтинг заведения на Яндекс Картах <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-green-300">растёт на 0.6 балла</span>
+                        </h2>
+                        <p class="text-indigo-100/80 text-lg mb-0 max-w-2xl mx-auto lg:mx-0 leading-relaxed">
+                            За первые 2-3 месяца использования умных отзывов QrStars заведения поднимаются в поиске за счёт потока позитивных оценок от реальных гостей.
+                        </p>
+                    </div>
+                    
+                    <div class="w-full lg:w-auto grid grid-cols-2 gap-4 shrink-0">
+                        <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center shadow-inner shadow-white/5">
+                            <div class="text-4xl lg:text-5xl font-extrabold text-emerald-400 mb-2">+40%</div>
+                            <div class="text-sm text-indigo-200 font-medium leading-snug">Новых отзывов 5★<br/>на картах</div>
+                        </div>
+                        <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-6 text-center shadow-inner shadow-white/5">
+                            <div class="text-4xl lg:text-5xl font-extrabold text-indigo-300 mb-2">-85%</div>
+                            <div class="text-sm text-indigo-200 font-medium leading-snug">Публичного негатива<br/>(уходит вам напрямую)</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Блок "Механика распределения" -->
+    <section class="py-20 bg-white border-y border-slate-200 relative">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16 max-w-3xl mx-auto">
+                <h2 class="text-3xl md:text-4xl font-extrabold text-slate-900 mb-4">
+                    Как работает умное распределение отзывов
+                </h2>
+                <p class="text-lg text-slate-600">
+                    Всего один QR-код запускает умный сценарий: он бережёт репутацию, позволяет моментально решить проблему клиента и автоматически поднимает рейтинг на картах.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 relative">
+                <!-- Шаг 1 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-3xl p-8 relative z-10 flex flex-col justify-between h-full shadow-sm hover:shadow-md transition">
+                    <div>
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-bold text-xl mb-6 shadow-sm">
+                            1
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-3">Сканирование QR-кода</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            Клиент сканирует QR-код на тейбл-тенте, чеке, стойке регистрации или визитке камерой смартфона. Устанавливать приложения не нужно — страница моментально открывается в браузере.
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-slate-200/60 flex items-center gap-3 text-xs text-slate-500">
+                        <i class="fa-solid fa-qrcode text-lg text-blue-500"></i>
+                        <span>Один QR-код для всех типов карт</span>
+                    </div>
+                </div>
+
+                <!-- Шаг 2 -->
+                <div class="bg-slate-50 border border-slate-200 rounded-3xl p-8 relative z-10 flex flex-col justify-between h-full shadow-sm hover:shadow-md transition">
+                    <div>
+                        <div class="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center font-bold text-xl mb-6 shadow-sm">
+                            2
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-3">Быстрая оценка качества</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed">
+                            Открывается брендированная страница вашей компании. Клиенту предлагается оценить визит, качество услуг или продукта по 5-балльной шкале.
+                        </p>
+                    </div>
+                    <div class="mt-6 pt-6 border-t border-slate-200/60 flex items-center gap-3 text-xs text-slate-500">
+                        <i class="fa-solid fa-star text-lg text-amber-500"></i>
+                        <span>Всего 1 клик до разделения сценариев</span>
+                    </div>
+                </div>
+
+                <!-- Шаг 3 -->
+                <div class="relative z-10 flex flex-col gap-4">
+                    <!-- Положительный сценарий (4-5 звезд) -->
+                    <div class="bg-emerald-50 border border-green-200 rounded-3xl p-6 flex flex-col justify-between flex-1 shadow-sm hover:shadow-md transition">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-8 h-8 bg-green-100 text-green-700 rounded-xl flex items-center justify-center font-bold text-sm">
+                                    3А
+                                </div>
+                                <span class="font-bold text-green-800 text-sm uppercase tracking-wider">Оценка 4-5★ (Довольный клиент)</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-900 mb-2">Направляем на карты</h4>
+                            <p class="text-slate-600 text-xs leading-relaxed">
+                                Система благодарит клиента и предлагает в один клик перейти на Яндекс Карты, 2ГИС или Google Карты, чтобы оставить отзыв. Рейтинг вашей компании растёт.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-green-200/60 flex items-center gap-2 text-xs text-green-700 font-semibold">
+                            <i class="fa-solid fa-arrow-trend-up"></i>
+                            <span>Рейтинг компании растёт</span>
+                        </div>
+                    </div>
+
+                    <!-- Негативный сценарий (1-3 звезды) -->
+                    <div class="bg-rose-50 border border-red-200 rounded-3xl p-6 flex flex-col justify-between flex-1 shadow-sm hover:shadow-md transition">
+                        <div>
+                            <div class="flex items-center gap-3 mb-3">
+                                <div class="w-8 h-8 bg-red-100 text-red-700 rounded-xl flex items-center justify-center font-bold text-sm">
+                                    3Б
+                                </div>
+                                <span class="font-bold text-red-800 text-sm uppercase tracking-wider">Оценка 1-3★ (Есть замечания)</span>
+                            </div>
+                            <h4 class="text-lg font-bold text-slate-900 mb-2">Моментальное решение проблемы</h4>
+                            <p class="text-slate-600 text-xs leading-relaxed">
+                                Мы не пускаем клиента на карты, а открываем форму обратной связи. Жалоба моментально уходит руководству на Email (или в Telegram на PRO-тарифе). Вы можете сразу связаться с клиентом, уладить конфликт и вернуть его лояльность до того, как отзыв появится в сети.
+                            </p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-red-200/60 flex items-center gap-2 text-xs text-red-700 font-semibold">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Проблема решена тет-а-тет, без публичного негатива</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <DemoQrScan
+        scanUrl={DEMO_SCAN_URL}
+        modeLabel="Умные отзывы"
+        title="Посмотрите, как это выглядит вживую — наведите камеру"
+        subtitle="Отсканируйте код своим смартфоном, чтобы пройти путь клиента от сканирования до оценки."
+    />
+
+    <section class="py-16 bg-white border-b border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h2 class="text-3xl font-bold mb-4">Отзывы для разных отраслей</h2>
+                    <p class="text-slate-600 mb-8">
+                        Точка размещения QR зависит от бизнеса: столик в ресторане, зеркало в салоне, ресепшен клиники или заказ-наряд в автосервисе.
+                    </p>
+                    <div class="flex flex-wrap gap-3">
+                        <a href="/qr-kod-dlya-restorana.html" class="inline-flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg border border-slate-200 font-semibold hover:text-primary transition">Рестораны</a>
+                        <a href="/qr-kod-dlya-salona-krasoty.html" class="inline-flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg border border-slate-200 font-semibold hover:text-primary transition">Салоны красоты</a>
+                        <a href="/qr-kod-dlya-stomatologii.html" class="inline-flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg border border-slate-200 font-semibold hover:text-primary transition">Стоматологии</a>
+                        <a href="/qr-kod-dlya-avtoservisa.html" class="inline-flex items-center gap-2 bg-white text-slate-700 px-4 py-2 rounded-lg border border-slate-200 font-semibold hover:text-primary transition">Автосервисы</a>
+                        <a href="/otraslevye-resheniya.html" class="inline-flex items-center gap-2 bg-primary/5 text-primary px-4 py-2 rounded-lg border border-primary/20 font-semibold hover:bg-primary/10 transition">Все отрасли →</a>
+                    </div>
+                </div>
+                <div class="relative rounded-2xl overflow-hidden shadow-xl">
+                    <img src="/images/cafe-table.png" alt="QR-код на столе в кафе" class="w-full h-auto object-cover aspect-video" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-900/40 to-transparent pointer-events-none"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Блок "Как это работает" -->
+    <section class="py-20 bg-white border-y border-slate-200">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold mb-4">Как начать работу? Без программистов и сложных настроек</h2>
+                <p class="text-slate-600">Вам не потребуется ничего программировать или настраивать вручную. Запустите сбор отзывов за 3 простых шага.</p>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Шаг 1 -->
+                <div class="bg-slate-50 p-8 rounded-2xl text-center border border-slate-100 relative">
+                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">1</div>
+                    <i class="fa-solid fa-link text-4xl text-blue-500 mb-6 mt-2"></i>
+                    <h3 class="font-bold text-xl mb-3">Добавьте ссылки</h3>
+                    <p class="text-slate-600 text-sm">Зарегистрируйтесь и укажите ссылки на профили вашей компании в Яндекс Картах, 2ГИС или на других платформах.</p>
+                </div>
+                <!-- Шаг 2 -->
+                <div class="bg-slate-50 p-8 rounded-2xl text-center border border-slate-100 relative">
+                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">2</div>
+                    <i class="fa-solid fa-gift text-4xl text-blue-500 mb-6 mt-2"></i>
+                    <h3 class="font-bold text-xl mb-3">Мотивируйте гостей</h3>
+                    <p class="text-slate-600 text-sm">Разместите QR-код на видном месте. Добавьте призыв: <em>«Дарим кофе или скидку 5% за честный отзыв»</em> — это повысит конверсию в 3 раза.</p>
+                </div>
+                <!-- Шаг 3 -->
+                <div class="bg-slate-50 p-8 rounded-2xl text-center border border-slate-100 relative">
+                    <div class="absolute -top-5 left-1/2 -translate-x-1/2 w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold text-lg">3</div>
+                    <i class="fa-solid fa-chart-line text-4xl text-blue-500 mb-6 mt-2"></i>
+                    <h3 class="font-bold text-xl mb-3">Получайте результаты</h3>
+                    <p class="text-slate-600 text-sm">Рейтинг на картах начнёт расти за счёт довольных клиентов, а негатив будет уходить напрямую вам на Email или в Telegram.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-16 bg-white border-t border-slate-100">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 class="text-2xl md:text-3xl font-bold text-slate-900 mb-3">Пошаговые инструкции</h2>
+            <p class="text-slate-600 mb-8 max-w-2xl mx-auto">Отдельные гайды под площадки — со ссылкой из кабинета карт до печати.</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                <a href="/qr-kod-dlya-yandeks-kart.html" class="block p-6 rounded-2xl border border-slate-200 hover:border-primary/40 hover:shadow-md transition bg-slate-50">
+                    <div class="font-bold text-lg text-slate-900 mb-1">QR для отзывов на Яндекс Картах</div>
+                    <p class="text-sm text-slate-600">Как взять ссылку из Яндекс Бизнеса и сделать куаркод с табличкой.</p>
+                </a>
+                <a href="/qr-kod-dlya-2gis.html" class="block p-6 rounded-2xl border border-slate-200 hover:border-primary/40 hover:shadow-md transition bg-slate-50">
+                    <div class="font-bold text-lg text-slate-900 mb-1">QR для отзывов в 2ГИС</div>
+                    <p class="text-sm text-slate-600">Как скопировать ссылку с карточки 2GIS и распечатать наклейку.</p>
+                </a>
+                <a href="/blog/qr-kod-dlya-otzyvov-yandeks-karty.html" class="block p-6 rounded-2xl border border-slate-200 hover:border-primary/40 hover:shadow-md transition bg-slate-50">
+                    <div class="font-bold text-lg text-slate-900 mb-1">Гайд: Яндекс Карты</div>
+                    <p class="text-sm text-slate-600">Подробная статья — размещение, мотивация гостей, ошибки.</p>
+                </a>
+                <a href="/blog/qr-kod-dlya-otzyvov-2gis.html" class="block p-6 rounded-2xl border border-slate-200 hover:border-primary/40 hover:shadow-md transition bg-slate-50">
+                    <div class="font-bold text-lg text-slate-900 mb-1">Гайд: 2ГИС</div>
+                    <p class="text-sm text-slate-600">Пошагово: ссылка на отзывы, мульти-QR с Яндексом, печать.</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-20 bg-gradient-to-br from-primary to-purple-600 text-white relative overflow-hidden">
+        <div class="absolute -top-16 -right-16 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
+            <h2 class="text-3xl md:text-4xl font-bold mb-4">
+                Начните собирать 5★ отзывы уже сегодня
+            </h2>
+            <p class="text-indigo-100 text-lg mb-8 max-w-xl mx-auto">
+                Базовый тариф — бесплатно навсегда (1 филиал, базовый дизайн, до 100 сканирований в месяц). Карта не нужна.
+            </p>
+            <a href={APP_URL} data-goal="hero_start" class="inline-flex items-center justify-center gap-2 bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-100 transition shadow-lg">
+                Начать бесплатно
+                <i class="fa-solid fa-arrow-right text-sm"></i>
+            </a>
+        </div>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const stars = document.querySelectorAll('.star-btn');
+            const mainScreen = document.getElementById('demo-main');
+            const badScreen = document.getElementById('demo-bad');
+            const goodScreen = document.getElementById('demo-good');
+            const resetBtns = document.querySelectorAll('.reset-demo-btn');
+
+            stars.forEach(star => {
+                star.addEventListener('click', (e) => {
+                    const rating = parseInt((e.currentTarget as HTMLElement).dataset.rating || '0');
+                    if (mainScreen && badScreen && goodScreen) {
+                        mainScreen.classList.add('opacity-0');
+                        setTimeout(() => {
+                            mainScreen.classList.add('hidden');
+                            mainScreen.classList.remove('opacity-0');
+                            if (rating <= 3) {
+                                badScreen.classList.remove('hidden');
+                            } else {
+                                goodScreen.classList.remove('hidden');
+                            }
+                        }, 300);
+                    }
+                });
+            });
+
+            resetBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    if (mainScreen && badScreen && goodScreen) {
+                        badScreen.classList.add('hidden');
+                        goodScreen.classList.add('hidden');
+                        mainScreen.classList.remove('hidden');
+                    }
+                });
+            });
+        });
+    </script>
+</Layout>
