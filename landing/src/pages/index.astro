@@ -6,62 +6,58 @@ import { registerUrl } from '../lib/utm';
 const APP_URL = registerUrl('home', Astro.url.searchParams);
 
 const trustSignals = [
-  { icon: 'fa-map-location-dot', text: 'Интеграция с Яндекс Картами, 2ГИС и Google' },
-  { icon: 'fa-paper-plane', text: 'Мгновенные уведомления на Email и в Telegram' },
-  { icon: 'fa-shield-halved', text: 'Оплата по 54-ФЗ через ЮKassa' },
-  { icon: 'fa-database', text: 'Серверы в РФ · Соответствие 152-ФЗ' },
+  { icon: 'fa-link', text: 'Смена ссылки онлайн без перепечатки' },
+  { icon: 'fa-chart-pie', text: 'Статистика сканирований в реальном времени' },
+  { icon: 'fa-shield-halved', text: 'Оплата по 54-ФЗ · Данные в РФ (152-ФЗ)' },
+  { icon: 'fa-map-location-dot', text: 'Маршрутизация на Яндекс Карты и 2ГИС' },
 ];
 
 const steps = [
   {
-    icon: 'fa-user-plus',
-    title: 'Зарегистрируйтесь бесплатно',
-    text: 'Создайте кабинет за минуту — без карты и договора. Сразу доступен бесплатный тариф навсегда.',
-  },
-  {
     icon: 'fa-sliders',
-    title: 'Выберите нужные функции',
-    text: 'Включите умные отзывы, загрузите меню или добавьте контакты сотрудников. Всё настраивается в простом конструкторе без программистов.',
+    title: '1. Создайте динамический QR',
+    text: 'Укажите ссылку на сайт, видео, меню, файл или настройте умные отзывы. Выберите цвет и добавьте логотип.',
   },
   {
     icon: 'fa-qrcode',
-    title: 'Разместите QR — и меняйте всё онлайн',
-    text: 'Печатайте таблички, баннеры и бейджи один раз. Ссылки, меню и контент меняются без новой полиграфии.',
+    title: '2. Разместите на любом носителе',
+    text: 'Скачайте код в высоком разрешении PNG или векторном SVG. Печатайте наклейки, баннеры, меню или упаковку один раз.',
+  },
+  {
+    icon: 'fa-arrows-rotate',
+    title: '3. Меняйте ссылку онлайн',
+    text: 'Обновляйте адрес в кабинете за 10 секунд. Сам напечатанный QR остаётся прежним, а статистика сканов копится.',
   },
 ];
 
 const faq = [
   {
-    q: 'Сколько стоит и нужна ли карта при регистрации?',
-    a: 'Бесплатный тариф — навсегда: одно заведение, умные отзывы, отдельные QR (меню, визитка, Wi‑Fi, редирект) и базовая аналитика. Микросайт со всеми разделами на одной странице — на PRO. Регистрация занимает минуту, банковская карта не нужна. PRO — от 270 ₽/мес, если нужны микросайт, ваш бренд вместо вотермарки, уведомления в Telegram и расширенная аналитика.',
+    q: 'Что такое динамический QR-код и чем он отличается от обычного?',
+    a: 'В обычном (статическом) QR-коде ссылка зашита навсегда в рисунок — её нельзя изменить после печати. В динамическом коде зашита короткая ссылка на платформу QrStars, которая мгновенно перенаправляет пользователя на ваш актуальный адрес. Вы можете менять конечную ссылку (сайт, соцсеть, видео, файл, акцию) в кабинете сколько угодно раз — сам QR перепечатывать не нужно.',
   },
   {
-    q: 'Нужно ли гостю устанавливать приложение?',
-    a: 'Нет. Гость сканирует QR камерой телефона — страница открывается в обычном браузере за пару секунд. Скачиваний, регистраций и логинов не требуется.',
+    q: 'Сколько стоит сервис и есть ли бесплатный тариф?',
+    a: 'Базовый тариф FREE — навсегда бесплатный: создание QR-кодов, умные отзывы, смена ссылок и базовая статистика сканирований. Регистрация занимает минуту, банковская карта не нужна. Тариф PRO стоит 990 ₽ в год (всего ≈83 ₽/мес). Он открывает прямой переход по QR-ссылке без промежуточного экрана QrStars, микросайты, Telegram-уведомления и расширенную аналитику.',
   },
   {
-    q: 'Как работает умное распределение отзывов?',
-    a: 'Гость ставит оценку от 1 до 5 звёзд. Довольным (4–5★) предлагается оставить отзыв на Яндекс Картах, 2GIS или другой площадке — одним нажатием. При низкой оценке гость сначала пишет вам напрямую, чтобы вы успели решить проблему до публичного отзыва.',
+    q: 'Что происходит, если закончилась подписка PRO?',
+    a: 'Все ваши QR-коды продолжают работать! Ссылки и редиректы не ломаются. На бесплатном тарифе при переходе может показываться короткий промежуточный экран QrStars, а кастомный White Label временно отключается. Вы всегда можете продлить PRO, сохранив все настройки.',
   },
   {
-    q: 'Это законно? Вы не «накручиваете» отзывы?',
-    a: 'Накрутки нет. Отзыв на картах оставляет реальный гость от своего имени — QrStars лишь упрощает путь довольному клиенту и помогает узнать о проблеме раньше, чем она появится на картах.',
+    q: 'Сколько сканирований включено и есть ли лимиты?',
+    a: 'Количество сканирований не ограничено на всех тарифах. Мы не блокируем QR-коды при превышении трафика.',
   },
   {
-    q: 'Можно ли менять меню, ссылки и акции без перепечатки?',
-    a: 'Да — это главное преимущество наших вечных QR-кодов. Напечатанный код остаётся прежним, а содержимое меняется в кабинете: цены, стоп-лист, ссылка на акцию или новый сайт обновляются за минуту.',
+    q: 'Можно ли добавить свой логотип и настроить дизайн QR-кода?',
+    a: 'Да. В генераторе и личном кабинете вы можете выбрать цвета, градиенты, форму точек и углов, а также загрузить логотип вашей компании в центр QR-кода. Готовый код доступен для скачивания в высоком разрешении PNG и в векторном формате SVG для типографии.',
   },
   {
-    q: 'Чем PRO отличается от бесплатного тарифа?',
-    a: 'На FREE уже работают умные отзывы и отдельные QR: меню, визитка, Wi‑Fi, редирект и файл — с вотермаркой QrStars, уведомлениями на email и одной площадкой для отзывов. Микросайт (все разделы на одной странице) входит в PRO вместе с возможностью убрать наш логотип, мгновенными уведомлениями в Telegram, умным распределением по картам, промокодами за отзыв и расширенной аналитикой. QR-ссылки на PRO ведут гостя сразу по адресу, без экрана QrStars.',
-  },
-  {
-    q: 'Что будет, если не продлить подписку?',
-    a: 'QR-коды отзывов, меню, визитки и редирект продолжают работать. Микросайт, созданный уже на платном тарифе, скрывается до продления; старые микросайты, которые были заведены раньше, сохраняются. Ограничатся инструменты управления: фото в меню скроются, кастомный дизайн сбросится. Есть льготный период 7 дней, чтобы успеть продлить.',
+    q: 'Как работает модуль умных отзывов?',
+    a: 'Гость ставит оценку от 1 до 5 звёзд. Довольным клиентам (4–5★) предлагается оставить отзыв на Яндекс Картах, 2ГИС или Авито в один клик. При низкой оценке (1–3★) гость оставляет обратную связь вам напрямую, чтобы вы успели решить вопрос до публикации на картах.',
   },
   {
     q: 'Подходит ли QrStars для сети или франшизы?',
-    a: 'Да. Тариф «Сеть» объединяет все точки в одном кабинете: сводный дашборд, роли для управляющих, выгрузка в CSV и White Label на уровне бренда. Два заведения включены, каждая дополнительная точка — +150 ₽/мес.',
+    a: 'Да. Тариф «Сеть» (от 600 ₽/мес или 6 000 ₽/год за 2 заведения, +150 ₽/мес за каждую точку сверх двух) объединяет все точки в одном кабинете: сводный дашборд, роли для управляющих, выгрузка в CSV и White Label на уровне бренда.',
   },
 ];
 
@@ -77,12 +73,27 @@ const faqSchema = {
     },
   })),
 };
+
+const softwareSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'QrStars',
+  applicationCategory: 'BusinessApplication',
+  operatingSystem: 'All',
+  url: 'https://qrstars.ru',
+  description: 'Сервис динамических QR-кодов: создание, смена ссылки без перепечатки, статистика сканирований и умные отзывы для бизнеса.',
+  offers: {
+    '@type': 'Offer',
+    price: '0',
+    priceCurrency: 'RUB',
+  },
+};
 ---
 
 <Layout
-  title="QrStars — умные QR-коды для бизнеса"
+  title="QrStars — динамические QR-коды: создать, менять ссылку, статистика сканов"
   fullTitle={true}
-  description="QR-платформа для офлайн-бизнеса: умные отзывы, электронное меню, динамические QR-коды с редиректом, визитки, файлы и аналитика в одном кабинете."
+  description="Создайте динамический QR-код бесплатно: меняйте ссылку без перепечатки, смотрите статистику сканов, добавляйте логотип и цвета. Для визиток, меню, видео, отзывов и рекламы."
   yandexVerification="3dc4de0473e128f8"
 >
   <!-- ───────────── Главный экран ───────────── -->
@@ -95,39 +106,40 @@ const faqSchema = {
       <div
         class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20"
       >
-        <i class="fa-solid fa-star"></i>
-        Умные QR-коды для ресторанов, салонов красоты и сферы услуг
+        <i class="fa-solid fa-qrcode"></i>
+        Динамические QR-коды для бизнеса, маркетинга и сферы услуг
       </div>
       <h1
         class="text-3xl md:text-4xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1] mb-6 max-w-4xl mx-auto"
       >
-        Управляйте репутацией и сервисом через
+        Динамические QR-коды:
         <span class="bg-gradient-to-r from-primary to-purple-500 gradient-text">
-          умные QR-коды
+          меняйте ссылку после печати
         </span>
       </h1>
       <p class="text-lg md:text-xl text-slate-600 mb-9 max-w-3xl mx-auto leading-relaxed">
-        Поднимите рейтинг на картах и создайте цифровое меню за 10 минут. Платформа QrStars помогает повышать рейтинг на Яндекс Картах и 2ГИС: недовольные клиенты напишут вам на Email или в Telegram лично, а довольные — опубликуют отзыв на картах.
+        Создавайте вечные QR-коды для визиток, меню, видео, отзывов и рекламы. Меняйте ссылку в любой момент без перепечатки полиграфии, отслеживайте статистику сканирований и оформляйте код под свой бренд.
       </p>
 
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
         <a
-          href={APP_URL}
-          data-goal="hero_start"
+          href="/free-qr-generator.html"
+          data-goal="hero_generator"
           class="bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30"
         >
-          Начать бесплатно
+          Создать QR бесплатно
         </a>
         <a
-          href="#demo"
+          href={APP_URL}
+          data-goal="hero_start"
           class="bg-white text-slate-700 border border-slate-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition shadow-sm"
         >
-          <i class="fa-solid fa-mobile-screen-button mr-1.5 text-primary"></i>
-          Посмотреть демо
+          <i class="fa-solid fa-chart-line mr-1.5 text-primary"></i>
+          Динамический QR с аналитикой
         </a>
       </div>
       <p class="mt-4 text-sm text-slate-500">
-        Бесплатный тариф навсегда · PRO от 270 ₽/мес · возврат в течение 14 дней
+        Бесплатный тариф навсегда · PRO 990 ₽/год (≈83 ₽/мес) · возврат в течение 14 дней
       </p>
 
       <ul
@@ -135,19 +147,19 @@ const faqSchema = {
       >
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">Умные отзывы:</strong> автоматически направляйте позитив на карты, а негатив — лично вам на Email или в Telegram.</span>
+          <span><strong class="text-slate-800">Вечные QR-коды:</strong> меняйте ссылку, файл или акцию в любой момент без перепечатки полиграфии.</span>
         </li>
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">Электронное меню:</strong> обновляйте цены, фото и стоп-листы онлайн без перепечатки QR-кодов.</span>
+          <span><strong class="text-slate-800">Подробная статистика:</strong> отслеживайте количество сканирований в реальном времени.</span>
         </li>
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">Мгновенный доступ:</strong> гостю достаточно навести камеру — всё открывается в браузере за 2 секунды.</span>
+          <span><strong class="text-slate-800">Умные отзывы:</strong> автоматически направляйте 4–5★ на карты, а негатив — лично владельцу.</span>
         </li>
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">Вечные QR-коды:</strong> меняйте ссылки, PDF-файлы и контакты в любой момент в одном кабинете.</span>
+          <span><strong class="text-slate-800">Меню, видео и файлы:</strong> размещайте ссылки на YouTube/Rutube, PDF-каталоги, визитки и меню.</span>
         </li>
       </ul>
     </div>
@@ -167,20 +179,20 @@ const faqSchema = {
     </div>
   </section>
 
-  <!-- ───────────── Проблема → Решение ───────────── -->
+  <!-- ───────────── Как работает динамика ───────────── -->
   <section class="py-20 bg-white">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-14">
         <div
-          class="inline-block bg-rose-50 text-rose-600 font-semibold px-4 py-1.5 rounded-full text-sm mb-4 border border-rose-100"
+          class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-4 border border-primary/20"
         >
-          Защита репутации
+          Преимущества динамических кодов
         </div>
         <h2 class="text-3xl font-bold mb-4 max-w-2xl mx-auto">
-          Один плохой отзыв на картах может лишить вас десятков клиентов
+          Забудьте о перепечатке полиграфии при каждой смене ссылки
         </h2>
         <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          Обычно недовольный гость сразу пишет гневный отзыв в интернет, а довольный — молча уходит. QrStars меняет это: направляет негатив вам напрямую для быстрого решения проблемы, а лояльных клиентов просит поделиться радостью публично.
+          В обычном статическом QR-коде ссылка зашита навсегда в рисунок: если адрес изменился — весь тираж наклеек, меню или баннеров летит в мусор. Динамический QR-код QrStars перенаправляет гостя через платформу, поэтому конечный адрес можно сменить в кабинете за 10 секунд.
         </p>
       </div>
 
@@ -189,28 +201,28 @@ const faqSchema = {
           <div
             class="w-12 h-12 bg-rose-100 text-rose-500 rounded-xl flex items-center justify-center mb-4 text-xl"
           >
-            <i class="fa-solid fa-face-frown"></i>
+            <i class="fa-solid fa-xmark"></i>
           </div>
-          <h3 class="font-bold text-lg mb-3">Без QrStars</h3>
+          <h3 class="font-bold text-lg mb-3">Обычный статический QR</h3>
           <ul class="space-y-2.5 text-sm text-slate-600">
-            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Любой мелкий негатив сразу летит на Яндекс Карты и 2ГИС</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Довольные клиенты ленятся искать вас на картах и молчат</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Вы узнаёте о недовольстве гостя, когда его отзыв уже снизил ваш рейтинг</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Приходится перепечатывать меню и таблички из-за любой новой ссылки</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Ссылка «зашита» намертво: сменился сайт — перепечатывайте тираж</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Опечатка в адресе означает испорченную партию полиграфии</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Ноль аналитики: невозможно узнать, сколько человек отсканировали код</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Нельзя настроить маршрутизацию отзывов или подключить микросайт</li>
           </ul>
         </div>
         <div class="bg-primary/5 border border-primary/20 rounded-2xl p-7">
           <div
             class="w-12 h-12 bg-primary/10 text-primary rounded-xl flex items-center justify-center mb-4 text-xl"
           >
-            <i class="fa-solid fa-face-smile"></i>
+            <i class="fa-solid fa-check"></i>
           </div>
-          <h3 class="font-bold text-lg mb-3">С QrStars</h3>
+          <h3 class="font-bold text-lg mb-3">Динамический QR QrStars</h3>
           <ul class="space-y-2.5 text-sm text-slate-700">
-            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Довольные гости оставляют отзыв на картах в один клик</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Жалобы и замечания приходят мгновенно вам на Email или в Telegram</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Вы успеваете сгладить конфликт и вернуть клиента до публикации отзыва</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Меню, прайсы, контакты и ссылки обновляются онлайн за минуту</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Ссылка меняется в личном кабинете за пару секунд без перепечатки</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Напечатали на баннере или вывеске — и меняйте акции круглый год</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Полная статистика сканирований по дням и типам устройств</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> На тарифе PRO — прямой переход по ссылке без экрана QrStars</li>
           </ul>
         </div>
       </div>
@@ -223,34 +235,34 @@ const faqSchema = {
   <section class="py-20 bg-slate-50 border-y border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-14">
-        <h2 class="text-3xl font-bold mb-4">Результаты внедрения умных QR-кодов</h2>
+        <h2 class="text-3xl font-bold mb-4">Результаты внедрения динамических QR-кодов</h2>
         <p class="text-slate-600 max-w-2xl mx-auto">
-          Платформа автоматизирует рутину и помогает бизнесу выглядеть лучше в глазах клиентов и поисковых систем.
+          Платформа автоматизирует работу с офлайн-трафиком и защищает бизнес от затрат на повторную печать.
         </p>
       </div>
       
       <div class="grid md:grid-cols-3 gap-6">
         <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
-          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-arrow-trend-up"></i></div>
-          <h3 class="font-bold text-lg mb-3">Органический рост рейтинга</h3>
+          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-leaf"></i></div>
+          <h3 class="font-bold text-lg mb-3">Экономия на полиграфии</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Заведения, использующие умные отзывы, получают больше положительных оценок. Довольным клиентам проще оставить отзыв, когда ссылка открывается в один клик прямо за столиком.
+            Больше не нужно заклеивать цены в меню или выбрасывать партию тейбл-тентов, баннеров и наклеек из-за сменившейся ссылки. Весь контент обновляется в облаке за пару секунд.
+          </p>
+        </div>
+
+        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
+          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-chart-line"></i></div>
+          <h3 class="font-bold text-lg mb-3">Точная статистика сканирований</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Узнавайте в реальном времени, сколько людей сканируют ваши коды, с каких устройств и в какие дни. Сравнивайте эффективность разных офлайн-размещений.
           </p>
         </div>
 
         <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
           <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-shield-halved"></i></div>
-          <h3 class="font-bold text-lg mb-3">Снижение публичного негатива</h3>
+          <h3 class="font-bold text-lg mb-3">Защита репутации и рост на картах</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Большинство конфликтных ситуаций решается на месте. Гость выпускает пар в форму обратной связи, а руководитель мгновенно получает уведомление и улаживает вопрос.
-          </p>
-        </div>
-
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
-          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-leaf"></i></div>
-          <h3 class="font-bold text-lg mb-3">Экономия на перепечатке</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Больше не нужно заклеивать цены в меню или выбрасывать партию тейбл-тентов из-за неработающей ссылки. Весь контент обновляется в облаке за пару минут.
+            Автоматическая маршрутизация оценок: довольные клиенты делятся позитивом на Яндекс Картах и 2ГИС, а жалобы приходят лично вам для быстрого урегулирования.
           </p>
         </div>
       </div>
@@ -268,8 +280,7 @@ const faqSchema = {
         </div>
         <h2 class="text-3xl font-bold mb-4">Как это работает</h2>
         <p class="text-slate-600 max-w-2xl mx-auto">
-          Три шага от регистрации до первых сканов — без программистов, дизайнеров
-          и долгих внедрений.
+          Три шага от создания кода до первых сканирований — без программистов, дизайнеров и сложных настроек.
         </p>
       </div>
 
@@ -296,7 +307,7 @@ const faqSchema = {
           data-goal="howto_register"
           class="inline-flex items-center gap-2 bg-primary text-white px-8 py-3.5 rounded-xl font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/20"
         >
-          Создать кабинет бесплатно
+          Создать динамический QR
           <i class="fa-solid fa-arrow-right text-sm"></i>
         </a>
       </div>
@@ -307,26 +318,42 @@ const faqSchema = {
   <section id="features" class="py-20 bg-slate-50">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="text-center mb-16">
-        <h2 class="text-3xl font-bold mb-4">Все инструменты для работы с клиентами в одном сервисе</h2>
+        <h2 class="text-3xl font-bold mb-4">Что можно сделать с динамическими QR-кодами QrStars</h2>
         <p class="text-slate-600 max-w-2xl mx-auto">
-          QrStars объединяет умные отзывы, электронное меню, вечные ссылки, QR-файлы, визитки сотрудников и подробную аналитику. Всё работает без скачивания приложений — просто наведите камеру.
+          Один инструмент для решения всех задач офлайн-бизнеса: от наружной рекламы и видео до меню, визиток сотрудников и сбора отзывов на картах.
         </p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <!-- Умные отзывы -->
+        <!-- Динамические ссылки -->
         <a
-          href="/smart-reviews.html"
+          href="/dynamic-qr.html"
+          class="bg-white p-8 rounded-2xl border border-primary/20 shadow-sm hover:shadow-md transition feature-card group block relative"
+        >
+          <div class="absolute top-6 right-6 bg-primary/10 text-primary text-xs font-bold px-2.5 py-1 rounded-full">Хит</div>
+          <div class="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-link text-2xl text-primary group-hover:scale-110 transition"></i>
+          </div>
+          <h3 class="font-bold text-xl mb-3">Динамические ссылки</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Меняйте целевую страницу в один клик. Напечатанный QR остаётся прежним, а ссылку на сайт, акцию или лендинг можно мгновенно обновить в кабинете.
+          </p>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о динамических QR →</span>
+        </a>
+
+        <!-- QR-код для видео -->
+        <a
+          href="/qr-kod-dlya-video.html"
           class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block"
         >
-          <div class="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-star text-2xl text-amber-500 group-hover:scale-110 transition"></i>
+          <div class="w-14 h-14 bg-rose-100 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-play text-2xl text-rose-500 group-hover:scale-110 transition"></i>
           </div>
-          <h3 class="font-bold text-xl mb-3">Умные отзывы</h3>
+          <h3 class="font-bold text-xl mb-3">QR-код для видео</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Растите в рейтинге Яндекс Карт и 2ГИС. Автоматически перенаправляйте довольных клиентов на карты, а негатив принимайте лично на Email или в Telegram, чтобы моментально исправить ситуацию.
+            Ведите клиентов на YouTube, Rutube, VK Видео или ролики на сайте. Отлично подходит для инструкций к товарам, видеоотзывов и афиш.
           </p>
-          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее об отзывах →</span>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о видео-QR →</span>
         </a>
 
         <!-- QR-меню -->
@@ -339,24 +366,9 @@ const faqSchema = {
           </div>
           <h3 class="font-bold text-xl mb-3">QR-меню</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Экономьте на полиграфии. Обновляйте цены и стоп-листы онлайн. Базовое меню — бесплатно навсегда, меню с фото блюд и корзиной — на тарифе PRO.
+            Экономьте на полиграфии ресторанов и кофеен. Обновляйте цены, фото блюд и стоп-листы онлайн без перепечатки кодов на столах.
           </p>
           <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о меню →</span>
-        </a>
-
-        <!-- QR-файлы -->
-        <a
-          href="/file-sharing.html"
-          class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block"
-        >
-          <div class="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-file-arrow-down text-2xl text-orange-500 group-hover:scale-110 transition"></i>
-          </div>
-          <h3 class="font-bold text-xl mb-3">QR-файлы</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Делитесь прайсами и каталогами. Загрузите PDF-меню или прайс-лист. Базовое размещение файла — бесплатно, расширенная аналитика — на PRO.
-          </p>
-          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее про QR-файлы →</span>
         </a>
 
         <!-- Визитки сотрудников -->
@@ -367,38 +379,72 @@ const faqSchema = {
           <div class="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-6">
             <i class="fa-solid fa-id-badge text-2xl text-blue-500 group-hover:scale-110 transition"></i>
           </div>
-          <h3 class="font-bold text-xl mb-3">Визитки сотрудников</h3>
+          <h3 class="font-bold text-xl mb-3">Визитки и чаевые</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Получайте больше чаевых и контактов. Базовая визитка с сохранением номера — бесплатно, интеграция чаевых и кастомный дизайн — на PRO.
+            Быстрое сохранение контактов мастера в телефонную книгу в один клик, интеграция чаевых персоналу и ссылки на соцсети сотрудников.
           </p>
           <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о визитках →</span>
         </a>
 
-        <!-- Вечные QR-коды -->
+        <!-- QR-файлы -->
         <a
-          href="/dynamic-qr.html"
+          href="/file-sharing.html"
           class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block"
         >
-          <div class="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-link text-2xl text-green-500 group-hover:scale-110 transition"></i>
+          <div class="w-14 h-14 bg-orange-100 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-file-arrow-down text-2xl text-orange-500 group-hover:scale-110 transition"></i>
           </div>
-          <h3 class="font-bold text-xl mb-3">Вечные QR-коды</h3>
+          <h3 class="font-bold text-xl mb-3">QR-файлы и PDF</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Меняйте направление сканирования в один клик. Напечатанный код остаётся прежним, а конечный адрес ссылки (сайт, акция, соцсеть) можно мгновенно обновить в личном кабинете.
+            Делитесь прайс-листами, инструкциями и каталогами. Загрузите PDF-файл в кабинет, и он откроется прямо на смартфоне гостя.
           </p>
-          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о замене ссылок →</span>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее про QR-файлы →</span>
         </a>
 
-        <!-- Подробная статистика -->
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group">
-          <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-chart-pie text-2xl text-purple-500 group-hover:scale-110 transition"></i>
+        <!-- Умные отзывы -->
+        <a
+          href="/smart-reviews.html"
+          class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block"
+        >
+          <div class="w-14 h-14 bg-amber-100 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-star text-2xl text-amber-500 group-hover:scale-110 transition"></i>
           </div>
-          <h3 class="font-bold text-xl mb-3">Подробная статистика</h3>
+          <h3 class="font-bold text-xl mb-3">Умные отзывы на картах</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Контролируйте каждое сканирование. Узнавайте в реальном времени, какие столики, мастера, филиалы, баннеры или рекламные стенды приносят больше переходов, отзывов и прибыли.
+            Растите в рейтинге Яндекс Карт и 2ГИС. Перенаправляйте довольных клиентов на карты, а негатив принимайте лично в Telegram, чтобы исправить ситуацию.
           </p>
-        </div>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее об отзывах →</span>
+        </a>
+
+        <!-- QR для Wi-Fi -->
+        <a
+          href="/qr-kod-dlya-wifi.html"
+          class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block"
+        >
+          <div class="w-14 h-14 bg-sky-100 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-wifi text-2xl text-sky-500 group-hover:scale-110 transition"></i>
+          </div>
+          <h3 class="font-bold text-xl mb-3">Подключение к Wi-Fi</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Гость наводит камеру и мгновенно подключается к вашей гостевой сети без необходимости вручную вводить длинный и сложный пароль.
+          </p>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о Wi-Fi QR →</span>
+        </a>
+
+        <!-- Оплата и чаевые -->
+        <a
+          href="/qr-kod-dlya-oplaty.html"
+          class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block"
+        >
+          <div class="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-credit-card text-2xl text-emerald-500 group-hover:scale-110 transition"></i>
+          </div>
+          <h3 class="font-bold text-xl mb-3">Оплата и переводы</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">
+            Оплата по СБП и перевод чаевых персоналу в один клик. Разместите код на счёте, стойке или бейдже для быстрых безналичных переводов.
+          </p>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее об оплате →</span>
+        </a>
 
         <!-- Бесплатный генератор QR -->
         <a
@@ -413,35 +459,10 @@ const faqSchema = {
           </div>
           <h3 class="font-bold text-xl mb-3">Генератор QR-кодов</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Создайте статический QR-код для URL, Wi-Fi, текста, email или телефона
-            за секунды. Скачайте готовое изображение — без регистрации.
+            Создайте статический QR-код для URL, Wi-Fi, текста, email или телефона за секунды. Скачайте готовое изображение — без регистрации.
           </p>
           <span class="inline-block mt-4 text-emerald-600 text-sm font-semibold group-hover:underline">Сгенерировать QR-код →</span>
         </a>
-
-        <!-- Векторные форматы -->
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group">
-          <div class="w-14 h-14 bg-teal-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-vector-square text-2xl text-teal-500 group-hover:scale-110 transition"></i>
-          </div>
-          <h3 class="font-bold text-xl mb-3">Векторные форматы</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Печатаете сами? Скачайте QR-код в высоком разрешении (PNG) или в векторном формате (SVG) для отправки в любую типографию.
-          </p>
-        </div>
-
-        <!-- Данные в России -->
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group">
-          <div class="w-14 h-14 bg-red-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-shield-halved text-2xl text-red-500 group-hover:scale-110 transition"></i>
-          </div>
-          <h3 class="font-bold text-xl mb-3">Данные хранятся в России</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Серверы и база данных расположены в России. Персональные данные
-            ваших клиентов обрабатываются в соответствии с&nbsp;152-ФЗ — никакой
-            передачи за рубеж. Сервис работает без иностранных зависимостей.
-          </p>
-        </div>
       </div>
     </div>
   </section>
@@ -654,20 +675,20 @@ const faqSchema = {
             <div class="inline-block bg-indigo-500/30 text-indigo-200 font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-indigo-400/30">PRO</div>
             <h3 class="text-xl font-bold text-white mb-1">1 заведение</h3>
             <div class="text-4xl font-bold text-white mb-1">
-              <span class="price-monthly">270 ₽</span>
-              <span class="price-annual hidden">2 700 ₽</span>
-              <span class="text-lg text-slate-400 font-normal price-monthly"> / мес</span>
-              <span class="text-lg text-slate-400 font-normal price-annual hidden"> / год</span>
+              990 ₽
+              <span class="text-lg text-slate-400 font-normal"> / год</span>
             </div>
-            <p class="text-indigo-200 text-xs leading-relaxed mt-2">Для заведений, которые активно работают над репутацией: убирает логотип QrStars, мгновенно шлёт жалобы в Telegram и распределяет отзывы по разным картам.</p>
+            <div class="text-xs text-indigo-300 font-medium">≈ 83 ₽ в месяц · оплата раз в год</div>
+            <p class="text-indigo-200 text-xs leading-relaxed mt-2">Прямой переход по QR-ссылке без промежуточного экрана QrStars, микросайт, умная ротация отзывов на картах и мгновенные уведомления в Telegram.</p>
           </div>
           <ul class="space-y-3 mb-6 flex-1 text-sm">
+            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> <strong>Прямой переход по QR-ссылке — без экрана QrStars</strong></li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> <strong>Всё из FREE для 1 заведения</strong></li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Микросайт — все разделы на одной странице</li>
-            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Умная ротация площадок (Яндекс / 2GIS / Авито / Flamp)</li>
+            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Смена ссылки в любой момент без ограничений</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Мгновенные уведомления о жалобах в Telegram</li>
+            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Умная ротация площадок (Яндекс / 2GIS / Авито / Flamp)</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Ваш логотип вместо вотермарки (White Label)</li>
-            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Прямой переход по QR-ссылке — без экрана QrStars</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Выдача промокодов за хороший отзыв</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Интеграция чаевых для персонала</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Расширенная статистика по дням и устройствам</li>
@@ -771,23 +792,24 @@ const faqSchema = {
   </section>
 
   <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(softwareSchema)} />
 
   <!-- ───────────── Финальный CTA ───────────── -->
   <section class="py-20 bg-gradient-to-br from-primary to-purple-600 text-white relative overflow-hidden">
     <div class="absolute -top-16 -right-16 w-80 h-80 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
     <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
       <h2 class="text-3xl md:text-4xl font-bold mb-4">
-        Запустите умные QR-коды уже сегодня
+        Создайте динамический QR-код прямо сейчас
       </h2>
       <p class="text-indigo-100 text-lg mb-8 max-w-xl mx-auto">
-        Регистрация занимает минуту, бесплатный тариф — навсегда. Карта не нужна.
+        Регистрация занимает минуту, базовый тариф — навсегда. Меняйте ссылки в любой момент без перепечатки.
       </p>
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
-        <a href={APP_URL} data-goal="bottom_cta" class="bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-100 transition shadow-lg">
-          Начать бесплатно
+        <a href="/free-qr-generator.html" data-goal="bottom_generator" class="bg-white text-primary px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-100 transition shadow-lg">
+          Создать бесплатно
         </a>
-        <a href="#demo" class="bg-white/10 border border-white/30 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition backdrop-blur-sm">
-          Посмотреть демо
+        <a href={APP_URL} data-goal="bottom_cta" class="bg-white/10 border border-white/30 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-white/20 transition backdrop-blur-sm">
+          Вход в кабинет
         </a>
       </div>
     </div>
