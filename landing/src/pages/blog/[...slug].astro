@@ -30,7 +30,8 @@ const ctaHref = isReviewArticle
 const ctaExternal = isAppUrl(ctaHref);
 const ctaGoal = ctaExternal ? 'hero_start' : undefined;
 
-const canonicalUrl = `https://qrstars.ru/blog/${entry.slug}.html`;
+const canonicalUrl = d.canonical ?? `https://qrstars.ru/blog/${entry.slug}.html`;
+const isNoindex = d.noindex ?? false;
 
 const articleSchema = {
   '@context': 'https://schema.org',
@@ -89,6 +90,7 @@ const faqPageSchema = d.faq && d.faq.length > 0 ? {
   description={d.description}
   fullTitle={d.fullTitle ?? false}
   canonical={canonicalUrl}
+  noindex={isNoindex}
   ogImage={d.image}
 >
   <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />

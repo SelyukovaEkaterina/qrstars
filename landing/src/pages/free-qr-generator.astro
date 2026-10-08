@@ -25,7 +25,11 @@ const faqItems = [
   },
   {
     q: 'Почему мой цветной или градиентный QR-код не сканируется?',
-    a: 'Самая частая причина — недостаточный контраст. Камеры телефонов отлично считывают темные точки на светлом фоне. Если вы сделали точки светлыми (например, желтыми или салатовыми) или использовали темный фон с темными точками, сканер не сможет распознать код. Всегда делайте точки значительно темнее фоновой подложки.',
+    a: 'Самая частая причина — недостаточный контраст. Камеры телефонов отлично считывают темные точки на светлом фоне. Если вы сделали точки светлыми или использовали темный фон с темными точками, сканер не сможет распознать код. Всегда делайте точки значительно темнее фона.',
+  },
+  {
+    q: 'Есть ли ограничения по количеству сканирований?',
+    a: 'Нет. Созданные в онлайн-генераторе QrStars статические и динамические QR-коды не имеют ограничений на количество сканирований и переходов пользователей.',
   },
 ];
 
@@ -504,7 +508,7 @@ const faqPageSchema = {
                         <div class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-full mb-3">
                             <i class="fa-solid fa-crown"></i> Динамический &middot; PRO
                         </div>
-                        <p class="text-sm text-slate-400">990 ₽/год (≈83 ₽/мес)</p>
+                        <p class="text-sm text-slate-400">от 270 ₽/мес</p>
                     </div>
                     <ul class="space-y-2.5 text-sm text-slate-300 mb-6 flex-1">
                         <li class="flex items-start gap-2"><i class="fa-solid fa-check text-amber-300 mt-0.5 shrink-0"></i> Всё из тарифа FREE</li>
@@ -617,15 +621,95 @@ const faqPageSchema = {
     </section>
 
     <section class="py-16 bg-white border-t border-slate-200">
-        <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
-            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-6 text-center">Как пользоваться генератором</h2>
-            <div class="space-y-4 text-slate-600 leading-relaxed text-sm md:text-base">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+            <h2 class="text-2xl md:text-3xl font-extrabold text-slate-900 mb-6 text-center">Как создать QR-код онлайн бесплатно</h2>
+            <div class="space-y-6 text-slate-600 leading-relaxed text-sm md:text-base">
                 <p>
-                    Вставьте ссылку, Wi‑Fi-параметры, текст или контакт — конструктор выше сразу покажет превью. Статический код скачивается в PNG или JPG без регистрации: данные «зашиты» в картинку навсегда. Для рекламы и полиграфии удобнее <a href={APP_URL_REGISTER} data-goal="qr_dynamic_cta" data-goal-params='{"source":"seo_text"}' class="text-primary font-semibold hover:underline">динамический QR</a> — ссылку можно менять, видна статистика сканирований.
+                    Онлайн-генератор QrStars позволяет моментально создать сканируемый QR-код для любых задач — от ссылки на сайт и гостевого Wi-Fi до vCard-визитки и реквизитов оплаты. Создание статичных кодов не требует регистрации, привязки банковской карты или установки приложений.
+                </p>
+
+                <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Пошаговая инструкция по генерации кода:</h3>
+                <ol class="list-decimal pl-5 space-y-2 text-slate-600">
+                    <li><strong>Выберите тип данных:</strong> переключите вкладку в конструкторе выше (URL-адрес сайта, сеть Wi-Fi, произвольный текст, контакт vCard, телефон или email).</li>
+                    <li><strong>Заполните информацию:</strong> укажите целевую ссылку или параметры сети. Система проверит корректность формата данных в реальном времени.</li>
+                    <li><strong>Настройте дизайн и цвета:</strong> выберите классический черный цвет или фирменную палитру вашего бренда. Доступны градиенты, разные формы модулей (точки, плавные углы) и стили рамок.</li>
+                    <li><strong>Добавьте логотип:</strong> загрузите фирменный знак компании или готовую иконку (YouTube, Telegram, VK, Wi-Fi) в центр кода. Сервис автоматически применит повышенный уровень коррекции ошибок (до 30%), сохранив безупречную считываемость.</li>
+                    <li><strong>Проверьте и скачайте:</strong> встроенный алгоритм валидации сразу проверит контрастность и читаемость камерами смартфонов. Скачайте результат в высоком разрешении.</li>
+                </ol>
+
+                <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Статический или динамический QR-код: что выбрать?</h3>
+                <p>
+                    Перед печатью тиража полиграфии важно определить подходящий тип кода:
+                </p>
+                <div class="overflow-x-auto my-4">
+                    <table class="w-full text-left text-sm border-collapse border border-slate-200 rounded-xl overflow-hidden">
+                        <thead>
+                            <tr class="bg-slate-100 text-slate-800 font-semibold border-b border-slate-200">
+                                <th class="p-3">Параметр</th>
+                                <th class="p-3">Статический QR-код</th>
+                                <th class="p-3">Динамический QR-код QrStars</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            <tr>
+                                <td class="p-3 font-medium text-slate-800">Изменение ссылки после печати</td>
+                                <td class="p-3 text-red-600">Невозможно (данные вшиты)</td>
+                                <td class="p-3 text-green-700 font-medium">Да, в любой момент в личном кабинете</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-medium text-slate-800">Аналитика сканирований</td>
+                                <td class="p-3 text-slate-400">Отсутствует</td>
+                                <td class="p-3 text-green-700 font-medium">Количество сканов, города, ОС, время</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-medium text-slate-800">Сложность рисунка (плотность точек)</td>
+                                <td class="p-3 text-slate-600">Растет с длиной ссылки</td>
+                                <td class="p-3 text-green-700 font-medium">Всегда компактный и легко сканируемый</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-medium text-slate-800">Срок действия</td>
+                                <td class="p-3 text-green-700 font-medium">Бессрочно</td>
+                                <td class="p-3 text-green-700 font-medium">Бессрочно на тарифе FREE</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p>
+                    Для постоянных неизменных ссылок отлично подходит статический код. Если вы печатаете тираж буклетов, визиток, меню или наружной рекламы, рекомендуем использовать <a href="/dynamic-qr.html" class="text-primary font-semibold hover:underline">динамический QR-код</a>: опечатка в адресе сайта или смена акции не приведут к выбрасыванию тиража.
+                </p>
+
+                <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">В каком формате скачивать QR-код: PNG или SVG?</h3>
+                <p>
+                    Для размещения на сайтах, в социальных сетях, презентациях и для печати на стандартных офисных принтерах (А4) выбирайте растровый формат <strong>PNG</strong> с разрешением от 1000×1000 пикселей.
                 </p>
                 <p>
-                    В панели дизайна настройте цвет точек, градиент, форму модулей и логотип в центре — сервис подберёт уровень коррекции ошибок, чтобы код оставался читаемым. Главное правило: тёмные точки на светлом фоне; инверсия и бледные оттенки хуже считываются камерами.
+                    Если макет передается дизайнеру в типографию для широкоформатной печати, вывесок, наклеек, гравировки или плоттерной резки, используйте векторный формат <strong>SVG</strong>. Вектор масштабируется до любых размеров (хоть на фасад здания) без потери резкости и размытия краев.
                 </p>
+
+                <h3 class="text-xl font-bold text-slate-900 mt-8 mb-3">Специализированные генераторы QrStars:</h3>
+                <p>
+                    В зависимости от сценария используйте готовые пошаговые руководства и отраслевые конструкторы:
+                </p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 my-4">
+                    <a href="/qr-kod-dlya-video.html" class="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-play text-red-500"></i> QR-код для видео
+                    </a>
+                    <a href="/qr-kod-iz-ssylki.html" class="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-link text-blue-500"></i> QR-код из ссылки
+                    </a>
+                    <a href="/qr-kod-dlya-wifi.html" class="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-wifi text-emerald-500"></i> QR-код для Wi-Fi
+                    </a>
+                    <a href="/qr-kod-s-logotipom.html" class="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-image text-purple-500"></i> QR-код с логотипом
+                    </a>
+                    <a href="/qr-kod-dlya-oplaty.html" class="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-ruble-sign text-amber-500"></i> QR-код для оплаты
+                    </a>
+                    <a href="/qr-kod-dlya-vizitki.html" class="p-3 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 transition text-sm font-semibold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-address-card text-indigo-500"></i> QR-код для визитки
+                    </a>
+                </div>
             </div>
 
             <div class="mt-10 bg-slate-50 rounded-2xl p-6 md:p-8">

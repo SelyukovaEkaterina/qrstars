@@ -46,11 +46,19 @@ const faqList = [
   },
   {
     q: 'Динамический QR-код предоставляется бесплатно?',
-    a: 'Да, в QrStars базовое создание динамических кодов доступно бесплатно на тарифе FREE: редирект на любой URL, умные отзывы, визитка и Wi‑Fi. Вы можете изменять ссылки, использовать базовую статистику сканирований и скачивать код высокого разрешения без оплаты. На тарифе PRO (990 ₽/год) доступен прямой переход по ссылке без экрана QrStars, микросайты и расширенная аналитика.',
+    a: 'Да, в QrStars базовое создание динамических кодов доступно бесплатно на тарифе FREE: отзывы, редирект, отдельные QR-меню, визитка и Wi‑Fi. Микросайт (все разделы на одной странице) входит в тарифы PRO и «Сеть». Вы можете изменять ссылки, использовать базовую статистику сканирований и скачивать код высокого разрешения без оплаты.',
   },
   {
     q: 'Чем динамический QR-код отличается от статического?',
     a: 'Статический код содержит вшитую ссылку навсегда, её невозможно отредактировать. Динамический код ведет на промежуточную короткую ссылку QrStars, благодаря чему вы можете менять целевой URL и собирать подробную статистику сканирований.',
+  },
+  {
+    q: 'Как быстро срабатывает редирект при сканировании?',
+    a: 'Мгновенно. Время отклика (TTFB) серверов перенаправления QrStars составляет менее 50 миллисекунд. Пользователь сразу попадает на конечный сайт без задержек и промежуточных баннеров.',
+  },
+  {
+    q: 'Что делать, если в ссылке много UTM-меток?',
+    a: 'Именно для этого и нужен динамический QR-код. Он сжимает длинный адрес с десятком параметров в компактную короткую ссылку, благодаря чему узор кода остаётся крупным и легко считывается камерой с любого расстояния.',
   },
 ];
 
@@ -193,6 +201,55 @@ const faqSchema = {
             <p class="text-slate-600 text-sm leading-relaxed">{item.text}</p>
           </div>
         ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-10">
+        <h2 class="text-3xl font-bold mb-4">Статический vs Динамический QR-код</h2>
+        <p class="text-slate-600">
+          Сравнение возможностей для бизнеса, рекламы и долгосрочного использования.
+        </p>
+      </div>
+      <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <table class="w-full text-left text-sm border-collapse">
+          <thead>
+            <tr class="bg-slate-100/80 text-slate-800 font-bold border-b border-slate-200">
+              <th class="p-4 sm:p-5">Характеристика</th>
+              <th class="p-4 sm:p-5">Статический код</th>
+              <th class="p-4 sm:p-5 text-primary">Динамический QR QrStars</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100 text-slate-600">
+            <tr>
+              <td class="p-4 sm:p-5 font-semibold text-slate-800">Редактирование адреса</td>
+              <td class="p-4 sm:p-5 text-red-500 font-medium"><i class="fa-solid fa-xmark mr-1.5"></i>Невозможно после печати</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>В любой момент в кабинете</td>
+            </tr>
+            <tr>
+              <td class="p-4 sm:p-5 font-semibold text-slate-800">Аналитика переходов</td>
+              <td class="p-4 sm:p-5 text-slate-400">Нет данных</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Сканы, устройства, города, даты</td>
+            </tr>
+            <tr>
+              <td class="p-4 sm:p-5 font-semibold text-slate-800">Плотность узора</td>
+              <td class="p-4 sm:p-5 text-slate-600">Сложная сетка при длинных ссылках</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Всегда простой и читаемый с расстояния</td>
+            </tr>
+            <tr>
+              <td class="p-4 sm:p-5 font-semibold text-slate-800">Защита от опечаток</td>
+              <td class="p-4 sm:p-5 text-red-500 font-medium"><i class="fa-solid fa-xmark mr-1.5"></i>Тираж полиграфии выбрасывается</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Исправление ссылки за 10 секунд</td>
+            </tr>
+            <tr>
+              <td class="p-4 sm:p-5 font-semibold text-slate-800">Тариф</td>
+              <td class="p-4 sm:p-5 text-slate-700 font-medium">Бесплатно без регистрации</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Бесплатно на тарифе FREE</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </section>

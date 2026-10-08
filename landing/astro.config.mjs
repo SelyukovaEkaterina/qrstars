@@ -2,11 +2,11 @@ import { defineConfig } from 'astro/config';
 import tailwind from '@astrojs/tailwind';
 import sitemap from '@astrojs/sitemap';
 
-/** Дубли кластера «генератор» — canonical на /free-qr-generator.html, не в sitemap */
-const GENERATOR_NOINDEX_PATHS = [
+/** Дубли и каноникализированные страницы — canonical на основной URL, не в sitemap */
+const NOINDEX_PATHS = [
   '/generator-qr-kodov',
   '/sozdat-qr-kod',
-  '/qr-kod-iz-ssylki',
+  '/dinamicheskiy-qr-kod',
 ];
 
 export default defineConfig({
@@ -17,7 +17,7 @@ export default defineConfig({
       filter: (page) =>
         !page.includes('/politika-konfidencialnosti') &&
         !page.includes('/soglasie-pd') &&
-        !GENERATOR_NOINDEX_PATHS.some((path) => page.includes(path)),
+        !NOINDEX_PATHS.some((path) => page.includes(path)),
       serialize(item) {
         // Добавляем .html ко всем URL кроме главной (site имеет trailingSlash: 'never')
         const raw = item.url.replace(/\/$/, '');

@@ -1,12 +1,14 @@
 ---
 title: "Динамический QR-код — что это и как создать бесплатно | QrStars"
 description: "Что такое динамический QR-код и чем он отличается от статического? Узнайте, как создать динамический QR-код для бизнеса бесплатно и отслеживать статистику."
+canonical: "https://qrstars.ru/dynamic-qr.html"
+noindex: true
 pubDate: 2026-05-19
 tags: ["динамический", "qr-код", "бизнес", "аналитика", "маркетинг"]
 h1: "Динамический QR-код: полное руководство для бизнеса"
 fullTitle: true
 ctaText: "Создать динамический QR-код"
-ctaHref: "/dinamicheskiy-qr-kod.html"
+ctaHref: "/dynamic-qr.html"
 image: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200"
 ---
 
