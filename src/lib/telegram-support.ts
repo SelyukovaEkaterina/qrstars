@@ -4,6 +4,7 @@ import { sendMaxMessage } from "@/lib/max";
 import { sendSupportStaffReplyEmail } from "@/lib/mailer";
 import {
   isSupportImageMime,
+  supportFileUrlForTelegram,
   uploadSupportAttachment,
   type SupportAttachmentMeta,
 } from "@/lib/support-attachments";
@@ -212,17 +213,19 @@ export async function postUserMessageToTelegram(
       caption,
     };
 
+    const fileUrl = supportFileUrlForTelegram(attachment.url);
+
     if (isSupportImageMime(attachment.mime)) {
       const ok = await tgApi("sendPhoto", {
         ...common,
-        photo: attachment.url,
+        photo: fileUrl,
       });
       return ok !== null;
     }
 
     const ok = await tgApi("sendDocument", {
       ...common,
-      document: attachment.url,
+      document: fileUrl,
     });
     return ok !== null;
   }

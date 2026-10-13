@@ -4,6 +4,7 @@ import {
   getFileExtension,
   normalizeContentType,
 } from "@/lib/file-assets";
+import { getAppBaseUrl } from "@/lib/utils";
 
 /** Лимит для вложений в поддержке (Telegram Bot API до 50 МБ для документов). */
 export const SUPPORT_ATTACHMENT_MAX_SIZE = 20 * 1024 * 1024;
@@ -57,6 +58,18 @@ export async function uploadSupportAttachment(
     contentDisposition: buildContentDisposition(safeName, contentType),
   });
   return { url, name: safeName, mime: contentType };
+}
+
+/**
+ * Telegram `sendPhoto` / `sendDocument` скачивают файл по HTTP URL.
+ * В БД и кабинете ссылка относительная (`/storage/…`) — без хоста API отвечает
+ * `invalid file HTTP URL specified: URL host is empty`.
+ */
+export function supportFileUrlForTelegram(url: string, baseUrl = getAppBaseUrl()): string {
+  const trimmed = url.trim();
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(trimmed)) return trimmed;
+  const base = baseUrl.replace(/\/$/, "");
+  return trimmed.startsWith("/") ? `${base}${trimmed}` : `${base}/${trimmed}`;
 }
 
 export function supportMessagePreview(body: string, attachmentName?: string | null): string {
