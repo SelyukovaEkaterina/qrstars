@@ -5,6 +5,7 @@ import {
   scheduleBounceCheck,
   type EmailKind,
 } from "@/lib/email-delivery";
+import { getAbsolutePublicUrl } from "@/lib/s3";
 
 const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const smtpSecure =
@@ -213,7 +214,7 @@ export function sendSupportStaffReplyEmail(
   const attachmentBlock =
     opts?.attachmentUrl && opts.attachmentName
       ? `<p style="margin:16px 0 0;">
-           <a href="${escapeHtml(opts.attachmentUrl)}"
+           <a href="${escapeHtml(getAbsolutePublicUrl(opts.attachmentUrl))}"
               style="color:#4f46e5;text-decoration:underline;">
              📎 ${escapeHtml(opts.attachmentName)}
            </a>

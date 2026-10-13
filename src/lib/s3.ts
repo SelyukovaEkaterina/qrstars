@@ -23,6 +23,24 @@ export function getPublicUrl(key: string): string {
   return `/storage/${key}`;
 }
 
+/**
+ * Абсолютный URL файла для внешних получателей (Telegram, email).
+ *
+ * `getPublicUrl` отдаёт относительный путь: браузер достраивает хост сам, а
+ * Telegram и почтовые клиенты так не умеют. Bot API отвечает
+ * `Bad Request: invalid file HTTP URL specified: URL host is empty` и вложение
+ * в чат не уходит. Поэтому на границе с внешним сервисом путь всегда полный.
+ */
+export function getAbsolutePublicUrl(url: string): string {
+  if (/^https?:\/\//i.test(url)) return url;
+  const base = (
+    process.env.NEXT_PUBLIC_BASE_URL ||
+    process.env.NEXTAUTH_URL ||
+    "https://app.qrstars.ru"
+  ).replace(/\/+$/, "");
+  return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
+}
+
 export async function ensureBucket(): Promise<void> {
   try {
     await s3.send(new CreateBucketCommand({ Bucket: BUCKET }));

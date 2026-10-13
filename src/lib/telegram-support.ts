@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import type { SupportTicket, User } from "@/generated/prisma/client";
 import { sendMaxMessage } from "@/lib/max";
 import { sendSupportStaffReplyEmail } from "@/lib/mailer";
+import { getAbsolutePublicUrl } from "@/lib/s3";
 import {
   isSupportImageMime,
   uploadSupportAttachment,
@@ -215,14 +216,14 @@ export async function postUserMessageToTelegram(
     if (isSupportImageMime(attachment.mime)) {
       const ok = await tgApi("sendPhoto", {
         ...common,
-        photo: attachment.url,
+        photo: getAbsolutePublicUrl(attachment.url),
       });
       return ok !== null;
     }
 
     const ok = await tgApi("sendDocument", {
       ...common,
-      document: attachment.url,
+      document: getAbsolutePublicUrl(attachment.url),
     });
     return ok !== null;
   }
