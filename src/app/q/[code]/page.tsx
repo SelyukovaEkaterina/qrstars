@@ -26,6 +26,7 @@ import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { menuHasLandingContent } from "@/lib/menu-content";
 import { menuNeedsDeferredLoad } from "@/lib/menu-deferred";
 import { toHeaderSafeUrl } from "@/lib/redirect-url";
+import { absolutePublicUrl } from "@/lib/utils";
 import { shouldShowRedirectInterstitial } from "@/lib/redirect-interstitial";
 import { hasPaidFeatures } from "@/lib/plans";
 import RedirectInterstitial from "@/components/scan/RedirectInterstitial";
@@ -120,7 +121,7 @@ export async function generateMetadata({ params }: ScanPageProps): Promise<Metad
   const est = qrCode.establishment;
   const title = scanMetaTitle(qrCode.mode, est.name);
   const description = scanMetaDescription(qrCode.mode, est.name, est.landingSubtitle);
-  const image = est.coverUrl || est.logoUrl || undefined;
+  const image = absolutePublicUrl(est.coverUrl || est.logoUrl);
 
   return {
     title,

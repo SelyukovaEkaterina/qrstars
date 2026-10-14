@@ -79,6 +79,15 @@ export function scanUrlForCode(code: string): string {
   return `${getAppBaseUrl()}/q/${code}`;
 }
 
+/** Absolute URL for Open Graph and other off-site consumers. Relative paths stay same-origin in the page itself. */
+export function absolutePublicUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (/^https?:\/\//i.test(url)) return url;
+  if (url.startsWith("//")) return `https:${url}`;
+  if (url.startsWith("/")) return `${getAppBaseUrl()}${url}`;
+  return url;
+}
+
 export function generateQRCode(): string {
   const chars = "abcdefghijkmnopqrstuvwxyz23456789";
   let code = "";
