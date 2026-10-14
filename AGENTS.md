@@ -78,6 +78,7 @@ QR-кодов внутри заведения — **без лимита** на �
 - **Файлы (логотипы, загрузки)**: https://s3.qrstars.ru (Beget S3, бакет `1919a3d97e3e-qrstarsru`)
 - **Деплой**: `./deploy/deploy.sh` с локальной машины
 - **SSL**: certbot systemd timer (`certbot.timer`, 2× в сутки) + hook `/etc/letsencrypt/renewal-hooks/deploy/reload-nginx.sh`
+- **TLS**: только **TLS 1.2** (1.3 выключен 2026-10-14: у части клиентов в РФ его режет ТСПУ). Nginx берёт `ssl_protocols` из default server на `:443` (`app.qrstars.ru`), поэтому настройка действует на все сайты VPS (в т.ч. uxcheck.ru, praktikaai.ru). На каждом домене два сертификата: ECDSA + RSA (`app.qrstars.ru-rsa`, `qrstars.ru-rsa`, `qrstars.ru-wildcard-rsa`) для старых клиентов без ECDSA. `qrstars.ru.conf` не подключает `options-ssl-nginx.conf`, TLS-параметры прописаны явно. Wildcard `*.qrstars.ru` — DNS-01 через Beget без API: `deploy/acme-dns-wait.sh` пишет значение TXT в `/root/acme-challenge.txt` и ждёт, пока запись `_acme-challenge.qrstars.ru` добавят вручную
 
 ## Правила разработки
 
