@@ -9,7 +9,7 @@ const trustSignals = [
   { icon: 'fa-arrows-rotate', text: 'Смена ссылок онлайн без перепечатки' },
   { icon: 'fa-shield-halved', text: 'Серверы в РФ (152-ФЗ) · Безнал для юрлиц' },
   { icon: 'fa-map-location-dot', text: 'Маршрутизация на Яндекс Карты и 2ГИС' },
-  { icon: 'fa-network-wired', text: 'Сводный дашборд и роли для филиалов' },
+  { icon: 'fa-network-wired', text: 'До 5 заведений на одном тарифе' },
 ];
 
 const steps = [
@@ -37,7 +37,7 @@ const faq = [
   },
   {
     q: 'Подходит ли QrStars для филиальной сети или франшизы?',
-    a: 'Да. Тариф «Сеть» (от 600 ₽/мес за 2 заведения, +150 ₽/мес за каждую точку сверх двух) специально разработан для компаний с филиалами. В едином кабинете объединяются все точки бренда: топ-менеджмент видит сводный дашборд с рейтингами филиалов, управляющие на местах работают только со своими отзывами, а аналитика легко выгружается в CSV.',
+    a: 'Да. Тариф «Сеть» (2 900 ₽/год за 5 заведений) специально разработан для компаний с филиалами. Если точек больше пяти или нужны особые условия — напишите в техподдержку в личном кабинете, подберём индивидуальный выгодный тариф. В едином кабинете объединяются все точки бренда: топ-менеджмент видит сводный дашборд с рейтингами филиалов, управляющие на местах работают только со своими отзывами, а аналитика легко выгружается в CSV.',
   },
   {
     q: 'Работаете ли вы с юрлицами по безналичному расчёту и через ЭДО?',
@@ -624,7 +624,7 @@ const softwareSchema = {
     <div class="absolute bottom-0 left-0 -ml-20 -mb-20 w-96 h-96 bg-purple-600 rounded-full mix-blend-screen filter blur-[100px] opacity-25 pointer-events-none"></div>
 
     <div class="max-w-7xl mx-auto px-4 relative z-10">
-      <!-- Заголовок + тоггл -->
+      <!-- Заголовок -->
       <div class="text-center mb-12 max-w-3xl mx-auto">
         <div class="inline-block bg-white/10 border border-white/20 text-white font-semibold px-4 py-1.5 rounded-full text-sm mb-5">Тарифные планы</div>
         <h2 class="text-3xl lg:text-4xl font-bold mb-4">Прозрачные тарифы без скрытых переплат</h2>
@@ -633,15 +633,6 @@ const softwareSchema = {
           кодов для столов, сотрудников, залов и входных групп.
         </p>
 
-        <!-- Тоггл месяц/год -->
-        <div class="inline-flex items-center gap-3 mt-8 bg-slate-800 border border-slate-700 rounded-full p-1">
-          <button id="btn-monthly" onclick="setPeriod('monthly')" class="px-5 py-2 rounded-full text-sm font-semibold transition bg-white text-slate-900">
-            Ежемесячно
-          </button>
-          <button id="btn-annual" onclick="setPeriod('annual')" class="px-5 py-2 rounded-full text-sm font-semibold transition text-slate-400 hover:text-white">
-            Год <span class="text-green-400 font-bold ml-1">−2 мес</span>
-          </button>
-        </div>
       </div>
 
       <!-- Карточки тарифов -->
@@ -685,6 +676,7 @@ const softwareSchema = {
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> <strong>Прямой переход по QR-ссылке — без экрана QrStars</strong></li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> <strong>Всё из FREE для 1 заведения</strong></li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Микросайт заведения со всеми разделами в одном QR</li>
+            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> <strong>Своё имя сайта:</strong> ваше-имя.qrstars.ru</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Мгновенные уведомления о жалобах в Telegram и MAX</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Умная ротация карт: Яндекс / 2ГИС / Авито / Flamp</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> White Label: ваш логотип вместо чужой вотермарки</li>
@@ -700,25 +692,23 @@ const softwareSchema = {
         <!-- Сеть -->
         <div class="bg-slate-800/50 backdrop-blur border border-slate-700 p-7 rounded-3xl flex flex-col">
           <div class="mb-5">
-            <div class="inline-block bg-purple-500/20 text-purple-300 font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-purple-500/30">Сеть · Филиалы и франшизы</div>
-            <h3 class="text-xl font-bold text-white mb-1">Филиальные сети</h3>
+            <div class="inline-block bg-purple-500/20 text-purple-300 font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-purple-500/30">Сеть · до 5 заведений</div>
+            <h3 class="text-xl font-bold text-white mb-1">Несколько точек</h3>
             <div class="text-4xl font-bold text-white mb-1">
-              <span class="price-monthly">600 ₽</span>
-              <span class="price-annual hidden">6 000 ₽</span>
-              <span class="text-lg text-slate-400 font-normal price-monthly"> / мес</span>
-              <span class="text-lg text-slate-400 font-normal price-annual hidden"> / год</span>
+              2 900 ₽
+              <span class="text-lg text-slate-400 font-normal"> / год</span>
             </div>
-            <p class="text-slate-400 text-xs leading-relaxed mt-2">Для сетей заведений, клиник, автосервисов и франшиз: единое управление филиалами, разделение прав доступа для управляющих и сводная аналитика бренда.</p>
+            <div class="text-xs text-purple-300 font-medium">≈ 242 ₽ в месяц · оплата раз в год</div>
+            <p class="text-slate-400 text-xs leading-relaxed mt-2">Для небольших сетей, филиалов и франшиз: до 5 заведений в одном кабинете, всё из PRO для каждой точки и сводная аналитика.</p>
           </div>
           <ul class="space-y-3 mb-6 flex-1 text-sm">
-            <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> <strong>Всё из PRO для каждого заведения сети</strong></li>
-            <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> 2 заведения включено в базу (+150 ₽/мес за каждую точку)</li>
+            <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> <strong>До 5 заведений</strong> (любое число QR-кодов)</li>
+            <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> <strong>Всё из PRO для каждого заведения</strong></li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Сводный дашборд сети (рейтинги, динамика, сравнение)</li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Роли доступа: управляющий видит только свой филиал</li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> White Label на уровне бренда сети или франшизы</li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Выгрузка отчетов и аналитики в CSV / BI</li>
-            <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-calculator text-slate-500 mt-0.5 shrink-0"></i> Сеть из 5 точек — 1 050 ₽/мес; сеть из 10 точек — 1 800 ₽/мес</li>
-            <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-circle-nodes text-slate-500 mt-0.5 shrink-0"></i> Крупные сети (20+ точек) — персональный расчет</li>
+            <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-circle-nodes text-slate-500 mt-0.5 shrink-0"></i> * Больше 5 точек или нужны особые условия — напишите в техподдержку в личном кабинете, подберём индивидуальный выгодный тариф</li>
           </ul>
           <a href={registerUrl('pricing_network', Astro.url.searchParams)} data-goal="pricing_network" class="block w-full text-center bg-purple-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-purple-700 transition text-sm">
             Выбрать Сеть
@@ -735,7 +725,7 @@ const softwareSchema = {
           <div>
             <h3 class="text-lg font-bold text-white mb-1">Работаем с юридическими лицами и ИП по всей России</h3>
             <p class="text-slate-300 text-sm leading-relaxed max-w-2xl">
-              Оплата по счёту, закрывающие акты через ЭДО (Диадок, СБИС) или на бумаге. Договор, 54-ФЗ и серверы в РФ по 152-ФЗ. Для сетей от 20 филиалов предоставим персонального менеджера и расчёт под ключ.
+              Оплата по счёту, закрывающие акты через ЭДО (Диадок, СБИС) или на бумаге. Договор, 54-ФЗ и серверы в РФ по 152-ФЗ. Для сетей больше 5 филиалов подберём индивидуальный тариф — напишите в техподдержку в личном кабинете.
             </p>
           </div>
         </div>
@@ -835,27 +825,4 @@ const softwareSchema = {
     </div>
   </section>
 
-  <script is:inline>
-    function setPeriod(period) {
-      const monthlyEls = document.querySelectorAll('.price-monthly');
-      const annualEls = document.querySelectorAll('.price-annual');
-      const btnM = document.getElementById('btn-monthly');
-      const btnA = document.getElementById('btn-annual');
-      if (period === 'annual') {
-        monthlyEls.forEach((el) => el.classList.add('hidden'));
-        annualEls.forEach((el) => el.classList.remove('hidden'));
-        btnA.classList.add('bg-white', 'text-slate-900');
-        btnA.classList.remove('text-slate-400', 'hover:text-white');
-        btnM.classList.remove('bg-white', 'text-slate-900');
-        btnM.classList.add('text-slate-400', 'hover:text-white');
-      } else {
-        annualEls.forEach((el) => el.classList.add('hidden'));
-        monthlyEls.forEach((el) => el.classList.remove('hidden'));
-        btnM.classList.add('bg-white', 'text-slate-900');
-        btnM.classList.remove('text-slate-400', 'hover:text-white');
-        btnA.classList.remove('bg-white', 'text-slate-900');
-        btnA.classList.add('text-slate-400', 'hover:text-white');
-      }
-    }
-  </script>
 </Layout>
