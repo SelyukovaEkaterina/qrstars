@@ -12,7 +12,7 @@ import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 import { isBuiltInQrStyleTemplateId } from "@/lib/qr-code-templates";
 import { isBuiltInStickerTemplateId } from "@/lib/builtin-sticker-templates";
-import { invalidateScanCache } from "@/lib/cache";
+import { invalidateScanCache, redis } from "@/lib/cache";
 import { getAuthUserId, withCorsHeaders, corsOkResponse } from "@/lib/mobile-auth";
 import { findRedirectUrlProblem, toHeaderSafeUrl } from "@/lib/redirect-url";
 import { assertCanAssignLandingMode } from "@/lib/qr-mode-access";
@@ -354,4 +354,30 @@ export async function PUT(request: Request) {
     console.error("QR PUT error:", e);
     return NextResponse.json({ error: String(e) }, { status: 500 });
   }
+}
+
+export async function DELETE(request: Request) {
+  const userId = await getAuthUserId(request);
+  if (!userId) {
+    return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+  }
+
+  const id = new URL(request.url).searchParams.get("id");
+  if (!id) {
+    return withCorsHeaders(NextResponse.json({ error: "Укажите QR-код" }, { status: 400 }));
+  }
+
+  const qrcode = await prisma.qRCode.findFirst({
+    where: { id, ...qrcodeAccessWhere(userId) },
+    select: { id: true, code: true },
+  });
+  if (!qrcode) {
+    return withCorsHeaders(NextResponse.json({ error: "Not found" }, { status: 404 }));
+  }
+
+  await prisma.qRCode.delete({ where: { id: qrcode.id } });
+  invalidateScanCache(qrcode.code).catch(() => {});
+  redis?.del(`scan:count:${qrcode.id}`).catch(() => {});
+
+  return withCorsHeaders(NextResponse.json({ ok: true }));
 }

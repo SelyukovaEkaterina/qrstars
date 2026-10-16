@@ -105,6 +105,7 @@ import {
   Crown,
   Copy,
   Check,
+  Trash2,
 } from "lucide-react";
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
@@ -225,6 +226,7 @@ export default function QRCodeSettingsPage() {
   const [qrDownloading, setQrDownloading] = useState(false);
   const [pdfHint, setPdfHint] = useState("");
   const [qrHint, setQrHint] = useState("");
+  const [deletingQr, setDeletingQr] = useState(false);
   const [showTableTemplatePicker, setShowTableTemplatePicker] = useState(false);
   const [showQrStyleTemplatePicker, setShowQrStyleTemplatePicker] = useState(false);
   const [editingQrStyleTemplate, setEditingQrStyleTemplate] = useState<Template | null>(null);
@@ -530,6 +532,23 @@ export default function QRCodeSettingsPage() {
     },
     [],
   );
+
+  const handleDeleteQr = async () => {
+    if (!qrData || isCreateMode) return;
+    const name = label.trim() || qrData.code;
+    if (!window.confirm(`Удалить QR «${name}»? Напечатанный код перестанет открываться.`)) return;
+    setDeletingQr(true);
+    try {
+      const res = await fetch(`/api/qrcodes?id=${encodeURIComponent(qrData.id)}`, { method: "DELETE" });
+      if (!res.ok) {
+        window.alert("Не удалось удалить QR-код");
+        return;
+      }
+      router.push(projectQrcodesPath(lockedEstId || lockedProjectId || establishmentId || UNASSIGNED_PROJECT_ID));
+    } finally {
+      setDeletingQr(false);
+    }
+  };
 
   const handleDownloadQR = async (
     format: "png" | "svg",
@@ -1006,6 +1025,19 @@ export default function QRCodeSettingsPage() {
                         {qrData.establishment.name}
                       </span>
                     </div>
+                  )}
+                  {!isCreateMode && (
+                    <Button
+                      type="button"
+                      variant="danger"
+                      size="sm"
+                      className="w-full"
+                      onClick={() => void handleDeleteQr()}
+                      disabled={deletingQr}
+                    >
+                      <Trash2 className="mr-1.5 h-4 w-4" />
+                      {deletingQr ? "Удаляем..." : "Удалить QR"}
+                    </Button>
                   )}
                 </div>
               </Card>

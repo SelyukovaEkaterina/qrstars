@@ -460,7 +460,7 @@ export default function QRTemplateEditor({
     setBusy(true);
     try {
       const c = await renderAtSize(QR_EXPORT_SIZE);
-      if (c) downloadQRTemplateAsPNG(c, downloadBaseName);
+      if (c) await downloadQRTemplateAsPNG(c, downloadBaseName);
     } finally {
       setBusy(false);
     }
@@ -480,7 +480,7 @@ export default function QRTemplateEditor({
         photoImage,
         logoForRender,
       );
-      downloadQRTemplateAsPNG(c, `${downloadBaseName}-transparent`);
+      await downloadQRTemplateAsPNG(c, `${downloadBaseName}-transparent`);
     } finally {
       setBusy(false);
     }
@@ -490,7 +490,7 @@ export default function QRTemplateEditor({
     setBusy(true);
     try {
       const c = await renderAtSize(QR_EXPORT_SIZE);
-      if (c) downloadQRTemplateAsSVG(c, downloadBaseName);
+      if (c) await downloadQRTemplateAsSVG(c, downloadBaseName);
     } finally {
       setBusy(false);
     }

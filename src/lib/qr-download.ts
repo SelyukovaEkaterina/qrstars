@@ -7,6 +7,7 @@ import {
   resolveQrStyleConfig,
   type QrStyleTemplateSource,
 } from "@/lib/qr-code-templates";
+import { downloadBlob } from "@/lib/download-file";
 import { generateQRWithCenter, generateQRSvg } from "@/lib/qr-generator";
 
 /** ~20×20 cm at 300 DPI — suitable for print and design handoff. */
@@ -44,12 +45,12 @@ export async function downloadQrCode(
       size,
     );
     if (format === "png") {
-      downloadQRTemplateAsPNG(
+      await downloadQRTemplateAsPNG(
         canvas,
         transparent ? `${filenameBase}-transparent` : filenameBase,
       );
     } else {
-      downloadQRTemplateAsSVG(canvas, filenameBase);
+      await downloadQRTemplateAsSVG(canvas, filenameBase);
     }
     return;
   }
@@ -62,13 +63,14 @@ export async function downloadQrCode(
       "#1e1b4b",
       transparent ? "#00000000" : "#ffffff",
     );
-    const a = document.createElement("a");
-    a.href = dataUrl;
-    a.download = `${transparent ? `${filenameBase}-transparent` : filenameBase}.png`;
-    a.click();
+    const blob = await (await fetch(dataUrl)).blob();
+    await downloadBlob(
+      blob,
+      `${transparent ? `${filenameBase}-transparent` : filenameBase}.png`,
+    );
     return;
   }
 
   const svg = await generateQRSvg(payload, { isPro: options.isPro ?? false }, size);
-  downloadSvgString(svg, filenameBase);
+  await downloadSvgString(svg, filenameBase);
 }

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import QRCodeLib from "qrcode";
 import { Plus, Download, FileText, X, RotateCcw } from "lucide-react";
+import { downloadCanvas } from "@/lib/download-file";
 
 /* ─── Types ─────────────────────────────────────────────────────────── */
 interface Theme {
@@ -256,10 +257,7 @@ export default function QRStickerPage() {
     try {
       const c = document.createElement("canvas");
       await renderSticker(c, { sizeMm: selectedSize.mm, url, labels, ctaText, theme: selectedTheme, showWatermark });
-      const a = document.createElement("a");
-      a.download = `qr-sticker-${selectedSize.id}.png`;
-      a.href = c.toDataURL("image/png", 1.0);
-      a.click();
+      await downloadCanvas(c, `qr-sticker-${selectedSize.id}.png`);
     } finally { setBusy(false); }
   };
 

@@ -29,6 +29,7 @@ import {
   Link2,
   Copy,
   Check,
+  Trash2,
 } from "lucide-react";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
@@ -82,6 +83,7 @@ function QRCodesPageContent() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [isPro, setIsPro] = useState(false);
   const [downloadingQrId, setDownloadingQrId] = useState<string | null>(null);
+  const [deletingQrId, setDeletingQrId] = useState<string | null>(null);
 
   const [estForm, setEstForm] = useState({
     name: "",
@@ -160,6 +162,22 @@ function QRCodesPageContent() {
       });
     } finally {
       setDownloadingQrId(null);
+    }
+  };
+
+  const handleDeleteQr = async (qr: QRCodeItem) => {
+    const name = qr.label?.trim() || qr.code;
+    if (!window.confirm(`Удалить QR «${name}»? Напечатанный код перестанет открываться.`)) return;
+    setDeletingQrId(qr.id);
+    try {
+      const res = await fetch(`/api/qrcodes?id=${encodeURIComponent(qr.id)}`, { method: "DELETE" });
+      if (!res.ok) {
+        window.alert("Не удалось удалить QR-код");
+        return;
+      }
+      setQrcodes((prev) => prev.filter((item) => item.id !== qr.id));
+    } finally {
+      setDeletingQrId(null);
     }
   };
 
@@ -696,6 +714,15 @@ function QRCodesPageContent() {
                           className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
                         >
                           SVG
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleDeleteQr(qr)}
+                          disabled={deletingQrId === qr.id}
+                          className="whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
+                        >
+                          <Trash2 className="mr-1 inline h-3 w-3" />
+                          {deletingQrId === qr.id ? "Удаляем..." : "Удалить"}
                         </button>
                       </div>
                     </div>

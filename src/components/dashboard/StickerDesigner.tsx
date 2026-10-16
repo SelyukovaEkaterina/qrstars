@@ -12,6 +12,7 @@ import {
   type QrStyleTemplateSource,
 } from "@/lib/qr-code-templates";
 import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
+import { downloadCanvas } from "@/lib/download-file";
 import { scanUrlForCode } from "@/lib/utils";
 
 type UserQR = {
@@ -2083,10 +2084,8 @@ export default function StickerDesigner({
     try {
       const c = document.createElement("canvas");
       await renderSticker(c, renderCfg, fmt, false);
-      const a = document.createElement("a");
       const suffix = selectedQr ? `-${selectedQr.code}` : "";
-      a.download = `qr-sticker-${cfg.formatId}-${layout.id}-${palette.id}${suffix}.png`;
-      a.href = c.toDataURL("image/png", 1.0); a.click();
+      await downloadCanvas(c, `qr-sticker-${cfg.formatId}-${layout.id}-${palette.id}${suffix}.png`);
     } finally { setBusy(false); }
   };
 

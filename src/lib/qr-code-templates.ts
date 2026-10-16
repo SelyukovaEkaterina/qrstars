@@ -1,3 +1,4 @@
+import { downloadBlob, downloadCanvas } from "@/lib/download-file";
 import { renderFreeQR, FREE_LOGO_PRESETS } from "@/lib/qr-free-generator";
 
 export type QRDotStyle = "classic" | "rounded";
@@ -520,15 +521,12 @@ export function canvasDisplaySize(
   };
 }
 
-export function downloadQRTemplateAsPNG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
-  const a = document.createElement("a");
-  a.download = `${filename}.png`;
-  a.href = canvas.toDataURL("image/png", 1.0);
-  a.click();
+export async function downloadQRTemplateAsPNG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
+  await downloadCanvas(canvas, `${filename}.png`);
 }
 
 /** Styled QR is canvas-rendered; SVG wraps the raster for print/design handoff. */
-export function downloadQRTemplateAsSVG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
+export async function downloadQRTemplateAsSVG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
   const w = canvas.width;
   const h = canvas.height;
   const pngData = canvas.toDataURL("image/png", 1.0);
@@ -536,28 +534,20 @@ export function downloadQRTemplateAsSVG(canvas: HTMLCanvasElement, filename: str
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
   <image width="${w}" height="${h}" xlink:href="${pngData}"/>
 </svg>`;
-  downloadSvgString(svg, filename);
+  await downloadSvgString(svg, filename);
 }
 
-export function downloadSvgString(svg: string, filename: string = "qr-code") {
+export async function downloadSvgString(svg: string, filename: string = "qr-code") {
   const blob = new Blob([svg], { type: "image/svg+xml;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.download = `${filename}.svg`;
-  a.href = url;
-  a.click();
-  URL.revokeObjectURL(url);
+  await downloadBlob(blob, `${filename}.svg`);
 }
 
-export function downloadQRTemplateAsJPG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
+export async function downloadQRTemplateAsJPG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
   const tmp = document.createElement("canvas");
   tmp.width = canvas.width; tmp.height = canvas.height;
   const ctx = tmp.getContext("2d")!;
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, tmp.width, tmp.height);
   ctx.drawImage(canvas, 0, 0);
-  const a = document.createElement("a");
-  a.download = `${filename}.jpg`;
-  a.href = tmp.toDataURL("image/jpeg", 0.92);
-  a.click();
+  await downloadCanvas(tmp, `${filename}.jpg`, "image/jpeg", 0.92);
 }

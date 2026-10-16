@@ -960,3 +960,42 @@ def test_update_file_asset_title(owner_session, base_url, owner_establishment_id
     )
     assert r.status_code == 200
     assert r.json()["fileAsset"]["title"] == "Новое меню"
+
+
+def test_delete_qrcode(owner_session, base_url, owner_establishment_id):
+    code = unique_code("qrdel")
+    create_r = owner_session.post(
+        f"{base_url}/api/qrcodes",
+        json={
+            "code": code,
+            "label": "Лишний",
+            "establishmentId": owner_establishment_id,
+            "mode": "REDIRECT",
+            "redirectUrl": "https://example.com/gone",
+        },
+    )
+    assert create_r.status_code == 200
+    qr_id = create_r.json()["qrcode"]["id"]
+
+    anon = requests.delete(f"{base_url}/api/qrcodes", params={"id": qr_id})
+    assert anon.status_code == 401
+
+    missing = owner_session.delete(f"{base_url}/api/qrcodes", params={"id": "missing-qr"})
+    assert missing.status_code == 404
+
+    no_id = owner_session.delete(f"{base_url}/api/qrcodes")
+    assert no_id.status_code == 400
+
+    deleted = owner_session.delete(f"{base_url}/api/qrcodes", params={"id": qr_id})
+    assert deleted.status_code == 200
+    assert deleted.json()["ok"] is True
+
+    again = owner_session.delete(f"{base_url}/api/qrcodes", params={"id": qr_id})
+    assert again.status_code == 404
+
+    get_r = owner_session.get(f"{base_url}/api/qrcodes", params={"id": qr_id})
+    assert get_r.status_code == 404
+
+    page = requests.get(f"{base_url}/q/{code}")
+    assert page.status_code == 200
+    assert "QR-код не активирован" in page.text
