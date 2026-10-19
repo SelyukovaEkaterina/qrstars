@@ -31,7 +31,7 @@ def reset_user_to_free(
     if user:
         payload = {"subscriptionPlan": "FREE", "subscriptionStatus": "ACTIVE"}
         if reset_paid_history:
-            payload["resetProTrial"] = True
+            payload["resetPaidHistory"] = True
         admin_session.patch(
             f"{base_url}/api/admin/users/{user['id']}",
             json=payload,

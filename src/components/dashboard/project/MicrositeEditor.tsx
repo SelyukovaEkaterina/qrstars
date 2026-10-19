@@ -4,7 +4,7 @@ import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLockedProjectId } from "@/components/dashboard/ProjectScope";
-import { isUnassignedProjectId, projectSettingsPath } from "@/lib/project-routes";
+import { isUnassignedProjectId, micrositePublicUrl, projectSettingsPath } from "@/lib/project-routes";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import MenuEditor, { type MenuData } from "@/components/dashboard/MenuEditor";
@@ -1466,7 +1466,7 @@ function MyPageDashboardContent() {
                   Короткий адрес страницы
                 </label>
                 <div className="flex items-center gap-2 max-w-md">
-                  <span className="text-sm text-gray-500 shrink-0">qrstars.ru/a/</span>
+                  <span className="text-sm text-gray-500 shrink-0">https://</span>
                   <input
                     type="text"
                     value={shortSlug}
@@ -1477,6 +1477,7 @@ function MyPageDashboardContent() {
                     disabled={micrositeFrozen}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-500"
                   />
+                  <span className="text-sm text-gray-500 shrink-0">.qrstars.ru</span>
                   {shortSlugSaving && <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />}
                 </div>
                 {shortSlugError && (
@@ -1491,19 +1492,19 @@ function MyPageDashboardContent() {
                   <p className="text-xs text-gray-500 mt-1">
                     Страница доступна по адресу:{" "}
                     <a
-                      href={`/a/${shortSlug}`}
+                      href={micrositePublicUrl(shortSlug) ?? `/a/${shortSlug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-indigo-600 hover:underline"
                     >
-                      qrstars.ru/a/{shortSlug}
+                      {shortSlug}.qrstars.ru
                     </a>
-                    . Используйте её как мобильный сайт заведения — ссылку можно добавить в соцсетях, мессенджерах, объявлениях и где угодно.
+                    . Ссылка с кодом QR и адрес /a/{shortSlug} продолжают открывать свои страницы.
                   </p>
                 )}
                 {!shortSlug && !micrositeFrozen && (
                   <p className="text-xs text-gray-500 mt-1">
-                    Необязательно. Задайте короткий адрес — латинские буквы, цифры, дефис или подчёркивание. Его можно публиковать как мобильный сайт заведения — в соцсетях, мессенджерах, объявлениях и где угодно.
+                    Необязательно. От 2 до 32 символов: строчные латинские буквы, цифры и дефис. Получится адрес вида имя.qrstars.ru.
                   </p>
                 )}
               </div>
@@ -2383,7 +2384,7 @@ function MyPageHeader({
           )}
           {shortSlug && (
             <a
-              href={`/a/${shortSlug}`}
+              href={micrositePublicUrl(shortSlug) ?? `/a/${shortSlug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50 text-gray-700"

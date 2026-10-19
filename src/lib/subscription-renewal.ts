@@ -6,7 +6,6 @@ import {
   type BillingPeriod,
   type PlanId,
 } from "@/lib/plans";
-import { PRO_TRIAL_NOTICE_DAYS, proTrialDaysLeft } from "@/lib/pro-trial";
 import { countUserEstablishments } from "@/lib/subscription-utils";
 import { createRecurringPayment } from "@/lib/robokassa";
 import {
@@ -278,10 +277,20 @@ export async function runSubscriptionRenewalBatch(): Promise<RenewalBatchResult>
 }
 
 /**
- * Письмо за {@link PRO_TRIAL_NOTICE_DAYS} дней до конца пробного PRO.
+ * Legacy: новые триалы больше не выдаются (убраны 2026-10-04), но у ранее выданных
+ * активных триалов письмо за {@link PRO_TRIAL_NOTICE_DAYS} дней до конца остаётся.
  * Идемпотентность — через `renewalNoticeSentAt`: у триала автосписаний нет,
  * поэтому поле свободно и используется как отметка «предупредили».
  */
+/** Legacy: за сколько дней до конца ранее выданного пробного PRO предупреждаем письмом. */
+const PRO_TRIAL_NOTICE_DAYS = 3;
+
+/** Дней до конца, минимум 0 (начатый день считается целым). */
+function proTrialDaysLeft(endsAt: Date, now: Date): number {
+  const ms = endsAt.getTime() - now.getTime();
+  return ms <= 0 ? 0 : Math.ceil(ms / MS_DAY);
+}
+
 async function sendTrialEndingNotices(now: Date, result: RenewalBatchResult) {
   const windowStart = new Date(now.getTime() + (PRO_TRIAL_NOTICE_DAYS - 1) * MS_DAY);
   const windowEnd = new Date(now.getTime() + (PRO_TRIAL_NOTICE_DAYS + 1) * MS_DAY);

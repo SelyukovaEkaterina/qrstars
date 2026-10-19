@@ -25,7 +25,7 @@ model User {
   reportsMaxEnabled       Boolean @default(false)
   registrationSource String?
   registrationUtm    Json?
-  /** Пробный PRO выдаётся один раз: дата первой активации. */
+  /** LEGACY: пробный PRO удалён 2026-10-04, новые не выдаются. Колонка осталась для уже выданных триалов. */
   proTrialStartedAt  DateTime?
   /**
    * Когда у владельца впервые появился платный доступ (оплата или пробный PRO).
@@ -65,6 +65,7 @@ model User {
   promoSurveys       PromoSurveyResponse[]
   paymentOrders      PaymentOrder[]
   recurringConsents  RecurringConsentLog[]
+  subscriptionIntroOffers SubscriptionIntroOffer[]
 }
 
 model UserLifecycleEmail {
@@ -353,7 +354,7 @@ model Subscription {
   id              String          @id @default(cuid())
   status          SubStatus       @default(ACTIVE)
   plan            Plan            @default(FREE)
-  /** Пробный период без оплаты: списаний нет, по currentPeriodEnd переходит в CANCELED. */
+  /** LEGACY: пробный PRO удалён 2026-10-04, новые не создаются. Ранее выданные триалы без списаний по currentPeriodEnd переходят в CANCELED. */
   isTrial         Boolean         @default(false)
   invoiceId       Int?
   parentInvoiceId Int?
@@ -417,6 +418,26 @@ model RecurringConsentLog {
   createdAt      DateTime @default(now())
 
   @@index([userId])
+}
+
+/** Персональная цена PRO на первый год. Один код на пользователя и кампанию. */
+model SubscriptionIntroOffer {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code           String    @unique
+  campaignKey    String
+  plan           Plan      @default(PRO)
+  billing        String    @default("yearly")
+  amountRub      Int
+  listAmountRub  Int
+  expiresAt      DateTime
+  usedAt         DateTime?
+  paymentOrderId String?
+  createdAt      DateTime  @default(now())
+
+  @@unique([userId, campaignKey])
+  @@index([expiresAt])
 }
 
 model PromoCode {

@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
-import ProTrialBanner from "@/components/dashboard/ProTrialBanner";
 import UxCheckPromoBanner from "@/components/dashboard/UxCheckPromoBanner";
 
 const START_PATH = "/dashboard/start";
@@ -67,7 +66,6 @@ export default function DashboardChrome({ children }: { children: React.ReactNod
       </div>
 
       <div className="flex-1 min-w-0 pt-14 lg:pt-0">
-        <ProTrialBanner />
         <UxCheckPromoBanner />
         {children}
       </div>

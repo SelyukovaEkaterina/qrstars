@@ -8,3 +8,8 @@ e2e
 *.md
 .env*
 landing
+.npmcache
+.xdg-state
+shorts-*
+videos
+test_*

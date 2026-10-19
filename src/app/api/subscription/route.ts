@@ -16,11 +16,17 @@ import {
   findActiveSubscription,
 } from "@/lib/subscription-utils";
 import { buildRenewalPriceChangeNotice } from "@/lib/subscription-billing-utils";
-import { PRO_TRIAL_DAYS, getProTrialState } from "@/lib/pro-trial";
 import { markFirstPaidAccess } from "@/lib/subscription-activate";
 import { getPlatformTariffChangeBanner } from "@/lib/tariff-change-notice";
 import { notifyPaymentAttempt } from "@/lib/telegram-support";
 import { LEGAL_OFFER_URL, LEGAL_OFFER_VERSION } from "@/lib/legal-urls";
+import {
+  IntroOfferError,
+  findActiveProIntroOffer,
+  introOfferPublicView,
+  markProIntroOfferUsed,
+  resolveProIntroOfferAmount,
+} from "@/lib/subscription-intro-offer";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -29,21 +35,21 @@ export async function GET() {
   }
 
   const userId = (session.user as Record<string, unknown>).id as string;
-  const [activeSubscription, latestSubscription, establishmentCount, trial] =
+  const [activeSubscription, latestSubscription, establishmentCount] =
     await Promise.all([
       findActiveSubscription(userId),
       findLatestSubscription(userId),
       countUserEstablishments(userId),
-      getProTrialState(userId),
     ]);
 
   const ctx = buildSubscriptionContext(activeSubscription, establishmentCount);
 
-  const [renewalPriceChange, platformTariffChange] = await Promise.all([
+  const [renewalPriceChange, platformTariffChange, introOffer] = await Promise.all([
     activeSubscription
       ? buildRenewalPriceChangeNotice(activeSubscription)
       : Promise.resolve(null),
     getPlatformTariffChangeBanner(),
+    findActiveProIntroOffer(userId),
   ]);
 
   return NextResponse.json({
@@ -52,7 +58,8 @@ export async function GET() {
     plans: PLANS,
     renewalPriceChange,
     platformTariffChange,
-    trial: { ...trial, days: PRO_TRIAL_DAYS },
+    introOffer:
+      introOffer && !hasPaidFeatures(ctx.plan) ? introOfferPublicView(introOffer) : null,
   });
 }
 
@@ -74,9 +81,11 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { action, plan: targetPlan, billing: billingRaw, recurringConsent } = body;
   const requestedPlan = body.plan as string | undefined;
-  // PRO продаётся только на год (PLAN_PRICING.PRO.yearlyOnly).
+  // PRO и «Сеть» продаются только на год (PLAN_PRICING.*.yearlyOnly).
   const billing: BillingPeriod =
-    billingRaw === "yearly" || requestedPlan === "PRO" ? "yearly" : "monthly";
+    billingRaw === "yearly" || requestedPlan === "PRO" || requestedPlan === "NETWORK"
+      ? "yearly"
+      : "monthly";
 
   if (action === "subscribe") {
     const plan = targetPlan as "PRO" | "NETWORK";
@@ -111,7 +120,24 @@ export async function POST(request: Request) {
     }
 
     const establishmentCount = await countUserEstablishments(userId);
-    const amount = calcSubscriptionAmount(plan, billing, establishmentCount);
+    const catalogAmount = calcSubscriptionAmount(plan, billing, establishmentCount);
+    let amount = catalogAmount;
+    let introOfferId: string | null = null;
+    try {
+      const resolved = await resolveProIntroOfferAmount({
+        userId,
+        plan,
+        catalogAmount,
+        requestedCode: body.promoCode,
+      });
+      amount = resolved.amount;
+      introOfferId = resolved.offerId;
+    } catch (err) {
+      if (err instanceof IntroOfferError) {
+        return NextResponse.json({ error: err.message }, { status: 400 });
+      }
+      throw err;
+    }
     const planLabel = plan === "PRO" ? "PRO" : "Сеть";
     const periodLabel = billing === "yearly" ? "1 год" : "1 месяц";
 
@@ -140,6 +166,9 @@ export async function POST(request: Request) {
       });
 
       await markFirstPaidAccess(userId);
+      if (introOfferId) {
+        await markProIntroOfferUsed(userId, amount);
+      }
 
       void notifyPaymentAttempt({
         userId,
@@ -156,6 +185,7 @@ export async function POST(request: Request) {
         success: true,
         mode: "mock",
         plan,
+        amount,
         message:
           "Функционал оплаты пока недоступен. Поздравляем — вы получили платный тариф бесплатно!",
       });

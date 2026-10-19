@@ -21,6 +21,12 @@ export interface PlanDefinition {
   highlighted?: boolean;
 }
 
+/** Скидка округляется до 10 ₽: 990 × 30% = 693 → 690. */
+export function offerYearlyRub(listRub: number, discountPercent: number): number {
+  const discounted = (listRub * (100 - discountPercent)) / 100;
+  return Math.round(discounted / 10) * 10;
+}
+
 export const PLAN_PRICING = {
   /** PRO продаётся только на год (решение 2026-10-04). monthlyRub — лишь эквивалент для MRR и подписей. */
   PRO: {
@@ -29,14 +35,46 @@ export const PLAN_PRICING = {
     yearlyNote: "≈83 ₽/мес",
     yearlyOnly: true,
   },
+  /** «Сеть» с 2026-10-14: 5 заведений за 2 900 ₽/год, только годовая оплата. monthlyRub — эквивалент для MRR. */
   NETWORK: {
-    monthlyRub: 600,
-    yearlyRub: 6000,
-    yearlyNote: "≈500 ₽/мес за базу — 2 месяца в подарок",
-    extraEstablishmentMonthlyRub: 150,
-    includedEstablishments: 2,
+    monthlyRub: 242,
+    yearlyRub: 2900,
+    yearlyNote: "≈242 ₽/мес · до 5 заведений",
+    yearlyOnly: true,
+    includedEstablishments: 5,
   },
 } as const;
+
+/**
+ * Персональная цена PRO на первый год.
+ * Письмо уходит один раз, когда с первого скана своего QR прошло minDaysSinceFirstScan
+ * и сканов уже minScans. Код живёт validDays с момента отправки, напоминание за reminderLeadDays.
+ * Со следующего года списание по PLAN_PRICING.PRO.yearlyRub.
+ */
+export const PRO_INTRO_OFFER = {
+  discountPercent: 30,
+  yearlyRub: offerYearlyRub(PLAN_PRICING.PRO.yearlyRub, 30),
+  validDays: 7,
+  reminderLeadDays: 2,
+  minScans: 3,
+  minDaysSinceFirstScan: 14,
+  /** Первое письмо и напоминание вместе, календарный день МСК. Остальные ждут следующий запуск. */
+  maxPerDay: 5,
+  campaignKey: "pro_offer_d14",
+  reminderCampaignKey: "pro_offer_reminder",
+  codePrefix: "START30",
+} as const;
+
+/** Старая помесячная схема «Сети» (600 ₽/мес + 150 ₽ за точку сверх 2): только для уже оформленных месячных подписок. */
+const NETWORK_LEGACY_MONTHLY = {
+  monthlyRub: 600,
+  extraEstablishmentMonthlyRub: 150,
+  includedEstablishments: 2,
+} as const;
+
+/** Куда писать, если тарифа не хватает. */
+export const CUSTOM_PLAN_HINT =
+  "Если этого не хватает — напишите нам в техподдержку в личном кабинете, подберём индивидуальный выгодный тариф.";
 
 export const PLANS: Record<PlanId, PlanDefinition> = {
   FREE: {
@@ -80,17 +118,13 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
   NETWORK: {
     id: "NETWORK",
     name: "Сеть",
-    tagline: "Для сетей и франшиз",
-    pricing: {
-      monthlyRub: PLAN_PRICING.NETWORK.monthlyRub,
-      yearlyRub: PLAN_PRICING.NETWORK.yearlyRub,
-      yearlyNote: PLAN_PRICING.NETWORK.yearlyNote,
-    },
-    establishmentLimit: null,
-    establishmentLimitNote: `2 заведения в базе, далее +${PLAN_PRICING.NETWORK.extraEstablishmentMonthlyRub} ₽/мес за точку`,
+    tagline: "До 5 заведений на одном тарифе",
+    pricing: PLAN_PRICING.NETWORK,
+    establishmentLimit: PLAN_PRICING.NETWORK.includedEstablishments,
+    establishmentLimitNote: `${PLAN_PRICING.NETWORK.includedEstablishments} заведений`,
     features: [
       "Всё из PRO для каждой точки",
-      `2 заведения включено, далее +${PLAN_PRICING.NETWORK.extraEstablishmentMonthlyRub} ₽/мес за точку`,
+      `До ${PLAN_PRICING.NETWORK.includedEstablishments} заведений в одном кабинете`,
       "Сводный дашборд сети: рейтинг и динамика по точкам",
       "Роли доступа: управляющий видит свою точку",
       "White Label на уровне бренда сети",
@@ -110,9 +144,9 @@ export function isNetworkPlan(plan: string | null | undefined): boolean {
   return plan === "NETWORK";
 }
 
-/** Максимум заведений: FREE/PRO — 1; Сеть — без жёсткого лимита (оплата за точки). */
+/** Максимум заведений: FREE/PRO — 1; Сеть — 5. Больше — индивидуальный тариф через поддержку. */
 export function getEstablishmentLimit(plan: string | null | undefined): number | null {
-  if (plan === "NETWORK") return null;
+  if (plan === "NETWORK") return PLAN_PRICING.NETWORK.includedEstablishments;
   return 1;
 }
 
@@ -125,10 +159,10 @@ export function canAddEstablishment(
   return currentCount < limit;
 }
 
-/** Стоимость тарифа «Сеть» за месяц по числу заведений. */
-export function calcNetworkMonthlyPrice(establishmentCount: number): number {
+/** Стоимость старой месячной подписки «Сети» по числу заведений (legacy). */
+function calcLegacyNetworkMonthlyPrice(establishmentCount: number): number {
   const { monthlyRub, extraEstablishmentMonthlyRub, includedEstablishments } =
-    PLAN_PRICING.NETWORK;
+    NETWORK_LEGACY_MONTHLY;
   const extra = Math.max(0, establishmentCount - includedEstablishments);
   return monthlyRub + extra * extraEstablishmentMonthlyRub;
 }
@@ -139,12 +173,8 @@ export function calcSubscriptionAmount(
   establishmentCount: number
 ): number {
   if (plan === "PRO") return PLAN_PRICING.PRO.yearlyRub;
-  const monthly = calcNetworkMonthlyPrice(Math.max(establishmentCount, 2));
-  if (billing === "yearly") {
-    const extra = Math.max(0, establishmentCount - PLAN_PRICING.NETWORK.includedEstablishments);
-    return PLAN_PRICING.NETWORK.yearlyRub + extra * PLAN_PRICING.NETWORK.extraEstablishmentMonthlyRub * 10;
-  }
-  return monthly;
+  if (billing === "yearly") return PLAN_PRICING.NETWORK.yearlyRub;
+  return calcLegacyNetworkMonthlyPrice(Math.max(establishmentCount, 2));
 }
 
 export function formatPlanLabel(plan: string | null | undefined): string {
@@ -175,10 +205,13 @@ export function getUpgradeHint(
     return {
       requiredPlan: "NETWORK",
       message:
-        "На PRO доступно 1 заведение. Для сети из нескольких точек подключите тариф «Сеть».",
+        "На PRO доступно 1 заведение. Для нескольких точек подключите тариф «Сеть» — до 5 заведений.",
     };
   }
-  return null;
+  return {
+    requiredPlan: "NETWORK",
+    message: `На тарифе «Сеть» доступно ${PLAN_PRICING.NETWORK.includedEstablishments} заведений. ${CUSTOM_PLAN_HINT}`,
+  };
 }
 
 export function estimateSubscriptionMonthlyRevenue(
@@ -186,8 +219,6 @@ export function estimateSubscriptionMonthlyRevenue(
   establishmentCount: number
 ): number {
   if (plan === "PRO") return PLAN_PRICING.PRO.monthlyRub;
-  if (plan === "NETWORK") {
-    return calcNetworkMonthlyPrice(Math.max(establishmentCount, 2));
-  }
+  if (plan === "NETWORK") return PLAN_PRICING.NETWORK.monthlyRub;
   return 0;
 }

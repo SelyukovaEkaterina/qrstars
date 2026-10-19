@@ -316,34 +316,8 @@ interface SetupStartWizardProps {
   existingEstablishments?: SetupEstablishmentOption[];
   canAddNewEstablishment?: boolean;
   hasPaidFeatures?: boolean;
-  /** Пробный PRO ещё не использован — микросайт можно открыть без оплаты. */
-  trialEligible?: boolean;
-  trialDays?: number;
   /** UTM из User.registrationUtm, если в URL нет меток. */
   initialRegistrationUtm?: RegistrationUtm | null;
-}
-
-/** Что даёт PRO именно в выбранном сценарии — для карточки триала на экране «Готово». */
-function successTrialPerks(intent: SetupIntent): string[] {
-  if (intent === "reviews") {
-    return [
-      "Жалобы 1–3★ сразу в Telegram или MAX, а не только на email",
-      "Довольные гости по очереди идут на Яндекс, 2GIS и Flamp",
-      "Ваш логотип вместо подписи QrStars",
-    ];
-  }
-  if (intent === "redirect") {
-    return [
-      "Микросайт: все ссылки, контакты и меню в одном QR",
-      "Расширенная аналитика сканов по дням и устройствам",
-      "Приоритетная поддержка",
-    ];
-  }
-  return [
-    "Микросайт со всеми разделами в одном QR",
-    "Расширенная аналитика сканов по дням и устройствам",
-    "Ваш логотип вместо подписи QrStars",
-  ];
 }
 
 export default function SetupStartWizard({
@@ -351,8 +325,6 @@ export default function SetupStartWizard({
   existingEstablishments = [],
   canAddNewEstablishment = true,
   hasPaidFeatures = false,
-  trialEligible = false,
-  trialDays = 14,
   initialRegistrationUtm = null,
 }: SetupStartWizardProps) {
   const router = useRouter();
@@ -400,11 +372,8 @@ export default function SetupStartWizard({
   const hasExistingOrgs = existingEstablishments.length > 0 && !rerun;
   const isFirstLaunch = existingEstablishments.length === 0 && !rerun;
   /** Триал включается прямо в мастере, поэтому серверный проп может устареть. */
-  const [paidFeatures, setPaidFeatures] = useState(hasPaidFeatures);
+  const [paidFeatures] = useState(hasPaidFeatures);
   const [landingPaywallOpen, setLandingPaywallOpen] = useState(false);
-  const [trialStarting, setTrialStarting] = useState(false);
-  const [trialError, setTrialError] = useState("");
-  const [successTrialStarted, setSuccessTrialStarted] = useState(false);
   const [step, setStep] = useState<Step>(() => {
     if (hasExistingOrgs) return "org";
     if (autoSelectedIntent === "landing" && !hasPaidFeatures && !rerun) return "intent";
@@ -666,45 +635,11 @@ export default function SetupStartWizard({
     setError("");
 
     if (value === "landing" && !paidFeatures && !rerun) {
-      setTrialError("");
       setLandingPaywallOpen(true);
       return;
     }
 
     proceedWithIntent(value);
-  };
-
-  const startTrial = async (trialIntent: SetupIntent, source: "paywall" | "success"): Promise<boolean> => {
-    if (trialStarting) return false;
-    setTrialStarting(true);
-    setTrialError("");
-    try {
-      const res = await fetch("/api/subscription/trial", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setTrialError(data.error || "Не удалось включить пробный период");
-        return false;
-      }
-      trackEvent("setup.trial_started", { intent: trialIntent, source, days: trialDays });
-      setPaidFeatures(true);
-      return true;
-    } catch {
-      setTrialError("Ошибка соединения");
-      return false;
-    } finally {
-      setTrialStarting(false);
-    }
-  };
-
-  const startLandingTrial = async () => {
-    if (!(await startTrial("landing", "paywall"))) return;
-    setLandingPaywallOpen(false);
-    setIntent("landing");
-    proceedWithIntent("landing");
-  };
-
-  const startSuccessTrial = async (trialIntent: SetupIntent) => {
-    if (await startTrial(trialIntent, "success")) setSuccessTrialStarted(true);
   };
 
   useEffect(() => {
@@ -1151,51 +1086,6 @@ export default function SetupStartWizard({
             </Card>
           )}
 
-          {!rerun && (successTrialStarted || (trialEligible && !paidFeatures)) && (
-            <Card className="p-4 space-y-3 border-indigo-200 bg-gradient-to-br from-indigo-50 to-white">
-              {successTrialStarted ? (
-                <div className="flex items-start gap-3">
-                  <CheckCircle2 className="w-5 h-5 shrink-0 text-green-600 mt-0.5" />
-                  <div className="text-sm text-gray-800 leading-relaxed">
-                    <p className="font-semibold text-gray-950">PRO включён на {trialDays} дней</p>
-                    <p className="mt-1 text-xs text-gray-600">
-                      Списаний не будет. После пробного периода аккаунт вернётся на FREE, QR-коды продолжат работать.
-                    </p>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-start gap-3">
-                    <Sparkles className="w-5 h-5 shrink-0 text-indigo-600 mt-0.5" />
-                    <div className="min-w-0 flex-1">
-                      <p className="font-semibold text-indigo-950">
-                        Попробуйте PRO бесплатно — {trialDays} дней
-                      </p>
-                      <ul className="mt-2 space-y-1 text-xs text-indigo-950/80 leading-relaxed">
-                        {successTrialPerks(result.intent).map((perk) => (
-                          <li key={perk} className="flex gap-2">
-                            <Check className="w-3.5 h-3.5 shrink-0 text-indigo-600 mt-0.5" />
-                            {perk}
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="mt-2 text-xs text-gray-500">Карта не нужна, автосписаний нет.</p>
-                    </div>
-                  </div>
-                  <Button
-                    size="sm"
-                    className="w-full"
-                    onClick={() => void startSuccessTrial(result.intent)}
-                    disabled={trialStarting}
-                  >
-                    {trialStarting ? "Включаем…" : `Включить PRO на ${trialDays} дней`}
-                  </Button>
-                  {trialError && <p className="text-xs text-red-600 text-center">{trialError}</p>}
-                </>
-              )}
-            </Card>
-          )}
-
           {isFirstLaunch && (
             <div className="bg-amber-50/80 border border-amber-200/50 rounded-xl p-4 text-xs text-amber-950 leading-relaxed space-y-1">
               <p className="font-bold flex items-center gap-1 text-amber-900">
@@ -1569,13 +1459,7 @@ export default function SetupStartWizard({
             onClose={() => {
               setLandingPaywallOpen(false);
               setIntent(null);
-              setTrialError("");
             }}
-            trialEligible={trialEligible}
-            trialDays={trialDays}
-            trialStarting={trialStarting}
-            trialError={trialError}
-            onStartTrial={() => void startLandingTrial()}
           />
         </div>
       </SetupWizardShell>

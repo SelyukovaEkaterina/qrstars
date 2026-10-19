@@ -9,6 +9,11 @@ rsync -az --delete \
   --exclude node_modules \
   --exclude .next \
   --exclude .git \
+  --exclude .npmcache \
+  --exclude .xdg-state \
+  --exclude 'shorts-*' \
+  --exclude /videos \
+  --exclude 'test_*' \
   --exclude /landing \
   --exclude .env \
   --exclude e2e/__pycache__ \
@@ -82,6 +87,15 @@ CONF_SRC="/opt/qrstars/deploy/nginx/app.qrstars.ru.conf"
 CONF_DST="/etc/nginx/sites-available/app.qrstars.ru.conf"
 install -m 644 "$CONF_SRC" "$CONF_DST"
 ln -sf "$CONF_DST" /etc/nginx/sites-enabled/app.qrstars.ru.conf
+WILDCARD_CERT="/etc/letsencrypt/live/qrstars.ru-wildcard/fullchain.pem"
+WILDCARD_SRC="/opt/qrstars/deploy/nginx/wildcard.qrstars.ru.conf"
+WILDCARD_DST="/etc/nginx/sites-available/wildcard.qrstars.ru.conf"
+if [[ -f "$WILDCARD_CERT" && -f "$WILDCARD_SRC" ]]; then
+  install -m 644 "$WILDCARD_SRC" "$WILDCARD_DST"
+  ln -sf "$WILDCARD_DST" /etc/nginx/sites-enabled/wildcard.qrstars.ru.conf
+else
+  rm -f /etc/nginx/sites-enabled/wildcard.qrstars.ru.conf
+fi
 nginx -t
 systemctl reload nginx
 

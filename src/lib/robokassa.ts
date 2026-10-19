@@ -112,9 +112,22 @@ export function signInitialPayment(params: {
   receipt: ReceiptPayload;
   password1: string;
   shp?: Record<string, string>;
+  successUrl2?: string;
+  successUrl2Method?: string;
+  failUrl2?: string;
+  failUrl2Method?: string;
 }): string {
   const receiptPart = receiptForSignature(params.receipt);
-  let base = `${params.merchantLogin}:${params.outSum}:${params.invId}:${receiptPart}:${params.password1}`;
+  // Модификаторы — только если переданы, строго в порядке Robokassa:
+  // Receipt, SuccessUrl2, SuccessUrl2Method, FailUrl2, FailUrl2Method, затем пароль.
+  let base = `${params.merchantLogin}:${params.outSum}:${params.invId}:${receiptPart}`;
+  if (params.successUrl2) {
+    base += `:${params.successUrl2}:${params.successUrl2Method || "GET"}`;
+  }
+  if (params.failUrl2) {
+    base += `:${params.failUrl2}:${params.failUrl2Method || "GET"}`;
+  }
+  base += `:${params.password1}`;
   if (params.shp && Object.keys(params.shp).length > 0) {
     base += shpSignaturePart(params.shp);
   }
@@ -180,18 +193,36 @@ export interface PaymentUrlParams {
   userId: string;
 }
 
+/** Куда вернуть браузер после оплаты. Кабинетный SuccessURL сейчас ведёт на qrstars.ru. */
+export function paymentReturnUrls(): { successUrl2: string; failUrl2: string } {
+  const base = (
+    process.env.NEXT_PUBLIC_BASE_URL?.trim() ||
+    process.env.NEXTAUTH_URL?.trim() ||
+    "https://app.qrstars.ru"
+  ).replace(/\/+$/, "");
+  return {
+    successUrl2: `${base}/api/payments/robokassa/success`,
+    failUrl2: `${base}/api/payments/robokassa/fail`,
+  };
+}
+
 export function buildPaymentRequest(params: PaymentUrlParams): RobokassaPaymentRequest {
   const config = getRobokassaConfig();
   if (!config) throw new Error("Robokassa not configured");
 
   const outSum = formatOutSum(params.amount);
   const receipt = buildReceipt(params.plan, params.billing, params.amount);
+  const { successUrl2, failUrl2 } = paymentReturnUrls();
   const signature = signInitialPayment({
     merchantLogin: config.merchantLogin,
     outSum,
     invId: params.invId,
     receipt,
     password1: config.password1,
+    successUrl2,
+    successUrl2Method: "GET",
+    failUrl2,
+    failUrl2Method: "GET",
   });
 
   const fields: Record<string, string> = {
@@ -213,6 +244,11 @@ export function buildPaymentRequest(params: PaymentUrlParams): RobokassaPaymentR
   }
 
   fields.Culture = "ru";
+  // GET, чтобы браузер прислал session cookie (SameSite=Lax) при возврате с чужого домена.
+  fields.SuccessUrl2 = successUrl2;
+  fields.SuccessUrl2Method = "GET";
+  fields.FailUrl2 = failUrl2;
+  fields.FailUrl2Method = "GET";
 
   return { action: PAYMENT_URL, fields };
 }

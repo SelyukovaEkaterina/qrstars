@@ -55,22 +55,11 @@ const EXTRA_PRO_ICONS = [Star, Bell, Palette, Banknote, BarChart3, QrCode, Crown
 interface LandingProPaywallProps {
   open: boolean;
   onClose: () => void;
-  /** Пробный период ещё не использован — показываем кнопку «Попробовать». */
-  trialEligible?: boolean;
-  trialDays?: number;
-  trialStarting?: boolean;
-  trialError?: string | null;
-  onStartTrial?: () => void;
 }
 
 export default function LandingProPaywall({
   open,
   onClose,
-  trialEligible = false,
-  trialDays = 14,
-  trialStarting = false,
-  trialError = null,
-  onStartTrial,
 }: LandingProPaywallProps) {
   useEffect(() => {
     if (!open) return;
@@ -195,37 +184,7 @@ export default function LandingProPaywall({
             — {PLAN_PRICING.PRO.yearlyNote}
           </p>
 
-          {trialError && (
-            <p className="mt-2 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-              {trialError}
-            </p>
-          )}
-
           <div className="mt-3 flex flex-col sm:flex-row gap-2">
-            {trialEligible && onStartTrial ? (
-              <>
-                <Button
-                  type="button"
-                  className="sm:flex-1"
-                  disabled={trialStarting}
-                  onClick={onStartTrial}
-                >
-                  {trialStarting ? (
-                    "Включаем…"
-                  ) : (
-                    <>
-                      Попробовать {trialDays} дней бесплатно
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </>
-                  )}
-                </Button>
-                <Link href="/dashboard/subscription" className="sm:flex-1">
-                  <Button type="button" variant="outline" className="w-full">
-                    Подключить PRO
-                  </Button>
-                </Link>
-              </>
-            ) : (
               <>
                 <Link href="/dashboard/subscription" className="sm:flex-1">
                   <Button type="button" className="w-full">
@@ -245,28 +204,11 @@ export default function LandingProPaywall({
                   </Button>
                 </Link>
               </>
-            )}
             <Button type="button" variant="ghost" onClick={onClose}>
               Позже
             </Button>
           </div>
 
-          {trialEligible && onStartTrial && (
-            <p className="mt-3 text-xs leading-relaxed text-gray-500">
-              Карта не нужна, автоматических списаний нет. Через {trialDays} дней микросайт
-              останется открытым для гостей — напечатанные QR не сломаются, но менять разделы и
-              оформление можно будет только на PRO за{" "}
-              {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год.{" "}
-              <Link
-                href="/q/demo-landing"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium text-indigo-600 hover:text-indigo-800"
-              >
-                Посмотреть демо
-              </Link>
-            </p>
-          )}
         </div>
       </div>
     </div>

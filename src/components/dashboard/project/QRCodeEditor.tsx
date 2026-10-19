@@ -232,10 +232,6 @@ export default function QRCodeSettingsPage() {
   const [editingQrStyleTemplate, setEditingQrStyleTemplate] = useState<Template | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showLandingPaywall, setShowLandingPaywall] = useState(false);
-  const [trialEligible, setTrialEligible] = useState(false);
-  const [trialDays, setTrialDays] = useState(14);
-  const [trialStarting, setTrialStarting] = useState(false);
-  const [trialError, setTrialError] = useState("");
 
   const generateQRImage = useCallback(
     async (code: string, styleTemplateId: string, styleTemplates: Template[]) => {
@@ -295,18 +291,6 @@ export default function QRCodeSettingsPage() {
   useEffect(() => {
     setShowWelcome(new URLSearchParams(window.location.search).get("welcome") === "1");
   }, []);
-
-  useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch("/api/subscription/trial")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (!data) return;
-        setTrialEligible(!!data.eligible);
-        if (typeof data.days === "number") setTrialDays(data.days);
-      })
-      .catch(() => {});
-  }, [status]);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");
@@ -689,28 +673,6 @@ export default function QRCodeSettingsPage() {
     setMode(routingToMode(group, section, customPageId || undefined));
   };
 
-  const startLandingTrial = async () => {
-    if (trialStarting) return;
-    setTrialStarting(true);
-    setTrialError("");
-    try {
-      const res = await fetch("/api/subscription/trial", { method: "POST" });
-      const data = await res.json();
-      if (!res.ok) {
-        setTrialError(data.error || "Не удалось включить пробный период");
-        return;
-      }
-      setIsPro(true);
-      setTrialEligible(false);
-      setShowLandingPaywall(false);
-      applyRouting("LANDING", sectionTarget);
-    } catch {
-      setTrialError("Ошибка соединения");
-    } finally {
-      setTrialStarting(false);
-    }
-  };
-
   const handleSaveBasic = async () => {
     const saveMode = routingToMode(routingGroup, sectionTarget, customSectionId || undefined);
     if (routingGroup === "REDIRECT" && !redirectUrl.trim()) {
@@ -910,15 +872,7 @@ export default function QRCodeSettingsPage() {
     <div className="flex min-h-screen bg-gray-50">
       <LandingProPaywall
         open={showLandingPaywall}
-        onClose={() => {
-          setShowLandingPaywall(false);
-          setTrialError("");
-        }}
-        trialEligible={trialEligible}
-        trialDays={trialDays}
-        trialStarting={trialStarting}
-        trialError={trialError}
-        onStartTrial={() => void startLandingTrial()}
+        onClose={() => setShowLandingPaywall(false)}
       />
       <main className="flex-1 p-8">
         <div className="w-full space-y-6">
@@ -1363,12 +1317,30 @@ export default function QRCodeSettingsPage() {
                       placeholder="https://example.com"
                     />
                     {!isPro && !qrData?.redirectGrandfathered && (
-                      <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">
-                        На бесплатном тарифе гость {REDIRECT_INTERSTITIAL_SECONDS} сек. видит экран QrStars, затем переходит по ссылке.{" "}
-                        <Link href="/dashboard/subscription" className="text-indigo-600 hover:underline">
-                          В PRO — переход сразу
+                      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                            Сейчас · FREE
+                          </p>
+                          <p className="mt-1 text-sm text-amber-900 leading-relaxed">
+                            Гость <b>{REDIRECT_INTERSTITIAL_SECONDS} сек. ждёт на экране QrStars</b>, и только потом переходит по ссылке.
+                          </p>
+                        </div>
+                        <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
+                          <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                            В PRO
+                          </p>
+                          <p className="mt-1 text-sm text-emerald-900 leading-relaxed">
+                            <b>Мгновенный переход</b> — без экрана и ожидания.
+                          </p>
+                        </div>
+                        <Link
+                          href="/dashboard/subscription"
+                          className="sm:col-span-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-base font-semibold text-white hover:bg-indigo-700"
+                        >
+                          Купить PRO за 990 ₽ на год →
                         </Link>
-                      </p>
+                      </div>
                     )}
                   </div>
                 )}
@@ -1439,6 +1411,7 @@ export default function QRCodeSettingsPage() {
                   pageModules={pageModules}
                   menu={previewMenu}
                   redirectUrl={redirectUrl}
+                  showRedirectInterstitial={!isPro && !qrData?.redirectGrandfathered}
                   hasFile={!!fileAssetData?.id}
                   customPageLabel={customSectionId ? customPages.find((p) => p.id === customSectionId)?.menuItemLabel ?? null : null}
                 />

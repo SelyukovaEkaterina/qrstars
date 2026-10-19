@@ -23,10 +23,9 @@ import {
   formatRub,
   PLANS,
   PLAN_PRICING,
-  calcNetworkMonthlyPrice,
+  CUSTOM_PLAN_HINT,
   calcSubscriptionAmount,
   type PlanId,
-  type BillingPeriod,
 } from "@/lib/plans";
 import { LEGAL_OFFER_URL } from "@/lib/legal-urls";
 
@@ -57,14 +56,13 @@ interface SubscriptionResponse {
     message: string | null;
     daysUntilEffective: number;
   } | null;
-  trial?: {
-    active: boolean;
-    used: boolean;
-    eligible: boolean;
-    endsAt: string | null;
-    daysLeft: number | null;
-    days: number;
-  };
+  introOffer?: {
+    code: string;
+    amountRub: number;
+    listAmountRub: number;
+    expiresAt: string;
+    discountPercent: number;
+  } | null;
 }
 
 interface HistoryItem {
@@ -84,15 +82,12 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<string | null>(null);
-  const [billing, setBilling] = useState<BillingPeriod>("yearly");
   const [data, setData] = useState<SubscriptionResponse | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [recurringConsent, setRecurringConsent] = useState(false);
   const [consentError, setConsentError] = useState("");
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [trialStarting, setTrialStarting] = useState(false);
-  const [trialError, setTrialError] = useState("");
 
   const load = () =>
     fetch("/api/subscription")
@@ -135,7 +130,7 @@ export default function SubscriptionPage() {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "subscribe", plan, billing, recurringConsent: true }),
+        body: JSON.stringify({ action: "subscribe", plan, billing: "yearly", recurringConsent: true }),
       });
 
       const json = await res.json();
@@ -172,24 +167,6 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleStartTrial = async () => {
-    setTrialStarting(true);
-    setTrialError("");
-    try {
-      const res = await fetch("/api/subscription/trial", { method: "POST" });
-      const json = await res.json();
-      if (!res.ok) {
-        setTrialError(json.error || "Не удалось включить пробный период");
-        return;
-      }
-      await load();
-    } catch {
-      setTrialError("Ошибка соединения");
-    } finally {
-      setTrialStarting(false);
-    }
-  };
-
   const handleCancel = async () => {
     if (
       !confirm(
@@ -219,20 +196,22 @@ export default function SubscriptionPage() {
 
   const subscription = data.subscription;
   const currentPlan = data.plan;
-  const trial = data.trial;
   const isPaidActive =
     data.hasPaidFeatures && subscription?.status === "ACTIVE";
   const estCount = data.establishmentCount;
-  const networkMonthly = calcNetworkMonthlyPrice(Math.max(estCount, 2));
 
+  const introOffer = data.introOffer;
   const priceFor = (planId: "PRO" | "NETWORK") => {
     const p = PLANS[planId].pricing;
-    if (billing === "yearly" || p.yearlyOnly) {
-      return { main: p.yearlyRub, suffix: "/ год", note: p.yearlyNote };
+    if (planId === "PRO" && introOffer) {
+      return {
+        main: introOffer.amountRub,
+        suffix: "первый год",
+        note: `далее ${formatRub(introOffer.listAmountRub)}/год`,
+        compareAt: introOffer.listAmountRub,
+      };
     }
-    const monthly =
-      planId === "NETWORK" ? networkMonthly : p.monthlyRub;
-    return { main: monthly, suffix: "/ мес", note: "" };
+    return { main: p.yearlyRub, suffix: "/ год", note: p.yearlyNote, compareAt: undefined as number | undefined };
   };
 
   return (
@@ -252,14 +231,7 @@ export default function SubscriptionPage() {
                 <p className="text-sm text-gray-500">Ваш текущий тариф</p>
                 <div className="flex items-center gap-3 mt-1">
                   <PlanBadge plan={currentPlan} />
-                  {trial?.active ? (
-                    <Badge variant="default">
-                      Пробный период
-                      {trial.daysLeft != null ? ` — ${trial.daysLeft} дн.` : ""}
-                    </Badge>
-                  ) : (
-                    isPaidActive && <Badge variant="success">Активна</Badge>
-                  )}
+                  {isPaidActive && <Badge variant="success">Активна</Badge>}
                   {subscription?.cancelAtPeriodEnd && (
                     <Badge variant="default">Отмена в конце периода</Badge>
                   )}
@@ -268,7 +240,7 @@ export default function SubscriptionPage() {
                   Заведений: {estCount}
                   {data.establishmentLimit != null
                     ? ` / лимит ${data.establishmentLimit}`
-                    : " · тарификация по точкам"}
+                    : ""}
                 </p>
                 {subscription?.currentPeriodEnd && isPaidActive && (
                   <p className="text-xs text-gray-500 mt-1 flex items-center gap-1">
@@ -278,80 +250,13 @@ export default function SubscriptionPage() {
                   </p>
                 )}
               </div>
-              {isPaidActive && !trial?.active && !subscription?.cancelAtPeriodEnd && (
+              {isPaidActive && !subscription?.cancelAtPeriodEnd && (
                 <Button variant="outline" size="sm" onClick={handleCancel}>
                   Отменить подписку
                 </Button>
               )}
             </div>
           </Card>
-
-          {trial?.eligible && (
-            <Card className="border-indigo-200 bg-indigo-50/60">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <p className="font-semibold text-indigo-950">
-                    Попробуйте PRO бесплатно — {trial.days} дней
-                  </p>
-                  <p className="mt-1 text-sm text-indigo-900/80 leading-relaxed">
-                    Микросайт, умная маршрутизация отзывов, чаевые и расширенная аналитика.
-                    Карта не нужна, автосписаний нет — по окончании тариф сам вернётся на FREE.
-                  </p>
-                  {trialError && (
-                    <p className="mt-2 text-sm text-red-700">{trialError}</p>
-                  )}
-                </div>
-                <Button
-                  onClick={handleStartTrial}
-                  disabled={trialStarting}
-                  className="shrink-0"
-                >
-                  {trialStarting ? "Включаем…" : `Попробовать ${trial.days} дней`}
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {trial?.active && (
-            <Card className="border-amber-200 bg-amber-50/70">
-              <p className="font-semibold text-amber-950">
-                Идёт пробный период PRO
-                {trial.daysLeft != null ? `: осталось ${trial.daysLeft} дн.` : ""}
-              </p>
-              <p className="mt-1 text-sm text-amber-900/80 leading-relaxed">
-                После окончания микросайт останется открытым для гостей — напечатанные QR
-                продолжат работать. Чтобы менять разделы и оформление, подключите PRO ниже.
-              </p>
-            </Card>
-          )}
-
-          <div className="flex items-center gap-2 p-1 bg-gray-100 rounded-lg w-fit">
-            <button
-              type="button"
-              onClick={() => setBilling("monthly")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                billing === "monthly"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Помесячно
-            </button>
-            <button
-              type="button"
-              onClick={() => setBilling("yearly")}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                billing === "yearly"
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-600 hover:text-gray-900"
-              }`}
-            >
-              Годовая оплата
-              <span className="ml-1.5 text-xs text-green-600 font-normal">
-                2 мес. в подарок
-              </span>
-            </button>
-          </div>
 
           {statusMessage && (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
@@ -421,20 +326,33 @@ export default function SubscriptionPage() {
             {consentError && (
               <p className="text-sm text-red-600 pl-7">{consentError}</p>
             )}
-            {billing === "monthly" && (
-              <p className="text-xs text-gray-500 pl-7">
-                PRO: {formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} раз в год (только годовая оплата).
-                При выборе Сеть: от {formatRub(calcNetworkMonthlyPrice(Math.max(estCount, 2)))} каждый месяц
-                (зависит от числа заведений).
-              </p>
-            )}
-            {billing === "yearly" && (
-              <p className="text-xs text-gray-500 pl-7">
-                PRO: {formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} раз в год.
-                Сеть: {formatRub(calcSubscriptionAmount("NETWORK", "yearly", estCount))} раз в год.
-              </p>
-            )}
+            <p className="text-xs text-gray-500 pl-7">
+              {introOffer
+                ? `PRO: ${formatRub(introOffer.amountRub)} за первый год, затем ${formatRub(introOffer.listAmountRub)} каждый год.`
+                : `PRO: ${formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} раз в год.`}{" "}
+              Сеть: {formatRub(calcSubscriptionAmount("NETWORK", "yearly", estCount))} раз в год.
+              Оба тарифа оплачиваются только на год.
+            </p>
           </div>
+
+          {introOffer && (
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950">
+              <p className="font-medium">
+                Персональная цена на первый год PRO: {formatRub(introOffer.amountRub)} вместо{" "}
+                {formatRub(introOffer.listAmountRub)}
+              </p>
+              <p className="mt-1">
+                Код {introOffer.code} действует до{" "}
+                {new Date(introOffer.expiresAt).toLocaleDateString("ru-RU", {
+                  day: "numeric",
+                  month: "long",
+                  timeZone: "Europe/Moscow",
+                })}
+                . Со следующего года списывается обычная цена, сейчас это{" "}
+                {formatRub(introOffer.listAmountRub)} в год.
+              </p>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <PlanCard
@@ -461,13 +379,7 @@ export default function SubscriptionPage() {
               currentPlan={currentPlan}
               isPaidActive={isPaidActive}
               price={priceFor("NETWORK")}
-              priceHint={
-                billing === "monthly" && estCount > 2
-                  ? `При ${estCount} заведениях: ${formatRub(networkMonthly)}/мес`
-                  : billing === "monthly"
-                    ? `База: 2 заведения, +${formatRub(PLAN_PRICING.NETWORK.extraEstablishmentMonthlyRub)}/мес за каждую доп. точку`
-                    : undefined
-              }
+              priceHint={`До ${PLAN_PRICING.NETWORK.includedEstablishments} заведений`}
               onSubscribe={() => handleSubscribe("NETWORK")}
               subscribing={subscribing}
               disabled={currentPlan === "NETWORK" && isPaidActive}
@@ -478,6 +390,12 @@ export default function SubscriptionPage() {
           <p className="text-xs text-gray-500 text-center">
             QR-кодов внутри заведения — без лимита на всех тарифах. Тарификация идёт по числу
             заведений, не по QR.
+          </p>
+          <p className="text-xs text-gray-500 text-center -mt-4">
+            * {CUSTOM_PLAN_HINT}{" "}
+            <a href="/dashboard/support" className="text-indigo-600 hover:underline">
+              Написать в поддержку
+            </a>
           </p>
 
           {historyLoading ? (
@@ -603,7 +521,7 @@ function PlanCard({
   planId: PlanId;
   currentPlan: PlanId;
   isPaidActive: boolean;
-  price: { main: number; suffix: string; note: string };
+  price: { main: number; suffix: string; note: string; compareAt?: number };
   priceHint?: string;
   onSubscribe: () => void;
   subscribing: string | null;
@@ -643,6 +561,9 @@ function PlanCard({
         <p className="text-sm text-gray-500">{plan.tagline}</p>
 
         <div>
+          {price.compareAt != null && price.compareAt !== price.main && (
+            <p className="text-sm text-gray-400 line-through">{formatRub(price.compareAt)}</p>
+          )}
           <p className="text-3xl font-bold text-gray-900">
             {price.main === 0 ? "0 ₽" : formatRub(price.main)}
           </p>
@@ -688,7 +609,9 @@ function PlanCard({
                   {subscribing === planId
                     ? "Перенаправляем..."
                     : planId === "PRO"
-                      ? "Оформить PRO"
+                      ? price.compareAt
+                        ? `Оформить PRO за ${formatRub(price.main)}`
+                        : "Оформить PRO"
                       : "Оформить «Сеть»"}
                 </Button>
                 {consentRequired && (

@@ -49,6 +49,8 @@ next-env.d.ts
 # local QA artifacts
 /.playwright-cli
 /output
+/.npmcache
+/.xdg-state
 
 # python bytecode (e2e)
 __pycache__/

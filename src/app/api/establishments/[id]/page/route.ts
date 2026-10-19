@@ -19,6 +19,7 @@ import {
   establishmentMicrositeAccess,
 } from "@/lib/establishment-access";
 import { MICROSITE_FROZEN_ERROR, isMicrositeFrozen } from "@/lib/qr-mode-access";
+import { isMicrositeSlug, isReservedMicrositeSlug } from "@/lib/microsite-host";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 
 type RouteContext = { params: Promise<{ id: string }> };
@@ -236,7 +237,9 @@ export async function PUT(request: Request, context: RouteContext) {
     const raw = typeof body.shortSlug === "string" ? body.shortSlug.trim().toLowerCase() : "";
     if (raw === "") {
       data.shortSlug = null;
-    } else if (/^[a-z0-9][a-z0-9_-]{0,31}$/.test(raw)) {
+    } else if (isReservedMicrositeSlug(raw)) {
+      return NextResponse.json({ error: "Это имя зарезервировано" }, { status: 400 });
+    } else if (isMicrositeSlug(raw)) {
       const conflict = await prisma.establishment.findFirst({
         where: { shortSlug: raw, NOT: { id } },
       });
@@ -245,7 +248,10 @@ export async function PUT(request: Request, context: RouteContext) {
       }
       data.shortSlug = raw;
     } else {
-      return NextResponse.json({ error: "Короткий адрес: только строчные латинские буквы, цифры, дефис и подчёркивание, от 2 до 32 символов" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Короткий адрес: от 2 до 32 символов, строчные латинские буквы, цифры и дефис. Дефис не в начале и не в конце." },
+        { status: 400 }
+      );
     }
   }
   if (body.landingTipsType !== undefined) data.landingTipsType = body.landingTipsType || null;

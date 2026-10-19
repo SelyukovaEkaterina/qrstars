@@ -6,7 +6,8 @@ import {
 } from "@/lib/establishment-access";
 import type { FeedbackSurveyKind } from "@/lib/feedback-surveys";
 import { effectivePlan } from "@/lib/subscription-utils";
-import type { PlanId } from "@/lib/plans";
+import { PRO_INTRO_OFFER, type PlanId } from "@/lib/plans";
+import { PRO_OFFER_CAMPAIGN_STARTED_AT_KEY } from "@/lib/subscription-intro-offer";
 
 export interface LifecycleUserState {
   userId: string;
@@ -30,6 +31,17 @@ export interface LifecycleUserState {
   plan: PlanId;
   firstOwnedEstablishmentAt: Date | null;
   firstOwnedQrAt: Date | null;
+  /** Режим самого сканируемого активного QR-кода владельца (fallback: первый QR). */
+  topQrMode?: string | null;
+  /** Отсечка кампании: первый скан раньше этой даты письмо со скидкой не получает. */
+  proOfferCampaignStartedAt: Date | null;
+  proIntroOffer: {
+    code: string;
+    amountRub: number;
+    listAmountRub: number;
+    expiresAt: Date;
+    usedAt: Date | null;
+  } | null;
 }
 
 function daysAgoDate(days: number): Date {
@@ -75,6 +87,9 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
     scansLast90Days,
     firstOwnedEstablishment,
     firstOwnedQr,
+    topScannedQr,
+    proOfferCampaignMeta,
+    proIntroOffer,
   ] = await Promise.all([
     prisma.establishment.count({ where: establishmentAccessWhere(userId) }),
     prisma.qRCode.count({ where: { userId } }),
@@ -103,10 +118,24 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
     prisma.qRCode.findFirst({
       where: { userId },
       orderBy: { createdAt: "asc" },
-      select: { createdAt: true },
+      select: { createdAt: true, mode: true },
+    }),
+    prisma.qRCode.findFirst({
+      where: { userId, isActive: true },
+      orderBy: [{ scansCount: "desc" }, { createdAt: "asc" }],
+      select: { mode: true },
+    }),
+    prisma.platformMeta.findUnique({
+      where: { key: PRO_OFFER_CAMPAIGN_STARTED_AT_KEY },
+    }),
+    prisma.subscriptionIntroOffer.findUnique({
+      where: {
+        userId_campaignKey: { userId, campaignKey: PRO_INTRO_OFFER.campaignKey },
+      },
     }),
   ]);
 
+  const campaignStartedAt = proOfferCampaignMeta ? new Date(proOfferCampaignMeta.value) : null;
   const needsSetup = accessibleEstablishmentCount === 0 && ownedQrCount === 0;
   const submittedFeedbackKinds = new Set(
     user.feedbacks.map((f) => f.surveyKind as FeedbackSurveyKind)
@@ -134,6 +163,18 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
     plan: effectivePlan(user.subscriptions[0] ?? null),
     firstOwnedEstablishmentAt: firstOwnedEstablishment?.createdAt ?? null,
     firstOwnedQrAt: firstOwnedQr?.createdAt ?? null,
+    topQrMode: topScannedQr?.mode ?? firstOwnedQr?.mode ?? null,
+    proOfferCampaignStartedAt:
+      campaignStartedAt && !Number.isNaN(campaignStartedAt.getTime()) ? campaignStartedAt : null,
+    proIntroOffer: proIntroOffer
+      ? {
+          code: proIntroOffer.code,
+          amountRub: proIntroOffer.amountRub,
+          listAmountRub: proIntroOffer.listAmountRub,
+          expiresAt: proIntroOffer.expiresAt,
+          usedAt: proIntroOffer.usedAt,
+        }
+      : null,
   };
 }
 

@@ -17,6 +17,7 @@ import type { ReviewRoutingConfig } from "@/lib/review-routing";
 import { DEFAULT_REVIEW_ROUTING } from "@/lib/review-routing";
 import type { RoutingGroup, SectionTarget } from "@/lib/qr-routing";
 import { isBuiltinSection } from "@/lib/qr-routing";
+import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
 
 export interface LandingPreviewPayload {
   pageModules: PageModules;
@@ -91,6 +92,8 @@ interface RoutingPreviewProps {
   /** @deprecated используйте landing */
   menu?: MenuData | null;
   redirectUrl?: string;
+  /** FREE: гость сначала видит экран QrStars с отсчётом (REDIRECT) */
+  showRedirectInterstitial?: boolean;
   hasFile?: boolean;
   customPageLabel?: string | null;
 }
@@ -104,6 +107,7 @@ export default function RoutingPreview({
   pageModules: pageModulesProp,
   menu: menuProp,
   redirectUrl,
+  showRedirectInterstitial,
   customPageLabel,
 }: RoutingPreviewProps) {
   const pageModules = landing?.pageModules ?? pageModulesProp;
@@ -243,12 +247,33 @@ export default function RoutingPreview({
               <p className="text-xs text-gray-400">Контент из «Страниц заведений»</p>
             </div>
           )}
-          {routingGroup === "REDIRECT" && (
+          {routingGroup === "REDIRECT" && showRedirectInterstitial && (
+            <div className="p-5 text-center space-y-3">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-600">
+                FREE · экран QrStars
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                Qr<span className="text-indigo-600">Stars</span>
+              </p>
+              <p className="text-sm text-gray-600">Переходим на</p>
+              <p className="text-xs font-mono text-indigo-600 break-all">
+                {redirectUrl || "https://..."}
+              </p>
+              <p className="text-3xl font-bold text-gray-900">
+                {REDIRECT_INTERSTITIAL_SECONDS}
+              </p>
+              <p className="text-[11px] text-gray-400">
+                через {REDIRECT_INTERSTITIAL_SECONDS} сек. — гость ждёт и видит нашу рекламу
+              </p>
+            </div>
+          )}
+          {routingGroup === "REDIRECT" && !showRedirectInterstitial && (
             <div className="p-6 text-center space-y-3">
               <p className="text-sm text-gray-500">Перенаправление на</p>
               <p className="text-xs font-mono text-indigo-600 break-all">
                 {redirectUrl || "https://..."}
               </p>
+              <p className="text-[11px] text-emerald-600">PRO · мгновенный переход</p>
             </div>
           )}
           {routingGroup === "LANDING" && (!establishmentId || !pageModules) && (

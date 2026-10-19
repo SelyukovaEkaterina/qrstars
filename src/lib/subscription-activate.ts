@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import type { BillingPeriod, PlanId } from "@/lib/plans";
+import { markProIntroOfferUsed } from "@/lib/subscription-intro-offer";
 
 const PARTNER_COMMISSION_RATE = 0.15;
 const HOLD_DAYS = 30;
@@ -161,6 +162,9 @@ export async function handlePaidPaymentOrder(invId: number) {
       invoiceId: invId,
       amount,
     });
+    if (plan === "PRO") {
+      await markProIntroOfferUsed(order.userId, amount, order.id);
+    }
   } else {
     const sub = await prisma.subscription.findFirst({
       where: {

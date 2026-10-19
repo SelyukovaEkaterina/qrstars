@@ -34,7 +34,8 @@ describe("project routes", () => {
   });
 
   it("builds public microsite url from slug", () => {
-    assert.equal(micrositePublicUrl("cafe"), "/a/cafe");
+    assert.equal(micrositePublicUrl("cafe"), "https://cafe.qrstars.ru");
     assert.equal(micrositePublicUrl("  "), null);
+    assert.equal(micrositePublicUrl("my_cafe"), "/a/my_cafe");
   });
 });

@@ -13,7 +13,6 @@ import {
   findActiveSubscription,
   hasPaidFeatures,
 } from "@/lib/subscription-utils";
-import { PRO_TRIAL_DAYS, getProTrialState } from "@/lib/pro-trial";
 
 export default async function SetupStartPage({
   searchParams,
@@ -27,7 +26,7 @@ export default async function SetupStartPage({
   const isRerun = rerun === "1" || rerun === "true";
   const userId = (session.user as Record<string, unknown>).id as string;
 
-  const [establishments, ownedCount, subscription, userRow, trial] = await Promise.all([
+  const [establishments, ownedCount, subscription, userRow] = await Promise.all([
     prisma.establishment.findMany({
       where: establishmentAccessWhere(userId),
       select: {
@@ -47,7 +46,6 @@ export default async function SetupStartPage({
       where: { id: userId },
       select: { registrationUtm: true },
     }),
-    getProTrialState(userId),
   ]);
 
   const plan = effectivePlan(subscription);
@@ -61,8 +59,6 @@ export default async function SetupStartPage({
       existingEstablishments={establishments}
       canAddNewEstablishment={canAddNewEstablishment}
       hasPaidFeatures={paid}
-      trialEligible={trial.eligible}
-      trialDays={PRO_TRIAL_DAYS}
       initialRegistrationUtm={initialRegistrationUtm}
     />
   );

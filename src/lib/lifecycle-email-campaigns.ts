@@ -1,6 +1,7 @@
 import { calendarDaysSinceMsk } from "@/lib/lifecycle-email-msk";
 import type { LifecycleUserState } from "@/lib/lifecycle-email-state";
 import { isActiveUser90d, isRecentlyActive } from "@/lib/lifecycle-email-state";
+import { PRO_INTRO_OFFER } from "@/lib/plans";
 
 export type LifecycleCampaignKey =
   | "welcome"
@@ -15,7 +16,9 @@ export type LifecycleCampaignKey =
   | "feedback_d7"
   | "feedback_d90"
   | "feedback_d365"
-  | "pro_hint_d14";
+  | "pro_hint_d14"
+  | typeof PRO_INTRO_OFFER.campaignKey
+  | typeof PRO_INTRO_OFFER.reminderCampaignKey;
 
 export interface LifecycleCampaign {
   key: LifecycleCampaignKey;
@@ -26,6 +29,34 @@ export interface LifecycleCampaign {
 
 function daysSinceRegistration(state: LifecycleUserState, now?: Date): number {
   return calendarDaysSinceMsk(state.createdAt, now);
+}
+
+export function isProIntroOfferCampaign(key: string): boolean {
+  return key === PRO_INTRO_OFFER.campaignKey || key === PRO_INTRO_OFFER.reminderCampaignKey;
+}
+
+export function proIntroOfferDailyCapReached(sentToday: number): boolean {
+  return sentToday >= PRO_INTRO_OFFER.maxPerDay;
+}
+
+/** Скидка включается от первого скана, без верхней границы по дате регистрации. */
+export function isProIntroOfferEligible(state: LifecycleUserState, now = new Date()): boolean {
+  if (state.plan !== "FREE") return false;
+  if (state.ownedQrCount < 1) return false;
+  if (state.totalScans < PRO_INTRO_OFFER.minScans) return false;
+  if (!state.firstScanAt || !state.proOfferCampaignStartedAt) return false;
+  if (state.firstScanAt.getTime() < state.proOfferCampaignStartedAt.getTime()) return false;
+  return calendarDaysSinceMsk(state.firstScanAt, now) >= PRO_INTRO_OFFER.minDaysSinceFirstScan;
+}
+
+export function isProIntroOfferReminderDue(state: LifecycleUserState, now = new Date()): boolean {
+  if (state.plan !== "FREE") return false;
+  if (!state.sentCampaignKeys.has(PRO_INTRO_OFFER.campaignKey)) return false;
+  const offer = state.proIntroOffer;
+  if (!offer || offer.usedAt) return false;
+  const msLeft = offer.expiresAt.getTime() - now.getTime();
+  if (msLeft <= 0) return false;
+  return msLeft <= PRO_INTRO_OFFER.reminderLeadDays * 24 * 60 * 60 * 1000;
 }
 
 export const LIFECYCLE_CAMPAIGNS: LifecycleCampaign[] = [
@@ -123,10 +154,20 @@ export const LIFECYCLE_CAMPAIGNS: LifecycleCampaign[] = [
     key: "pro_hint_d14",
     isEligible: (state, now) => {
       if (state.plan !== "FREE") return false;
+      if (state.sentCampaignKeys.has(PRO_INTRO_OFFER.campaignKey)) return false;
+      if (isProIntroOfferEligible(state, now)) return false;
       if (state.totalScans < 3) return false;
       if (state.reviewCount < 1) return false;
       return daysSinceRegistration(state, now) >= 14;
     },
+  },
+  {
+    key: PRO_INTRO_OFFER.campaignKey,
+    isEligible: (state, now) => isProIntroOfferEligible(state, now),
+  },
+  {
+    key: PRO_INTRO_OFFER.reminderCampaignKey,
+    isEligible: (state, now) => isProIntroOfferReminderDue(state, now),
   },
 ];
 

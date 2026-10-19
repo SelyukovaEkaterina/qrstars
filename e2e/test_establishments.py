@@ -137,3 +137,35 @@ def test_create_first_establishment_auto_links_qr(http, base_url):
     qr = qr_get.json()["qrcode"]
     assert qr["establishmentId"] == data["establishment"]["id"]
     assert qr["isActive"] is True
+
+
+def test_network_plan_limited_to_five_establishments(owner_session, admin_session, base_url):
+    """«Сеть» — до 5 заведений; дальше 403 с подсказкой написать в поддержку."""
+    set_user_plan(admin_session, base_url, "NETWORK")
+    initial = len(owner_session.get(f"{base_url}/api/establishments").json()["establishments"])
+    created = []
+    try:
+        blocked = None
+        for i in range(6):
+            r = owner_session.post(f"{base_url}/api/establishments", json={"name": f"E2E Limit {i}"})
+            if r.status_code == 403:
+                blocked = r
+                break
+            assert r.status_code == 200
+            created.append(r.json()["establishment"]["id"])
+        assert blocked is not None, "лимит заведений на «Сети» не сработал"
+        assert initial + len(created) == max(5, initial)
+        body = blocked.json()
+        assert "техподдержк" in body["error"]
+        assert body["upgradeRequired"] == "NETWORK"
+    finally:
+        for est_id in created:
+            owner_session.delete(f"{base_url}/api/establishments", params={"id": est_id})
+
+
+def test_subscription_plans_network_is_yearly_five_points(owner_session, base_url):
+    r = owner_session.get(f"{base_url}/api/subscription")
+    assert r.status_code == 200
+    network = r.json()["plans"]["NETWORK"]
+    assert network["pricing"]["yearlyRub"] == 2900
+    assert network["establishmentLimit"] == 5

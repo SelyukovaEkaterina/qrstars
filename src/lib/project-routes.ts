@@ -1,5 +1,7 @@
 /** UI «Проект» = техническая сущность Establishment. Публичные URL не меняются. */
 
+import { isMicrositeSlug } from "./microsite-host";
+
 export const LAST_PROJECT_COOKIE = "qrstars_last_project";
 
 /** Служебный раздел для QR без привязки к проекту (legacy). */
@@ -103,6 +105,8 @@ export function projectSectionPath(
 }
 
 export function micrositePublicUrl(shortSlug: string | null | undefined): string | null {
-  const slug = shortSlug?.trim();
-  return slug ? `/a/${slug}` : null;
+  const slug = shortSlug?.trim().toLowerCase();
+  if (!slug) return null;
+  if (isMicrositeSlug(slug)) return `https://${slug}.qrstars.ru`;
+  return `/a/${slug}`;
 }

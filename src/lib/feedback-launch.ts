@@ -54,7 +54,9 @@ export async function runFeedbackLaunch(): Promise<FeedbackLaunchResult> {
     }
 
     const html = renderFeedbackLaunchEmail(state);
-    const subject = LIFECYCLE_EMAIL_SUBJECTS[FEEDBACK_LAUNCH_CAMPAIGN_KEY];
+    const subjectTemplate = LIFECYCLE_EMAIL_SUBJECTS[FEEDBACK_LAUNCH_CAMPAIGN_KEY];
+    const subject =
+      typeof subjectTemplate === "function" ? subjectTemplate(state) : subjectTemplate;
     const ok = await sendMail(state.email, subject, html);
 
     if (!ok) {

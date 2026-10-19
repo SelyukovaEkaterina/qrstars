@@ -2,6 +2,7 @@ import { PLANS, PLAN_PRICING, formatRub } from "@/lib/plans";
 import { renderEmailLayout, featureBlock, bulletList } from "@/lib/email-layout";
 import { createSignedFeedbackToken, getBaseUrl } from "@/lib/signed-user-token";
 import { TEMPLATE_ROUTES } from "@/lib/template-routes";
+import { formatMskDayMonth } from "@/lib/lifecycle-email-msk";
 import type { LifecycleUserState } from "@/lib/lifecycle-email-state";
 
 function greeting(state: LifecycleUserState): string {
@@ -297,6 +298,215 @@ export function renderProHintD14Email(state: LifecycleUserState): string {
   });
 }
 
+export type ProOfferQrProfile = "review" | "redirect" | "content";
+
+export function resolveProOfferQrProfile(mode: string | null | undefined): ProOfferQrProfile {
+  if (!mode || mode === "REVIEW") return "review";
+  if (mode === "REDIRECT") return "redirect";
+  return "content";
+}
+
+function proOfferOrNull(state: LifecycleUserState) {
+  return state.proIntroOffer;
+}
+
+function proOfferPromoCard(params: {
+  code: string;
+  price: string;
+  list: string;
+  monthlyEq: string;
+  until: string;
+}): string {
+  return `<div style="margin:20px 0;padding:18px 20px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:14px;">
+    <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#4338ca;text-transform:uppercase;letter-spacing:0.04em;">Персональное предложение · скидка 30%</p>
+    <p style="margin:0 0 10px;font-size:20px;font-weight:700;color:#111827;">
+      ${params.price} за первый год
+      <span style="font-size:15px;font-weight:400;color:#6b7280;text-decoration:line-through;margin-left:6px;">${params.list}</span>
+      <span style="font-size:14px;font-weight:500;color:#4f46e5;margin-left:6px;">(≈${params.monthlyEq}/мес)</span>
+    </p>
+    <p style="margin:0;font-size:14px;color:#374151;">
+      Промокод <span style="display:inline-block;padding:2px 8px;background:#ffffff;border:1px solid #a5b4fc;border-radius:6px;font-family:monospace;font-weight:700;color:#312e81;">${params.code}</span> действует до <strong>${params.until}</strong>. На странице тарифов скидка подставится сама.
+    </p>
+  </div>`;
+}
+
+function proOfferTermsFooter(code: string, price: string, list: string): string {
+  return `<p style="margin:18px 0 0;font-size:13px;color:#6b7280;">
+    Прозрачные условия: первый год по коду <strong>${code}</strong> стоит ${price}. Со следующего года списание идёт по обычной цене (${list} в год). Отключить автопродление можно в кабинете в любой момент до даты списания.
+  </p>`;
+}
+
+export function renderProOfferD14Email(state: LifecycleUserState): string {
+  const offer = proOfferOrNull(state);
+  const base = getBaseUrl();
+  const amountRub = offer ? offer.amountRub : PLAN_PRICING.PRO.yearlyRub;
+  const price = formatRub(amountRub);
+  const list = offer ? formatRub(offer.listAmountRub) : formatRub(PLAN_PRICING.PRO.yearlyRub);
+  const monthlyEq = formatRub(Math.round(amountRub / 12));
+  const until = offer ? formatMskDayMonth(offer.expiresAt) : "";
+  const code = offer?.code ?? "";
+  const profile = resolveProOfferQrProfile(state.topQrMode);
+  const card = proOfferPromoCard({ code, price, list, monthlyEq, until });
+  const terms = proOfferTermsFooter(code, price, list);
+
+  if (profile === "redirect") {
+    return renderEmailLayout({
+      userId: state.userId,
+      preheader: `Мгновенный переход по QR без экрана QrStars и аналитика по дням, городам и устройствам. Код ${code} до ${until}`,
+      title: `Прямой переход по QR без паузы: PRO за ${price} вместо ${list}`,
+      bodyHtml: `
+        <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
+        <p style="font-size:16px;color:#374151;">
+          Ваш динамический QR-код активно сканируют. На бесплатном тарифе вы уже можете менять адрес ссылки в любой момент без перепечатки тиража. Если нужно убрать промежуточный экран при сканировании и видеть детальную статистику переходов, подключите тариф <strong>PRO</strong>.
+        </p>
+        ${card}
+        <p style="margin:22px 0 10px;font-size:16px;font-weight:700;color:#111827;">Что изменится для вашего QR-кода:</p>
+        ${featureBlock(
+          "🚀 Мгновенный переход без промежуточного экрана QrStars",
+          "На бесплатном тарифе перед открытием вашей ссылки гость 3 секунды видит экран «Переходим на сайт… Этот QR-код создан в QrStars». В PRO редирект срабатывает сразу: человек сканирует код камерой и без задержки попадает на ваш сайт, соцсеть или форму записи."
+        )}
+        ${featureBlock(
+          "📊 Детальная статистика: дни, часы пик, города и устройства",
+          "Вместо одного общего счётчика сканов вы видите динамику по дням, распределение по часам, географию переходов и платформу (iOS / Android). Удобно оценивать, как работают печатные материалы, упаковка, витрины или офлайн-реклама."
+        )}
+        ${featureBlock(
+          "📱 Микросайт на том же QR-коде, если одной ссылки станет мало",
+          "Если со временем захочется вести гостя не на одну страницу, а дать выбор (сайт, Telegram, WhatsApp, прайс, Wi‑Fi или сбор отзывов), вы в один клик переключите этот же QR на микросайт. Напечатанный код менять не придётся."
+        )}
+        ${featureBlock(
+          "🎨 Чистый бренд (White Label) на любых страницах",
+          "Если вы добавите QR с файлом, визиткой, меню или отзывами, страницы будут открываться в ваших фирменных цветах и с вашим логотипом без плашки «Сделано в QrStars»."
+        )}
+        ${terms}
+      `,
+      cta: { label: `Подключить PRO за ${price}`, href: `${base}/dashboard/subscription` },
+    });
+  }
+
+  if (profile === "content") {
+    return renderEmailLayout({
+      userId: state.userId,
+      preheader: `Микросайт со всеми разделами в одном QR, оформление без плашки QrStars и уведомления в Telegram. Код ${code} до ${until}`,
+      title: `Все разделы в одном QR и ваш бренд: PRO за ${price} вместо ${list}`,
+      bodyHtml: `
+        <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
+        <p style="font-size:16px;color:#374151;">
+          Гости уже пользуются вашим QR-кодом. На бесплатном тарифе каждый код открывает один конкретный раздел со стандартной подписью сервиса. Тариф <strong>PRO</strong> позволяет собрать все разделы на одной брендированной странице и получать обращения клиентов прямо в мессенджер.
+        </p>
+        ${card}
+        <p style="margin:22px 0 10px;font-size:16px;font-weight:700;color:#111827;">Что даст переход на PRO:</p>
+        ${featureBlock(
+          "📱 Микросайт заведения: один QR вместо нескольких табличек",
+          "Объедините меню, цифровую визитку, подключение к Wi‑Fi, чаевые, файлы и отзывы на одной странице. Гость сканирует один код и сам выбирает нужную плитку, а вы включаете и меняете разделы в кабинете без перепечатки QR."
+        )}
+        ${featureBlock(
+          "🎨 Оформление под ваш бренд без вотермарки QrStars",
+          "Ваша обложка, логотип и фирменные цвета без подписи «Сделано в QrStars» внизу экрана. Для гостей это выглядит как собственное веб-приложение вашего бизнеса."
+        )}
+        ${featureBlock(
+          "⚡ Заказы, заявки и отзывы в Telegram и MAX за секунду",
+          "Обращения с визитки, заказы из QR-меню и отзывы с низкими оценками прилетают в мессенджер сразу после отправки, чтобы вы или администратор могли отреагировать на месте. Для кафе и ресторанов также доступна синхронизация меню и заказов с iiko."
+        )}
+        ${featureBlock(
+          "📊 Подробная аналитика и умный сбор отзывов 5★",
+          "Смотрите статистику сканирований по дням, часам, регионам и устройствам. А если решите собирать отзывы, PRO сам распределит оценки 4–5★ между Яндекс Картами, 2ГИС, Авито и Flamp."
+        )}
+        ${terms}
+      `,
+      cta: { label: `Подключить PRO за ${price}`, href: `${base}/dashboard/subscription` },
+    });
+  }
+
+  return renderEmailLayout({
+    userId: state.userId,
+    preheader: `Жалобы в Telegram за секунду, микросайт в одном QR и ротация площадок. Код ${code} до ${until}`,
+    title: `Годовой PRO за ${price} вместо ${list}`,
+    bodyHtml: `
+      <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
+      <p style="font-size:16px;color:#374151;">
+        Ваш QR-код уже работает в заведении и собирает сканирования. На бесплатном тарифе закрыта базовая задача: оценки фильтруются, а жалобы приходят на почту. Если хочется быстрее перехватывать негатив и получать от каждого сканирования больше пользы, пригодится тариф <strong>PRO</strong>.
+      </p>
+      ${card}
+      <p style="margin:22px 0 10px;font-size:16px;font-weight:700;color:#111827;">Что изменится в ежедневной работе:</p>
+      ${featureBlock(
+        "⚡ Жалобы в Telegram и MAX за секунду, пока гость ещё у вас",
+        "Письмо на почте легко заметить слишком поздно. В PRO сигнал о низкой оценке (1–3★) сразу прилетает в мессенджер: администратор успеет подойти к столику или связаться с клиентом до того, как обида превратится в публичный отзыв на картах."
+      )}
+      ${featureBlock(
+        "🗺️ Прокачка рейтинга сразу на всех площадках",
+        "На бесплатном тарифе оценки 4–5★ ведут в одно место. В PRO работает умная ротация между Яндекс Картами, 2ГИС, Авито и Flamp, а для каждой оценки от 1 до 5★ можно настроить свой сценарий и текст."
+      )}
+      ${featureBlock(
+        "📱 Микросайт заведения в одном QR-коде",
+        "Вместо отдельных табличек под меню, Wi‑Fi, визитку, чаевые и отзывы гость сканирует один код и сам выбирает нужный раздел. Меняйте позиции меню и ссылки в кабинете без перепечатки QR."
+      )}
+      ${featureBlock(
+        "🎨 Ваш бренд без чужих логотипов и подарки за 5★",
+        "Страница открывается в ваших фирменных цветах, с обложкой и логотипом заведения без подписи «Сделано в QrStars». Чтобы гости охотнее доходили до публикации отзыва, можно включить выдачу промокода на скидку или подарок."
+      )}
+      ${featureBlock(
+        "📊 Понятная аналитика по сканам и конверсии",
+        "Вы видите, сколько гостей доходят от сканирования до оценки, в какие дни и часы таблички работают активнее и с каких устройств заходят посетители."
+      )}
+      ${terms}
+    `,
+    cta: { label: `Подключить PRO за ${price}`, href: `${base}/dashboard/subscription` },
+  });
+}
+
+export function renderProOfferReminderEmail(state: LifecycleUserState): string {
+  const offer = proOfferOrNull(state);
+  const base = getBaseUrl();
+  const amountRub = offer ? offer.amountRub : PLAN_PRICING.PRO.yearlyRub;
+  const price = formatRub(amountRub);
+  const list = offer ? formatRub(offer.listAmountRub) : formatRub(PLAN_PRICING.PRO.yearlyRub);
+  const monthlyEq = formatRub(Math.round(amountRub / 12));
+  const until = offer ? formatMskDayMonth(offer.expiresAt) : "";
+  const code = offer?.code ?? "";
+  const profile = resolveProOfferQrProfile(state.topQrMode);
+  const card = proOfferPromoCard({ code, price, list, monthlyEq, until });
+
+  const bulletsByProfile: Record<ProOfferQrProfile, string[]> = {
+    review: [
+      "<strong>Перехват негатива в моменте:</strong> жалобы 1–3★ приходят в Telegram и MAX за секунду, чтобы вы успели решить вопрос лично, пока гость ещё не ушёл.",
+      "<strong>Отзывы там, где их не хватает:</strong> умная ротация оценок 4–5★ распределяет поток гостей между Яндекс Картами, 2ГИС, Авито и Flamp.",
+      "<strong>Один QR вместо стопки тейбл-тентов:</strong> микросайт объединяет меню, Wi‑Fi, визитку, чаевые и отзывы на одной странице.",
+      "<strong>Чистый бренд и аналитика:</strong> оформление под ваш стиль без плашки QrStars, промокоды за 5★ и статистика конверсии по дням и часам.",
+    ],
+    redirect: [
+      "<strong>Прямой переход без задержки:</strong> убирается 3-секундный промежуточный экран QrStars перед открытием вашей ссылки.",
+      "<strong>Подробная аналитика переходов:</strong> статистика сканирований по дням, часам пик, городам и устройствам (iOS / Android) для оценки эффективности носителей.",
+      "<strong>Микросайт на том же QR:</strong> возможность в любой момент переключить код с одной ссылки на страницу с кнопками соцсетей, визиткой, меню или файлом без перепечатки.",
+      "<strong>White Label без чужих логотипов:</strong> все страницы открываются в фирменных цветах вашего бизнеса без плашки QrStars.",
+    ],
+    content: [
+      "<strong>Микросайт в одном QR-коде:</strong> объедините меню, визитку, Wi‑Fi, файлы, чаевые и отзывы на одной странице с фирменной обложкой.",
+      "<strong>Чистый бренд (White Label):</strong> ваш логотип и цвета без подписи «Сделано в QrStars» внизу экрана.",
+      "<strong>Мгновенные уведомления в Telegram и MAX:</strong> заявки с визитки, заказы из меню и обращения гостей приходят за секунду (+ синхронизация меню с iiko).",
+      "<strong>Детальная аналитика и ротация отзывов:</strong> статистика сканов по дням, часам и устройствам, а также распределение оценок 5★ по площадкам.",
+    ],
+  };
+
+  return renderEmailLayout({
+    userId: state.userId,
+    preheader: `Персональный код ${code} действует до ${until}. Годовой PRO за ${price} вместо ${list}`,
+    title: `Через 2 дня скидка 30% на PRO закроется`,
+    bodyHtml: `
+      <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
+      <p style="font-size:16px;color:#374151;">
+        Напоминаем, что до <strong>${until}</strong> для вашего аккаунта открыта персональная цена на годовой тариф PRO: <strong>${price}</strong> вместо ${list}. После этой даты стоимость вернётся к стандартной.
+      </p>
+      ${card}
+      <p style="margin:20px 0 8px;font-size:16px;font-weight:700;color:#111827;">Зачем переходить на PRO сейчас:</p>
+      ${bulletList(bulletsByProfile[profile])}
+      <p style="margin:18px 0 0;font-size:13px;color:#6b7280;">
+        Код <strong>${code}</strong> привязан к этому аккаунту. Со следующего года продление идёт по стандартной цене (${list} в год), а отменить автосписание можно в личном кабинете в любой момент.
+      </p>
+    `,
+    cta: { label: `Успеть подключить PRO за ${price}`, href: `${base}/dashboard/subscription` },
+  });
+}
+
 export type LifecycleTemplateRenderer = (state: LifecycleUserState) => string;
 
 export const LIFECYCLE_TEMPLATE_RENDERERS: Record<string, LifecycleTemplateRenderer> = {
@@ -313,9 +523,14 @@ export const LIFECYCLE_TEMPLATE_RENDERERS: Record<string, LifecycleTemplateRende
   feedback_d90: renderFeedbackD90Email,
   feedback_d365: renderFeedbackD365Email,
   pro_hint_d14: renderProHintD14Email,
+  pro_offer_d14: renderProOfferD14Email,
+  pro_offer_reminder: renderProOfferReminderEmail,
 };
 
-export const LIFECYCLE_EMAIL_SUBJECTS: Record<string, string> = {
+export const LIFECYCLE_EMAIL_SUBJECTS: Record<
+  string,
+  string | ((state: LifecycleUserState) => string)
+> = {
   welcome: "Добро пожаловать в QrStars — умные QR-коды для вашего бизнеса",
   no_establishment_d1: "3 минуты до первого QR-кода — начнём?",
   no_establishment_d3: "Получайте обратную связь до публикации отзыва",
@@ -330,4 +545,24 @@ export const LIFECYCLE_EMAIL_SUBJECTS: Record<string, string> = {
   feedback_d365: "Год с QrStars — как изменилась работа с отзывами?",
   feedback_launch: "Помогите нам сделать QrStars лучше — короткий опрос",
   pro_hint_d14: "Получайте жалобы в Telegram вместо email с тарифом PRO",
+  pro_offer_d14: (state) => {
+    const offer = state.proIntroOffer;
+    const price = offer ? formatRub(offer.amountRub) : formatRub(PLAN_PRICING.PRO.yearlyRub);
+    const list = offer ? formatRub(offer.listAmountRub) : formatRub(PLAN_PRICING.PRO.yearlyRub);
+    const until = offer ? formatMskDayMonth(offer.expiresAt) : "";
+    const profile = resolveProOfferQrProfile(state.topQrMode);
+    if (profile === "redirect") {
+      return `Прямой переход по QR без экрана QrStars: PRO за ${price} вместо ${list} до ${until}`;
+    }
+    if (profile === "content") {
+      return `Микросайт и ваш бренд без вотермарки: PRO за ${price} вместо ${list} до ${until}`;
+    }
+    return `Годовой PRO за ${price} вместо ${list}: жалобы в Telegram и скидка 30% до ${until}`;
+  },
+  pro_offer_reminder: (state) => {
+    const offer = state.proIntroOffer;
+    const price = offer ? formatRub(offer.amountRub) : formatRub(PLAN_PRICING.PRO.yearlyRub);
+    const until = offer ? formatMskDayMonth(offer.expiresAt) : "";
+    return `Осталось 2 дня: годовой PRO за ${price} до ${until}`;
+  },
 };
