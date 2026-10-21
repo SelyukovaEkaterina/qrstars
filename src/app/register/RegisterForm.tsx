@@ -13,6 +13,7 @@ import {
   resolveRegistrationSubtitle,
 } from "@/lib/registration-utm";
 import VkIdLogin from "@/components/auth/VkIdLogin";
+import { rememberGeneratorStyle } from "@/components/dashboard/GeneratorStyleImporter";
 import YandexIdLogin from "@/components/auth/YandexIdLogin";
 
 function RegisterForm() {
@@ -47,6 +48,11 @@ function RegisterForm() {
       })
       .catch(() => {});
   }, [establishmentInvite]);
+
+  useEffect(() => {
+    // Дизайн из генератора на лендинге переживает и вход через VK / Яндекс (уход со страницы).
+    rememberGeneratorStyle(searchParams);
+  }, [searchParams]);
 
   useEffect(() => {
     const fromQuery = getMetrikaClientIdFromSearchParams(searchParams);

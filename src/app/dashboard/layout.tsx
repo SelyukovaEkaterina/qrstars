@@ -8,6 +8,8 @@ import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
 import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
 import { sessionUserId } from "@/lib/session-user";
 import DashboardChrome from "@/components/dashboard/DashboardChrome";
+import GeneratorStyleImporter from "@/components/dashboard/GeneratorStyleImporter";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -40,6 +42,9 @@ export default async function DashboardLayout({
     <>
       <QaModeBanner />
       <SetupGuideRedirect />
+      <Suspense fallback={null}>
+        <GeneratorStyleImporter />
+      </Suspense>
       <DashboardChrome>{children}</DashboardChrome>
       {!needsSetup && (
         <OnboardingTour

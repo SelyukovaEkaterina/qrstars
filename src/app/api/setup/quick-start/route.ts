@@ -28,6 +28,7 @@ import {
   parseEstablishmentIndustry,
 } from "@/lib/establishment-industry";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
+import { isGeneratorStyleLayout } from "@/lib/generator-style";
 import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
 import { findRedirectUrlProblem } from "@/lib/redirect-url";
 
@@ -47,6 +48,22 @@ function resolveYandexMapsUrl(raw: string | undefined): {
 }
 
 export type SetupIntent = "reviews" | "landing" | "redirect" | "menu";
+
+/**
+ * Дизайн, перенесённый из генератора на лендинге, применяется к первому QR пользователя
+ * вместо отраслевого пресета. Дальше — обычные пресеты, чтобы не навязывать стиль.
+ */
+async function findFirstQrGeneratorStyleId(userId: string): Promise<string | null> {
+  const hasQr = await prisma.qRCode.findFirst({ where: { userId }, select: { id: true } });
+  if (hasQr) return null;
+  const templates = await prisma.template.findMany({
+    where: { userId },
+    select: { id: true, layout: true },
+    orderBy: { createdAt: "desc" },
+    take: 20,
+  });
+  return templates.find((t) => isGeneratorStyleLayout(t.layout))?.id ?? null;
+}
 
 export async function POST(request: Request) {
   const auth = await requireDbUserId();
@@ -102,7 +119,9 @@ export async function POST(request: Request) {
   if (rawIndustry !== undefined && !industry) {
     return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
   }
-  const qrStyleTemplateId = qrStylePresetTemplateId(industryQrStylePreset(industry));
+  const qrStyleTemplateId =
+    (await findFirstQrGeneratorStyleId(userId)) ??
+    qrStylePresetTemplateId(industryQrStylePreset(industry));
   const qualifiedOnboarding = true;
 
   if (intent === "redirect") {

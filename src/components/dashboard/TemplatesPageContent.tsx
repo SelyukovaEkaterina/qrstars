@@ -3,6 +3,7 @@
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
+import { TEMPLATES_CHANGED_EVENT } from "@/components/dashboard/GeneratorStyleImporter";
 import {
   renderSticker,
   DEFAULT_STICKER_CONFIG,
@@ -173,6 +174,12 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
   useEffect(() => {
     if (status === "authenticated") load();
   }, [status, load]);
+
+  // Стиль из генератора на лендинге сохраняется в фоне — показываем его без перезагрузки.
+  useEffect(() => {
+    window.addEventListener(TEMPLATES_CHANGED_EVENT, load);
+    return () => window.removeEventListener(TEMPLATES_CHANGED_EVENT, load);
+  }, [load]);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
