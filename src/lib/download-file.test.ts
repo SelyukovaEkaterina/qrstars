@@ -158,7 +158,7 @@ describe("downloadBlob", () => {
 
   it("opens the iOS share sheet instead of a data link", async () => {
     const body = installDocument();
-    let shared: ShareData | null = null;
+    let shared = null as ShareData | null;
     setNavigator({
       userAgent: "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X)",
       platform: "iPhone",
