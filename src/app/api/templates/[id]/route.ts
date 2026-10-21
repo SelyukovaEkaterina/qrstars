@@ -7,6 +7,7 @@ import {
   isBuiltInStickerTemplateId,
   resolveStickerTemplate,
 } from "@/lib/builtin-sticker-templates";
+import { validateTemplateLayout } from "@/lib/template-layout";
 import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
 
 export async function GET(
@@ -88,8 +89,13 @@ export async function PUT(
   if (body.description !== undefined) data.description = body.description;
   if (body.width !== undefined) data.width = body.width;
   if (body.height !== undefined) data.height = body.height;
-  if (body.layout !== undefined) data.layout = body.layout;
-  if (body.isPublic !== undefined) data.isPublic = body.isPublic;
+  if (body.layout !== undefined) {
+    const layoutError = validateTemplateLayout(body.layout);
+    if (layoutError) {
+      return NextResponse.json({ error: layoutError }, { status: 400 });
+    }
+    data.layout = body.layout;
+  }
 
   const template = await prisma.template.update({
     where: { id },

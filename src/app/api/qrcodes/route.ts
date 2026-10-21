@@ -287,8 +287,22 @@ export async function PUT(request: Request) {
     }
     if (qrStyleTemplateId !== undefined) {
       if (qrStyleTemplateId) {
+        if (typeof qrStyleTemplateId !== "string") {
+          return NextResponse.json({ error: "Некорректный стиль QR" }, { status: 400 });
+        }
         if (isBuiltInQrStyleTemplateId(qrStyleTemplateId)) {
           await ensureQrStylePresets();
+        }
+        // Стиль — встроенный (публичный) или свой: свой пользователя либо владельца QR (участник проекта).
+        const style = await prisma.template.findFirst({
+          where: {
+            id: qrStyleTemplateId,
+            OR: [{ isPublic: true }, { userId: { in: [userId, qrcode.userId].filter(Boolean) as string[] } }],
+          },
+          select: { id: true },
+        });
+        if (!style) {
+          return NextResponse.json({ error: "Стиль QR не найден" }, { status: 400 });
         }
         data.qrStyleTemplate = { connect: { id: qrStyleTemplateId } };
       } else {

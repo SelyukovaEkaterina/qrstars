@@ -436,18 +436,39 @@ const QR_TABS = [
                                 </details>
 
                                 <details class="qr-acc" data-acc="logo" open data-desktop-open>
-                                    <summary><i class="fa-solid fa-image text-primary"></i>Логотип в центре<span id="logo-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                    <summary><i class="fa-solid fa-image text-primary"></i>Логотип или текст в центре<span id="logo-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body">
-                                        <div class="qr-chip-row gap-2 mb-3" id="logo-presets"></div>
-                                        <div class="flex flex-wrap items-center gap-3">
-                                            <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:border-primary hover:text-primary transition">
+                                        <div class="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl border border-slate-200 bg-white" role="tablist" aria-label="Что в центре">
+                                            <button type="button" data-center-mode="image" class="center-mode-btn h-10 rounded-lg text-sm font-semibold">Картинка</button>
+                                            <button type="button" data-center-mode="text" class="center-mode-btn h-10 rounded-lg text-sm font-semibold">Текст</button>
+                                        </div>
+                                        <div id="center-image-controls">
+                                            <div class="qr-chip-row gap-2 mb-3" id="logo-presets"></div>
+                                            <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 mb-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:border-primary hover:text-primary transition">
                                                 <i class="fa-solid fa-upload"></i>
                                                 <span id="logo-label">Загрузить свой</span>
                                                 <input type="file" id="input-logo" accept="image/*" class="hidden" />
                                             </label>
+                                        </div>
+                                        <div id="center-text-controls" class="hidden space-y-3 mb-3">
+                                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                <input type="text" id="input-center-line-0" maxlength="24" placeholder="Строка 1, например: WELCOME" class="qr-input text-sm sm:col-span-3" aria-label="Строка 1" />
+                                                <input type="text" id="input-center-line-1" maxlength="24" placeholder="Строка 2 (необяз.)" class="qr-input text-sm sm:col-span-3" aria-label="Строка 2" />
+                                                <input type="text" id="input-center-line-2" maxlength="24" placeholder="Строка 3 (необяз.)" class="qr-input text-sm sm:col-span-3" aria-label="Строка 3" />
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-3">
+                                                <select id="input-center-font" class="qr-input bg-white text-sm !w-auto" aria-label="Шрифт"></select>
+                                                <input type="color" id="input-center-color" value="#1e293b" class="color-input" aria-label="Цвет текста" />
+                                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                                    <input type="checkbox" id="input-center-bold" class="w-4 h-4 accent-primary" checked />
+                                                    Жирный
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-3">
                                             <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                                 <input type="checkbox" id="input-logo-fill" class="w-4 h-4 accent-primary" />
-                                                Точки под логотипом
+                                                <span id="logo-fill-label">Точки под логотипом</span>
                                             </label>
                                             <div class="flex items-center gap-2">
                                                 <label for="input-logo-size" class="text-xs text-slate-600">Размер</label>
@@ -1414,9 +1435,26 @@ const QR_TABS = [
 <script>
     import QRCode from 'qrcode';
     import jsQR from 'jsqr';
-    import { buildPayload, QR_TYPES, type QrType } from '../lib/qr-generator/payload';
-    import { SvgContext } from '../lib/qr-generator/svg-context';
-    import { randomReadablePalette } from '../lib/qr-generator/palette';
+    // Общий движок с кабинетом: отрисовка, SVG, палитры, проверка данных и сканируемости.
+    import {
+        buildPayload,
+        checkScanLevel as checkQrScanLevel,
+        computeLayout,
+        drawQr,
+        isInFinder,
+        randomReadablePalette,
+        renderDotStylePreview,
+        renderEyeStylePreview,
+        renderToCanvas,
+        renderToSvg,
+        CENTER_TEXT_FONTS,
+        QR_TYPES,
+        type QrAssets,
+        type QrCenterTextFont,
+        type QrLayout,
+        type QrModules,
+        type QrType,
+    } from '../../../src/lib/qr-engine';
     import { encodeTransferStyle, isAppRegisterLink, withTransferStyle, type TransferStyle } from '../lib/qr-generator/style-transfer';
     import { canvasToBlob, deliverFile, isTouchDevice } from '../lib/qr-generator/deliver';
     import { METRIKA_GOALS } from '../lib/metrika-goals';
@@ -1436,7 +1474,6 @@ const QR_TABS = [
     const SCATTER_SHAPES: ScatterShape[] = ['square', 'circle', 'star', 'diamond', 'hexagon', 'heart', 'cross', 'octagon', 'triangle'];
     const ECC_LEVELS: Ecc[] = ['L', 'M', 'Q', 'H'];
     const EXPORT_SIZES = [600, 1200, 2000];
-    const QR_BASE_SIZE = 600;
 
     const state = {
         type: 'url' as QrType,
@@ -1456,6 +1493,11 @@ const QR_TABS = [
         logoKey: null as number | 'upload' | null,
         logoSize: 22,
         logoFill: false,
+        centerMode: 'image' as 'image' | 'text',
+        centerText: '',
+        centerTextFont: 'inter' as QrCenterTextFont,
+        centerTextColor: '#1e293b',
+        centerTextBold: true,
         photoImage: null as HTMLImageElement | null,
         photoKey: null as number | 'upload' | null,
         frame: false,
@@ -1617,10 +1659,12 @@ const QR_TABS = [
         } else {
             state.logoImage = await loadLogoPreset(idx);
             state.logoKey = idx;
+            state.centerMode = 'image';
+            if (state.ecc === 'L' || state.ecc === 'M') state.ecc = 'H';
         }
         input('input-logo').value = '';
         $('logo-label').textContent = 'Загрузить свой';
-        syncLogoUi();
+        syncUiFromState();
         scheduleUpdate();
     }
 
@@ -1739,11 +1783,51 @@ const QR_TABS = [
             const key = b.dataset.logo === 'none' ? null : Number(b.dataset.logo);
             b.classList.toggle('is-active', state.logoKey !== 'upload' && key === state.logoKey);
         });
-        const summary = state.logoKey === null ? 'нет'
+        const textMode = state.centerMode === 'text';
+        const summary = textMode ? (centerLines()[0] || 'текст')
+            : state.logoKey === null ? 'нет'
             : state.logoKey === 'upload' ? 'свой файл'
             : LOGO_PRESETS[state.logoKey].emoji ?? LOGO_PRESETS[state.logoKey].name;
         $('logo-summary').textContent = summary;
+        document.querySelectorAll<HTMLButtonElement>('.center-mode-btn').forEach(b => {
+            const active = b.dataset.centerMode === state.centerMode;
+            b.classList.toggle('active-tab', active);
+            b.setAttribute('aria-pressed', String(active));
+        });
+        show($('center-image-controls'), !textMode);
+        show($('center-text-controls'), textMode);
+        $('logo-fill-label').textContent = textMode ? 'Точки под надписью' : 'Точки под логотипом';
+        const lines = state.centerText.split('\n');
+        for (let i = 0; i < 3; i++) input(`input-center-line-${i}`).value = lines[i] ?? '';
+        ($('input-center-font') as HTMLSelectElement).value = state.centerTextFont;
+        input('input-center-color').value = state.centerTextColor;
+        input('input-center-bold').checked = state.centerTextBold;
     }
+
+    function centerLines(): string[] {
+        return state.centerText.split('\n').map(l => l.trim()).filter(Boolean);
+    }
+
+    // ── Текст в центре ───────────────────────────────────
+    const centerFontSelect = $('input-center-font') as HTMLSelectElement;
+    CENTER_TEXT_FONTS.forEach(f => centerFontSelect.add(new Option(f.label, f.id)));
+    document.querySelectorAll<HTMLButtonElement>('.center-mode-btn').forEach(btn => btn.addEventListener('click', () => {
+        state.centerMode = btn.dataset.centerMode as 'image' | 'text';
+        // Надпись закрывает центр кода так же, как логотип.
+        if (state.centerMode === 'text') state.ecc = 'H';
+        syncUiFromState();
+        scheduleUpdate();
+    }));
+    for (let i = 0; i < 3; i++) {
+        input(`input-center-line-${i}`).addEventListener('input', () => {
+            state.centerText = [0, 1, 2].map(j => input(`input-center-line-${j}`).value).join('\n').replace(/\n+$/, '');
+            $('logo-summary').textContent = centerLines()[0] || 'текст';
+            scheduleUpdate();
+        });
+    }
+    centerFontSelect.addEventListener('change', () => { state.centerTextFont = centerFontSelect.value as QrCenterTextFont; scheduleUpdate(); });
+    input('input-center-color').addEventListener('input', e => { state.centerTextColor = (e.target as HTMLInputElement).value; scheduleUpdate(); });
+    input('input-center-bold').addEventListener('change', e => { state.centerTextBold = (e.target as HTMLInputElement).checked; scheduleUpdate(); });
 
     function syncPhotoUi() {
         document.querySelectorAll<HTMLElement>('.photo-preset-btn').forEach(b => {
@@ -1906,6 +1990,7 @@ const QR_TABS = [
         readImageFile(file, img => {
             state.logoImage = img;
             state.logoKey = 'upload';
+            state.centerMode = 'image';
             // Свой логотип перекрывает центр — держим максимальную коррекцию ошибок.
             state.ecc = 'H';
             $('logo-label').textContent = shortName(file.name);
@@ -1998,591 +2083,21 @@ const QR_TABS = [
         });
     }
 
-    // ── Drawing helpers ───────────────────────────────────
-    function addRoundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-    }
-
-    function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.beginPath();
-        addRoundRectPath(ctx, x, y, w, h, r);
-        ctx.fill();
-    }
-
-    function addLeafPath(
-        ctx: CanvasRenderingContext2D,
-        bx: number, by: number, bw: number,
-        cellSize: number, isTL: boolean, isTR: boolean,
-        outer: boolean,
-    ) {
-        const r = cellSize * (outer ? 2.2 : 1.4);
-        const small = cellSize * (outer ? 0.5 : 0.35);
-        const tl = isTL ? r : isTR ? small : r;
-        const tr = isTL ? r : isTR ? r : small;
-        const br = isTL ? small : isTR ? r : r;
-        const bl = isTL ? r : isTR ? small : small;
-        ctx.moveTo(bx + tl, by);
-        ctx.lineTo(bx + bw - tr, by);
-        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + tr);
-        ctx.lineTo(bx + bw, by + bw - br);
-        ctx.quadraticCurveTo(bx + bw, by + bw, bx + bw - br, by + bw);
-        ctx.lineTo(bx + bl, by + bw);
-        ctx.quadraticCurveTo(bx, by + bw, bx, by + bw - bl);
-        ctx.lineTo(bx, by + tl);
-        ctx.quadraticCurveTo(bx, by, bx + tl, by);
-        ctx.closePath();
-    }
-
-    function strokeRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-        ctx.stroke();
-    }
-
-    function drawDot(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, style: DotStyle) {
-        const gap = style === 'classic' ? 0 : size * 0.1;
-        const s = size - gap * 2;
-
-        switch (style) {
-            case 'classic': {
-                // Лёгкий нахлёст убирает светлые «швы» между соседними квадратами при сглаживании.
-                const bleed = ctx.globalAlpha === 1 ? size * 0.02 : 0;
-                ctx.fillRect(x, y, size + bleed, size + bleed);
-                break;
-            }
-            case 'rounded': roundRect(ctx, x + gap, y + gap, s, s, s * 0.3); break;
-            default: ctx.fillRect(x, y, size, size); break;
-        }
-    }
-
-    // ── Finder patterns (with eye styles) ─────────────────
-    function isInFinder(row: number, col: number, count: number): boolean {
-        if (row < 8 && col < 8) return true;
-        if (row < 8 && col >= count - 8) return true;
-        if (row >= count - 8 && col < 8) return true;
-        return false;
-    }
-
-    function drawFinderPattern(
-        ctx: CanvasRenderingContext2D,
-        startRow: number, startCol: number,
-        cellSize: number, offX: number, offY: number,
-        eye: EyeStyle, bgColor: string,
-        transparentHole = false,
-    ) {
-        const x = offX + startCol * cellSize;
-        const y = offY + startRow * cellSize;
-        const s7 = 7 * cellSize;
-        const s5 = 5 * cellSize;
-        const s3 = 3 * cellSize;
-        const x5 = x + cellSize, y5 = y + cellSize;
-        const x3 = x + 2 * cellSize, y3 = y + 2 * cellSize;
-
-        // Determine corner identity (TL, TR, BL) for "leaf" style
-        const isTL = startRow === 0 && startCol === 0;
-        const isTR = startRow === 0 && startCol !== 0;
-        const isBL = startRow !== 0 && startCol === 0;
-
-        const addOuterPath = () => {
-            switch (eye) {
-                case 'square': ctx.rect(x, y, s7, s7); break;
-                case 'rounded': addRoundRectPath(ctx, x, y, s7, s7, cellSize * 1.6); break;
-                case 'circle':
-                    ctx.moveTo(x + s7 / 2 + s7 / 2, y + s7 / 2);
-                    ctx.arc(x + s7 / 2, y + s7 / 2, s7 / 2, 0, Math.PI * 2);
-                    break;
-                case 'leaf': addLeafPath(ctx, x, y, s7, cellSize, isTL, isTR, true); break;
-                case 'dot':
-                    ctx.moveTo(x + s7 / 2 + s7 / 2, y + s7 / 2);
-                    ctx.arc(x + s7 / 2, y + s7 / 2, s7 / 2, 0, Math.PI * 2);
-                    break;
-            }
-        };
-        const addInnerHolePath = () => {
-            switch (eye) {
-                case 'square': ctx.rect(x5, y5, s5, s5); break;
-                case 'rounded': addRoundRectPath(ctx, x5, y5, s5, s5, cellSize * 1.0); break;
-                case 'circle':
-                    ctx.moveTo(x5 + s5 / 2 + s5 / 2, y5 + s5 / 2);
-                    ctx.arc(x5 + s5 / 2, y5 + s5 / 2, s5 / 2, 0, Math.PI * 2);
-                    break;
-                case 'leaf': addLeafPath(ctx, x5, y5, s5, cellSize, isTL, isTR, false); break;
-                case 'dot':
-                    ctx.moveTo(x5 + s5 / 2 + s5 / 2, y5 + s5 / 2);
-                    ctx.arc(x5 + s5 / 2, y5 + s5 / 2, s5 / 2, 0, Math.PI * 2);
-                    break;
-            }
-        };
-        const drawOuter = () => {
-            ctx.beginPath();
-            addOuterPath();
-            ctx.fill();
-        };
-        const drawInnerHole = () => {
-            ctx.beginPath();
-            addInnerHolePath();
-            ctx.fill();
-        };
-        const drawCenter = () => {
-            switch (eye) {
-                case 'square':  ctx.fillRect(x3, y3, s3, s3); break;
-                case 'rounded': roundRect(ctx, x3, y3, s3, s3, cellSize * 0.7); break;
-                case 'circle':
-                    ctx.beginPath();
-                    ctx.arc(x3 + s3 / 2, y3 + s3 / 2, s3 / 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                case 'leaf': {
-                    const r = cellSize * 0.9;
-                    const small = cellSize * 0.25;
-                    const tl = isTL ? r : isTR ? small : r;
-                    const tr = isTL ? r : isTR ? r : small;
-                    const br = isTL ? small : isTR ? r : r;
-                    const bl = isTL ? r : isTR ? small : small;
-                    ctx.beginPath();
-                    ctx.moveTo(x3 + tl, y3);
-                    ctx.lineTo(x3 + s3 - tr, y3);
-                    ctx.quadraticCurveTo(x3 + s3, y3, x3 + s3, y3 + tr);
-                    ctx.lineTo(x3 + s3, y3 + s3 - br);
-                    ctx.quadraticCurveTo(x3 + s3, y3 + s3, x3 + s3 - br, y3 + s3);
-                    ctx.lineTo(x3 + bl, y3 + s3);
-                    ctx.quadraticCurveTo(x3, y3 + s3, x3, y3 + s3 - bl);
-                    ctx.lineTo(x3, y3 + tl);
-                    ctx.quadraticCurveTo(x3, y3, x3 + tl, y3);
-                    ctx.closePath();
-                    ctx.fill();
-                    break;
-                }
-                case 'dot':
-                    ctx.beginPath();
-                    ctx.arc(x3 + s3 / 2, y3 + s3 / 2, s3 * 0.45, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-            }
-        };
-
-        const savedFill = ctx.fillStyle;
-        if (transparentHole) {
-            ctx.beginPath();
-            addOuterPath();
-            addInnerHolePath();
-            ctx.fill('evenodd');
-        } else {
-            drawOuter();
-            ctx.fillStyle = bgColor;
-            drawInnerHole();
-            ctx.fillStyle = savedFill;
-        }
-        ctx.fillStyle = savedFill;
-        drawCenter();
-    }
-
-    // ── Style preview thumbnails ──────────────────────────
-    function renderDotPreview(previewCanvas: HTMLCanvasElement, style: DotStyle) {
-        const size = previewCanvas.width;
-        const ctx = previewCanvas.getContext('2d')!;
-        const cellSize = size / 5;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        const pattern = [
-            [1, 0, 1, 0, 1],
-            [0, 1, 1, 1, 0],
-            [1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 0],
-            [1, 0, 1, 0, 1],
-        ];
-        ctx.fillStyle = '#1e293b';
-        for (let row = 0; row < 5; row++) {
-            for (let col = 0; col < 5; col++) {
-                if (pattern[row][col]) {
-                    drawDot(ctx, col * cellSize, row * cellSize, cellSize, style);
-                }
-            }
-        }
-    }
-
-    function renderEyePreview(c: HTMLCanvasElement, eye: EyeStyle) {
-        const size = c.width;
-        const ctx = c.getContext('2d')!;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        const cell = size / 8;
-        const offX = cell / 2;
-        const offY = cell / 2;
-        ctx.fillStyle = '#1e293b';
-        drawFinderPattern(ctx, 0, 0, cell, offX, offY, eye, '#ffffff');
-    }
-
-    const allStyles: DotStyle[] = ['classic', 'rounded'];
-    styleCanvases.forEach((c, i) => renderDotPreview(c, allStyles[i]));
-
-    const allEyes: EyeStyle[] = ['square', 'rounded', 'circle', 'leaf', 'dot'];
-    eyeCanvases.forEach((c, i) => renderEyePreview(c, allEyes[i]));
-
-    // ── Gradient builder ──────────────────────────────────
-    function makeFgFill(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): CanvasGradient | string {
-        if (!state.gradient) return state.fg;
-        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-        let g: CanvasGradient;
-        switch (state.gradType) {
-            case 'linear-tb': g = ctx.createLinearGradient(x0, y0, x0, y1); break;
-            case 'linear-lr': g = ctx.createLinearGradient(x0, y0, x1, y0); break;
-            case 'linear-diag': g = ctx.createLinearGradient(x0, y0, x1, y1); break;
-            case 'radial': g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(x1 - x0, y1 - y0) / 2); break;
-        }
-        g.addColorStop(0, state.grad1);
-        g.addColorStop(1, state.grad2);
-        return g;
-    }
-
-    function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement, qrLeft: number, qrTop: number, qrSize: number, bgColor: string) {
-        const logoSize = qrSize * (state.logoSize / 100);
-        const padding = qrSize * 0.02;
-        const boxSize = logoSize + padding * 2;
-        const cx = qrLeft + qrSize / 2;
-        const cy = qrTop + qrSize / 2;
-        const boxX = cx - boxSize / 2;
-        const boxY = cy - boxSize / 2;
-
-        ctx.save();
-        if (!state.logoFill) {
-            ctx.fillStyle = bgColor;
-            roundRect(ctx, boxX, boxY, boxSize, boxSize, boxSize * 0.18);
-        }
-
-        const iw = img.naturalWidth || img.width;
-        const ih = img.naturalHeight || img.height;
-        const ratio = iw / ih;
-        let dw = logoSize, dh = logoSize;
-        if (ratio > 1) dh = logoSize / ratio;
-        else dw = logoSize * ratio;
-        ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
-        ctx.restore();
-    }
-
-    function parseHexColor(hex: string): { r: number; g: number; b: number } {
-        const h = hex.replace('#', '');
-        return {
-            r: parseInt(h.slice(0, 2), 16),
-            g: parseInt(h.slice(2, 4), 16),
-            b: parseInt(h.slice(4, 6), 16),
-        };
-    }
-
-    function rgbaFromHex(hex: string, alpha: number): string {
-        const { r, g, b } = parseHexColor(hex);
-        return `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
-    }
-
-    // ── Photo mode: per-cell overlay strength from background luminance ──
-    function photoLightOverlayAlpha(luminance: number): number {
-        const target = 200;
-        if (luminance >= target) return 0;
-        const needed = (target - luminance) / (255 - luminance);
-        return Math.min(0.38, needed * 0.72);
-    }
-
-    function photoDarkOverlayAlpha(luminance: number): number {
-        const target = 58;
-        if (luminance <= 45) return 0.55;
-        if (luminance <= target) return 0.5;
-        const needed = 1 - target / luminance;
-        return Math.min(0.92, Math.max(0.5, needed));
-    }
-
-    function samplePhotoLuminance(
-        snap: ImageData, qrLeft: number, qrTop: number, qrSize: number,
-        offX: number, offY: number, row: number, col: number, cellSize: number,
-    ): number {
-        const px = Math.min(qrSize - 1, Math.max(0, Math.floor(offX - qrLeft + (col + 0.5) * cellSize)));
-        const py = Math.min(qrSize - 1, Math.max(0, Math.floor(offY - qrTop + (row + 0.5) * cellSize)));
-        const idx = (py * qrSize + px) * 4;
-        const r = snap.data[idx], g = snap.data[idx + 1], b = snap.data[idx + 2];
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-
-    // ── Layout & render ───────────────────────────────────
-    interface QrLayout {
-        payload: string;
-        modules: { size: number; data: ArrayLike<number | boolean> };
-        count: number;
-        margin: number;
-        cellSize: number;
-        qrSize: number;
-        canvasW: number;
-        canvasH: number;
-        qrLeft: number;
-        qrTop: number;
-        offX: number;
-        offY: number;
-        captionH: number;
-        ribbonH: number;
-        framePad: number;
-        /** Яркость фото под кодом (считается в базовом масштабе, общий для PNG/SVG). */
-        photoSnap: ImageData | null;
-    }
+    // ── Отрисовка (общий движок src/lib/qr-engine) ───────
+    styleCanvases.forEach((c, i) => renderDotStylePreview(c, DOT_STYLES[i]));
+    eyeCanvases.forEach((c, i) => renderEyeStylePreview(c, EYE_STYLES[i]));
 
     let current: QrLayout | null = null;
 
     const TOO_MUCH_DATA = 'Слишком много данных для одного QR — сократите текст или поставьте уровень коррекции L в «Дополнительно».';
 
-    function computeLayout(payload: string): QrLayout {
-        const qrSize = QR_BASE_SIZE;
-        const qrData = QRCode.create(payload, { errorCorrectionLevel: state.ecc });
-        const modules = qrData.modules;
-        const count = modules.size;
-        const margin = state.margin;
-        const cellSize = qrSize / (count + margin * 2);
-        const hasFrame = state.frame;
-        const captionH = hasFrame && state.frameStyle !== 'rounded' ? 80 : 0;
-        const ribbonH = hasFrame && state.frameStyle === 'ribbon' ? 80 : 0;
-        const framePad = hasFrame && state.frameStyle === 'rounded' ? 36 : 0;
-        const scatterPad = (state.scatter ? state.scatterDensity : 0) * cellSize;
-        const canvasW = qrSize + framePad * 2 + scatterPad * 2;
-        const canvasH = qrSize + framePad * 2 + scatterPad * 2
-            + (hasFrame && state.frameStyle === 'bottom' ? captionH : 0)
-            + (hasFrame && state.frameStyle === 'ribbon' ? ribbonH : 0);
-        const qrLeft = framePad + scatterPad;
-        const qrTop = framePad + scatterPad + (hasFrame && state.frameStyle === 'ribbon' ? ribbonH : 0);
-        const layout: QrLayout = {
-            payload, modules, count, margin, cellSize, qrSize, canvasW, canvasH, qrLeft, qrTop,
-            offX: qrLeft + margin * cellSize,
-            offY: qrTop + margin * cellSize,
-            captionH, ribbonH, framePad,
-            photoSnap: null,
-        };
-        if (state.photoImage) {
-            const c = document.createElement('canvas');
-            c.width = Math.ceil(canvasW);
-            c.height = Math.ceil(canvasH);
-            const pctx = c.getContext('2d', { willReadFrequently: true })!;
-            drawPhoto(pctx, layout);
-            layout.photoSnap = pctx.getImageData(qrLeft, qrTop, qrSize, qrSize);
-        }
-        return layout;
+    function qrAssets(): QrAssets {
+        return { logo: state.centerMode === 'text' ? null : state.logoImage, photo: state.photoImage };
     }
 
-    function drawPhoto(ctx: CanvasRenderingContext2D, L: QrLayout) {
-        const img = state.photoImage!;
-        const iw = img.naturalWidth || img.width;
-        const ih = img.naturalHeight || img.height;
-        const imgRatio = iw / ih;
-        const photoX = state.scatter ? 0 : L.qrLeft;
-        const photoY = state.scatter ? 0 : L.qrTop;
-        const photoW = state.scatter ? L.canvasW : L.qrSize;
-        const photoH = state.scatter ? L.canvasH : L.qrSize;
-        const photoRatio = photoW / photoH;
-        let sx = 0, sy = 0, sw = iw, sh = ih;
-        if (imgRatio > photoRatio) {
-            sw = ih * photoRatio;
-            sx = (iw - sw) / 2;
-        } else {
-            sh = iw / photoRatio;
-            sy = (ih - sh) / 2;
-        }
-        ctx.drawImage(img, sx, sy, sw, sh, photoX, photoY, photoW, photoH);
-    }
-
-    /** Вся отрисовка в базовых координатах (QR = 600). Масштаб задаёт вызывающий через ctx.scale. */
-    function drawQr(ctx: CanvasRenderingContext2D, L: QrLayout) {
-        const { modules, count, cellSize, qrSize, canvasW, canvasH, qrLeft, qrTop, offX, offY, captionH, ribbonH } = L;
-
-        if (!state.bgTransparent) {
-            ctx.fillStyle = state.bg;
-            ctx.fillRect(0, 0, canvasW, canvasH);
-        } else {
-            ctx.clearRect(0, 0, canvasW, canvasH);
-        }
-
-        const fgFill = makeFgFill(ctx, qrLeft, qrTop, qrLeft + qrSize, qrTop + qrSize);
-
-        if (state.photoImage && L.photoSnap) {
-            drawPhoto(ctx, L);
-            const photoSnap = L.photoSnap;
-            const photoLightColor = state.bgTransparent ? '#ffffff' : state.bg;
-
-            for (let row = 0; row < count; row++) {
-                for (let col = 0; col < count; col++) {
-                    if (modules.data[row * count + col] || isInFinder(row, col, count)) continue;
-                    const lum = samplePhotoLuminance(photoSnap, qrLeft, qrTop, qrSize, offX, offY, row, col, cellSize);
-                    const alpha = photoLightOverlayAlpha(lum);
-                    if (alpha < 0.02) continue;
-                    ctx.fillStyle = rgbaFromHex(photoLightColor, alpha);
-                    ctx.fillRect(offX + col * cellSize, offY + row * cellSize, cellSize, cellSize);
-                }
-            }
-
-            ctx.fillStyle = fgFill;
-            for (let row = 0; row < count; row++) {
-                for (let col = 0; col < count; col++) {
-                    if (!modules.data[row * count + col] || isInFinder(row, col, count)) continue;
-                    const lum = samplePhotoLuminance(photoSnap, qrLeft, qrTop, qrSize, offX, offY, row, col, cellSize);
-                    ctx.globalAlpha = photoDarkOverlayAlpha(lum);
-                    drawDot(ctx, offX + col * cellSize, offY + row * cellSize, cellSize, state.dotStyle);
-                }
-            }
-            ctx.globalAlpha = 1;
-        } else {
-            ctx.fillStyle = fgFill;
-            for (let row = 0; row < count; row++) {
-                for (let col = 0; col < count; col++) {
-                    if (modules.data[row * count + col] && !isInFinder(row, col, count)) {
-                        drawDot(ctx, offX + col * cellSize, offY + row * cellSize, cellSize, state.dotStyle);
-                    }
-                }
-            }
-        }
-
-        const eyeBgForHole = state.bgTransparent ? '#ffffff' : state.bg;
-        const finderHoleTransparent = !!state.photoImage || state.bgTransparent;
-        ctx.fillStyle = state.eyeCustom ? state.eyeColor : (typeof fgFill === 'string' ? fgFill : state.grad1);
-        drawFinderPattern(ctx, 0, 0, cellSize, offX, offY, state.eyeStyle, eyeBgForHole, finderHoleTransparent);
-        drawFinderPattern(ctx, 0, count - 7, cellSize, offX, offY, state.eyeStyle, eyeBgForHole, finderHoleTransparent);
-        drawFinderPattern(ctx, count - 7, 0, cellSize, offX, offY, state.eyeStyle, eyeBgForHole, finderHoleTransparent);
-
-        if (state.logoImage) {
-            drawLogo(ctx, state.logoImage, qrLeft, qrTop, qrSize, state.bgTransparent ? '#ffffff' : state.bg);
-        }
-
-        if (state.frame) {
-            const frameColor = state.eyeCustom ? state.eyeColor : (state.gradient ? state.grad1 : state.fg);
-            if (state.frameStyle === 'rounded') {
-                ctx.save();
-                ctx.strokeStyle = frameColor;
-                ctx.lineWidth = 12;
-                strokeRoundRect(ctx, 6, 6, canvasW - 12, canvasH - 12, 36);
-                ctx.restore();
-            } else if (state.frameStyle === 'bottom') {
-                ctx.save();
-                ctx.fillStyle = frameColor;
-                ctx.fillRect(0, qrTop + qrSize, canvasW, captionH);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `800 ${Math.round(captionH * 0.42)}px Inter, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(state.frameText, canvasW / 2, qrTop + qrSize + captionH / 2);
-                ctx.restore();
-            } else if (state.frameStyle === 'ribbon') {
-                ctx.save();
-                ctx.fillStyle = frameColor;
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(canvasW, 0);
-                ctx.lineTo(canvasW, ribbonH - 14);
-                ctx.lineTo(canvasW / 2, ribbonH);
-                ctx.lineTo(0, ribbonH - 14);
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `800 ${Math.round(ribbonH * 0.4)}px Inter, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(state.frameText, canvasW / 2, (ribbonH - 14) / 2);
-                ctx.restore();
-            }
-        }
-
-        if (state.scatter) drawScatter(ctx, L);
-    }
-
-    function drawScatter(ctx: CanvasRenderingContext2D, L: QrLayout) {
-        const { count, cellSize, offX, offY, canvasW, canvasH } = L;
-        const cellsOut = state.scatterDensity;
-        const totalSize = count + cellsOut * 2;
-        const centerX = (count - 1) / 2;
-        const centerY = (count - 1) / 2;
-        const outerR = totalSize / 2;
-            const rng = (seed: number) => {
-                let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-                return x - Math.floor(x);
-            };
-
-            const isInsideShape = (r: number, c: number): boolean => {
-                const dx = c - centerX - cellsOut;
-                const dy = r - centerY - cellsOut;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const normDist = dist / outerR;
-                const angle = Math.atan2(dy, dx);
-                switch (state.scatterShape) {
-                    case 'square': return true;
-                    case 'circle': return normDist <= 1;
-                    case 'star': {
-                        const a2 = angle + Math.PI / 2;
-                        const points = 5;
-                        const sa = ((a2 + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2 / points);
-                        const sectorAngle = sa % 1;
-                        const outerStarR = 1;
-                        const innerStarR = 0.45;
-                        const t = sectorAngle < 0.5 ? sectorAngle * 2 : (1 - sectorAngle) * 2;
-                        const maxR = outerStarR + (innerStarR - outerStarR) * t;
-                        return normDist <= maxR;
-                    }
-                    case 'diamond': {
-                        return Math.abs(dx) / outerR + Math.abs(dy) / outerR <= 1;
-                    }
-                    case 'hexagon': {
-                        const s3 = Math.sqrt(3);
-                        const nx = Math.abs(dx) / outerR;
-                        const ny = Math.abs(dy) / outerR;
-                        return ny <= 1 && nx <= s3 / 2 && (s3 * ny + nx) <= s3;
-                    }
-                    case 'heart': {
-                        const s = 0.8;
-                        const hx = dx / outerR / s;
-                        const hy = (-dy / outerR + 0.2) / s;
-                        const eq = (hx * hx + hy * hy - 1);
-                        return eq * eq * eq - hx * hx * hy * hy * hy <= 0;
-                    }
-                    case 'cross': {
-                        const nx = Math.abs(dx) / outerR;
-                        const ny = Math.abs(dy) / outerR;
-                        return (nx <= 0.35 && ny <= 1) || (ny <= 0.35 && nx <= 1);
-                    }
-                    case 'octagon': {
-                        const nx = Math.abs(dx) / outerR;
-                        const ny = Math.abs(dy) / outerR;
-                        return nx <= 1 && ny <= 1 && (nx + ny) <= 1 + Math.SQRT2 - 1;
-                    }
-                    case 'triangle': {
-                        const nx = dx / outerR;
-                        const ny = -(dy / outerR) - 0.15;
-                        const side = 2 / Math.sqrt(3);
-                        return ny >= -side && ny <= side && Math.abs(nx) <= (side - ny) * 0.5 / side * 2;
-                    }
-                }
-            };
-
-        const scatterFill = makeFgFill(ctx, offX - cellsOut * cellSize, offY - cellsOut * cellSize, offX + count * cellSize + cellsOut * cellSize, offY + count * cellSize + cellsOut * cellSize);
-        ctx.fillStyle = scatterFill;
-        for (let r = -cellsOut; r < count + cellsOut; r++) {
-            for (let c = -cellsOut; c < count + cellsOut; c++) {
-                if (r >= 0 && r < count && c >= 0 && c < count) continue;
-                if (!isInsideShape(r + cellsOut, c + cellsOut)) continue;
-                if (rng(r * 997 + c + 7) < 0.5) continue;
-                const x = offX + c * cellSize;
-                const y = offY + r * cellSize;
-                if (x < -cellSize || y < -cellSize || x > canvasW + cellSize || y > canvasH + cellSize) continue;
-                drawDot(ctx, x, y, cellSize, state.dotStyle);
-            }
-        }
+    function computeQrLayout(payload: string): QrLayout {
+        const modules = QRCode.create(payload, { errorCorrectionLevel: state.ecc }).modules as unknown as QrModules;
+        return computeLayout(modules, state, qrAssets());
     }
 
     function setDownloadsEnabled(enabled: boolean) {
@@ -2623,7 +2138,7 @@ const QR_TABS = [
         }
         let L: QrLayout;
         try {
-            L = computeLayout(res.payload);
+            L = computeQrLayout(res.payload);
         } catch {
             showInputMessage('error', TOO_MUCH_DATA);
             clearPreview('Слишком много данных');
@@ -2635,7 +2150,7 @@ const QR_TABS = [
         canvas.width = Math.ceil(L.canvasW);
         canvas.height = Math.ceil(L.canvasH);
         const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-        drawQr(ctx, L);
+        drawQr(ctx, L, state, qrAssets());
 
         canvas.classList.remove('hidden');
         placeholder.classList.add('hidden');
@@ -2702,24 +2217,7 @@ const QR_TABS = [
     type ScanLevel = 'ok' | 'print' | 'screen';
 
     function checkScanLevel(): ScanLevel {
-        if (!current) return 'ok';
-        const { qrLeft, qrTop, qrSize } = current;
-        const tmp = document.createElement('canvas');
-        const tctx = tmp.getContext('2d', { willReadFrequently: true })!;
-
-        function decodeAt(s: number, blurPx: number): boolean {
-            tmp.width = s;
-            tmp.height = s;
-            tctx.filter = blurPx > 0 ? `blur(${blurPx}px)` : 'none';
-            tctx.drawImage(canvas, qrLeft, qrTop, qrSize, qrSize, 0, 0, s, s);
-            tctx.filter = 'none';
-            return jsQR(tctx.getImageData(0, 0, s, s).data, s, s) !== null;
-        }
-        const anyOk = (sizes: number[], blur: number) => sizes.some(s => decodeAt(s, blur));
-
-        if (!anyOk([600, 500, 400, 300], 0)) return 'screen';
-        if (!anyOk([300, 240, 180], 0.5) || !anyOk([240, 180, 140], 1)) return 'print';
-        return 'ok';
+        return current ? checkQrScanLevel(canvas, current, jsQR) : 'ok';
     }
 
     const SCAN_TEXT: Record<Exclude<ScanLevel, 'ok'>, { icon: string; text: string }> = {
@@ -2760,41 +2258,13 @@ const QR_TABS = [
 
     // ── Export ────────────────────────────────────────────
     function renderScaled(width: number): HTMLCanvasElement {
-        const L = current!;
-        const k = width / L.canvasW;
         const c = document.createElement('canvas');
-        c.width = Math.round(L.canvasW * k);
-        c.height = Math.round(L.canvasH * k);
-        const ctx = c.getContext('2d')!;
-        ctx.scale(k, k);
-        drawQr(ctx, L);
+        renderToCanvas(c, current!, state, qrAssets(), width);
         return c;
     }
 
-    const imageHrefCache = new WeakMap<object, string>();
-    /** Картинки для SVG встраиваются data-URL'ом: файл должен открываться без нашего сайта. */
-    function imageHref(img: CanvasImageSource): string {
-        if (img instanceof HTMLImageElement && img.src.startsWith('data:')) return img.src;
-        const cached = imageHrefCache.get(img);
-        if (cached) return cached;
-        const el = img as HTMLImageElement;
-        const w = el.naturalWidth || 512;
-        const h = el.naturalHeight || 512;
-        const scale = Math.min(1600 / Math.max(w, h), Math.max(1, 512 / Math.max(w, h)));
-        const c = document.createElement('canvas');
-        c.width = Math.round(w * scale);
-        c.height = Math.round(h * scale);
-        c.getContext('2d')!.drawImage(el, 0, 0, c.width, c.height);
-        const href = img === state.photoImage ? c.toDataURL('image/jpeg', 0.9) : c.toDataURL('image/png');
-        imageHrefCache.set(img, href);
-        return href;
-    }
-
     function buildSvg(): string {
-        const L = current!;
-        const svg = new SvgContext(L.canvasW, L.canvasH, imageHref);
-        drawQr(svg as unknown as CanvasRenderingContext2D, L);
-        return svg.toString();
+        return renderToSvg(current!, state, qrAssets());
     }
 
     const DOWNLOAD_GOALS: Record<DownloadFormat, string> = {
@@ -2914,6 +2384,7 @@ const QR_TABS = [
         state.dotStyle = randomFrom(DOT_STYLES);
         state.eyeStyle = randomFrom(EYE_STYLES);
 
+        state.centerMode = 'image';
         // Свой загруженный логотип не трогаем — человек его уже выбрал.
         if (state.logoKey !== 'upload') {
             if (Math.random() < 0.45) {
@@ -3001,6 +2472,13 @@ const QR_TABS = [
             p.set('ecl', state.eyeColor.replace('#', ''));
         }
         if (typeof state.logoKey === 'number') p.set('lp', String(state.logoKey));
+        if (state.centerMode === 'text') {
+            p.set('cm', 'text');
+            p.set('ct', state.centerText);
+            p.set('ctf', state.centerTextFont);
+            p.set('ctc', state.centerTextColor.replace('#', ''));
+            if (!state.centerTextBold) p.set('ctb', '0');
+        }
         p.set('ls', String(state.logoSize));
         if (state.logoFill) p.set('lf', '1');
         if (state.frame) {
@@ -3068,6 +2546,15 @@ const QR_TABS = [
         if (ecl && HEX6.test(ecl)) state.eyeColor = `#${ecl.toLowerCase()}`;
 
         state.logoSize = intParam(params, 'ls', 10, 30) ?? state.logoSize;
+        if (params.get('cm') === 'text') {
+            state.centerMode = 'text';
+            state.centerText = (params.get('ct') ?? '').split('\n').slice(0, 3).map(l => l.slice(0, 24)).join('\n');
+            const ctf = params.get('ctf') as QrCenterTextFont | null;
+            if (ctf && CENTER_TEXT_FONTS.some(f => f.id === ctf)) state.centerTextFont = ctf;
+            const ctc = params.get('ctc');
+            if (ctc && HEX6.test(ctc)) state.centerTextColor = `#${ctc.toLowerCase()}`;
+            state.centerTextBold = params.get('ctb') !== '0';
+        }
         state.logoFill = params.get('lf') === '1';
 
         state.frame = params.get('fr') === '1';
@@ -3128,6 +2615,11 @@ const QR_TABS = [
             scatter: state.scatter,
             scatterDensity: state.scatterDensity,
             scatterShape: state.scatterShape,
+            centerMode: state.centerMode,
+            centerText: state.centerMode === 'text' ? state.centerText : '',
+            centerTextFont: state.centerTextFont,
+            centerTextColor: state.centerTextColor,
+            centerTextBold: state.centerTextBold,
         };
     }
 

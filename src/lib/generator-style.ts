@@ -58,6 +58,16 @@ const generatorStyleSchema = z.object({
     "octagon",
     "triangle",
   ]),
+  /** Текст в центре — необязательные поля: старые ссылки генератора их не содержат. */
+  centerMode: z.enum(["image", "text"]).optional(),
+  centerText: z
+    .string()
+    .max(80)
+    .refine((t) => t.split("\n").length <= 3, "Не больше 3 строк")
+    .optional(),
+  centerTextFont: z.enum(["inter", "sans", "serif", "mono", "display"]).optional(),
+  centerTextColor: hex.optional(),
+  centerTextBold: z.boolean().optional(),
 });
 
 export type GeneratorStyle = z.infer<typeof generatorStyleSchema>;
@@ -94,14 +104,17 @@ export function parseGeneratorStyle(encoded: string | null | undefined): Generat
 export function generatorStyleToTemplateConfig(style: GeneratorStyle): QRTemplateConfig {
   const { v: _version, ...rest } = style;
   void _version;
+  const textMode = rest.centerMode === "text" && !!rest.centerText?.trim();
   return normalizeQRTemplateConfig({
     ...rest,
     logoDataUrl: null,
-    centerMode: "image",
-    centerText: "",
-    centerTextFont: "inter",
-    centerTextColor: rest.fg,
-    centerTextBold: true,
+    logoPreset: textMode ? null : rest.logoPreset,
+    logoSrc: textMode ? null : rest.logoSrc,
+    centerMode: textMode ? "text" : "image",
+    centerText: textMode ? rest.centerText! : "",
+    centerTextFont: rest.centerTextFont ?? "inter",
+    centerTextColor: rest.centerTextColor ?? rest.fg,
+    centerTextBold: rest.centerTextBold ?? true,
     frameText: rest.frameText.trim() || "СКАНИРУЙ МЕНЯ",
   });
 }

@@ -32,6 +32,12 @@ export interface TransferStyle {
   scatter: boolean;
   scatterDensity: number;
   scatterShape: string;
+  centerMode: 'image' | 'text';
+  /** До 3 строк через перевод строки, по 24 символа. */
+  centerText: string;
+  centerTextFont: string;
+  centerTextColor: string;
+  centerTextBold: boolean;
 }
 
 export function encodeTransferStyle(style: TransferStyle): string {

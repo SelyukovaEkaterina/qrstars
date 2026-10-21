@@ -56,6 +56,19 @@ describe("generator style transfer", () => {
     assert.equal(parseGeneratorStyle(null), null);
   });
 
+  it("carries center text from the landing", () => {
+    const style = parseGeneratorStyle(
+      encode({ ...base, centerMode: "text", centerText: "КОФЕ\nТУТ", centerTextFont: "serif", centerTextColor: "#7c2d12", centerTextBold: false }),
+    );
+    assert.ok(style);
+    const config = generatorStyleToTemplateConfig(style);
+    assert.equal(config.centerMode, "text");
+    assert.equal(config.centerText, "КОФЕ\nТУТ");
+    assert.equal(config.logoPreset, null);
+    assert.equal(config.centerTextFont, "serif");
+    assert.equal(parseGeneratorStyle(encode({ ...base, centerText: "1\n2\n3\n4" })), null);
+  });
+
   it("compares configs independent of key order", () => {
     assert.equal(templateConfigKey({ a: 1, b: 2 }), templateConfigKey({ b: 2, a: 1 }));
   });

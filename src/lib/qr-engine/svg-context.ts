@@ -108,6 +108,18 @@ export class SvgContext {
   /** Фильтры в SVG-экспорте не нужны (используются только в проверке сканируемости). */
   filter = 'none';
 
+  private measureCtx: CanvasRenderingContext2D | null = null;
+  /** Ширина текста — через обычный canvas с тем же шрифтом (нужна для подгонки подписей). */
+  measureText(text: string): TextMetrics {
+    if (!this.measureCtx && typeof document !== "undefined") {
+      this.measureCtx = document.createElement("canvas").getContext("2d");
+    }
+    if (!this.measureCtx) return { width: text.length * 10 } as TextMetrics;
+    this.measureCtx.font = this.state.font;
+    return this.measureCtx.measureText(text);
+  }
+  setTransform() {}
+
   save() { this.stack.push({ ...this.state }); }
   restore() { const s = this.stack.pop(); if (s) this.state = s; }
 

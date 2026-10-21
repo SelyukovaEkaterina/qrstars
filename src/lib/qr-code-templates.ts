@@ -1,5 +1,6 @@
 import { downloadBlob, downloadCanvas } from "@/lib/download-file";
-import { renderFreeQR, FREE_LOGO_PRESETS } from "@/lib/qr-free-generator";
+import { renderFreeQR, renderFreeQRSvg, FREE_LOGO_PRESETS } from "@/lib/qr-free-generator";
+import { randomReadablePalette, type QrLayout } from "@/lib/qr-engine";
 
 export type QRDotStyle = "classic" | "rounded";
 export type QREyeStyle = "square" | "rounded" | "circle" | "leaf" | "dot";
@@ -41,6 +42,9 @@ export interface QRTemplateConfig {
   scatter: boolean;
   scatterDensity: number;
   scatterShape: QRScatterShape;
+  /** Фото-режим: пресет (`/photo-presets/…`) или сжатая копия загруженного фото. */
+  photoSrc?: string | null;
+  photoDataUrl?: string | null;
 }
 
 export interface QRTemplatePreset {
@@ -431,6 +435,8 @@ export function normalizeQRTemplateConfig(cfg: QRTemplateConfig): QRTemplateConf
     logoSrc: cfg.logoSrc ?? null,
     logoDataUrl: cfg.logoDataUrl ?? null,
     logoFill: cfg.logoFill ?? true,
+    photoSrc: cfg.photoSrc ?? null,
+    photoDataUrl: cfg.photoDataUrl ?? null,
     centerMode,
     centerText: cfg.centerText ?? "",
     centerTextFont: cfg.centerTextFont ?? "inter",
@@ -447,61 +453,68 @@ export async function renderQRTemplate(
   size: number = 600,
   photoImage?: HTMLImageElement | null,
   logoImage?: HTMLImageElement | null,
-): Promise<void> {
-  const normalized = normalizeQRTemplateConfig(cfg);
-  await renderFreeQR(canvas, normalized, text, {
+): Promise<QrLayout> {
+  return renderFreeQR(canvas, normalizeQRTemplateConfig(cfg), text, {
     qrSize: size,
     photoImage: photoImage ?? null,
     logoImage: logoImage ?? null,
   });
 }
 
+/** Настоящий векторный SVG (раньше это был PNG, завёрнутый в SVG). */
+export async function renderQRTemplateSvg(
+  cfg: QRTemplateConfig,
+  text: string,
+  photoImage?: HTMLImageElement | null,
+  logoImage?: HTMLImageElement | null,
+): Promise<string> {
+  return renderFreeQRSvg(normalizeQRTemplateConfig(cfg), text, {
+    photoImage: photoImage ?? null,
+    logoImage: logoImage ?? null,
+  });
+}
+
+/**
+ * Случайное оформление только из читаемых сочетаний: тёмные точки на светлом фоне
+ * (контраст ≥ 4.5), коррекция H при логотипе, поле вокруг кода не меньше модуля.
+ * Редактор дополнительно перепроверяет результат декодером и при неудаче берёт новый.
+ */
 export function randomizeQRConfig(): QRTemplateConfig {
-  const pick = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
-  const rHex = () => "#" + Math.floor(Math.random() * 16777215).toString(16).padStart(6, "0");
-  const dotStyles: QRDotStyle[] = ["classic", "rounded"];
-  const eyeStyles: QREyeStyle[] = ["square", "rounded", "circle", "leaf", "dot"];
-  const gradTypes: QRGradientType[] = ["linear-tb", "linear-lr", "linear-diag", "radial"];
-  const frameStyles: QRFrameStyle[] = ["bottom", "rounded", "ribbon"];
-  const scatterShapes: QRScatterShape[] = ["square", "circle", "star", "diamond", "hexagon", "heart", "cross", "octagon", "triangle"];
-  const gradient = Math.random() > 0.5;
-  const eyeCustom = Math.random() > 0.5;
-  const hasLogo = Math.random() > 0.6;
-  const hasFrame = Math.random() > 0.6;
-  const hasScatter = Math.random() > 0.7;
-  const preset = hasLogo
-    ? FREE_LOGO_PRESETS[Math.floor(Math.random() * FREE_LOGO_PRESETS.length)]
-    : null;
+  const pick = <T>(arr: readonly T[]): T => arr[Math.floor(Math.random() * arr.length)];
+  const palette = randomReadablePalette();
+  const hasLogo = Math.random() < 0.45;
+  const hasFrame = Math.random() < 0.35;
+  const hasScatter = Math.random() < 0.2;
+  const preset = hasLogo ? pick(FREE_LOGO_PRESETS) : null;
   return {
-    dotStyle: pick(dotStyles),
-    eyeStyle: pick(eyeStyles),
-    fg: gradient ? rHex() : pick(COLOR_PRESETS).fg,
-    bg: pick(COLOR_PRESETS).bg,
+    ...defaultCfg(),
+    dotStyle: pick(["classic", "rounded"] as const),
+    eyeStyle: pick(["square", "rounded", "circle", "leaf", "dot"] as const),
+    fg: palette.fg,
+    bg: palette.bg,
     bgTransparent: false,
-    gradient,
-    grad1: rHex(),
-    grad2: rHex(),
-    gradType: pick(gradTypes),
-    eyeCustom,
-    eyeColor: rHex(),
+    gradient: palette.gradient,
+    grad1: palette.grad1,
+    grad2: palette.grad2,
+    gradType: pick(["linear-tb", "linear-lr", "linear-diag", "radial"] as const),
+    eyeCustom: Math.random() < 0.35,
+    eyeColor: palette.eyeColor,
     logoPreset: preset?.emoji ?? null,
     logoSrc: preset?.src ?? null,
     logoDataUrl: null,
-    logoFill: Math.random() > 0.3,
-    logoSize: 15 + Math.floor(Math.random() * 16),
+    logoFill: false,
+    logoSize: 16 + Math.floor(Math.random() * 8),
     frame: hasFrame,
-    frameText: pick(["СКАНИРУЙ МЕНЯ", "СКАНИРУЙТЕ QR", "ОТСКАНИРУЙТЕ", "НАВЕДИТЕ КАМЕРУ"]),
-    frameStyle: pick(frameStyles),
-    ecc: pick(["M", "Q", "H"] as const),
-    margin: Math.floor(Math.random() * 4),
+    frameText: pick(["СКАНИРУЙ МЕНЯ", "СКАНИРУЙТЕ QR", "НАВЕДИТЕ КАМЕРУ", "МЕНЮ", "ОТЗЫВ"]),
+    frameStyle: pick(["bottom", "rounded", "ribbon"] as const),
+    ecc: hasLogo ? "H" : pick(["Q", "H"] as const),
+    margin: 1 + Math.floor(Math.random() * 3),
     scatter: hasScatter,
-    scatterDensity: 2 + Math.floor(Math.random() * 5),
-    scatterShape: pick(scatterShapes),
-    centerMode: hasLogo ? "image" : "image",
+    scatterDensity: 1 + Math.floor(Math.random() * 4),
+    scatterShape: pick(SCATTER_SHAPES).id,
+    centerMode: "image",
     centerText: "",
-    centerTextFont: "inter",
-    centerTextColor: pick(COLOR_PRESETS).fg,
-    centerTextBold: true,
+    centerTextColor: palette.fg,
   };
 }
 
@@ -523,18 +536,6 @@ export function canvasDisplaySize(
 
 export async function downloadQRTemplateAsPNG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
   await downloadCanvas(canvas, `${filename}.png`);
-}
-
-/** Styled QR is canvas-rendered; SVG wraps the raster for print/design handoff. */
-export async function downloadQRTemplateAsSVG(canvas: HTMLCanvasElement, filename: string = "qr-code") {
-  const w = canvas.width;
-  const h = canvas.height;
-  const pngData = canvas.toDataURL("image/png", 1.0);
-  const svg = `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
-  <image width="${w}" height="${h}" xlink:href="${pngData}"/>
-</svg>`;
-  await downloadSvgString(svg, filename);
 }
 
 export async function downloadSvgString(svg: string, filename: string = "qr-code") {
