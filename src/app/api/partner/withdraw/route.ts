@@ -3,6 +3,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import nodemailer from "nodemailer";
+import { PARTNER_MIN_WITHDRAWAL_RUB } from "@/lib/partner-constants";
+import { formatRub } from "@/lib/plans";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -25,9 +27,9 @@ export async function POST(request: Request) {
     comment,
   } = body;
 
-  if (!amount || amount < 10000) {
+  if (!amount || amount < PARTNER_MIN_WITHDRAWAL_RUB) {
     return NextResponse.json(
-      { error: "Минимальная сумма вывода — 10 000 ₽" },
+      { error: `Минимальная сумма вывода — ${formatRub(PARTNER_MIN_WITHDRAWAL_RUB).replace(/\u00a0/g, " ")}` },
       { status: 400 }
     );
   }

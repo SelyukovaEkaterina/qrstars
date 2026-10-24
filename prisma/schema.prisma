@@ -520,6 +520,17 @@ model BusinessCard {
   tipsLabel   String?
   tipsUrl     String?
 
+  /// Мессенджеры — крупные кнопки на визитке: номер WhatsApp, @username Telegram, ссылка MAX.
+  whatsapp    String?
+  telegram    String?
+  maxUrl      String?
+  /// Услуги с ценами: [{ name, price }].
+  services    Json     @default("[]")
+  serviceArea String?
+  workHours   String?
+  /// Ссылка на отзывы о мастере (Авито, Профи, Яндекс Карты).
+  reviewsUrl  String?
+
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

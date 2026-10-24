@@ -16,8 +16,8 @@ const solutionLinks = [
   { href: '/qr-kod-dlya-avtoservisa.html', label: 'Автосервисы' },
 ];
 
-import { appendAttributionParams, MENU_LANDING_PATHS, menuRegisterUrl, reviewsRegisterUrl, generatorRegisterUrl, redirectRegisterUrl, registerUrl, REVIEWS_LANDING_SLUGS } from '../lib/utm';
-const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.searchParams);
+import { MENU_LANDING_PATHS, menuRegisterUrl, reviewsRegisterUrl, generatorRegisterUrl, redirectRegisterUrl, registerUrl, REVIEWS_LANDING_SLUGS } from '../lib/utm';
+const LOGIN_URL = 'https://app.qrstars.ru/login';
 const isMenuLanding = MENU_LANDING_PATHS.has(Astro.url.pathname);
 const isReviewsLanding = Astro.url.pathname === '/smart-reviews.html' || [...REVIEWS_LANDING_SLUGS].some(slug => Astro.url.pathname === `/${slug}.html` || Astro.url.pathname === `/blog/${slug}.html`);
 const isGeneratorLanding = Astro.url.pathname === '/free-qr-generator.html';
@@ -31,7 +31,6 @@ let REGISTER_CTA_GOAL = 'nav_register';
 if (isMenuLanding) {
   REGISTER_CTA_URL = menuRegisterUrl('nav-menu', Astro.url.searchParams);
   REGISTER_CTA_TEXT = 'Создать меню';
-  REGISTER_CTA_GOAL = 'hero_start';
 } else if (isReviewsLanding) {
   REGISTER_CTA_URL = reviewsRegisterUrl('nav-reviews', Astro.url.searchParams);
 } else if (isGeneratorLanding) {
@@ -80,6 +79,8 @@ if (isMenuLanding) {
           </div>
         </div>
 
+        <a href="/#buy" class="px-3 py-2 text-slate-600 hover:text-primary transition font-medium text-[15px]">Тарифы</a>
+        <a href="/#demo" class="px-3 py-2 text-slate-600 hover:text-primary transition font-medium text-[15px]">Демо</a>
         <a href="/blog.html" class="px-3 py-2 text-slate-600 hover:text-primary transition font-medium text-[15px]">Блог</a>
         <a href="/free-qr-generator.html" data-goal="qr_generator_link" data-goal-params='{"source":"nav"}' class="text-emerald-600 hover:text-emerald-700 transition font-bold text-[15px]">
           Бесплатный генератор
@@ -87,26 +88,37 @@ if (isMenuLanding) {
       </div>
 
       <div class="hidden lg:flex items-center gap-3">
-        <a href={APP_URL} data-goal="nav_login" class="text-slate-600 hover:text-primary transition font-medium text-[15px]">Войти</a>
-        <a href={REGISTER_CTA_URL} data-goal={REGISTER_CTA_GOAL} target={isMenuLanding ? '_blank' : undefined} rel={isMenuLanding ? 'noopener noreferrer' : undefined} class="bg-primary text-white px-5 py-2 rounded-full font-semibold hover:bg-indigo-700 transition shadow-md shadow-indigo-500/20">
+        <a href={LOGIN_URL} data-goal="nav_login" class="text-slate-600 hover:text-primary transition font-medium text-[15px]">Войти</a>
+        <a href={REGISTER_CTA_URL} data-goal={REGISTER_CTA_GOAL} class="bg-primary text-white px-5 py-2 rounded-full font-semibold hover:bg-indigo-700 transition shadow-md shadow-indigo-500/20">
           {REGISTER_CTA_TEXT}
         </a>
       </div>
 
-      <button
-        id="nav-toggle"
-        type="button"
-        aria-label="Меню"
-        class="lg:hidden w-10 h-10 flex items-center justify-center text-slate-700 rounded-lg hover:bg-slate-100 transition"
-      >
-        <i id="nav-icon" class="fa-solid fa-bars text-lg"></i>
-      </button>
+      <div class="lg:hidden flex items-center gap-2">
+        <a href={REGISTER_CTA_URL} data-goal={REGISTER_CTA_GOAL} data-goal-params='{"source":"nav_mobile_bar"}' class="bg-primary text-white px-4 py-2 rounded-full font-semibold text-sm hover:bg-indigo-700 transition shadow-md shadow-indigo-500/20">
+          Начать
+        </a>
+        <button
+          id="nav-toggle"
+          type="button"
+          aria-label="Меню"
+          aria-expanded="false"
+          aria-controls="nav-mobile"
+          class="w-10 h-10 flex items-center justify-center text-slate-700 rounded-lg hover:bg-slate-100 transition"
+        >
+          <i id="nav-icon" class="fa-solid fa-bars text-lg"></i>
+        </button>
+      </div>
     </div>
   </div>
 
   <!-- Мобильное меню -->
-  <div id="nav-mobile" class="hidden lg:hidden border-t border-slate-200 bg-white">
+  <div id="nav-mobile" class="hidden lg:hidden border-t border-slate-200 bg-white max-h-[calc(100dvh-4rem)] overflow-y-auto overscroll-contain">
     <div class="px-4 py-4 space-y-4">
+      <div class="grid grid-cols-2 gap-2">
+        <a href="/#buy" class="block text-center px-3 py-2.5 rounded-lg bg-slate-50 text-slate-700 font-semibold hover:bg-slate-100 transition">Тарифы</a>
+        <a href="/#demo" class="block text-center px-3 py-2.5 rounded-lg bg-slate-50 text-slate-700 font-semibold hover:bg-slate-100 transition">Демо</a>
+      </div>
       <div>
         <div class="px-3 pb-2 text-xs font-bold uppercase tracking-wide text-slate-400">Продукты</div>
         <div class="space-y-1">
@@ -128,10 +140,10 @@ if (isMenuLanding) {
         Бесплатный генератор QR
       </a>
       <div class="pt-3 mt-2 border-t border-slate-100 space-y-2">
-        <a href={APP_URL} data-goal="nav_login" class="block text-center px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition">
+        <a href={LOGIN_URL} data-goal="nav_login" class="block text-center px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-semibold hover:bg-slate-50 transition">
           Войти
         </a>
-        <a href={REGISTER_CTA_URL} data-goal={REGISTER_CTA_GOAL} target={isMenuLanding ? '_blank' : undefined} rel={isMenuLanding ? 'noopener noreferrer' : undefined} class="block text-center px-4 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-indigo-700 transition">
+        <a href={REGISTER_CTA_URL} data-goal={REGISTER_CTA_GOAL} data-goal-params='{"source":"nav_mobile_menu"}' class="block text-center px-4 py-2.5 rounded-xl bg-primary text-white font-bold hover:bg-indigo-700 transition">
           {REGISTER_CTA_TEXT}
         </a>
       </div>
@@ -145,9 +157,16 @@ if (isMenuLanding) {
     const menu = document.getElementById('nav-mobile');
     const icon = document.getElementById('nav-icon');
     if (!toggle || !menu || !icon) return;
-    toggle.addEventListener('click', function () {
-      const open = menu.classList.toggle('hidden') === false;
+    function setOpen(open) {
+      menu.classList.toggle('hidden', !open);
+      toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
       icon.className = open ? 'fa-solid fa-xmark text-lg' : 'fa-solid fa-bars text-lg';
+    }
+    toggle.addEventListener('click', function () {
+      setOpen(menu.classList.contains('hidden'));
+    });
+    menu.addEventListener('click', function (e) {
+      if (e.target && e.target.closest('a')) setOpen(false);
     });
   })();
 </script>

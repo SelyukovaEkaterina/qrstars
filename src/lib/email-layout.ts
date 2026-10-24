@@ -58,7 +58,7 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #e5e7eb;font-family:sans-serif;font-size:12px;color:#9ca3af;line-height:1.8;">
           ${footerLinks.join(" &nbsp;·&nbsp; ")}
-          <p style="margin:12px 0 0;">© QrStars.ru — сервис QR-отзывов и микро-лендингов для HoReCa и локального бизнеса</p>
+          <p style="margin:12px 0 0;">© QrStars.ru — сервис QR-отзывов и микросайтов для HoReCa и локального бизнеса</p>
         </td></tr>
       </table>
     </td></tr>

@@ -198,7 +198,7 @@ export default function MyPageDashboard() {
     <Suspense
       fallback={
         <div className="flex min-h-screen bg-gray-50">
-              <main className="flex-1 flex items-center justify-center">
+          <main className="flex min-w-0 flex-1 items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </main>
         </div>
@@ -247,6 +247,22 @@ function MyPageDashboardContent() {
     const qs = params.toString();
     window.history.replaceState(null, "", qs ? `${window.location.pathname}?${qs}` : window.location.pathname);
   }, []);
+  /** Выбор блока в списке. На узком экране редактор стоит ниже списка — докручиваем к нему. */
+  const openBlockEditor = useCallback(
+    (next: EditorTab | null) => {
+      setActiveEditor(next);
+      if (typeof window === "undefined") return;
+      if (!window.matchMedia("(max-width: 1023px)").matches) return;
+      window.setTimeout(() => {
+        document
+          .getElementById("microsite-block-editor")
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 60);
+    },
+    [setActiveEditor],
+  );
+  /** План последней подписки — для текста кнопки продления замороженного микросайта. */
+  const [lastPaidPlan, setLastPaidPlan] = useState<string | null>(null);
   const [customPages, setCustomPages] = useState<CustomPageItem[]>([]);
   const [moduleOrder, setModuleOrder] = useState<ModuleKey[] | null>(null);
   const [moduleLabels, setModuleLabels] = useState<ModuleLabels>({});
@@ -450,7 +466,11 @@ function MyPageDashboardContent() {
 
     fetch("/api/subscription")
       .then((r) => r.json())
-      .then((data) => setIsPro(!!data.hasPaidFeatures))
+      .then((data) => {
+        setIsPro(!!data.hasPaidFeatures);
+        const plan = data.subscription?.plan;
+        setLastPaidPlan(plan === "PRO" || plan === "NETWORK" ? plan : null);
+      })
       .catch(() => {});
 
     fetch("/api/establishments")
@@ -1261,7 +1281,7 @@ function MyPageDashboardContent() {
   if (loading && establishments.length === 0) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+          <main className="flex min-w-0 flex-1 items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -1325,7 +1345,7 @@ function MyPageDashboardContent() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
         <MyPageHeader
           autoSaveState={autoSaveState}
           establishments={establishments}
@@ -1377,9 +1397,13 @@ function MyPageDashboardContent() {
                   </div>
                   <Link
                     href="/dashboard/subscription"
-                    className="shrink-0 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+                    className="shrink-0 inline-flex min-h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 py-2 text-center text-sm font-medium text-white hover:bg-indigo-700"
                   >
-                    Продлить PRO · {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год
+                    {lastPaidPlan === "NETWORK"
+                      ? `Продлить «Сеть» · ${formatRub(PLAN_PRICING.NETWORK.yearlyRub)}/год`
+                      : lastPaidPlan === "PRO"
+                        ? `Продлить PRO · ${formatRub(PLAN_PRICING.PRO.yearlyRub)}/год`
+                        : "Продлить тариф"}
                   </Link>
                 </div>
               </div>
@@ -1414,17 +1438,18 @@ function MyPageDashboardContent() {
               <button
                 type="button"
                 onClick={() => setAppearanceOpen((v) => !v)}
-                className="w-full flex items-center justify-between text-left"
+                className="w-full flex items-center justify-between gap-2 text-left"
+                aria-expanded={appearanceOpen}
               >
-                <div className="flex items-center gap-2">
-                  <Palette className="w-5 h-5 text-gray-500" />
+                <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+                  <Palette className="w-5 h-5 text-gray-500 shrink-0" />
                   <h3 className="font-semibold text-gray-900">Оформление</h3>
-                  <span className="text-xs text-gray-400">
+                  <span className="min-w-0 basis-full text-xs text-gray-400 sm:basis-auto">
                     {micrositeFrozen ? "логотип, обложка, цвет — состав страницы заморожен" : "логотип, обложка, цвет, тема"}
                   </span>
                 </div>
                 <ChevronRight
-                  className={`w-5 h-5 text-gray-400 transition-transform ${appearanceOpen ? "rotate-90" : ""}`}
+                  className={`w-5 h-5 shrink-0 text-gray-400 transition-transform ${appearanceOpen ? "rotate-90" : ""}`}
                 />
               </button>
             </Card>
@@ -1442,7 +1467,7 @@ function MyPageDashboardContent() {
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Подзаголовок на лендинге
+                  Подзаголовок на микросайте
                 </label>
                 <input
                   type="text"
@@ -1452,7 +1477,7 @@ function MyPageDashboardContent() {
                   placeholder={DEFAULT_LANDING_SUBTITLE}
                   maxLength={120}
                   disabled={micrositeFrozen}
-                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                  className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                 />
                 <p className="text-xs text-gray-500 mt-1">
                   {micrositeFrozen
@@ -1475,7 +1500,7 @@ function MyPageDashboardContent() {
                     placeholder="my-cafe"
                     maxLength={32}
                     disabled={micrositeFrozen}
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm disabled:bg-gray-50 disabled:text-gray-500"
+                    className="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm disabled:bg-gray-50 disabled:text-gray-500"
                   />
                   <span className="text-sm text-gray-500 shrink-0">.qrstars.ru</span>
                   {shortSlugSaving && <Loader2 className="w-4 h-4 animate-spin text-gray-400 shrink-0" />}
@@ -1625,7 +1650,7 @@ function MyPageDashboardContent() {
                           alt={cover.name}
                           className="absolute inset-0 w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent transition-opacity flex items-end p-2 md:opacity-0 md:group-hover:opacity-100 md:group-focus-visible:opacity-100">
                           <span className="text-white text-xs font-medium truncate">{cover.name}</span>
                         </div>
                         {selected && (
@@ -1646,7 +1671,7 @@ function MyPageDashboardContent() {
                 <h3 className="font-semibold text-gray-900">Цвет бренда</h3>
               </div>
               <p className="text-sm text-gray-500 mb-4">
-                Акцент для микро-лендинга, меню, отзывов и визитки. Обложка настраивается отдельно выше.
+                Акцент для микросайта, меню, отзывов и визитки. Обложка настраивается отдельно выше.
               </p>
               <div className="flex flex-wrap items-center gap-2 mb-4">
                 {BRAND_COLOR_PRESETS.map((preset) => {
@@ -1726,7 +1751,7 @@ function MyPageDashboardContent() {
                 <Card>
                   <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
                     <h3 className="font-semibold text-gray-900">
-                      Блоки на микро-лендинге
+                      Блоки микросайта
                     </h3>
                     <div className="relative" ref={addMenuRef}>
                       {micrositeFrozen ? (
@@ -1823,12 +1848,12 @@ function MyPageDashboardContent() {
                   </div>
                   <p className="text-sm text-gray-500 mb-4">
                     {micrositeFrozen
-                      ? "Откройте раздел, чтобы править содержимое. Включить, выключить или переставить блоки можно после продления PRO."
+                      ? "Откройте раздел, чтобы править содержимое. Включить, выключить или переставить блоки можно после продления тарифа."
                       : "Перемещайте блоки. Галочка — отображать на странице; без неё раздел скрыт, но его можно открыть отдельным QR."}
                   </p>
                   <button
                     type="button"
-                    onClick={() => setActiveEditor(null)}
+                    onClick={() => openBlockEditor(null)}
                     className={`w-full flex items-center gap-2 p-2 mb-2 rounded-lg border text-left transition-colors ${
                       activeEditor === null
                         ? "border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-200"
@@ -1925,7 +1950,7 @@ function MyPageDashboardContent() {
                             setDragIndex(null);
                             setDragOverIndex(null);
                           }}
-                          className={`flex items-center gap-2 p-2 rounded-lg border group transition-colors ${
+                          className={`flex flex-wrap items-center gap-x-2 gap-y-1 p-2 rounded-lg border group transition-colors sm:flex-nowrap ${
                             isActive
                               ? "border-indigo-400 bg-indigo-50/60 ring-1 ring-indigo-200"
                               : isOn
@@ -1934,33 +1959,37 @@ function MyPageDashboardContent() {
                           } ${isDragging ? "opacity-40" : ""} ${isDragOver ? "border-indigo-500 border-dashed" : ""}`}
                         >
                           {!micrositeFrozen && (
-                          <div className="flex flex-col gap-0.5 shrink-0">
+                          <div className="order-5 flex shrink-0 gap-1 sm:order-none sm:flex-col sm:gap-0.5">
                             <button
                               type="button"
                               onClick={() => moveModule(idx, "up")}
                               disabled={idx === 0}
-                              className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20"
+                              aria-label={`Поднять блок «${label}» выше`}
+                              title="Выше"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-20 sm:h-auto sm:w-auto sm:rounded sm:p-0.5 sm:text-gray-400"
                             >
-                              <ChevronUp className="w-3.5 h-3.5" />
+                              <ChevronUp className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
                             </button>
                             <button
                               type="button"
                               onClick={() => moveModule(idx, "down")}
                               disabled={idx === landingOrder.length - 1}
-                              className="p-0.5 text-gray-400 hover:text-gray-700 disabled:opacity-20"
+                              aria-label={`Опустить блок «${label}» ниже`}
+                              title="Ниже"
+                              className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-20 sm:h-auto sm:w-auto sm:rounded sm:p-0.5 sm:text-gray-400"
                             >
-                              <ChevronDown className="w-3.5 h-3.5" />
+                              <ChevronDown className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
                             </button>
                           </div>
                           )}
 
                           {micrositeFrozen ? (
-                            <Lock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                            <Lock className="order-1 w-3.5 h-3.5 text-gray-300 shrink-0 sm:order-none" />
                           ) : (
-                            <GripVertical className="w-4 h-4 text-gray-400 shrink-0 cursor-grab active:cursor-grabbing" />
+                            <GripVertical className="hidden w-4 h-4 text-gray-400 shrink-0 cursor-grab active:cursor-grabbing sm:block" />
                           )}
 
-                          <div className={`w-7 h-7 rounded flex items-center justify-center shrink-0 ${iconBg}`}>
+                          <div className={`order-1 w-7 h-7 rounded flex items-center justify-center shrink-0 sm:order-none ${iconBg}`}>
                             {isBuiltinModuleKey(key) && !micrositeFrozen ? (
                               <EmojiPicker
                                 value={moduleIcons[key] ?? null}
@@ -1978,7 +2007,7 @@ function MyPageDashboardContent() {
                           </div>
 
                           {isBuiltinModuleKey(key) && editingLabel === key ? (
-                            <div className="flex-1 flex items-center gap-1 min-w-0">
+                            <div className="order-2 flex-1 flex items-center gap-1 min-w-0 sm:order-none">
                               <input
                                 type="text"
                                 value={editLabelValue}
@@ -1988,20 +2017,33 @@ function MyPageDashboardContent() {
                                   if (e.key === "Escape") cancelEditLabel();
                                 }}
                                 autoFocus
-                                className="flex-1 min-w-0 px-2 py-0.5 text-sm border border-indigo-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                                aria-label="Название блока"
+                                className="flex-1 min-w-0 px-2 py-1.5 text-base border border-indigo-300 rounded focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:py-0.5 sm:text-sm"
                               />
-                              <button type="button" onClick={confirmEditLabel} className="p-0.5 text-green-600 hover:text-green-800 shrink-0" title="Сохранить">
-                                <Check className="w-3.5 h-3.5" />
+                              <button
+                                type="button"
+                                onClick={confirmEditLabel}
+                                aria-label="Сохранить название"
+                                title="Сохранить"
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-green-600 hover:bg-green-50 hover:text-green-800 shrink-0 sm:h-auto sm:w-auto sm:p-0.5"
+                              >
+                                <Check className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
                               </button>
-                              <button type="button" onClick={cancelEditLabel} className="p-0.5 text-gray-400 hover:text-gray-700 shrink-0" title="Отмена">
-                                <X className="w-3.5 h-3.5" />
+                              <button
+                                type="button"
+                                onClick={cancelEditLabel}
+                                aria-label="Отменить переименование"
+                                title="Отмена"
+                                className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-700 shrink-0 sm:h-auto sm:w-auto sm:p-0.5"
+                              >
+                                <X className="w-5 h-5 sm:w-3.5 sm:h-3.5" />
                               </button>
                             </div>
                           ) : (
                             <button
                               type="button"
-                              onClick={() => setActiveEditor(key as EditorTab)}
-                              className={`flex-1 text-left text-sm font-medium transition-colors truncate ${
+                              onClick={() => openBlockEditor(key as EditorTab)}
+                              className={`order-2 min-h-10 min-w-0 flex-1 text-left text-sm font-medium transition-colors truncate sm:order-none sm:min-h-0 ${
                                 isActive ? "text-indigo-700" : "text-gray-800 hover:text-indigo-600"
                               } ${!isOn ? "text-gray-400" : ""}`}
                             >
@@ -2013,14 +2055,15 @@ function MyPageDashboardContent() {
                             <button
                               type="button"
                               onClick={() => startEditLabel(key)}
-                              className="p-1 text-gray-400 hover:text-indigo-600 shrink-0"
+                              aria-label={`Переименовать блок «${label}»`}
                               title="Переименовать"
+                              className="order-7 inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-100 hover:text-indigo-600 shrink-0 sm:order-none sm:h-auto sm:w-auto sm:p-1"
                             >
-                              <Pencil className="w-3 h-3" />
+                              <Pencil className="w-4 h-4 sm:w-3 sm:h-3" />
                             </button>
                           )}
 
-                          <div className="flex flex-col items-center gap-0.5 shrink-0">
+                          <label className="order-3 flex min-h-10 min-w-10 flex-col items-center justify-center gap-0.5 shrink-0 sm:order-none sm:min-h-0 sm:min-w-0">
                             {!isOn && (
                               <span className="text-[10px] text-gray-400 leading-none">скрыто</span>
                             )}
@@ -2033,15 +2076,22 @@ function MyPageDashboardContent() {
                                 else if (isCustom) toggleCustomPage(customModuleKeyToId(key)!);
                                 else if (isTyped) toggleTypedModuleLanding(key);
                               }}
-                              className="w-4 h-4 text-indigo-600 rounded disabled:opacity-40"
-                              aria-label="Отображать на странице"
+                              className="w-5 h-5 text-indigo-600 rounded disabled:opacity-40 sm:w-4 sm:h-4"
+                              aria-label={`Показывать блок «${label}» на странице`}
                               title={
                                 micrositeFrozen
                                   ? "Состав разделов микросайта доступен на тарифе PRO"
                                   : "Отображать на странице"
                               }
                             />
-                          </div>
+                          </label>
+
+                          {!micrositeFrozen && (
+                            <span aria-hidden className="order-4 basis-full h-0 sm:hidden" />
+                          )}
+                          {!micrositeFrozen && (
+                            <span aria-hidden className="order-6 flex-1 sm:hidden" />
+                          )}
 
                           {(isCustom || isTyped) && !micrositeFrozen && (
                             <button
@@ -2054,10 +2104,11 @@ function MyPageDashboardContent() {
                                   deleteTypedModule(key);
                                 }
                               }}
-                              className="p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                              aria-label={`Удалить блок «${label}»`}
                               title="Удалить"
+                              className="order-8 inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-red-50 hover:text-red-600 transition-opacity shrink-0 sm:order-none sm:h-auto sm:w-auto sm:p-1 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
                             </button>
                           )}
                         </div>
@@ -2066,9 +2117,9 @@ function MyPageDashboardContent() {
                   </div>
                 </Card>
 
-                <Card>
+                <Card id="microsite-block-editor" className="scroll-mt-20">
                   {activeEditor ? (
-                    <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
+                    <div className="flex flex-wrap items-center gap-2 mb-4 text-sm text-gray-500">
                       <Pencil className="w-3.5 h-3.5" />
                       <span>Редактирование:</span>
                       <span className="font-medium text-gray-800">
@@ -2084,7 +2135,7 @@ function MyPageDashboardContent() {
                         <p className="font-medium text-gray-800">Главная</p>
                         <p className="mt-1">
                           {micrositeFrozen
-                            ? "Экран со списком разделов — его гость видит сразу после сканирования. Набор плиток сейчас заморожен: откройте блок слева, чтобы обновить содержимое, или продлите PRO, чтобы снова собирать страницу."
+                            ? "Экран со списком разделов — его гость видит сразу после сканирования. Набор плиток сейчас заморожен: откройте блок в списке, чтобы обновить содержимое, или продлите тариф, чтобы снова собирать страницу."
                             : "Экран со списком разделов — его гость видит сразу после сканирования. Состав, порядок, названия и иконки плиток настраиваются в списке выше, логотип, обложка и цвета — в блоке «Оформление». Выберите блок в списке, чтобы отредактировать его содержимое."}
                         </p>
                       </div>
@@ -2198,11 +2249,11 @@ function MyPageDashboardContent() {
                   <div className="flex items-center gap-2 mb-2">
                     <Smartphone className="w-4 h-4 text-gray-500" />
                     <h3 className="font-semibold text-gray-900">
-                      Предпросмотр лендинга
+                      Предпросмотр микросайта
                     </h3>
                   </div>
                   <p className="text-sm text-gray-500 mb-4">
-                    Так гость увидит микро-лендинг при сканировании QR
+                    Так гость увидит микросайт при сканировании QR
                   </p>
                   {establishmentId && (
                     <div className="mx-auto w-full max-w-[360px] rounded-[2.25rem] border-[10px] border-gray-900 bg-gray-900 shadow-xl overflow-hidden">
@@ -2371,10 +2422,10 @@ function MyPageHeader({
 }) {
   const current = establishments.find((e) => e.id === establishmentId);
   return (
-    <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
-      <div>
+    <div className="mb-6 flex items-start justify-between gap-x-4 gap-y-2 flex-wrap">
+      <div className="min-w-0 flex-1 basis-full sm:basis-80">
         <div className="flex items-center gap-2 mb-1 flex-wrap">
-          <Layout className="w-6 h-6 text-indigo-600" />
+          <Layout className="w-6 h-6 text-indigo-600 shrink-0" />
           <h1 className="text-2xl font-bold text-gray-900">Микросайт</h1>
           {micrositeFrozen && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -2387,25 +2438,26 @@ function MyPageHeader({
               href={micrositePublicUrl(shortSlug) ?? `/a/${shortSlug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-1 inline-flex items-center gap-1 px-2.5 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50 text-gray-700"
+              className="inline-flex h-10 items-center gap-1 px-3 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50 text-gray-700 sm:ml-1 sm:h-8 sm:px-2.5"
               title="Открыть микросайт в новой вкладке"
             >
               <Eye className="w-4 h-4" />
               Открыть
             </a>
           )}
-          {!lockProject && establishments.length > 1 && current && (
-            <select
-              value={establishmentId}
-              onChange={(e) => onChangeEstablishment(e.target.value)}
-              className="ml-2 px-2.5 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:bg-gray-50"
-            >
-              {establishments.map((est) => (
-                <option key={est.id} value={est.id}>{est.name}</option>
-              ))}
-            </select>
-          )}
         </div>
+        {!lockProject && establishments.length > 1 && current && (
+          <select
+            value={establishmentId}
+            onChange={(e) => onChangeEstablishment(e.target.value)}
+            aria-label="Проект"
+            className="mb-2 h-10 w-full max-w-xs px-2.5 border border-gray-300 rounded-lg text-base bg-white hover:bg-gray-50 sm:h-8 sm:w-auto sm:text-sm"
+          >
+            {establishments.map((est) => (
+              <option key={est.id} value={est.id}>{est.name}</option>
+            ))}
+          </select>
+        )}
         <p className="text-gray-500">
           {micrositeFrozen
             ? "Страница по QR открыта для гостей. Состав разделов заморожен — содержимое блоков и брендинг можно править."

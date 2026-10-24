@@ -203,7 +203,7 @@ export async function GET(request: Request) {
     ];
   }
 
-  const [reviews, total] = await Promise.all([
+  const [reviews, total, ratingAgg, negativeTotal] = await Promise.all([
     prisma.review.findMany({
       where,
       orderBy: { createdAt: "desc" },
@@ -215,8 +215,21 @@ export async function GET(request: Request) {
       },
     }),
     prisma.review.count({ where }),
+    prisma.review.aggregate({ where, _avg: { rating: true } }),
+    negative === "false"
+      ? Promise.resolve(0)
+      : prisma.review.count({ where: { ...where, isNegative: true } }),
   ]);
 
   const page = Math.floor(offset / limit) + 1;
-  return NextResponse.json({ reviews, total, page, pages: Math.ceil(total / limit) });
+  const avg = ratingAgg._avg.rating;
+  return NextResponse.json({
+    reviews,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    // Итоги по всему фильтру (а не по текущей странице)
+    avgRating: avg == null ? null : Math.round(avg * 10) / 10,
+    negativeTotal,
+  });
 }

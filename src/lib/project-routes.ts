@@ -10,6 +10,7 @@ export const UNASSIGNED_PROJECT_ID = "unassigned";
 export type ProjectSection =
   | "home"
   | "page"
+  | "card"
   | "qrcodes"
   | "inbox"
   | "stats"
@@ -49,6 +50,11 @@ export function projectPagePath(projectId: string, search?: string): string {
   return search ? `${path}${search.startsWith("?") ? search : `?${search}`}` : path;
 }
 
+/** Редактор QR-визитки проекта (отдельно от микросайта). */
+export function projectCardPath(projectId: string): string {
+  return `/dashboard/projects/${projectId}/card`;
+}
+
 export function projectQrcodesPath(projectId: string): string {
   return `/dashboard/projects/${projectId}/qrcodes`;
 }
@@ -84,6 +90,9 @@ export function projectSectionPath(
   switch (section) {
     case "page":
       path = projectPagePath(projectId);
+      break;
+    case "card":
+      path = projectCardPath(projectId);
       break;
     case "qrcodes":
       path = extra ? projectQrPath(projectId, extra) : projectQrcodesPath(projectId);

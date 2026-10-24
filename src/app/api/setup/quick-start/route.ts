@@ -31,6 +31,8 @@ import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { isGeneratorStyleLayout } from "@/lib/generator-style";
 import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
 import { findRedirectUrlProblem } from "@/lib/redirect-url";
+import { cardTextFieldsFromBody, phoneDigits } from "@/lib/business-card";
+import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
 
 function resolveYandexMapsUrl(raw: string | undefined): {
   normalized: string | null;
@@ -47,7 +49,34 @@ function resolveYandexMapsUrl(raw: string | undefined): {
   return { normalized: normalizeYandexMapsUrl(trimmed)!, error: null };
 }
 
-export type SetupIntent = "reviews" | "landing" | "redirect" | "menu";
+export type SetupIntent = "reviews" | "landing" | "redirect" | "menu" | "card";
+
+const CONTACT_PROVIDER_PRIORITY = ["TELEGRAM", "MAX", "EMAIL"] as const;
+
+/**
+ * Канал для формы «Оставить заявку» на новой визитке: мессенджер, если подключён,
+ * иначе email регистрации — чтобы форма работала сразу, без похода в настройки.
+ */
+async function pickCardContactMessengerId(userId: string): Promise<string | null> {
+  const findBest = async () => {
+    const contacts = await prisma.messengerContact.findMany({
+      where: { userId },
+      select: { id: true, provider: true },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const provider of CONTACT_PROVIDER_PRIORITY) {
+      const match = contacts.find((c) => c.provider === provider);
+      if (match) return match.id;
+    }
+    return null;
+  };
+  const existing = await findBest();
+  if (existing) return existing;
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
+  if (!user?.email) return null;
+  await ensureDefaultEmailContact(userId, user.email);
+  return findBest();
+}
 
 /**
  * Дизайн, перенесённый из генератора на лендинге, применяется к первому QR пользователя
@@ -96,6 +125,10 @@ export async function POST(request: Request) {
     industry?: string;
     intent?: string;
     establishmentId?: string;
+    profession?: string;
+    whatsapp?: string;
+    telegram?: string;
+    serviceArea?: string;
   };
 
   const establishmentId = rawEstablishmentId?.trim() || undefined;
@@ -107,7 +140,9 @@ export async function POST(request: Request) {
         ? "landing"
         : rawIntent === "menu"
           ? "menu"
-          : "reviews";
+          : rawIntent === "card"
+            ? "card"
+            : "reviews";
   const trimmedName = name?.trim();
   const yandexResolved = resolveYandexMapsUrl(yandexMapsUrl);
   const trimmedYandex = yandexResolved.normalized;
@@ -138,7 +173,25 @@ export async function POST(request: Request) {
   }
 
   if (!establishmentId && !trimmedName) {
-    return NextResponse.json({ error: "Укажите название проекта" }, { status: 400 });
+    return NextResponse.json(
+      { error: intent === "card" ? "Укажите имя" : "Укажите название проекта" },
+      { status: 400 }
+    );
+  }
+
+  // Поля визитки (intent=card): имя → fullName, профессия → title.
+  const cardFields = cardTextFieldsFromBody({
+    title: body.profession,
+    phone,
+    whatsapp: body.whatsapp,
+    telegram: body.telegram,
+    serviceArea: body.serviceArea,
+  });
+  if (intent === "card" && phoneDigits(cardFields.phone).length < 10) {
+    return NextResponse.json(
+      { error: "Укажите телефон — по нему клиенты будут звонить" },
+      { status: 400 }
+    );
   }
 
   if (intent === "reviews" && !establishmentId) {
@@ -180,7 +233,9 @@ export async function POST(request: Request) {
         ? "REDIRECT"
         : intent === "menu"
           ? "MENU"
-          : "LANDING";
+          : intent === "card"
+            ? "BUSINESS_CARD"
+            : "LANDING";
   const qrLabel =
     trimmedQrLabel ||
     (intent === "reviews"
@@ -189,7 +244,9 @@ export async function POST(request: Request) {
         ? "Редирект"
         : intent === "menu"
           ? "Меню"
-          : "Основной");
+          : intent === "card"
+            ? "Визитка"
+            : "Основной");
 
   const ownedCount = await prisma.establishment.count({ where: { userId } });
   const subscription = await findActiveSubscription(userId);
@@ -238,6 +295,18 @@ export async function POST(request: Request) {
 
   await ensureQrStylePresets();
 
+  const cardContactMessengerId =
+    intent === "card" ? await pickCardContactMessengerId(userId) : null;
+  const cardCreateData = (fullName: string) => ({
+    user: { connect: { id: userId } },
+    fullName: fullName.slice(0, 200),
+    ...cardFields,
+    contactEnabled: !!cardContactMessengerId,
+    ...(cardContactMessengerId
+      ? { contactMessenger: { connect: { id: cardContactMessengerId } } }
+      : {}),
+  });
+
   if (establishmentId) {
     const establishment = await prisma.establishment.findUnique({
       where: { id: establishmentId },
@@ -245,6 +314,7 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         yandexMapsUrl: true,
+        businessCardId: true,
       },
     });
     if (!establishment) {
@@ -296,6 +366,22 @@ export async function POST(request: Request) {
         });
       }
 
+      // У проекта уже есть визитка — новый QR ведёт на неё, данные из формы не трогаем.
+      let businessCardId: string | undefined;
+      if (intent === "card") {
+        businessCardId = establishment.businessCardId ?? undefined;
+        if (!businessCardId) {
+          const card = await tx.businessCard.create({
+            data: { ...cardCreateData(trimmedName || establishment.name), estId: establishmentId },
+          });
+          businessCardId = card.id;
+          await tx.establishment.update({
+            where: { id: establishmentId },
+            data: { businessCard: { connect: { id: card.id } } },
+          });
+        }
+      }
+
       const qr = await tx.qRCode.create({
         data: {
           code,
@@ -308,6 +394,7 @@ export async function POST(request: Request) {
           qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
           ...(intent === "redirect" ? { redirectUrl: trimmedRedirect } : {}),
           ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
+          ...(businessCardId ? { businessCard: { connect: { id: businessCardId } } } : {}),
         },
       });
 
@@ -365,6 +452,18 @@ export async function POST(request: Request) {
       });
     }
 
+    let businessCardId: string | undefined;
+    if (intent === "card") {
+      const card = await tx.businessCard.create({
+        data: { ...cardCreateData(trimmedName!), estId: establishment.id },
+      });
+      businessCardId = card.id;
+      await tx.establishment.update({
+        where: { id: establishment.id },
+        data: { businessCard: { connect: { id: card.id } } },
+      });
+    }
+
     const qrcode = await tx.qRCode.create({
       data: {
         code,
@@ -377,6 +476,7 @@ export async function POST(request: Request) {
         qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
         ...(intent === "redirect" ? { redirectUrl: trimmedRedirect } : {}),
         ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
+        ...(businessCardId ? { businessCard: { connect: { id: businessCardId } } } : {}),
       },
     });
 

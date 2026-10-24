@@ -1,12 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import DemoQrScan from '../components/DemoQrScan.astro';
+import { registerUrl } from '../lib/utm';
 
-const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
+const DEMO_SCAN_URL = 'https://app.qrstars.ru/q/demo-file';
+const HERO_CTA_URL = registerUrl('file_hero', Astro.url.searchParams);
+const BOTTOM_CTA_URL = registerUrl('file_bottom', Astro.url.searchParams);
 ---
 
-<Layout title="QR-файлы по QR-коду" description="QR-меню, прайсы и каталоги для ресторанов и локального бизнеса. Клиент сканирует код и сразу открывает PDF — без приложений и бумажных папок.">
-    <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
+<Layout title="QR-файлы по QR-коду" description="QR-код на файл: меню, прайс или каталог в PDF. Клиент сканирует код и сразу открывает файл — без приложений. Бесплатно на тарифе FREE в QrStars.">
+    <section class="pt-24 pb-16 sm:pt-32 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div class="z-10">
@@ -14,11 +17,11 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
                         <div class="inline-block bg-orange-100 text-orange-800 font-semibold px-4 py-1.5 rounded-full text-sm border border-orange-200">
                             🍽️ Меню, прайсы, каталоги
                         </div>
-                        <div class="inline-block bg-amber-100 text-amber-800 font-semibold px-3 py-1.5 rounded-full text-xs border border-amber-200">
-                            Pro-модуль
+                        <div class="inline-block bg-green-100 text-green-800 font-semibold px-3 py-1.5 rounded-full text-xs border border-green-200">
+                            Бесплатно на FREE
                         </div>
                     </div>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
                         <span class="text-primary">QR-файлы</span> <br/>
                         по одному QR-коду
                     </h1>
@@ -27,15 +30,15 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
                     </p>
 
                     <ul class="space-y-4 mb-8">
-                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Меню, десерты, бизнес-ланч — отдельные файлы или одна страница с кнопками</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Один файл на QR-код: меню, прайс или каталог (PDF, JPG, PNG)</span></li>
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Обновили блюда — заменили PDF в кабинете, QR на столах тот же</span></li>
-                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Статистика: сколько раз открыли меню и какой файл скачали чаще</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Статистика: сколько раз отсканировали код</span></li>
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Работает вместе с умными отзывами и QR на столиках</span></li>
                     </ul>
 
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <a href="/#buy" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
-                            Подключить Pro
+                        <a href={HERO_CTA_URL} data-goal="hero_start" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                            Создать QR на файл бесплатно
                         </a>
                         <a href="/smart-reviews.html" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
                             Умные отзывы
@@ -44,7 +47,7 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
                 </div>
 
                 <div class="relative flex justify-center">
-                    <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=800" alt="QR-меню в ресторане" class="rounded-3xl shadow-2xl -rotate-2 hover:rotate-0 transition duration-500" />
+                    <img src="/images/hero-file.webp" alt="QR-меню в ресторане" width="800" height="533" fetchpriority="high" decoding="async" class="w-full h-auto max-w-xl rounded-3xl shadow-2xl -rotate-2 hover:rotate-0 transition duration-500" />
                     <div class="absolute -bottom-4 -right-2 sm:right-4 bg-white p-4 rounded-xl shadow-xl border border-slate-100 max-w-[240px]">
                         <div class="flex items-center gap-3 mb-3">
                             <div class="w-10 h-10 bg-red-100 text-red-600 rounded-lg flex items-center justify-center shrink-0">
@@ -54,11 +57,6 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
                                 <div class="font-bold text-sm text-slate-800">Меню_весна.pdf</div>
                                 <div class="text-slate-500 text-xs">2,4 МБ · открыто 847 раз</div>
                             </div>
-                        </div>
-                        <div class="flex gap-2 text-xs">
-                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Основное</span>
-                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Бар</span>
-                            <span class="bg-slate-100 text-slate-600 px-2 py-1 rounded-md">Детское</span>
                         </div>
                     </div>
                 </div>
@@ -126,25 +124,24 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
                 <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">1</div>
                     <h3 class="font-bold text-lg mb-2">Загрузите файлы</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">PDF, изображения или ссылки — соберите страницу с кнопками «Меню», «Бар», «Акции» в личном кабинете.</p>
+                    <p class="text-slate-600 text-sm leading-relaxed">Загрузите PDF или изображение в личном кабинете — один файл на один QR-код. Нужна страница с несколькими кнопками («Меню», «Бар», «Акции»)? Это микросайт на PRO.</p>
                 </div>
                 <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">2</div>
                     <h3 class="font-bold text-lg mb-2">Разместите QR</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">Наклейка на стол, тейбл-тент или NFC-табличка QrStars — гость сканирует без установки приложений.</p>
+                    <p class="text-slate-600 text-sm leading-relaxed">Наклейка на стол, тейбл-тент или акриловая табличка QrStars — гость сканирует без установки приложений.</p>
                 </div>
                 <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
                     <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">3</div>
                     <h3 class="font-bold text-lg mb-2">Гость открывает файл</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">Меню открывается в браузере. Вы видите статистику просмотров и при необходимости меняете файлы за минуту.</p>
+                    <p class="text-slate-600 text-sm leading-relaxed">Меню открывается в браузере. Вы видите число сканирований и при необходимости заменяете файл за минуту — QR остаётся тем же.</p>
                 </div>
             </div>
 
             <div class="flex flex-wrap justify-center gap-4 text-sm text-slate-600">
                 <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-file-pdf text-red-400"></i> PDF</span>
                 <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-image text-blue-400"></i> JPG / PNG</span>
-                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-link text-slate-400"></i> Ссылки на Google Drive</span>
-                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-language text-slate-400"></i> Несколько языков</span>
+                <span class="inline-flex items-center gap-2 bg-slate-50 px-4 py-2 rounded-full border border-slate-200"><i class="fa-solid fa-file-word text-slate-400"></i> Документы и другие файлы</span>
             </div>
         </div>
     </section>
@@ -155,7 +152,7 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
                 <div class="flex-1">
                     <h2 class="text-2xl font-bold mb-3">Связка для HoReCa</h2>
                     <p class="text-slate-600 text-sm leading-relaxed mb-4">
-                        На одном столике — умные отзывы (5★ на карты, негатив вам в Telegram), QR-меню для гостя и при желании чаевые официанту. Один кабинет, одна аналитика.
+                        На одном столике — умные отзывы (5★ на карты, негатив вам на email, на PRO — в Telegram и MAX), QR-меню для гостя и чаевые официанту (PRO). Один кабинет, одна аналитика.
                     </p>
                     <a href="/smart-reviews.html" class="text-primary font-semibold text-sm hover:underline">Подробнее про умные отзывы →</a>
                 </div>
@@ -170,11 +167,16 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-file';
 
     <section class="py-16 bg-white">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 class="text-2xl font-bold mb-4">Доступно в подписке Pro</h2>
-            <p class="text-slate-600 mb-8">QR-файлы входят в экосистему QrStars вместе с QR-визитками, white label и расширенной аналитикой. При покупке NFC-таблички — 3 месяца Pro в подарок.</p>
-            <a href="/#buy" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
-                Выбрать тариф
-            </a>
+            <h2 class="text-2xl font-bold mb-4">Бесплатно на тарифе FREE</h2>
+            <p class="text-slate-600 mb-8">QR-код на файл доступен бесплатно и без срока, QR-кодов в проекте — без лимита. На PRO (990 ₽/год) — микросайт с несколькими разделами в одном QR, White Label и расширенная аналитика.</p>
+            <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                <a href={BOTTOM_CTA_URL} data-goal="bottom_cta" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                    Создать QR на файл бесплатно
+                </a>
+                <a href="/#buy" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
+                    Сравнить тарифы
+                </a>
+            </div>
         </div>
     </section>
 </Layout>

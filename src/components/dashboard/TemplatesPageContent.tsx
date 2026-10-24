@@ -1,15 +1,7 @@
 "use client";
 
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { TEMPLATES_CHANGED_EVENT } from "@/components/dashboard/GeneratorStyleImporter";
-import {
-  renderSticker,
-  DEFAULT_STICKER_CONFIG,
-  FORMATS,
-  type StickerConfig,
-} from "@/components/dashboard/StickerDesigner";
 import {
   QR_CODE_TEMPLATES,
   DEFAULT_QR_CONFIG,
@@ -19,33 +11,18 @@ import {
   type QRTemplateConfig,
   type QRTemplatePreset,
 } from "@/lib/qr-code-templates";
-import {
-  BUILTIN_STICKER_TEMPLATES,
-  isBuiltInStickerTemplateId,
-} from "@/lib/builtin-sticker-templates";
-import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import QRTemplateEditor from "@/components/dashboard/QRTemplateEditor";
+import { ART_PRESET_CATEGORIES, type ArtPresetCategory } from "@/lib/qr-engine";
 import { Loader2, Plus, Pencil, Trash2, X } from "lucide-react";
 
-export type TemplatesMode = "qr" | "table-tent";
+/** Шаблоны табличек (table-tent) убраны из кабинета: старые ссылки редиректят на стили QR. */
+export type TemplatesMode = "qr";
 
 interface TemplateRow {
   id: string;
   name: string;
-  layout: { __type?: string; stickerConfig?: StickerConfig; config?: QRTemplateConfig };
+  layout: { __type?: string; config?: QRTemplateConfig };
   createdAt: string;
-}
-
-function StickerThumb({ cfg }: { cfg: StickerConfig }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    const thumbFmt = { ...fmt, previewW: 140, previewH: 140, dpi: 72 };
-    renderSticker(c, cfg, thumbFmt, true).catch(() => {});
-  }, [cfg, fmt]);
-  return <canvas ref={ref} style={{ display: "block", width: 140, height: 140 }} />;
 }
 
 function QRThumbFromConfig({ config, maxSide = 120 }: { config: QRTemplateConfig; maxSide?: number }) {
@@ -83,35 +60,20 @@ function newQRTemplatePreset(): QRTemplatePreset {
   };
 }
 
-const PAGE_META: Record<
-  TemplatesMode,
-  { title: string; subtitle: string; createLabel: string }
-> = {
-  qr: {
-    title: "Шаблоны оформления",
-    subtitle: "Стили QR-кодов аккаунта: скачивание и привязка к любым кодам проектов",
-    createLabel: "Новый шаблон QR-кода",
-  },
-  "table-tent": {
-    title: "Шаблоны табличек",
-    subtitle: "Таблички и стикеры для печати с QR-кодом",
-    createLabel: "Новый шаблон таблички",
-  },
+const PAGE_META = {
+  title: "Шаблоны оформления",
+  subtitle: "Стили QR-кодов аккаунта: скачивание и привязка к любым кодам проектов",
+  createLabel: "Новый шаблон",
 };
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) {
-  const { status } = useSession();
-  const router = useRouter();
-  const meta = PAGE_META[mode];
+  const meta = PAGE_META;
 
-  const [stickerTemplates, setStickerTemplates] = useState<TemplateRow[]>([]);
   const [qrStyleTemplates, setQrStyleTemplates] = useState<TemplateRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [artCategory, setArtCategory] = useState<ArtPresetCategory | "all">("all");
   const [deleting, setDeleting] = useState<string | null>(null);
-
-  const [showCreate, setShowCreate] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [creating, setCreating] = useState(false);
 
   const [renaming, setRenaming] = useState<TemplateRow | null>(null);
   const [renameVal, setRenameVal] = useState("");
@@ -121,11 +83,6 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
   const [bindQrId, setBindQrId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-  }, [status, router]);
-
-  useEffect(() => {
-    if (mode !== "qr") return;
     const params = new URLSearchParams(window.location.search);
     const bindQr = params.get("bindQr");
     if (!bindQr) return;
@@ -148,18 +105,13 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
       "",
       `${window.location.pathname}${next ? `?${next}` : ""}`,
     );
-  }, [mode]);
+  }, []);
 
   const load = useCallback(async () => {
     try {
       const r = await fetch("/api/templates");
       const d = await r.json();
       const all: TemplateRow[] = d.templates || [];
-      setStickerTemplates(
-        all.filter(
-          (t) => t.layout?.__type === "sticker" && !isBuiltInStickerTemplateId(t.id),
-        ),
-      );
       setQrStyleTemplates(
         all.filter(
           (t) => t.layout?.__type === "qr-style" && !t.id.startsWith("qr-preset-"),
@@ -171,54 +123,20 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
     }
   }, []);
 
+  // Авторизацию проверяет dashboard/layout.tsx.
   useEffect(() => {
-    if (status === "authenticated") load();
-  }, [status, load]);
-
-  // Стиль из генератора на лендинге сохраняется в фоне — показываем его без перезагрузки.
-  useEffect(() => {
+    load();
+    // Стиль из генератора на лендинге сохраняется в фоне — показываем его без перезагрузки.
     window.addEventListener(TEMPLATES_CHANGED_EVENT, load);
     return () => window.removeEventListener(TEMPLATES_CHANGED_EVENT, load);
   }, [load]);
 
-  const handleCreate = async () => {
-    if (!newName.trim()) return;
-    setCreating(true);
-    try {
-      const cfg: StickerConfig = { ...DEFAULT_STICKER_CONFIG };
-      const res = await fetch("/api/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newName.trim(),
-          layout: {
-            __type: "sticker",
-            width: 50,
-            height: 50,
-            background: { type: "solid", color: "#fff" },
-            elements: [],
-            stickerConfig: cfg,
-          },
-        }),
-      });
-      if (!res.ok) return;
-      const d = await res.json();
-      router.push(TEMPLATE_ROUTES.qr);
-    } finally {
-      setCreating(false);
-    }
-  };
-
-  const handleDelete = async (id: string, type: "sticker" | "qr-style") => {
+  const handleDelete = async (id: string) => {
     if (!confirm("Удалить шаблон?")) return;
     setDeleting(id);
     try {
-      await fetch(`/api/templates/${id}`, { method: "DELETE" });
-      if (type === "sticker") {
-        setStickerTemplates((prev) => prev.filter((t) => t.id !== id));
-      } else {
-        setQrStyleTemplates((prev) => prev.filter((t) => t.id !== id));
-      }
+      const res = await fetch(`/api/templates/${id}`, { method: "DELETE" });
+      if (res.ok) setQrStyleTemplates((prev) => prev.filter((t) => t.id !== id));
     } finally {
       setDeleting(null);
     }
@@ -231,9 +149,6 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name: renameVal.trim() }),
     });
-    setStickerTemplates((prev) =>
-      prev.map((t) => (t.id === renaming.id ? { ...t, name: renameVal.trim() } : t)),
-    );
     setQrStyleTemplates((prev) =>
       prev.map((t) => (t.id === renaming.id ? { ...t, name: renameVal.trim() } : t)),
     );
@@ -270,50 +185,59 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
     [],
   );
 
-  if (status === "loading" || loading) {
+  if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+        <main className="flex min-w-0 flex-1 items-center justify-center">
           <Loader2 className="animate-spin text-indigo-600" size={32} />
         </main>
       </div>
     );
   }
 
+
+  const renderPresetCard = (preset: QRTemplatePreset) => (
+    <button
+      key={preset.id}
+      onClick={() => {
+        setEditingSaved(null);
+        setEditingPreset(preset);
+      }}
+      className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md hover:border-indigo-200 transition-all text-left"
+    >
+      <div className="p-4 flex items-center justify-center bg-gray-50">
+        <QRThumbFromPreset preset={preset} />
+      </div>
+      <div className="p-3 border-t border-gray-100">
+        <p className="font-medium text-gray-900 text-sm mb-1">{preset.name}</p>
+        <p className="text-xs text-gray-500 line-clamp-2">{preset.description}</p>
+        <div
+          className="mt-2 h-1.5 rounded-full"
+          style={{ background: preset.accent, opacity: 0.5 }}
+        />
+      </div>
+    </button>
+  );
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-6 overflow-auto">
+      <main className="min-w-0 flex-1 p-4 sm:p-6">
         <div className="max-w-5xl mx-auto">
-          <div className="flex items-center justify-between mb-6">
-            <div>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-2xl font-bold text-gray-900">{meta.title}</h1>
               <p className="text-sm text-gray-500 mt-0.5">{meta.subtitle}</p>
             </div>
-            {mode === "qr" && (
-              <button
-                onClick={openNewQRTemplate}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
-              >
-                <Plus size={16} />
-                {meta.createLabel}
-              </button>
-            )}
-            {mode === "table-tent" && (
-              <button
-                onClick={() => {
-                  setNewName("");
-                  setShowCreate(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
-              >
-                <Plus size={16} />
-                {meta.createLabel}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={openNewQRTemplate}
+              className="flex min-h-10 shrink-0 items-center justify-center gap-2 self-start rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-700 sm:self-auto"
+            >
+              <Plus size={16} />
+              {meta.createLabel}
+            </button>
           </div>
 
-          {mode === "qr" && (
-            <div>
+          <div>
               <p className="text-sm text-gray-500 mb-4">
                 Создайте свой шаблон или выберите готовый стиль. В предпросмотре можно выбрать свой
                 QR-код и сразу скачать PNG — стиль можно сохранить и привязать к коду.
@@ -369,7 +293,7 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
                                 config,
                               });
                             }}
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            className="flex-1 flex items-center justify-center gap-1 py-2 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                           >
                             <Pencil size={11} />
                             Редактировать
@@ -379,16 +303,18 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
                               setRenaming(tpl);
                               setRenameVal(tpl.name);
                             }}
-                            className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                             title="Переименовать"
+                            aria-label="Переименовать"
                           >
                             <Pencil size={12} />
                           </button>
                           <button
-                            onClick={() => handleDelete(tpl.id, "qr-style")}
+                            onClick={() => handleDelete(tpl.id)}
                             disabled={deleting === tpl.id}
-                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
+                            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
                             title="Удалить"
+                            aria-label="Удалить"
                           >
                             {deleting === tpl.id ? (
                               <Loader2 size={12} className="animate-spin" />
@@ -405,151 +331,27 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
 
               <h3 className="text-sm font-semibold text-gray-700 mb-3">Готовые стили</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {QR_CODE_TEMPLATES.map((preset) => (
+                {QR_CODE_TEMPLATES.filter((p) => !p.art).map(renderPresetCard)}
+              </div>
+
+              <h3 className="text-sm font-semibold text-gray-700 mt-8 mb-3">Арт-стили</h3>
+              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+                {[{ id: "all" as const, label: "Все" }, ...ART_PRESET_CATEGORIES].map((c) => (
                   <button
-                    key={preset.id}
-                    onClick={() => {
-                      setEditingSaved(null);
-                      setEditingPreset(preset);
-                    }}
-                    className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md hover:border-indigo-200 transition-all text-left"
+                    key={c.id}
+                    type="button"
+                    onClick={() => setArtCategory(c.id)}
+                    aria-pressed={artCategory === c.id}
+                    className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium ${artCategory === c.id ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}
                   >
-                    <div className="p-4 flex items-center justify-center bg-gray-50">
-                      <QRThumbFromPreset preset={preset} />
-                    </div>
-                    <div className="p-3 border-t border-gray-100">
-                      <p className="font-medium text-gray-900 text-sm mb-1">{preset.name}</p>
-                      <p className="text-xs text-gray-500 line-clamp-2">{preset.description}</p>
-                      <div
-                        className="mt-2 h-1.5 rounded-full"
-                        style={{ background: preset.accent, opacity: 0.5 }}
-                      />
-                    </div>
+                    {c.label}
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {mode === "table-tent" && (
-            <div>
-              <p className="text-sm text-gray-500 mb-4">
-                Таблички и стикеры для печати с QR-кодом. Привяжите к динамическому QR-коду в его
-                настройках.
-              </p>
-
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Мои шаблоны</h3>
-              {stickerTemplates.length === 0 ? (
-                <div className="bg-white rounded-xl border border-dashed border-gray-200 p-8 text-center mb-8">
-                  <p className="text-gray-500 text-sm mb-3">Пока нет своих шаблонов</p>
-                  <button
-                    onClick={() => {
-                      setNewName("");
-                      setShowCreate(true);
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors font-medium text-sm"
-                  >
-                    <Plus size={16} />
-                    Создать свой шаблон
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
-                  {stickerTemplates.map((tpl) => {
-                    const cfg = tpl.layout?.stickerConfig || DEFAULT_STICKER_CONFIG;
-                    const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-                    return (
-                      <div
-                        key={tpl.id}
-                        className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden group hover:shadow-md hover:border-indigo-200 transition-all"
-                      >
-                        <button
-                          onClick={() => router.push(TEMPLATE_ROUTES.qr)}
-                          className="block w-full bg-gray-50 flex items-center justify-center p-3"
-                          style={{ minHeight: 160 }}
-                        >
-                          <div className="rounded-lg overflow-hidden shadow-sm">
-                            <StickerThumb cfg={cfg} />
-                          </div>
-                        </button>
-                        <div className="p-3 border-t border-gray-100">
-                          <p className="font-medium text-gray-900 text-sm truncate mb-1">{tpl.name}</p>
-                          <div className="flex items-center gap-1.5 mb-2">
-                            <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                              {fmt.name}
-                            </span>
-                            <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded capitalize">
-                              {cfg.layoutId || "standard"} · {cfg.paletteId || "light"}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <button
-                              onClick={() => router.push(TEMPLATE_ROUTES.qr)}
-                              className="flex-1 flex items-center justify-center gap-1 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                            >
-                              <Pencil size={11} /> Редактировать
-                            </button>
-                            <button
-                              onClick={() => {
-                                setRenaming(tpl);
-                                setRenameVal(tpl.name);
-                              }}
-                              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-                              title="Переименовать"
-                            >
-                              <Pencil size={12} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(tpl.id, "sticker")}
-                              disabled={deleting === tpl.id}
-                              className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40"
-                              title="Удалить"
-                            >
-                              {deleting === tpl.id ? (
-                                <Loader2 size={12} className="animate-spin" />
-                              ) : (
-                                <Trash2 size={12} />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-
-              <h3 className="text-sm font-semibold text-gray-700 mb-3">Готовые макеты</h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {BUILTIN_STICKER_TEMPLATES.map((preset) => {
-                  const cfg = { url: "https://qrstars.ru", ...preset.stickerConfig } as StickerConfig;
-                  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-                  return (
-                    <div
-                      key={preset.id}
-                      className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md hover:border-indigo-200 transition-all"
-                    >
-                      <div
-                        className="bg-gray-50 flex items-center justify-center p-3"
-                        style={{ minHeight: 160 }}
-                      >
-                        <div className="rounded-lg overflow-hidden shadow-sm">
-                          <StickerThumb cfg={cfg} />
-                        </div>
-                      </div>
-                      <div className="p-3 border-t border-gray-100">
-                        <p className="font-medium text-gray-900 text-sm mb-1">{preset.shortName}</p>
-                        <p className="text-xs text-gray-500 line-clamp-2 mb-2">{preset.description}</p>
-                        <span className="text-[11px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">
-                          {fmt.name}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+                {QR_CODE_TEMPLATES.filter((p) => p.art && (artCategory === "all" || p.art.category === artCategory)).map(renderPresetCard)}
               </div>
             </div>
-          )}
         </div>
       </main>
 
@@ -569,45 +371,6 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
         />
       )}
 
-      {showCreate && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-bold text-gray-900 text-lg">Новый шаблон таблички</h3>
-              <button onClick={() => setShowCreate(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Название</label>
-            <input
-              autoFocus
-              type="text"
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-              placeholder="Например: Ресторан 5×5"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
-              maxLength={60}
-            />
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowCreate(false)}
-                className="flex-1 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition-colors"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleCreate}
-                disabled={creating || !newName.trim()}
-                className="flex-1 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors disabled:opacity-50"
-              >
-                {creating ? "Создание…" : "Создать и открыть"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {renaming && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
@@ -623,7 +386,7 @@ export default function TemplatesPageContent({ mode }: { mode: TemplatesMode }) 
               value={renameVal}
               onChange={(e) => setRenameVal(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleRename()}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 mb-4"
               maxLength={60}
             />
             <div className="flex gap-3">

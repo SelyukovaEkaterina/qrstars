@@ -31,22 +31,40 @@ export default async function ProjectStatsPage({
   const [establishment, isPro] = await Promise.all([
     prisma.establishment.findUnique({
       where: { id: projectId },
-      include: { reviews: true, qrcodes: true },
+      select: {
+        id: true,
+        name: true,
+        // BasicAnalytics считает распределение и динамику на клиенте —
+        // берём только нужные поля, без текстов отзывов.
+        reviews: {
+          select: {
+            id: true,
+            rating: true,
+            isNegative: true,
+            qrCodeId: true,
+            createdAt: true,
+          },
+        },
+        qrcodes: {
+          select: { id: true, code: true, label: true, mode: true, scansCount: true },
+        },
+      },
     }),
-    canAccessAnalytics(userId),
+    // Тариф проверяем по владельцу проекта: участник видит PRO-аналитику PRO-проекта.
+    canAccessAnalytics(userId, projectId),
   ]);
   if (!establishment) notFound();
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
+    <div className="flex bg-gray-50">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Статистика</h1>
             <p className="text-gray-500 mt-1">Сканирования, переходы и оценки проекта</p>
           </div>
           {isPro ? (
-            <EnhancedAnalytics lockedEstablishmentId={projectId} />
+            <EnhancedAnalytics lockedEstablishmentId={projectId} title={null} />
           ) : (
             <>
               <div className="bg-gradient-to-r from-indigo-500 to-purple-600 rounded-xl p-6 text-white">
@@ -77,18 +95,11 @@ export default async function ProjectStatsPage({
                     reviews: establishment.reviews.map((r) => ({
                       id: r.id,
                       rating: r.rating,
-                      comment: r.comment,
                       isNegative: r.isNegative,
                       qrCodeId: r.qrCodeId,
                       createdAt: r.createdAt.toISOString(),
                     })),
-                    qrcodes: establishment.qrcodes.map((q) => ({
-                      id: q.id,
-                      code: q.code,
-                      label: q.label,
-                      mode: q.mode,
-                      scansCount: q.scansCount,
-                    })),
+                    qrcodes: establishment.qrcodes,
                   },
                 ]}
               />

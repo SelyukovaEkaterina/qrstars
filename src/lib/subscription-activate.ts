@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import type { BillingPeriod, PlanId } from "@/lib/plans";
 import { markProIntroOfferUsed } from "@/lib/subscription-intro-offer";
+import { notifyPaymentSuccess } from "@/lib/telegram-support";
 
 const PARTNER_COMMISSION_RATE = 0.15;
 const HOLD_DAYS = 30;
@@ -185,6 +186,15 @@ export async function handlePaidPaymentOrder(invId: number) {
       });
     }
   }
+
+  void notifyPaymentSuccess({
+    userId: order.userId,
+    plan,
+    billing,
+    amount,
+    invId,
+    kind: order.kind === "INITIAL" ? "INITIAL" : "RECURRING",
+  }).catch((err) => console.error("notifyPaymentSuccess:", err));
 
   return order;
 }

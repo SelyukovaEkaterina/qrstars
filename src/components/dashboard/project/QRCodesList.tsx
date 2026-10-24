@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useLockedProjectId } from "@/components/dashboard/ProjectScope";
 import {
   UNASSIGNED_PROJECT_ID,
@@ -10,6 +10,7 @@ import {
   projectQrNewPath,
   projectQrPath,
 } from "@/lib/project-routes";
+import { MODE_LABELS, type QRMode } from "@/lib/qr-routing";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
@@ -30,6 +31,8 @@ import {
   Copy,
   Check,
   Trash2,
+  MoreHorizontal,
+  ScanLine,
 } from "lucide-react";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
@@ -42,7 +45,7 @@ interface QRCodeItem {
   code: string;
   label: string | null;
   isActive: boolean;
-  mode: "REVIEW" | "REDIRECT" | "BUSINESS_CARD" | "WIFI" | "FILE" | "MENU" | "LANDING";
+  mode: QRMode;
   redirectUrl: string | null;
   scansCount: number;
   establishmentId: string | null;
@@ -63,6 +66,7 @@ interface Establishment {
 function QRCodesPageContent() {
   const { status } = useSession();
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const lockedProjectId = useLockedProjectId();
   const lockedEstId =
@@ -84,6 +88,10 @@ function QRCodesPageContent() {
   const [isPro, setIsPro] = useState(false);
   const [downloadingQrId, setDownloadingQrId] = useState<string | null>(null);
   const [deletingQrId, setDeletingQrId] = useState<string | null>(null);
+  const [menuQrId, setMenuQrId] = useState<string | null>(null);
+  /** Внутри проекта список грузится с ?establishmentId=, поэтому коды без проекта приходят отдельно. */
+  const [unassignedQrcodes, setUnassignedQrcodes] = useState<QRCodeItem[]>([]);
+  const isUnassignedView = lockedProjectId === UNASSIGNED_PROJECT_ID;
 
   const [estForm, setEstForm] = useState({
     name: "",
@@ -94,7 +102,9 @@ function QRCodesPageContent() {
     avitoUrl: "",
   });
 
-  const unlinkedQrcodes = qrcodes.filter((q) => !q.establishmentId);
+  const unlinkedQrcodes = lockedEstId
+    ? unassignedQrcodes
+    : qrcodes.filter((q) => !q.establishmentId);
 
   const generateQRImage = useCallback(
     async (
@@ -142,6 +152,21 @@ function QRCodesPageContent() {
         }))
       );
       setQrcodes(withImages);
+
+      // Для баннера «привяжите существующий код» нужны коды без проекта.
+      if (lockedEstId && codes.length === 0) {
+        try {
+          const allRes = await fetch("/api/qrcodes");
+          const allData = await allRes.json();
+          setUnassignedQrcodes(
+            ((allData.qrcodes || []) as QRCodeItem[]).filter((q) => !q.establishmentId),
+          );
+        } catch {
+          setUnassignedQrcodes([]);
+        }
+      } else {
+        setUnassignedQrcodes([]);
+      }
     },
     [generateQRImage, lockedEstId, lockedProjectId]
   );
@@ -165,7 +190,45 @@ function QRCodesPageContent() {
     }
   };
 
+  useEffect(() => {
+    if (!menuQrId) return;
+    const close = (e: MouseEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent) {
+        if (e.key === "Escape") setMenuQrId(null);
+        return;
+      }
+      const target = e.target as HTMLElement | null;
+      if (target?.closest(`[data-qr-menu="${menuQrId}"]`)) return;
+      setMenuQrId(null);
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, [menuQrId]);
+
+  const copyScanLink = (qr: QRCodeItem) => {
+    const url = scanUrlForCode(qr.code);
+    if (navigator.clipboard) {
+      void navigator.clipboard.writeText(url);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = url;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopiedId(qr.id);
+    setTimeout(() => setCopiedId((prev) => (prev === qr.id ? null : prev)), 2000);
+  };
+
   const handleDeleteQr = async (qr: QRCodeItem) => {
+    setMenuQrId(null);
     const name = qr.label?.trim() || qr.code;
     if (!window.confirm(`Удалить QR «${name}»? Напечатанный код перестанет открываться.`)) return;
     setDeletingQrId(qr.id);
@@ -198,37 +261,34 @@ function QRCodesPageContent() {
     });
   }, [status, router, refreshData]);
 
+  const firstUnlinkedId = unlinkedQrcodes[0]?.id || "";
   useEffect(() => {
-    let isMounted = true;
-    if (searchParams.get("createEst") === "1" && isMounted) {
-      setShowCreateEst(true);
-    }
-    const linkEst = searchParams.get("linkEst");
-    if (linkEst) {
-      const first = qrcodes.find((q) => !q.establishmentId);
-      setLinkEstId(linkEst);
-      setSelectedLinkQrId(first?.id || "");
-      setShowLinkQr(true);
-    }
+    if (loading) return;
     // ?est= — создать QR для проекта
     const est = searchParams.get("est");
     if (est) {
       router.replace(projectQrNewPath(est));
       return;
     }
-    if (!lockedProjectId) {
-      const estId = searchParams.get("estId");
-      if (estId) {
-        setFilterEstId(estId);
-        const next = new URLSearchParams(searchParams.toString());
-        next.delete("estId");
-        const q = next.toString();
-        router.replace(q ? `/dashboard/qrcodes?${q}` : "/dashboard/qrcodes", {
-          scroll: false,
-        });
+    const createEst = searchParams.get("createEst") === "1";
+    const linkEst = searchParams.get("linkEst");
+    const estId = lockedProjectId ? null : searchParams.get("estId");
+    queueMicrotask(() => {
+      if (createEst) setShowCreateEst(true);
+      if (linkEst) {
+        setLinkEstId(linkEst);
+        setSelectedLinkQrId(firstUnlinkedId);
+        setShowLinkQr(true);
       }
+      if (estId) setFilterEstId(estId);
+    });
+    if (estId) {
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("estId");
+      const q = next.toString();
+      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
     }
-  }, [searchParams, qrcodes, router]);
+  }, [searchParams, loading, firstUnlinkedId, router, pathname, lockedProjectId]);
 
   const handleFilterChange = async (estId: string) => {
     setFilterEstId(estId);
@@ -325,71 +385,84 @@ function QRCodesPageContent() {
   const openCreateQr = (establishmentId: string) => {
     setError("");
     router.push(
-      establishmentId
-        ? projectQrNewPath(establishmentId)
-        : "/dashboard/qrcodes/new",
+      establishmentId ? projectQrNewPath(establishmentId) : "/dashboard/projects",
     );
   };
 
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+        <main className="flex min-w-0 flex-1 items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
     );
   }
 
+  const canCreateQr = Boolean(lockedEstId) || !lockedProjectId;
+  const goCreateQr = () => {
+    setError("");
+    router.push(lockedEstId ? projectQrNewPath(lockedEstId) : "/dashboard/projects");
+  };
+
+  const modeBadgeVariant = (mode: QRMode) =>
+    mode === "REDIRECT"
+      ? "info"
+      : mode === "BUSINESS_CARD"
+        ? "success"
+        : mode === "WIFI" || mode === "FILE"
+          ? "warning"
+          : "default";
+
+  const downloadBtnClass =
+    "inline-flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-lg bg-gray-100 px-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50 sm:h-8 sm:flex-none sm:px-2.5 sm:text-xs";
+
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
         <div className="max-w-6xl mx-auto space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">QR-коды</h1>
+            <div className="min-w-0">
+              <h1 className="text-2xl font-bold text-gray-900">
+                {isUnassignedView ? "QR-коды без проекта" : "QR-коды"}
+              </h1>
               <p className="text-gray-500 mt-1">
-                Наклейки, слайды и таблички проекта — у каждого кода свой сценарий перехода
+                {isUnassignedView
+                  ? "Старые QR-коды без привязки. Новые коды создаются только внутри проекта."
+                  : "Наклейки, слайды и таблички проекта — у каждого кода свой сценарий перехода"}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                onClick={() => {
-                  setError("");
-                  router.push(
-                    lockedProjectId
-                      ? projectQrNewPath(lockedProjectId)
-                      : "/dashboard/qrcodes/new",
-                  );
-                }}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Добавить QR-код
-              </Button>
-            </div>
+            {canCreateQr && (
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={goCreateQr} className="h-10 w-full sm:w-auto">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Добавить QR-код
+                </Button>
+              </div>
+            )}
           </div>
 
           {lockedEstId ? (
             <DashboardOnboardingBanner
               establishments={establishments.filter((e) => e.id === lockedEstId)}
-              qrcodes={qrcodes}
+              qrcodes={[...qrcodes, ...unassignedQrcodes]}
               filterEstId="all"
               onCreateEstablishment={() => router.push("/dashboard/projects")}
               onCreateQr={openCreateQr}
               onLinkQr={openLinkQr}
             />
-          ) : (
-          <DashboardOnboardingBanner
-            establishments={establishments}
-            qrcodes={qrcodes}
-            filterEstId={filterEstId}
-            onCreateEstablishment={() => {
-              setShowCreateEst(true);
-              setError("");
-            }}
-            onCreateQr={openCreateQr}
-            onLinkQr={openLinkQr}
-          />
+          ) : isUnassignedView ? null : (
+            <DashboardOnboardingBanner
+              establishments={establishments}
+              qrcodes={qrcodes}
+              filterEstId={filterEstId}
+              onCreateEstablishment={() => {
+                setShowCreateEst(true);
+                setError("");
+              }}
+              onCreateQr={openCreateQr}
+              onLinkQr={openLinkQr}
+            />
           )}
 
           {!lockedProjectId && showCreateEst && (
@@ -397,11 +470,13 @@ function QRCodesPageContent() {
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-gray-900">Новый проект</h3>
                 <button
+                  type="button"
+                  aria-label="Закрыть"
                   onClick={() => {
                     setShowCreateEst(false);
                     setError("");
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -448,9 +523,9 @@ function QRCodesPageContent() {
                   }
                   placeholder="https://yandex.ru/maps/org/..."
                 />
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Button type="submit" disabled={creatingEst}>
-                    {creatingEst ? "Создаём..." : "Создать заведение"}
+                    {creatingEst ? "Создаём..." : "Создать проект"}
                   </Button>
                   <Button
                     type="button"
@@ -475,11 +550,13 @@ function QRCodesPageContent() {
                   Привязать QR-код
                 </h3>
                 <button
+                  type="button"
+                  aria-label="Закрыть"
                   onClick={() => {
                     setShowLinkQr(false);
                     setError("");
                   }}
-                  className="text-gray-400 hover:text-gray-600"
+                  className="rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -497,7 +574,7 @@ function QRCodesPageContent() {
                   <select
                     value={selectedLinkQrId}
                     onChange={(e) => setSelectedLinkQrId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
                   >
                     <option value="">Выберите код</option>
@@ -509,7 +586,7 @@ function QRCodesPageContent() {
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <Button type="submit" disabled={linking || !selectedLinkQrId}>
                     {linking ? "Привязываем..." : "Привязать и настроить"}
                   </Button>
@@ -565,134 +642,150 @@ function QRCodesPageContent() {
               <QrCode className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <h2 className="text-xl font-semibold">Нет QR-кодов</h2>
               <p className="text-gray-500 mt-2">
-                Добавьте QR-код или активируйте табличку
+                {canCreateQr
+                  ? "Создайте QR-код или активируйте купленный набор табличек"
+                  : "Здесь появятся старые коды без проекта"}
               </p>
+              <div className="mt-6 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
+                {canCreateQr && (
+                  <Button onClick={goCreateQr} className="h-10">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Создать QR-код
+                  </Button>
+                )}
+                <Link
+                  href="/dashboard/activate"
+                  className="inline-flex h-10 items-center justify-center rounded-lg border-2 border-gray-300 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                >
+                  <ScanLine className="w-4 h-4 mr-2" />
+                  Активировать набор табличек
+                </Link>
+              </div>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {qrcodes.map((qr) => (
-                <Card key={qr.id}>
-                  <div className="text-center space-y-3">
-                    <div className="flex justify-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+              {qrcodes.map((qr) => {
+                const title = qr.serialCode ? `№${qr.serialCode}` : qr.label?.trim() || null;
+                const menuOpen = menuQrId === qr.id;
+                return (
+                <Card key={qr.id} padding="sm" className="sm:p-6">
+                  <div className="relative space-y-3">
+                    <div className="absolute right-0 top-0 z-10" data-qr-menu={qr.id}>
+                      <button
+                        type="button"
+                        aria-label="Ещё действия"
+                        aria-haspopup="menu"
+                        aria-expanded={menuOpen}
+                        onClick={() => setMenuQrId(menuOpen ? null : qr.id)}
+                        className="-mr-2 -mt-2 inline-flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+                      {menuOpen && (
+                        <div
+                          role="menu"
+                          className="absolute right-0 top-9 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+                        >
+                          <button
+                            type="button"
+                            role="menuitem"
+                            onClick={() => void handleDeleteQr(qr)}
+                            disabled={deletingQrId === qr.id}
+                            className="flex h-10 w-full items-center gap-2 px-3 text-left text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                          >
+                            <Trash2 className="h-4 w-4 shrink-0" />
+                            {deletingQrId === qr.id ? "Удаляем..." : "Удалить QR-код"}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-start gap-3 sm:flex-col sm:items-center sm:text-center">
                       <img
                         src={qr.imageUrl}
                         alt={`QR ${qr.code}`}
-                        className="max-w-48 max-h-56 w-auto h-auto rounded-lg object-contain"
+                        className="h-[72px] w-[72px] shrink-0 rounded-lg object-contain sm:h-auto sm:max-h-56 sm:w-auto sm:max-w-48"
                       />
-                    </div>
-                    <div>
-                      <p className="font-mono text-sm text-gray-600 break-all">
-                        {qr.code}
-                      </p>
-                      {qr.serialCode && (
-                        <p className="text-sm text-orange-600 mt-0.5 flex items-center justify-center gap-1">
-                          <Tag className="w-3 h-3 shrink-0" />
-                          <span className="truncate">№{qr.serialCode}</span>
-                        </p>
-                      )}
-                      {qr.label && !qr.serialCode && (
-                        <p className="text-sm text-gray-700 mt-0.5 flex items-center justify-center gap-1">
-                          <Tag className="w-3 h-3 shrink-0" />
-                          <span className="truncate">{qr.label}</span>
-                        </p>
-                      )}
-                      <p className="text-sm text-gray-500 mt-1 flex items-center justify-center gap-1">
-                        <Store className="w-3 h-3 shrink-0" />
-                        <span className="truncate">
-                          {qr.establishment?.name || "Без проекта"}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="flex items-center justify-center gap-2 flex-wrap">
-                      <Badge variant={qr.isActive ? "success" : "warning"}>
-                        {qr.isActive ? "Активен" : "Неактивен"}
-                      </Badge>
-                      <Badge variant={qr.mode === "REDIRECT" ? "info" : qr.mode === "BUSINESS_CARD" ? "success" : qr.mode === "WIFI" || qr.mode === "FILE" ? "warning" : "default"}>
-                        {qr.mode === "REDIRECT" ? (
-                          <span className="flex items-center gap-1">
-                            <ExternalLink className="w-3 h-3" />
-                            Редирект
-                          </span>
-                        ) : qr.mode === "BUSINESS_CARD" ? (
-                          "Визитка"
-                        ) : qr.mode === "WIFI" ? (
-                          "Wi-Fi"
-                        ) : qr.mode === "FILE" ? (
-                          "Файл"
-                        ) : qr.mode === "MENU" ? (
-                          "Меню"
-                        ) : qr.mode === "LANDING" ? (
-                          "Микросайт"
-                        ) : (
-                          "Отзывы"
+                      <div className="min-w-0 flex-1 space-y-1 pr-9 sm:w-full sm:pr-0">
+                        {title && (
+                          <p
+                            className={`flex items-center gap-1 text-sm font-medium sm:justify-center ${
+                              qr.serialCode ? "text-orange-600" : "text-gray-900"
+                            }`}
+                          >
+                            <Tag className="h-3 w-3 shrink-0" />
+                            <span className="truncate">{title}</span>
+                          </p>
                         )}
-                      </Badge>
-                      <span className="text-xs text-gray-400">
-                        {qr.scansCount} {pluralize(qr.scansCount, "скан", "скана", "сканов")}
-                      </span>
-                    </div>
-                    <div className="space-y-2 pt-1">
-                      <div className="flex items-stretch gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() =>
-                            router.push(
-                              projectQrPath(
-                                qr.establishmentId || lockedEstId || UNASSIGNED_PROJECT_ID,
-                                qr.id,
-                              ),
-                            )
-                          }
-                        >
-                          <Settings className="w-3.5 h-3.5 mr-1.5 shrink-0" />
-                          Настройки
-                        </Button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const url = scanUrlForCode(qr.code);
-                            if (navigator.clipboard) {
-                              navigator.clipboard.writeText(url);
-                            } else {
-                              const ta = document.createElement("textarea");
-                              ta.value = url;
-                              ta.style.position = "fixed";
-                              ta.style.opacity = "0";
-                              document.body.appendChild(ta);
-                              ta.select();
-                              document.execCommand("copy");
-                              document.body.removeChild(ta);
-                            }
-                            setCopiedId(qr.id);
-                            setTimeout(() => setCopiedId((prev) => prev === qr.id ? null : prev), 2000);
-                          }}
-                          className="flex-1 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"
-                        >
-                          {copiedId === qr.id ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 shrink-0" />
-                              Готово
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="w-3.5 h-3.5 shrink-0" />
-                              Ссылка
-                            </>
-                          )}
-                        </button>
+                        <p className="truncate font-mono text-xs text-gray-500 sm:text-sm">
+                          {qr.code}
+                        </p>
+                        {!lockedEstId && (
+                          <p className="flex items-center gap-1 text-xs text-gray-500 sm:justify-center sm:text-sm">
+                            <Store className="h-3 w-3 shrink-0" />
+                            <span className="truncate">
+                              {qr.establishment?.name || "Без проекта"}
+                            </span>
+                          </p>
+                        )}
+                        <div className="flex flex-wrap items-center gap-1.5 pt-0.5 sm:justify-center">
+                          <Badge variant={qr.isActive ? "success" : "warning"}>
+                            {qr.isActive ? "Активен" : "Неактивен"}
+                          </Badge>
+                          <Badge variant={modeBadgeVariant(qr.mode)}>
+                            <span className="flex items-center gap-1">
+                              {qr.mode === "REDIRECT" && <ExternalLink className="h-3 w-3" />}
+                              {MODE_LABELS[qr.mode] ?? qr.mode}
+                            </span>
+                          </Badge>
+                          <span className="text-xs text-gray-400">
+                            {qr.scansCount} {pluralize(qr.scansCount, "скан", "скана", "сканов")}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center justify-center gap-1.5 border-t border-gray-100 pt-2">
-                        <span className="inline-flex items-center gap-1 text-xs text-gray-400">
-                          <Download className="w-3 h-3" />
-                          Скачать
-                        </span>
+                    </div>
+
+                    <div className="flex items-stretch gap-2">
+                      <Link
+                        href={projectQrPath(
+                          qr.establishmentId || lockedEstId || UNASSIGNED_PROJECT_ID,
+                          qr.id,
+                        )}
+                        className="inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-gray-300 px-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+                      >
+                        <Settings className="h-4 w-4 shrink-0" />
+                        Настройки
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => copyScanLink(qr)}
+                        className="inline-flex h-10 min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border-2 border-gray-300 px-3 text-sm font-medium text-indigo-600 transition-colors hover:bg-indigo-50"
+                      >
+                        {copiedId === qr.id ? (
+                          <>
+                            <Check className="h-4 w-4 shrink-0" />
+                            Скопировано
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-4 w-4 shrink-0" />
+                            Ссылка
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="border-t border-gray-100 pt-2">
+                      <p className="mb-1.5 flex items-center gap-1 text-xs text-gray-400 sm:justify-center">
+                        <Download className="h-3 w-3" />
+                        Скачать
+                      </p>
+                      <div className="flex items-center gap-1.5 sm:flex-wrap sm:justify-center">
                         <button
                           type="button"
                           onClick={() => void handleDownloadQr(qr, "png")}
                           disabled={downloadingQrId === qr.id}
-                          className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                          className={downloadBtnClass}
                         >
                           PNG
                         </button>
@@ -702,7 +795,7 @@ function QRCodesPageContent() {
                             void handleDownloadQr(qr, "png", { transparentBackground: true })
                           }
                           disabled={downloadingQrId === qr.id}
-                          className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                          className={downloadBtnClass}
                           title="PNG с прозрачным фоном"
                         >
                           PNG без фона
@@ -711,24 +804,16 @@ function QRCodesPageContent() {
                           type="button"
                           onClick={() => void handleDownloadQr(qr, "svg")}
                           disabled={downloadingQrId === qr.id}
-                          className="whitespace-nowrap rounded-md bg-gray-100 px-2 py-1 text-xs font-medium text-gray-700 transition-colors hover:bg-gray-200 disabled:opacity-50"
+                          className={downloadBtnClass}
                         >
                           SVG
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleDeleteQr(qr)}
-                          disabled={deletingQrId === qr.id}
-                          className="whitespace-nowrap rounded-md px-2 py-1 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
-                        >
-                          <Trash2 className="mr-1 inline h-3 w-3" />
-                          {deletingQrId === qr.id ? "Удаляем..." : "Удалить"}
                         </button>
                       </div>
                     </div>
                   </div>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -742,7 +827,7 @@ export default function QRCodesPage() {
     <Suspense
       fallback={
         <div className="flex min-h-screen bg-gray-50">
-              <main className="flex-1 flex items-center justify-center">
+          <main className="flex min-w-0 flex-1 items-center justify-center">
             <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
           </main>
         </div>

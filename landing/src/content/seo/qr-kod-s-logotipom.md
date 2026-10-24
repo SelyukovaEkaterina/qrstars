@@ -9,7 +9,7 @@ ctaText: "Создать QR с логотипом"
 ctaHref: "/free-qr-generator.html"
 ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Брендированный микросайт"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-s-logotipom"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-s-logotipom"
 ctaSecondaryGoal: "register_click"
 faq:
   - q: "Не испортит ли логотип считывание QR-кода?"
@@ -124,7 +124,7 @@ QR-код использует алгоритм коррекции ошибок 
 * **Фирменная обложка и логотип**: мобильная страница заведения выглядит как дорогое персональное приложение, созданное специально для вашей компании.
 * **White Label**: на тарифах PRO и «Сеть» полностью отключаются сторонние копирайты платформы — ваши гости видят только ваш бренд.
 
-[Создать брендированный QR-код бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-s-logotipom-pivot)
+[Создать брендированный QR-код бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-s-logotipom-pivot)
 
 ---
 

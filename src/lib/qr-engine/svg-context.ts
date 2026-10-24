@@ -15,6 +15,21 @@ interface DrawState {
   textAlign: CanvasTextAlign;
   textBaseline: CanvasTextBaseline;
   globalAlpha: number;
+  /** Аффинная матрица [a b c d e f], как у canvas. Применяется к фигуре в момент заливки. */
+  matrix: number[];
+}
+
+const IDENTITY = [1, 0, 0, 1, 0, 0];
+
+function multiply(m: number[], t: number[]): number[] {
+  return [
+    m[0] * t[0] + m[2] * t[1],
+    m[1] * t[0] + m[3] * t[1],
+    m[0] * t[2] + m[2] * t[3],
+    m[1] * t[2] + m[3] * t[3],
+    m[0] * t[4] + m[2] * t[5] + m[4],
+    m[1] * t[4] + m[3] * t[5] + m[5],
+  ];
 }
 
 const n = (v: number) => (Math.round(v * 100) / 100).toString();
@@ -80,6 +95,7 @@ export class SvgContext {
     textAlign: 'start',
     textBaseline: 'alphabetic',
     globalAlpha: 1,
+    matrix: IDENTITY,
   };
   /** Копящаяся заливка — подряд идущие фигуры одного цвета уходят в один `<path>`. */
   private pending: { attrs: string; d: string[] } | null = null;
@@ -107,6 +123,32 @@ export class SvgContext {
   set globalAlpha(v: number) { this.state.globalAlpha = v; }
   /** Фильтры в SVG-экспорте не нужны (используются только в проверке сканируемости). */
   filter = 'none';
+
+  private measureCtx: CanvasRenderingContext2D | null = null;
+  /** Ширина текста — через обычный canvas с тем же шрифтом (нужна для подгонки подписей). */
+  measureText(text: string): TextMetrics {
+    if (!this.measureCtx && typeof document !== "undefined") {
+      this.measureCtx = document.createElement("canvas").getContext("2d");
+    }
+    if (!this.measureCtx) return { width: text.length * 10 } as TextMetrics;
+    this.measureCtx.font = this.state.font;
+    return this.measureCtx.measureText(text);
+  }
+  setTransform() { this.state.matrix = IDENTITY; }
+  translate(x: number, y: number) { this.state.matrix = multiply(this.state.matrix, [1, 0, 0, 1, x, y]); }
+  rotate(a: number) {
+    const c = Math.cos(a);
+    const s = Math.sin(a);
+    this.state.matrix = multiply(this.state.matrix, [c, s, -s, c, 0, 0]);
+  }
+  scale(x: number, y: number) { this.state.matrix = multiply(this.state.matrix, [x, 0, 0, y, 0, 0]); }
+
+  /** ` transform="matrix(…)"` или пусто. */
+  private transformAttr(): string {
+    const m = this.state.matrix;
+    if (m === IDENTITY) return '';
+    return ` transform="matrix(${m.map((v) => (Math.round(v * 10000) / 10000).toString()).join(' ')})"`;
+  }
 
   save() { this.stack.push({ ...this.state }); }
   restore() { const s = this.stack.pop(); if (s) this.state = s; }
@@ -142,10 +184,13 @@ export class SvgContext {
     if (sweep < 0) sweep += Math.PI * 2;
     const sweepFlag = ccw ? 0 : 1;
     if (sweep >= Math.PI * 2 - 1e-6) {
-      // Полный круг — две половинки: одна дуга SVG с совпадающими концами не рисуется.
-      const mx = cx - (sx - cx);
-      const my = cy - (sy - cy);
-      this.path += `A${n(r)} ${n(r)} 0 1 ${sweepFlag} ${n(mx)} ${n(my)}A${n(r)} ${n(r)} 0 1 ${sweepFlag} ${n(sx)} ${n(sy)}`;
+      // Полный круг — две половинки относительными дугами: одна дуга SVG с совпадающими
+      // концами не рисуется, а относительные координаты вдвое короче (в растре тысячи точек).
+      const dx = n(2 * (cx - sx));
+      const dy = n(2 * (cy - sy));
+      const ndx = n(-2 * (cx - sx));
+      const ndy = n(-2 * (cy - sy));
+      this.path += `a${n(r)} ${n(r)} 0 1 ${sweepFlag} ${dx} ${dy}a${n(r)} ${n(r)} 0 1 ${sweepFlag} ${ndx} ${ndy}`;
     } else {
       const ex = cx + r * Math.cos(end);
       const ey = cy + r * Math.sin(end);
@@ -173,7 +218,7 @@ export class SvgContext {
 
   private emitFill(d: string, rule?: CanvasFillRule) {
     if (!d || this.isInvisible(this.state.fillStyle)) return;
-    const attrs = `${this.paintAttrs(this.state.fillStyle, 'fill')}${rule === 'evenodd' ? ' fill-rule="evenodd"' : ''}`;
+    const attrs = `${this.paintAttrs(this.state.fillStyle, 'fill')}${rule === 'evenodd' ? ' fill-rule="evenodd"' : ''}${this.transformAttr()}`;
     // Склеиваем только при nonzero: у evenodd пересечения соседних фигур дадут дырки.
     if (rule === 'evenodd') {
       this.push(`<path ${attrs} d="${d}"/>`);
@@ -207,7 +252,7 @@ export class SvgContext {
 
   stroke() {
     if (!this.path || this.isInvisible(this.state.strokeStyle)) return;
-    this.push(`<path fill="none" ${this.paintAttrs(this.state.strokeStyle, 'stroke')} stroke-width="${n(this.state.lineWidth)}" d="${this.path}"/>`);
+    this.push(`<path fill="none" ${this.paintAttrs(this.state.strokeStyle, 'stroke')} stroke-width="${n(this.state.lineWidth)}"${this.transformAttr()} d="${this.path}"/>`);
   }
 
   fillText(text: string, x: number, y: number) {
@@ -218,7 +263,7 @@ export class SvgContext {
     const anchor = this.state.textAlign === 'center' ? 'middle' : this.state.textAlign === 'right' || this.state.textAlign === 'end' ? 'end' : 'start';
     const baseline = this.state.textBaseline === 'middle' ? 'central' : this.state.textBaseline === 'top' ? 'hanging' : 'alphabetic';
     this.push(
-      `<text x="${n(x)}" y="${n(y)}" font-family="${escapeXml(family)}" font-weight="${weight}" font-size="${size}" text-anchor="${anchor}" dominant-baseline="${baseline}" ${this.paintAttrs(this.state.fillStyle, 'fill')}>${escapeXml(text)}</text>`,
+      `<text x="${n(x)}" y="${n(y)}" font-family="${escapeXml(family)}" font-weight="${weight}" font-size="${size}" text-anchor="${anchor}" dominant-baseline="${baseline}" ${this.paintAttrs(this.state.fillStyle, 'fill')}${this.transformAttr()}>${escapeXml(text)}</text>`,
     );
   }
 
@@ -227,16 +272,18 @@ export class SvgContext {
     const iw = (img as HTMLImageElement).naturalWidth || (img as HTMLCanvasElement).width;
     const ih = (img as HTMLImageElement).naturalHeight || (img as HTMLCanvasElement).height;
     const opacity = this.state.globalAlpha < 1 ? ` opacity="${n(this.state.globalAlpha)}"` : '';
+    const t = this.transformAttr();
+    const wrap = (el: string) => (t ? `<g${t}>${el}</g>` : el);
     if (args.length === 8) {
       // Кадрирование: вложенный svg с viewBox на нужный участок картинки.
       const [sx, sy, sw, sh, dx, dy, dw, dh] = args;
       this.push(
-        `<svg x="${n(dx)}" y="${n(dy)}" width="${n(dw)}" height="${n(dh)}" viewBox="${n(sx)} ${n(sy)} ${n(sw)} ${n(sh)}" preserveAspectRatio="none"${opacity}><image width="${iw}" height="${ih}" href="${href}"/></svg>`,
+        wrap(`<svg x="${n(dx)}" y="${n(dy)}" width="${n(dw)}" height="${n(dh)}" viewBox="${n(sx)} ${n(sy)} ${n(sw)} ${n(sh)}" preserveAspectRatio="none"${opacity}><image width="${iw}" height="${ih}" href="${href}"/></svg>`),
       );
       return;
     }
     const [dx, dy, dw = iw, dh = ih] = args;
-    this.push(`<image x="${n(dx)}" y="${n(dy)}" width="${n(dw)}" height="${n(dh)}" preserveAspectRatio="none" href="${href}"${opacity}/>`);
+    this.push(wrap(`<image x="${n(dx)}" y="${n(dy)}" width="${n(dw)}" height="${n(dh)}" preserveAspectRatio="none" href="${href}"${opacity}/>`));
   }
 
   toString(): string {

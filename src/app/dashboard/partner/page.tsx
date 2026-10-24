@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
 import Input from "@/components/ui/Input";
-import { PLAN_PRICING, formatRub } from "@/lib/plans";
+import { PLAN_PRICING, formatPlanLabel, formatRub } from "@/lib/plans";
+import { PARTNER_MIN_WITHDRAWAL_RUB } from "@/lib/partner-constants";
 import {
   Users,
   Wallet,
@@ -65,6 +64,8 @@ interface PartnerData {
   }[];
 }
 
+/** Минимальная сумма вывода. Должна совпадать с проверкой в /api/partner/withdraw. */
+
 function formatMoney(n: number) {
   return n.toLocaleString("ru-RU", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₽";
 }
@@ -74,8 +75,6 @@ function formatDate(d: string) {
 }
 
 export default function PartnerPage() {
-  const { status } = useSession();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<PartnerData | null>(null);
   const [copied, setCopied] = useState(false);
@@ -91,7 +90,7 @@ export default function PartnerPage() {
   });
 
   const [form, setForm] = useState({
-    amount: 10000,
+    amount: PARTNER_MIN_WITHDRAWAL_RUB,
     recepientType: "IP",
     recepientName: "",
     recepientInn: "",
@@ -102,10 +101,8 @@ export default function PartnerPage() {
     comment: "",
   });
 
+  // Авторизацию проверяет dashboard/layout.tsx.
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status !== "authenticated") return;
-
     fetch("/api/partner")
       .then((r) => r.json())
       .then((d) => {
@@ -113,11 +110,15 @@ export default function PartnerPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [status, router]);
+  }, []);
 
   const copyLink = async () => {
     if (!data) return;
-    await navigator.clipboard.writeText(data.referralLink);
+    try {
+      await navigator.clipboard.writeText(data.referralLink);
+    } catch {
+      return;
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -144,7 +145,7 @@ export default function PartnerPage() {
       setSuccess("Заявка на вывод отправлена! Мы свяжемся с вами.");
       setShowWithdrawForm(false);
       setForm({
-        amount: 10000,
+        amount: PARTNER_MIN_WITHDRAWAL_RUB,
         recepientType: "IP",
         recepientName: "",
         recepientInn: "",
@@ -167,7 +168,7 @@ export default function PartnerPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+        <main className="flex min-w-0 flex-1 items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -180,14 +181,14 @@ export default function PartnerPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
-        <div className="max-w-5xl mx-auto space-y-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Партнёрская программа</h1>
             <p className="text-gray-500 mt-1">Приглашайте пользователей и получайте 15% от их платежей</p>
           </div>
 
-          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-8 text-white relative overflow-hidden">
+          <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 rounded-2xl p-5 sm:p-8 text-white relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/3" />
             <div className="relative z-10">
@@ -195,13 +196,14 @@ export default function PartnerPage() {
                 <HandCoins className="w-5 h-5" />
                 <span className="text-indigo-100 text-sm font-medium">Ваша партнёрская ссылка</span>
               </div>
-              <div className="flex items-center gap-3 mt-3">
-                <div className="flex-1 bg-white/20 backdrop-blur-sm rounded-xl px-5 py-3.5 font-mono text-sm truncate border border-white/20">
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+                <div className="min-w-0 w-full flex-1 break-all rounded-xl border border-white/20 bg-white/20 px-4 py-3 font-mono text-sm backdrop-blur-sm sm:truncate sm:break-normal sm:px-5 sm:py-3.5">
                   {data.referralLink}
                 </div>
                 <button
+                  type="button"
                   onClick={copyLink}
-                  className="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 shrink-0 px-5 py-3.5 bg-white text-indigo-700 hover:bg-indigo-50"
+                  className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white px-5 py-3 font-medium text-indigo-700 transition-all duration-200 hover:bg-indigo-50 sm:w-auto sm:shrink-0 sm:py-3.5"
                 >
                   {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
                   {copied ? "Скопировано!" : "Копировать"}
@@ -261,31 +263,31 @@ export default function PartnerPage() {
             </Card>
           </div>
 
-          {stats.availableBalance >= 10000 && (
+          {stats.availableBalance >= PARTNER_MIN_WITHDRAWAL_RUB && (
             <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-emerald-100 rounded-xl">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="shrink-0 p-3 bg-emerald-100 rounded-xl">
                     <Send className="w-6 h-6 text-emerald-700" />
                   </div>
                   <div>
                     <p className="font-semibold text-gray-900">Доступно для вывода: {formatMoney(stats.availableBalance)}</p>
-                    <p className="text-sm text-gray-600">Минимальная сумма — 10 000 ₽. Выплата на расчётный счёт ИП/ООО.</p>
+                    <p className="text-sm text-gray-600">Минимальная сумма — {formatRub(PARTNER_MIN_WITHDRAWAL_RUB)}. Выплата на расчётный счёт ИП/ООО.</p>
                   </div>
                 </div>
-                <Button onClick={() => setShowWithdrawForm(!showWithdrawForm)}>
+                <Button className="w-full sm:w-auto sm:shrink-0" onClick={() => setShowWithdrawForm(!showWithdrawForm)}>
                   Запросить вывод
                 </Button>
               </div>
             </Card>
           )}
 
-          {stats.availableBalance < 10000 && stats.totalEarned > 0 && (
+          {stats.availableBalance < PARTNER_MIN_WITHDRAWAL_RUB && stats.totalEarned > 0 && (
             <Card className="bg-gray-50 border-gray-200">
               <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-gray-400" />
+                <AlertCircle className="w-5 h-5 shrink-0 text-gray-400" />
                 <p className="text-sm text-gray-500">
-                  Для вывода средств необходимо накопить минимум 10 000 ₽. Сейчас доступно: {formatMoney(stats.availableBalance)}
+                  Для вывода средств необходимо накопить минимум {formatRub(PARTNER_MIN_WITHDRAWAL_RUB)}. Сейчас доступно: {formatMoney(stats.availableBalance)}
                 </p>
               </div>
             </Card>
@@ -306,7 +308,7 @@ export default function PartnerPage() {
                     id="wd-amount"
                     label="Сумма вывода (₽)"
                     type="number"
-                    min={10000}
+                    min={PARTNER_MIN_WITHDRAWAL_RUB}
                     max={stats.availableBalance}
                     step="0.01"
                     required
@@ -321,7 +323,7 @@ export default function PartnerPage() {
                       id="wd-type"
                       value={form.recepientType}
                       onChange={(e) => setForm({ ...form, recepientType: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      className="w-full min-h-10 px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                     >
                       <option value="IP">ИП</option>
                       <option value="OOO">ООО</option>
@@ -385,7 +387,7 @@ export default function PartnerPage() {
                   onChange={(e) => setForm({ ...form, comment: e.target.value })}
                   placeholder="Дополнительная информация"
                 />
-                <div className="flex items-center gap-3 pt-2">
+                <div className="flex flex-wrap items-center gap-3 pt-2">
                   <Button type="submit" disabled={submitting}>
                     {submitting ? "Отправляем..." : "Отправить заявку"}
                   </Button>
@@ -399,7 +401,8 @@ export default function PartnerPage() {
 
           <Card className="bg-gradient-to-br from-slate-50 to-gray-50">
             <button
-              className="w-full flex items-center justify-between"
+              type="button"
+              className="w-full min-h-10 flex items-center justify-between gap-3 text-left"
               onClick={() => setExpandedSections((s) => ({ ...s, howItWorks: !s.howItWorks }))}
             >
               <div className="flex items-center gap-3">
@@ -438,7 +441,7 @@ export default function PartnerPage() {
                     <Shield className="w-5 h-5 text-indigo-500 shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-medium text-gray-900">Вывод на ИП/ООО</p>
-                      <p className="text-xs text-gray-500">Средства выводятся на расчётный счёт ИП или ООО. Минимальная сумма — 10 000 ₽.</p>
+                      <p className="text-xs text-gray-500">Средства выводятся на расчётный счёт ИП или ООО. Минимальная сумма — {formatRub(PARTNER_MIN_WITHDRAWAL_RUB)}.</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -472,7 +475,8 @@ export default function PartnerPage() {
 
           <Card>
             <button
-              className="w-full flex items-center justify-between"
+              type="button"
+              className="w-full min-h-10 flex items-center justify-between gap-3 text-left"
               onClick={() => setExpandedSections((s) => ({ ...s, referredUsers: !s.referredUsers }))}
             >
               <div className="flex items-center gap-3">
@@ -494,23 +498,23 @@ export default function PartnerPage() {
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {data.referredUsers.map((u) => (
-                      <div key={u.id} className="flex items-center justify-between py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 bg-indigo-100 rounded-full flex items-center justify-center">
+                      <div key={u.id} className="flex items-center justify-between gap-3 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="w-9 h-9 shrink-0 bg-indigo-100 rounded-full flex items-center justify-center">
                             <span className="text-sm font-semibold text-indigo-700">
                               {(u.name || u.email).charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <div>
-                            <p className="text-sm font-medium text-gray-900">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-gray-900">
                               {u.name || u.email.split("@")[0]}
                             </p>
-                            <p className="text-xs text-gray-400">{u.email}</p>
+                            <p className="truncate text-xs text-gray-400">{u.email}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-2">
                           <Badge variant={u.subscriptions.length > 0 ? "success" : "default"}>
-                            {u.subscriptions.length > 0 ? "PRO" : "FREE"}
+                            {formatPlanLabel(u.subscriptions[0]?.plan)}
                           </Badge>
                           <span className="text-xs text-gray-400">{formatDate(u.createdAt)}</span>
                         </div>
@@ -524,7 +528,8 @@ export default function PartnerPage() {
 
           <Card>
             <button
-              className="w-full flex items-center justify-between"
+              type="button"
+              className="w-full min-h-10 flex items-center justify-between gap-3 text-left"
               onClick={() => setExpandedSections((s) => ({ ...s, earnings: !s.earnings }))}
             >
               <div className="flex items-center gap-3">
@@ -541,11 +546,11 @@ export default function PartnerPage() {
                   <div className="text-center py-8">
                     <TrendingUp className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-500">Пока нет начислений</p>
-                    <p className="text-sm text-gray-400 mt-1">Начисления появятся, когда ваши рефералы оплатят подписку PRO</p>
+                    <p className="text-sm text-gray-400 mt-1">Начисления появятся, когда ваши рефералы оплатят PRO или «Сеть»</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
+                    <table className="w-full min-w-[520px] text-sm">
                       <thead>
                         <tr className="border-b border-gray-200">
                           <th className="text-left py-2 text-gray-500 font-medium">Дата</th>
@@ -600,7 +605,8 @@ export default function PartnerPage() {
 
           <Card>
             <button
-              className="w-full flex items-center justify-between"
+              type="button"
+              className="w-full min-h-10 flex items-center justify-between gap-3 text-left"
               onClick={() => setExpandedSections((s) => ({ ...s, withdrawals: !s.withdrawals }))}
             >
               <div className="flex items-center gap-3">
@@ -621,12 +627,12 @@ export default function PartnerPage() {
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {data.withdrawals.map((w) => (
-                      <div key={w.id} className="flex items-center justify-between py-3">
-                        <div>
+                      <div key={w.id} className="flex flex-wrap items-start justify-between gap-2 py-3">
+                        <div className="min-w-0">
                           <p className="text-sm font-medium text-gray-900">
                             {formatMoney(w.amount)}
                           </p>
-                          <p className="text-xs text-gray-400">
+                          <p className="break-words text-xs text-gray-400">
                             {w.recepientType === "IP" ? "ИП" : "ООО"} &middot; {w.recepientName} &middot; {formatDate(w.createdAt)}
                           </p>
                           {w.adminComment && (
@@ -660,7 +666,7 @@ export default function PartnerPage() {
             )}
           </Card>
 
-          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 text-white">
+          <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-5 sm:p-8 text-white">
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div>
                 <h3 className="text-xl font-bold mb-1">Начните зарабатывать прямо сейчас</h3>
@@ -669,8 +675,9 @@ export default function PartnerPage() {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={copyLink}
-                className="inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 shrink-0 px-6 py-3 text-base bg-white text-indigo-700 hover:bg-indigo-50"
+                className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-white px-6 py-3 text-base font-medium text-indigo-700 transition-all duration-200 hover:bg-indigo-50 sm:w-auto sm:shrink-0"
               >
                 <Copy className="w-4 h-4 mr-2" />
                 Скопировать ссылку

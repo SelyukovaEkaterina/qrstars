@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import Badge from "@/components/ui/Badge";
@@ -21,8 +20,8 @@ import {
 } from "lucide-react";
 import {
   formatRub,
+  formatPlanLabel,
   PLANS,
-  PLAN_PRICING,
   CUSTOM_PLAN_HINT,
   calcSubscriptionAmount,
   type PlanId,
@@ -78,16 +77,15 @@ interface HistoryItem {
 }
 
 export default function SubscriptionPage() {
-  const { status } = useSession();
-  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [subscribing, setSubscribing] = useState<string | null>(null);
   const [data, setData] = useState<SubscriptionResponse | null>(null);
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [recurringConsent, setRecurringConsent] = useState(false);
-  const [consentError, setConsentError] = useState("");
+  const [consentErrorPlan, setConsentErrorPlan] = useState<"PRO" | "NETWORK" | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
 
   const load = () =>
     fetch("/api/subscription")
@@ -107,24 +105,26 @@ export default function SubscriptionPage() {
       })
       .catch(() => setHistoryLoading(false));
 
+  // Авторизацию проверяет dashboard/layout.tsx, здесь только загрузка данных.
   useEffect(() => {
-    if (status === "unauthenticated") router.push("/login");
-    if (status !== "authenticated") return;
     load();
     loadHistory();
     const params = new URLSearchParams(window.location.search);
     const st = params.get("status");
     if (st === "success") setStatusMessage("Оплата прошла успешно. Подписка активируется в течение минуты.");
     if (st === "fail") setStatusMessage("Оплата не завершена. Попробуйте снова или выберите другой способ.");
-  }, [status, router]);
+  }, []);
 
   const handleSubscribe = async (plan: "PRO" | "NETWORK") => {
     if (!recurringConsent) {
-      setConsentError("Сначала отметьте согласие на автосписания выше");
-      document.getElementById("recurring-consent")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      setConsentErrorPlan(plan);
+      document
+        .getElementById(`recurring-consent-${plan}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    setConsentError("");
+    setConsentErrorPlan(null);
+    setNotice(null);
     setSubscribing(plan);
     try {
       const res = await fetch("/api/subscription", {
@@ -155,13 +155,13 @@ export default function SubscriptionPage() {
       } else if (json.paymentUrl) {
         window.location.href = json.paymentUrl;
       } else if (json.success) {
-        if (json.message) alert(json.message);
+        if (json.message) setNotice({ tone: "success", text: json.message });
         await load();
-      } else if (json.error) {
-        alert(json.error);
+      } else {
+        setNotice({ tone: "error", text: json.error || "Не удалось оформить подписку" });
       }
     } catch {
-      alert("Не удалось оформить подписку");
+      setNotice({ tone: "error", text: "Не удалось оформить подписку. Проверьте интернет и попробуйте ещё раз." });
     } finally {
       setSubscribing(null);
     }
@@ -174,20 +174,32 @@ export default function SubscriptionPage() {
       )
     )
       return;
+    setNotice(null);
     try {
-      await fetch("/api/subscription", {
+      const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "cancel" }),
       });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || !json.success) {
+        setNotice({ tone: "error", text: json.error || "Не удалось отменить подписку. Попробуйте ещё раз." });
+        return;
+      }
+      setNotice({
+        tone: "success",
+        text: "Автопродление отключено. Платные функции работают до конца оплаченного периода.",
+      });
       await load();
-    } catch {}
+    } catch {
+      setNotice({ tone: "error", text: "Не удалось отменить подписку. Проверьте интернет и попробуйте ещё раз." });
+    }
   };
 
   if (loading || !data) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+        <main className="flex min-w-0 flex-1 items-center justify-center">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -199,6 +211,7 @@ export default function SubscriptionPage() {
   const isPaidActive =
     data.hasPaidFeatures && subscription?.status === "ACTIVE";
   const estCount = data.establishmentCount;
+  const networkActive = currentPlan === "NETWORK" && isPaidActive;
 
   const introOffer = data.introOffer;
   const priceFor = (planId: "PRO" | "NETWORK") => {
@@ -216,10 +229,10 @@ export default function SubscriptionPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
-        <div className="max-w-5xl mx-auto space-y-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="max-w-5xl mx-auto space-y-6 sm:space-y-8">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Тарифы</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Тариф и оплата</h1>
             <p className="text-gray-500 mt-1">
               Ядро продукта бесплатно навсегда. Платные тарифы — усиление, не разблокировка.
             </p>
@@ -229,7 +242,7 @@ export default function SubscriptionPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <p className="text-sm text-gray-500">Ваш текущий тариф</p>
-                <div className="flex items-center gap-3 mt-1">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
                   <PlanBadge plan={currentPlan} />
                   {isPaidActive && <Badge variant="success">Активна</Badge>}
                   {subscription?.cancelAtPeriodEnd && (
@@ -237,7 +250,7 @@ export default function SubscriptionPage() {
                   )}
                 </div>
                 <p className="text-sm text-gray-600 mt-2">
-                  Заведений: {estCount}
+                  Проектов: {estCount}
                   {data.establishmentLimit != null
                     ? ` / лимит ${data.establishmentLimit}`
                     : ""}
@@ -251,7 +264,7 @@ export default function SubscriptionPage() {
                 )}
               </div>
               {isPaidActive && !subscription?.cancelAtPeriodEnd && (
-                <Button variant="outline" size="sm" onClick={handleCancel}>
+                <Button variant="outline" size="sm" className="min-h-10 self-start sm:self-auto" onClick={handleCancel}>
                   Отменить подписку
                 </Button>
               )}
@@ -261,6 +274,19 @@ export default function SubscriptionPage() {
           {statusMessage && (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
               {statusMessage}
+            </div>
+          )}
+
+          {notice && (
+            <div
+              role={notice.tone === "error" ? "alert" : "status"}
+              className={`rounded-lg border px-4 py-3 text-sm ${
+                notice.tone === "error"
+                  ? "border-red-200 bg-red-50 text-red-800"
+                  : "border-green-200 bg-green-50 text-green-900"
+              }`}
+            >
+              {notice.text}
             </div>
           )}
 
@@ -298,43 +324,6 @@ export default function SubscriptionPage() {
             </div>
           )}
 
-          <div id="recurring-consent" className="rounded-xl border border-gray-200 bg-white p-4 space-y-3">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={recurringConsent}
-                onChange={(e) => {
-                  setRecurringConsent(e.target.checked);
-                  if (e.target.checked) setConsentError("");
-                }}
-                className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-              />
-              <span className="text-sm text-gray-700">
-                Я согласен на автоматические списания согласно{" "}
-                <a
-                  href={LEGAL_OFFER_URL}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-600 hover:underline"
-                >
-                  условиям оферты
-                </a>
-                . Списание произойдёт в дату окончания оплаченного периода (ориентировочно 06:00 МСК).
-                Отмена — в один клик на этой странице.
-              </span>
-            </label>
-            {consentError && (
-              <p className="text-sm text-red-600 pl-7">{consentError}</p>
-            )}
-            <p className="text-xs text-gray-500 pl-7">
-              {introOffer
-                ? `PRO: ${formatRub(introOffer.amountRub)} за первый год, затем ${formatRub(introOffer.listAmountRub)} каждый год.`
-                : `PRO: ${formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} раз в год.`}{" "}
-              Сеть: {formatRub(calcSubscriptionAmount("NETWORK", "yearly", estCount))} раз в год.
-              Оба тарифа оплачиваются только на год.
-            </p>
-          </div>
-
           {introOffer && (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950">
               <p className="font-medium">
@@ -371,31 +360,51 @@ export default function SubscriptionPage() {
               price={priceFor("PRO")}
               onSubscribe={() => handleSubscribe("PRO")}
               subscribing={subscribing}
-              disabled={currentPlan === "PRO" && isPaidActive}
-              consentRequired={!recurringConsent}
+              disabled={(currentPlan === "PRO" && isPaidActive) || networkActive}
+              disabledReason={
+                networkActive
+                  ? "У вас активен тариф «Сеть» — в нём уже есть всё из PRO."
+                  : undefined
+              }
+              consent={recurringConsent}
+              onConsentChange={(v) => {
+                setRecurringConsent(v);
+                if (v) setConsentErrorPlan(null);
+              }}
+              consentError={consentErrorPlan === "PRO"}
+              chargeNote={
+                introOffer
+                  ? `Спишем ${formatRub(introOffer.amountRub)} сейчас, затем ${formatRub(introOffer.listAmountRub)} раз в год.`
+                  : `Спишем ${formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} сейчас и далее раз в год.`
+              }
             />
             <PlanCard
               planId="NETWORK"
               currentPlan={currentPlan}
               isPaidActive={isPaidActive}
               price={priceFor("NETWORK")}
-              priceHint={`До ${PLAN_PRICING.NETWORK.includedEstablishments} заведений`}
               onSubscribe={() => handleSubscribe("NETWORK")}
               subscribing={subscribing}
-              disabled={currentPlan === "NETWORK" && isPaidActive}
-              consentRequired={!recurringConsent}
+              disabled={networkActive}
+              consent={recurringConsent}
+              onConsentChange={(v) => {
+                setRecurringConsent(v);
+                if (v) setConsentErrorPlan(null);
+              }}
+              consentError={consentErrorPlan === "NETWORK"}
+              chargeNote={`Спишем ${formatRub(calcSubscriptionAmount("NETWORK", "yearly", estCount))} сейчас и далее раз в год.`}
             />
           </div>
 
           <p className="text-xs text-gray-500 text-center">
-            QR-кодов внутри заведения — без лимита на всех тарифах. Тарификация идёт по числу
-            заведений, не по QR.
+            QR-кодов внутри проекта — без лимита на всех тарифах. Тарификация идёт по числу
+            проектов, не по QR. PRO и «Сеть» оплачиваются только на год.
           </p>
           <p className="text-xs text-gray-500 text-center -mt-4">
             * {CUSTOM_PLAN_HINT}{" "}
-            <a href="/dashboard/support" className="text-indigo-600 hover:underline">
+            <Link href="/dashboard/support" className="text-indigo-600 hover:underline">
               Написать в поддержку
-            </a>
+            </Link>
           </p>
 
           {historyLoading ? (
@@ -408,7 +417,36 @@ export default function SubscriptionPage() {
                 <CreditCard className="w-5 h-5 text-gray-500" />
                 История платежей
               </h2>
-              <div className="overflow-hidden rounded-xl border border-gray-200">
+              <ul className="space-y-2 sm:hidden">
+                {history.map((item) => {
+                  const sc = paymentStatusConfig[item.status] || paymentStatusConfig.PENDING;
+                  const StatusIcon = sc.icon;
+                  return (
+                    <li key={item.id} className="rounded-xl border border-gray-200 bg-white p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {formatPlanLabel(item.plan)} ·{" "}
+                            {item.kind === "RENEWAL" ? "Продление" : "Подключение"}
+                          </p>
+                          <p className="mt-0.5 text-xs text-gray-500">
+                            {formatPaymentDate(item.paidAt ?? item.createdAt)} ·{" "}
+                            {item.billing === "yearly" ? "1 год" : "1 месяц"}
+                          </p>
+                        </div>
+                        <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">
+                          {formatRub(item.amount)}
+                        </span>
+                      </div>
+                      <Badge variant={sc.variant} className="mt-2 flex w-fit items-center gap-1">
+                        <StatusIcon className="w-3 h-3" />
+                        {sc.label}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
+              <div className="hidden overflow-x-auto rounded-xl border border-gray-200 sm:block">
                 <table className="w-full">
                   <thead>
                     <tr className="border-b border-gray-100 bg-gray-50/50">
@@ -445,22 +483,12 @@ export default function SubscriptionPage() {
                         >
                           <td className="px-4 py-3">
                             <span className="text-xs text-gray-700">
-                              {new Date(date).toLocaleDateString("ru-RU", {
-                                day: "2-digit",
-                                month: "2-digit",
-                                year: "numeric",
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              })}
+                              {formatPaymentDate(date)}
                             </span>
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-sm font-medium text-gray-900">
-                              {item.plan === "PRO"
-                                ? "PRO"
-                                : item.plan === "NETWORK"
-                                  ? "Сеть"
-                                  : "FREE"}
+                              {formatPlanLabel(item.plan)}
                             </span>
                           </td>
                           <td className="px-4 py-3">
@@ -498,6 +526,16 @@ export default function SubscriptionPage() {
   );
 }
 
+function formatPaymentDate(date: string): string {
+  return new Date(date).toLocaleDateString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 const paymentStatusConfig: Record<
   string,
   { variant: "success" | "warning" | "danger"; label: string; icon: typeof CheckCircle }
@@ -516,7 +554,11 @@ function PlanCard({
   onSubscribe,
   subscribing,
   disabled,
-  consentRequired,
+  disabledReason,
+  consent,
+  onConsentChange,
+  consentError,
+  chargeNote,
 }: {
   planId: PlanId;
   currentPlan: PlanId;
@@ -526,7 +568,11 @@ function PlanCard({
   onSubscribe: () => void;
   subscribing: string | null;
   disabled: boolean;
-  consentRequired?: boolean;
+  disabledReason?: string;
+  consent?: boolean;
+  onConsentChange?: (value: boolean) => void;
+  consentError?: boolean;
+  chargeNote?: string;
 }) {
   const plan = PLANS[planId];
   const isCurrent = currentPlan === planId;
@@ -598,13 +644,51 @@ function PlanCard({
                 Подписка активна
               </Badge>
             ) : (
-              <>
+              <div className="space-y-3">
+                {disabledReason ? (
+                  <p className="rounded-lg bg-gray-50 px-3 py-2 text-xs text-gray-600">
+                    {disabledReason}
+                  </p>
+                ) : (
+                  <div
+                    id={`recurring-consent-${planId}`}
+                    className={`rounded-lg border p-3 transition-colors ${
+                      consentError ? "border-amber-400 bg-amber-50" : "border-gray-200 bg-gray-50"
+                    }`}
+                  >
+                    <label className="flex cursor-pointer items-start gap-3">
+                      <input
+                        type="checkbox"
+                        checked={consent ?? false}
+                        onChange={(e) => onConsentChange?.(e.target.checked)}
+                        className="mt-0.5 h-5 w-5 shrink-0 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span className="text-xs leading-relaxed text-gray-700">
+                        Согласен на автоматические списания по{" "}
+                        <a
+                          href={LEGAL_OFFER_URL}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-indigo-600 hover:underline"
+                        >
+                          условиям оферты
+                        </a>
+                        . {chargeNote} Следующее списание — в дату окончания периода (около 06:00
+                        МСК), отменить можно в один клик на этой странице.
+                      </span>
+                    </label>
+                    {consentError && (
+                      <p role="alert" className="mt-2 pl-8 text-xs font-medium text-amber-800">
+                        Отметьте согласие, чтобы перейти к оплате
+                      </p>
+                    )}
+                  </div>
+                )}
                 <Button
                   size="lg"
                   className="w-full"
                   onClick={onSubscribe}
                   disabled={disabled || subscribing !== null}
-                  title={consentRequired ? "Отметьте согласие на автосписания" : undefined}
                 >
                   {subscribing === planId
                     ? "Перенаправляем..."
@@ -614,12 +698,7 @@ function PlanCard({
                         : "Оформить PRO"
                       : "Оформить «Сеть»"}
                 </Button>
-                {consentRequired && (
-                  <p className="text-xs text-amber-700 mt-2 text-center">
-                    Сначала согласие на автосписания выше
-                  </p>
-                )}
-              </>
+              </div>
             )}
           </div>
         )}

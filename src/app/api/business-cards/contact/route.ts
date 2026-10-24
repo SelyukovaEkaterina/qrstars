@@ -16,9 +16,10 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { qrCode, guestName, message } = body as {
+  const { qrCode, guestName, guestPhone, message } = body as {
     qrCode?: string;
     guestName?: string;
+    guestPhone?: string;
     message?: string;
   };
 
@@ -27,6 +28,7 @@ export async function POST(request: Request) {
   }
 
   const name = guestName?.trim();
+  const phone = typeof guestPhone === "string" ? guestPhone.trim().slice(0, 40) : "";
   const text = message?.trim();
 
   if (!name) {
@@ -47,14 +49,18 @@ export async function POST(request: Request) {
       businessCard: {
         include: { contactMessenger: true },
       },
+      establishment: {
+        select: { businessCard: { include: { contactMessenger: true } } },
+      },
     },
   });
 
-  if (!qr || !qr.isActive || qr.mode !== "BUSINESS_CARD" || !qr.businessCard) {
+  // Как на странице скана (resolveBusinessCard): визитка проекта, иначе legacy-визитка QR.
+  const card = qr?.establishment?.businessCard ?? qr?.businessCard ?? null;
+
+  if (!qr || !qr.isActive || qr.mode !== "BUSINESS_CARD" || !card) {
     return NextResponse.json({ error: "Визитка не найдена" }, { status: 404 });
   }
-
-  const card = qr.businessCard;
 
   if (!card.contactEnabled) {
     return NextResponse.json({ error: "Связь отключена" }, { status: 403 });
@@ -70,6 +76,7 @@ export async function POST(request: Request) {
   const sent = await sendBusinessCardContactNotification(card.contactMessenger, {
     qrLabel,
     guestName: name,
+    guestPhone: phone || undefined,
     message: text,
     client,
   });

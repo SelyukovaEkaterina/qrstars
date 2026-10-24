@@ -38,4 +38,8 @@ export default defineConfig({
   build: {
     format: 'file',
   },
+  vite: {
+    // Генератор QR берёт общий движок из кабинета (../src/lib/qr-engine) — dev-серверу нужен доступ.
+    server: { fs: { allow: ['..'] } },
+  },
 });

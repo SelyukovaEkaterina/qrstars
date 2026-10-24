@@ -6,12 +6,12 @@ badge: "🪪 Цифровая веб-визитка"
 intro: "Хотите <strong>создать электронную визитку</strong> с QR-кодом? Забудьте о пачках бумажных карточек. Соберите стильную мобильную страницу со своими контактами, кнопками Telegram, WhatsApp, портфолио и реквизитами в сервисе QrStars за 5 минут."
 fullTitle: true
 ctaText: "Создать электронную визитку"
-ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=business_card&utm_content=elektronnaya-vizitka"
+ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=elektronnaya-vizitka&intent=card"
 ctaGoal: "register_click"
 ctaSecondaryText: "Смотреть демо визитки"
-ctaSecondaryHref: "https://app.qrstars.ru/scan/demo-business-card"
+ctaSecondaryHref: "https://app.qrstars.ru/q/demo-business-card"
 ctaSecondaryGoal: "demo_scan_click"
-demoScanUrl: "https://app.qrstars.ru/scan/demo-business-card"
+demoScanUrl: "https://app.qrstars.ru/q/demo-business-card"
 demoScanLabel: "Электронная визитка"
 demoScanTitle: "Отсканируйте пример электронной визитки"
 demoScanSubtitle: "Посмотрите, как выглядит персональная страница спикера или специалиста на смартфоне"
@@ -128,10 +128,10 @@ related:
 * Перехват негатива (оценок 1–3★) в закрытую форму обратной связи напрямую владельцу заведения;
 * Возможность объединить на одной странице электронную визитку компании, [меню блюд](/qr-menu.html) и подключение к [Wi-Fi](/qr-kod-dlya-wifi.html).
 
-[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=elektronnaya-vizitka-pivot)
+[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=elektronnaya-vizitka-pivot)
 
 ---
 
 ## Создайте вашу цифровую визитку прямо сейчас
 
-Перейдите на современный формат делового общения. Соберите свою персональную страницу в [конструкторе QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=business_card&utm_content=elektronnaya-vizitka) бесплатно за пару кликов.
+Перейдите на современный формат делового общения. Соберите свою персональную страницу в [конструкторе QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=elektronnaya-vizitka) бесплатно за пару кликов.

@@ -9,9 +9,9 @@ ctaText: "Создать QR для Wi-Fi"
 ctaHref: "/free-qr-generator.html"
 ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Микросайт с Wi-Fi и отзывами"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-dlya-wifi"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-dlya-wifi"
 ctaSecondaryGoal: "register_click"
-demoScanUrl: "https://app.qrstars.ru/scan/demo-wifi"
+demoScanUrl: "https://app.qrstars.ru/q/demo-wifi"
 demoScanLabel: "Wi-Fi подключение"
 demoScanTitle: "Отсканируйте демо Wi-Fi"
 demoScanSubtitle: "Гость наводит камеру смартфона и подключается к сети в один клик без ввода пароля"
@@ -142,7 +142,7 @@ related:
 
 Таким образом, бесплатный Wi-Fi становится поводом открыть интерактивную витрину вашего бизнеса.
 
-[Создать интерактивный QR для заведения бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=qr-kod-dlya-wifi-pivot)
+[Создать интерактивный QR для заведения бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=qr-kod-dlya-wifi-pivot)
 
 ---
 

@@ -9,7 +9,7 @@ ctaText: "Создать QR для Яндекс бесплатно"
 ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=yandex-kart"
 ctaSecondaryText: "Как это работает"
 ctaSecondaryHref: "#how-it-works"
-demoScanUrl: "https://app.qrstars.ru/scan/demo-review"
+demoScanUrl: "https://app.qrstars.ru/q/demo-review"
 demoScanLabel: "Умные отзывы"
 demoScanTitle: "Отсканируйте демо-код отзывов"
 demoScanSubtitle: "Посмотрите сценарий оценки глазами клиента: 5 звёзд направляют на карты Яндекса, а 1–3 звезды — в личный кабинет управляющего."
@@ -90,7 +90,7 @@ related:
 | | Яндекс | QrStars |
 |---|--------|---------|
 | Отзыв на Яндекс | ✓ | ✓ |
-| 2GIS / Google | Отдельно | Один QR |
+| 2GIS / Авито | Отдельно | Один QR (PRO) |
 | Маршрутизация оценок | — | ✓ |
 | Дизайн бренда | Базовый | Полный |
 | Векторный код | Свои макеты | ✓ + смена ссылки |

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,9 @@ import {
   ChevronDown,
   Plus,
   Palette,
+  Network,
+  X,
+  Contact,
   type LucideIcon,
 } from "lucide-react";
 import { signOutTo } from "@/lib/sign-out-client";
@@ -33,12 +36,17 @@ import {
   projectHomePath,
   projectInboxPath,
   projectPagePath,
+  projectCardPath,
   projectQrcodesPath,
   projectSettingsPath,
   projectStatsPath,
 } from "@/lib/project-routes";
 import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import { useProjectScope } from "@/components/dashboard/ProjectScope";
+import type { PlanId } from "@/lib/plans";
+
+/** Диспатчить после создания / переименования / удаления проекта или QR без проекта. */
+export const PROJECTS_CHANGED_EVENT = "qrstars:projects-changed";
 
 type NavLink = {
   href: string;
@@ -53,6 +61,7 @@ type ProjectListItem = {
   id: string;
   name: string;
   shortSlug?: string | null;
+  hasBusinessCard?: boolean;
 };
 
 function defaultIsActive(href: string, pathname: string): boolean {
@@ -73,7 +82,24 @@ function readStoredProjectId(): string | null {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
-export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+type SidebarProps = {
+  onNavigate?: () => void;
+  /** Только в мобильном drawer: кнопка «Закрыть» в шапке меню. */
+  onClose?: () => void;
+  /** Имя активного проекта — для мобильной шапки кабинета. */
+  onActiveProjectChange?: (name: string | null) => void;
+  plan?: PlanId;
+  /** Есть ли QR без проекта (считается на сервере в dashboard/layout). */
+  initialHasOrphanQrs?: boolean;
+};
+
+export default function Sidebar({
+  onNavigate,
+  onClose,
+  onActiveProjectChange,
+  plan = "FREE",
+  initialHasOrphanQrs = false,
+}: SidebarProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const scope = useProjectScope();
@@ -81,7 +107,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const [supportUnread, setSupportUnread] = useState(0);
   const [projects, setProjects] = useState<ProjectListItem[]>(scope?.projects ?? []);
   const [storedProjectId, setStoredProjectId] = useState<string | null>(null);
-  const [hasOrphanQrs, setHasOrphanQrs] = useState(false);
+  const [hasOrphanQrs, setHasOrphanQrs] = useState(initialHasOrphanQrs);
 
   const urlProjectId = parseProjectIdFromPath(pathname);
   const storedProjectExists =
@@ -104,64 +130,102 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const showProjectNav = projects.length > 0 || hasOrphanQrs || Boolean(urlProjectId);
   const micrositeHref = micrositePublicUrl(activeProject?.shortSlug ?? scope?.shortSlug);
 
-  const refreshUnread = () => {
-    fetch("/api/form-submissions/unread-count")
+  const unreadProjectId =
+    activeProjectId && !isUnassignedProjectId(activeProjectId) ? activeProjectId : null;
+  const activeProjectName = inUnassigned ? "Без проекта" : (activeProject?.name ?? null);
+
+  useEffect(() => {
+    onActiveProjectChange?.(activeProjectName);
+  }, [activeProjectName, onActiveProjectChange]);
+
+  // Свежее значение с сервера (router.refresh / новый layout) перекрывает локальное.
+  const [orphanPropSeen, setOrphanPropSeen] = useState(initialHasOrphanQrs);
+  if (orphanPropSeen !== initialHasOrphanQrs) {
+    setOrphanPropSeen(initialHasOrphanQrs);
+    setHasOrphanQrs(initialHasOrphanQrs);
+  }
+
+  const refreshSubmissionsUnread = useCallback(() => {
+    if (!unreadProjectId) return;
+    fetch(`/api/form-submissions/unread-count?establishmentId=${encodeURIComponent(unreadProjectId)}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data) setSubmissionsUnread(data.unreadCount || 0);
       })
       .catch(() => {});
+  }, [unreadProjectId]);
+
+  const refreshSupportUnread = useCallback(() => {
     fetch("/api/support/unread-count")
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => {
         if (data) setSupportUnread(data.unreadCount || 0);
       })
       .catch(() => {});
-  };
+  }, []);
 
+  // Список проектов — один раз при монтировании и по событию PROJECTS_CHANGED_EVENT
+  // (раньше перезапрашивался на каждую смену pathname вместе с полным /api/qrcodes).
   useEffect(() => {
     setStoredProjectId(readStoredProjectId());
-    fetch("/api/establishments")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.establishments) {
-          setProjects(
-            data.establishments.map((e: ProjectListItem) => ({
-              id: e.id,
-              name: e.name,
-              shortSlug: e.shortSlug ?? null,
-            })),
-          );
-        }
-      })
-      .catch(() => {});
-    fetch("/api/qrcodes")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const list = data?.qrcodes || [];
-        setHasOrphanQrs(list.some((q: { establishmentId: string | null }) => !q.establishmentId));
-      })
-      .catch(() => {});
-    refreshUnread();
+    const loadProjects = () =>
+      fetch("/api/establishments")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          if (data?.establishments) {
+            setProjects(
+              data.establishments.map((e: ProjectListItem) => ({
+                id: e.id,
+                name: e.name,
+                shortSlug: e.shortSlug ?? null,
+                hasBusinessCard: !!e.hasBusinessCard,
+              })),
+            );
+          }
+        })
+        .catch(() => {});
+    loadProjects();
+    const onProjectsChanged = () => {
+      loadProjects();
+      fetch("/api/qrcodes")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          const list = data?.qrcodes;
+          if (Array.isArray(list)) {
+            setHasOrphanQrs(list.some((q: { establishmentId: string | null }) => !q.establishmentId));
+          }
+        })
+        .catch(() => {});
+    };
+    window.addEventListener(PROJECTS_CHANGED_EVENT, onProjectsChanged);
+    return () => window.removeEventListener(PROJECTS_CHANGED_EVENT, onProjectsChanged);
+  }, []);
+
+  useEffect(() => {
+    refreshSubmissionsUnread();
     const onUnread = (e: Event) => {
       const count = (e as CustomEvent<number>).detail;
       if (typeof count === "number") setSubmissionsUnread(count);
-      else refreshUnread();
+      else refreshSubmissionsUnread();
     };
+    window.addEventListener("submissions-unread-changed", onUnread);
+    return () => window.removeEventListener("submissions-unread-changed", onUnread);
+  }, [refreshSubmissionsUnread]);
+
+  useEffect(() => {
+    refreshSupportUnread();
     const onSupportUnread = (e: Event) => {
       const count = (e as CustomEvent<number>).detail;
       if (typeof count === "number") setSupportUnread(count);
-      else refreshUnread();
+      else refreshSupportUnread();
     };
-    window.addEventListener("submissions-unread-changed", onUnread);
     window.addEventListener("support-unread-changed", onSupportUnread);
-    return () => {
-      window.removeEventListener("submissions-unread-changed", onUnread);
-      window.removeEventListener("support-unread-changed", onSupportUnread);
-    };
-  }, [pathname]);
+    return () => window.removeEventListener("support-unread-changed", onSupportUnread);
+  }, [refreshSupportUnread]);
 
   const handleHelpClick = () => {
+    // На мобильном закрываем drawer, иначе тур откроется под ним.
+    onNavigate?.();
     window.dispatchEvent(new Event("start-onboarding-tour"));
   };
 
@@ -189,6 +253,16 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             icon: QrCode,
             tourId: "tour-nav-qrcodes",
           },
+          ...(projects.find((p) => p.id === activeProjectId)?.hasBusinessCard
+            ? [
+                {
+                  href: projectCardPath(activeProjectId),
+                  label: "Визитка",
+                  icon: Contact,
+                  tourId: "tour-nav-card",
+                } satisfies NavLink,
+              ]
+            : []),
           {
             href: projectPagePath(activeProjectId),
             label: "Микросайт",
@@ -218,6 +292,16 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
       : [];
 
   const accountNav: NavLink[] = [
+    ...(plan === "NETWORK"
+      ? [
+          {
+            href: "/dashboard/network",
+            label: "Сеть: сводка",
+            icon: Network,
+            tourId: "tour-nav-network",
+          } satisfies NavLink,
+        ]
+      : []),
     {
       href: "/dashboard/subscription",
       label: "Тариф и оплата",
@@ -226,7 +310,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     },
     {
       href: "/dashboard/settings",
-      label: "Каналы уведомлений",
+      label: "Аккаунт и уведомления",
       icon: Bell,
       tourId: "tour-nav-settings",
       isActive: (p) => p === "/dashboard/settings",
@@ -253,7 +337,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   ];
 
   const renderBadge = (item: NavLink) => {
-    if (item.badgeKey === "submissions" && submissionsUnread > 0) {
+    if (item.badgeKey === "submissions" && unreadProjectId && submissionsUnread > 0) {
       return (
         <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-indigo-600 text-white text-xs font-semibold flex items-center justify-center">
           {submissionsUnread > 99 ? "99+" : submissionsUnread}
@@ -284,14 +368,14 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             id={item.tourId}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors px-3 py-2.5",
+              "flex min-h-11 items-center gap-3 rounded-lg text-sm font-medium transition-colors px-3 py-2.5 lg:min-h-10",
               isActive
                 ? "bg-indigo-50 text-indigo-700"
                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-900",
             )}
           >
             <Icon className="w-5 h-5 shrink-0" />
-            <span className="flex-1">{item.label}</span>
+            <span className="min-w-0 flex-1">{item.label}</span>
             {renderBadge(item)}
           </Link>
         );
@@ -300,8 +384,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   );
 
   return (
-    <aside className="w-64 h-full bg-white border-r border-gray-200 min-h-screen flex flex-col">
-      <div id="tour-sidebar-logo" className="p-6 border-b border-gray-100">
+    <aside className="dash-drawer-safe-top w-64 max-w-full h-full bg-white border-r border-gray-200 lg:min-h-screen flex flex-col">
+      <div
+        id="tour-sidebar-logo"
+        className="flex items-center justify-between gap-2 border-b border-gray-100 px-6 py-4 lg:p-6"
+      >
         <Link href="/dashboard" onClick={onNavigate} className="flex items-center" aria-label="QrStars">
           <img
             src="/logo.svg"
@@ -312,9 +399,19 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
             draggable={false}
           />
         </Link>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Закрыть меню"
+            className="-mr-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-900 lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
+        )}
       </div>
 
-      <nav id="tour-sidebar-nav" className="flex-1 p-4 overflow-y-auto">
+      <nav id="tour-sidebar-nav" className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
         {showProjectNav && (
           <div className="mb-5">
             <div className="mb-1.5 flex items-center justify-between px-3">
@@ -324,11 +421,11 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               <Link
                 href="/dashboard/projects?create=1"
                 onClick={onNavigate}
-                className="-mr-1 flex h-6 w-6 items-center justify-center rounded-md text-gray-400 hover:bg-indigo-50 hover:text-indigo-600"
+                className="-mr-2 flex h-10 w-10 items-center justify-center rounded-lg text-gray-400 hover:bg-indigo-50 hover:text-indigo-600 lg:-mr-1 lg:h-6 lg:w-6 lg:rounded-md"
                 aria-label="Создать проект"
                 title="Создать проект"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-5 w-5 lg:h-4 lg:w-4" />
               </Link>
             </div>
             {(projects.length > 1 || hasOrphanQrs) && (
@@ -343,7 +440,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                         ? projectQrcodesPath(UNASSIGNED_PROJECT_ID)
                         : projectHomePath(next);
                     }}
-                    className="w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 pr-8 text-sm font-medium text-gray-900"
+                    className="min-h-11 w-full appearance-none rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 pr-8 text-sm font-medium text-gray-900 lg:min-h-0"
                     aria-label="Выбрать проект"
                   >
                     {projects.map((project) => (
@@ -369,7 +466,7 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
                 href={micrositeHref}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mb-3 mx-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50"
+                className="mb-3 mx-1 flex min-h-11 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-indigo-700 hover:bg-indigo-50 lg:min-h-0"
               >
                 <ExternalLink className="h-4 w-4" />
                 Открыть микросайт
@@ -387,18 +484,20 @@ export default function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         </div>
       </nav>
 
-      <div className="p-4 border-t border-gray-100 space-y-1">
+      <div className="space-y-1 border-t border-gray-100 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         <button
+          type="button"
           id="tour-nav-help"
           onClick={handleHelpClick}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 w-full transition-colors"
+          className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 lg:min-h-10"
         >
           <HelpCircle className="w-5 h-5" />
           Помощь
         </button>
         <button
+          type="button"
           onClick={() => signOutTo("/login")}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 w-full transition-colors"
+          className="flex min-h-11 w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 lg:min-h-10"
         >
           <LogOut className="w-5 h-5" />
           Выйти

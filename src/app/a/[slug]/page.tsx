@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
 import prisma from "@/lib/prisma";
 import { DEFAULT_REVIEW_ROUTING, parseReviewRouting } from "@/lib/review-routing";
 import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons, parseModuleTypes } from "@/lib/page-modules";
@@ -80,24 +81,7 @@ async function buildSlugLandingProps(slug: string): Promise<SlugLandingProps | n
   const businessCard = resolveBusinessCard(est, null);
   const wifiConfig = resolveWifiConfig(est, null);
 
-  const safeCard = businessCard
-    ? {
-        id: businessCard.id,
-        fullName: businessCard.fullName,
-        title: businessCard.title,
-        company: businessCard.company,
-        phone: businessCard.phone,
-        email: businessCard.email,
-        website: businessCard.website,
-        address: businessCard.address,
-        about: businessCard.about,
-        avatarUrl: businessCard.avatarUrl,
-        socialLinks: (businessCard.socialLinks as { type: string; url: string }[]) || [],
-        accentColor: businessCard.accentColor,
-        tipsUrl: businessCard.tipsUrl,
-        tipsLabel: businessCard.tipsLabel,
-      }
-    : null;
+  const safeCard = businessCard ? toPublicBusinessCard(businessCard) : null;
 
   const extraMenuIds = Object.values(moduleTypes).filter(m => m.type === "menu").map(m => m.instanceId);
   const extraBcIds = Object.values(moduleTypes).filter(m => m.type === "businessCard").map(m => m.instanceId);
@@ -138,22 +122,13 @@ async function buildSlugLandingProps(slug: string): Promise<SlugLandingProps | n
     reviewRouting,
     customPages: JSON.parse(JSON.stringify(est.customPages || [])),
     extraMenus,
-    extraBusinessCards: JSON.parse(JSON.stringify(extraBusinessCards.map((bc: Record<string, unknown>) => ({
-      id: bc.id,
-      fullName: bc.fullName,
-      title: bc.title,
-      company: bc.company,
-      phone: bc.phone,
-      email: bc.email,
-      website: bc.website,
-      address: bc.address,
-      about: bc.about,
-      avatarUrl: bc.avatarUrl,
-      socialLinks: bc.socialLinks || [],
-      accentColor: bc.accentColor,
-      tipsUrl: bc.tipsUrl,
-      tipsLabel: bc.tipsLabel,
-    })))),
+    extraBusinessCards: JSON.parse(
+      JSON.stringify(
+        extraBusinessCards.map((bc: Record<string, unknown>) =>
+          toPublicBusinessCard(bc as unknown as BusinessCardRow),
+        ),
+      ),
+    ),
     extraWifiConfigs: JSON.parse(JSON.stringify(extraWifiConfigs)),
     forms: JSON.parse(JSON.stringify(est.forms || [])),
     platformUrls,

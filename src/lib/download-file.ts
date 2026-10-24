@@ -1,4 +1,6 @@
 const SAVE_SHEET_ID = "qr-file-save-sheet";
+/** URL картинки в открытом окне сохранения — отзываем, когда окно заменяется новым. */
+let saveSheetUrl: string | null = null;
 
 /** iPhone, iPad and iPadOS (desktop UA + touch). All of them use WebKit. */
 export function isIosDevice(): boolean {
@@ -41,7 +43,18 @@ export async function downloadBlob(blob: Blob, filename: string): Promise<void> 
     showIosSaveSheet(file);
     return;
   }
+  // Android и другие сенсорные устройства: системное «Поделиться» (Галерея, мессенджер),
+  // если оно недоступно — обычное скачивание.
+  if (isTouchDevice() && type.startsWith("image/") && type !== "image/svg+xml") {
+    const shared = await shareIosFile(file);
+    if (shared === "shared" || shared === "cancelled") return;
+  }
   clickDownloadLink(blob, filename);
+}
+
+export function isTouchDevice(): boolean {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia("(pointer: coarse)").matches;
 }
 
 export async function downloadCanvas(
@@ -84,12 +97,15 @@ function clickDownloadLink(blob: Blob, filename: string): void {
   document.body.appendChild(a);
   a.click();
   a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  // Медленные браузеры начинают скачивание не сразу — не отзываем ссылку раньше времени.
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 function showIosSaveSheet(file: File): void {
   document.getElementById(SAVE_SHEET_ID)?.remove();
+  if (saveSheetUrl) URL.revokeObjectURL(saveSheetUrl);
   const url = URL.createObjectURL(file);
+  saveSheetUrl = url;
 
   const overlay = document.createElement("div");
   overlay.id = SAVE_SHEET_ID;
@@ -184,6 +200,7 @@ function showIosSaveSheet(file: File): void {
   const dismiss = () => {
     overlay.remove();
     URL.revokeObjectURL(url);
+    if (saveSheetUrl === url) saveSheetUrl = null;
   };
 
   save.addEventListener("click", () => {

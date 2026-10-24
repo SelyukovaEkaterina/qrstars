@@ -1,8 +1,6 @@
 ---
 import { LEGAL_LINKS } from '../lib/legal';
-import { appendAttributionParams } from '../lib/utm';
-
-const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.searchParams);
+const APP_URL = 'https://app.qrstars.ru/login';
 
 const seoLinks = [
   { href: '/free-qr-generator.html', label: 'Бесплатный генератор QR' },
@@ -11,7 +9,6 @@ const seoLinks = [
   { href: '/qr-kod-dlya-otzyvov.html', label: 'QR для отзывов' },
   { href: '/krasivyy-qr-kod.html', label: 'Красивый QR-код' },
   { href: '/qr-kod-dlya-video.html', label: 'QR для видео' },
-  { href: '/dinamicheskiy-qr-kod.html', label: 'Динамический QR' },
 ];
 
 const industryLinks = [
@@ -23,7 +20,7 @@ const industryLinks = [
 ];
 ---
 
-<footer class="bg-white py-12 border-t border-slate-200 mt-auto">
+<footer id="site-footer" class="bg-white py-12 border-t border-slate-200 mt-auto">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="grid grid-cols-1 md:grid-cols-6 gap-8 mb-8">
       <div class="col-span-1 md:col-span-2">
@@ -45,9 +42,9 @@ const industryLinks = [
           <li id="footer-generator-item"><a href="/free-qr-generator.html" data-goal="qr_generator_link" data-goal-params='{"source":"footer"}' class="hover:text-emerald-600 transition font-semibold text-emerald-600">Бесплатный QR-генератор</a></li>
           <li><a href="/smart-reviews.html" class="hover:text-primary transition">Умные отзывы</a></li>
           <li><a href="/qr-business-cards.html" class="hover:text-primary transition">QR-визитки</a></li>
+          <li><a href="/qr-vizitka-mastera.html" class="hover:text-primary transition">QR-визитка мастера</a></li>
           <li><a href="/qr-menu.html" class="hover:text-primary transition">QR-меню</a></li>
           <li><a href="/file-sharing.html" class="hover:text-primary transition">QR-файлы</a></li>
-          <li><a href="/#features" class="hover:text-primary transition">Конструктор QR</a></li>
         </ul>
       </div>
       <div>
@@ -59,8 +56,7 @@ const industryLinks = [
             </li>
           ))}
           <li><a href="/qr-kod-s-logotipom.html" class="hover:text-primary transition">QR с логотипом</a></li>
-          <li><a href="/sozdat-qr-kod.html" class="hover:text-primary transition">Создать QR-код</a></li>
-          <li><a href="/generator-qr-kodov.html" class="hover:text-primary transition">Сравнение генераторов</a></li>
+          <li><a href="/blog/top-generatorov-qr-kodov-2026.html" class="hover:text-primary transition">Сравнение генераторов</a></li>
         </ul>
       </div>
       <div>

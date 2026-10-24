@@ -99,6 +99,61 @@ def test_import_rejects_invalid_style(base_url):
     assert generator_templates(session, base_url) == []
 
 
+ART_KEYS = ("silhouette", "silhouetteFit", "rotate45", "inkShift", "photoStyle", "silhouetteDataUrl")
+
+
+def test_import_old_style_keeps_config_without_art_fields(base_url):
+    """Старые ссылки генератора (без арт-полей) дают тот же конфиг, что и раньше."""
+    session = new_user_session(base_url, "gen-style-old")
+    r = session.post(f"{base_url}/api/templates/from-generator", json={"style": encode(STYLE)})
+    assert r.status_code == 200, r.text
+    config = generator_templates(session, base_url)[0]["layout"]["config"]
+    for key in ART_KEYS:
+        assert key not in config, key
+
+
+def test_import_art_style(base_url):
+    session = new_user_session(base_url, "gen-style-art")
+    style = {
+        **STYLE,
+        "dotStyle": "liquid",
+        "silhouette": "heart",
+        "silhouetteFit": 90,
+        "rotate45": True,
+        "inkShift": True,
+    }
+    r = session.post(f"{base_url}/api/templates/from-generator", json={"style": encode(style)})
+    assert r.status_code == 200, r.text
+    config = generator_templates(session, base_url)[0]["layout"]["config"]
+    assert config["dotStyle"] == "liquid"
+    assert config["silhouette"] == "heart"
+    assert config["silhouetteFit"] == 90
+    assert config["rotate45"] is True
+    assert config["inkShift"] is True
+
+    # Другой дизайн — новый шаблон, а не тот же.
+    other = session.post(
+        f"{base_url}/api/templates/from-generator",
+        json={"style": encode({**style, "silhouette": "tooth"})},
+    )
+    assert other.status_code == 200
+    assert other.json()["created"] is True
+
+
+def test_import_rejects_invalid_art_style(base_url):
+    session = new_user_session(base_url, "gen-style-art-bad")
+    for style in (
+        {**STYLE, "dotStyle": "sparkles"},
+        # Своя фигура — картинка, по ссылке не переносится.
+        {**STYLE, "silhouette": "custom"},
+        {**STYLE, "silhouette": "heart", "silhouetteFit": 20},
+        {**STYLE, "rotate45": "yes"},
+    ):
+        r = session.post(f"{base_url}/api/templates/from-generator", json={"style": encode(style)})
+        assert r.status_code == 400, (style, r.text)
+    assert generator_templates(session, base_url) == []
+
+
 def test_import_requires_auth(base_url):
     r = req_lib.post(f"{base_url}/api/templates/from-generator", json={"style": encode(STYLE)})
     assert r.status_code == 401

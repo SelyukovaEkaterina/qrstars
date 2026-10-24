@@ -5,6 +5,7 @@ import { DEMO_DENTAL_MENU_ITEMS } from "@/lib/demo-dental-menu-data";
 import { type PageModules, type ModuleIcons, type ModuleTypes } from "@/lib/page-modules";
 import type { FormViewData } from "@/components/scan/FormView";
 import { DEFAULT_REVIEW_ROUTING, reviewRoutingToJson } from "@/lib/review-routing";
+import type { PublicBusinessCard } from "@/lib/business-card";
 
 /** Стабильные коды для лендинга: /q/demo-review и т.д. Не хранятся в БД. */
 export const DEMO_QR_PREFIX = "demo-" as const;
@@ -33,7 +34,8 @@ export type DemoQrSlug =
   | "demo3-wifi"
   | "demo3-file"
   | "demo3-menu"
-  | "demo-tips";
+  | "demo-tips"
+  | "demo-master";
 
 export interface DemoQrCatalogItem {
   slug: DemoQrSlug;
@@ -47,7 +49,7 @@ export const DEMO_QR_CATALOG: DemoQrCatalogItem[] = [
   {
     slug: "demo-landing",
     mode: "LANDING",
-    title: "Микро-лендинг",
+    title: "Микросайт",
     description: "Все сервисы на одной странице: меню, отзывы, Wi‑Fi, контакты",
     emoji: "📱",
   },
@@ -115,9 +117,16 @@ export const DEMO_QR_CATALOG: DemoQrCatalogItem[] = [
     emoji: "💰",
   },
   {
+    slug: "demo-master",
+    mode: "BUSINESS_CARD",
+    title: "Визитка мастера",
+    description: "Позвонить, WhatsApp, услуги и цены, сохранить контакт",
+    emoji: "🔧",
+  },
+  {
     slug: "demo2-landing",
     mode: "LANDING",
-    title: "Микро-лендинг — шиномонтаж",
+    title: "Микросайт — шиномонтаж",
     description: "Демо для автосервиса: услуги, отзывы, Wi‑Fi, контакты",
     emoji: "🔧",
   },
@@ -166,7 +175,7 @@ export const DEMO_QR_CATALOG: DemoQrCatalogItem[] = [
   {
     slug: "demo3-landing",
     mode: "LANDING",
-    title: "Микро-лендинг — стоматология",
+    title: "Микросайт — стоматология",
     description: "Демо для клиники: услуги, отзывы, Wi‑Fi, контакты",
     emoji: "🦷",
   },
@@ -244,6 +253,36 @@ export const demoBusinessCard = {
     { type: "vk", url: "https://vk.com" },
   ],
   accentColor: "#4f46e5",
+};
+
+/** Визитка мастера для лендинга «QR-визитка для мастера» (/q/demo-master). */
+export const demoMasterCard: PublicBusinessCard = {
+  id: "demo-master",
+  fullName: "Сергей Петров",
+  title: "Электрик",
+  company: null,
+  phone: "+7 (900) 000-00-00",
+  email: null,
+  website: null,
+  address: null,
+  about:
+    "Опыт 12 лет. Розетки, автоматы, щитки, проводка под ключ. Приеду в день обращения, гарантия на работу 1 год.\n\nЭто демо-визитка QrStars — свою можно сделать бесплатно за минуту.",
+  avatarUrl: null,
+  socialLinks: [],
+  accentColor: "#0369a1",
+  whatsapp: "+7 (900) 000-00-00",
+  telegram: "@qrstars_demo",
+  maxUrl: null,
+  services: [
+    { name: "Выезд и диагностика", price: "500 ₽" },
+    { name: "Установка розетки", price: "от 400 ₽" },
+    { name: "Замена автомата", price: "от 600 ₽" },
+    { name: "Сборка щитка", price: "от 3 500 ₽" },
+    { name: "Проводка в квартире", price: "договорная" },
+  ],
+  serviceArea: "Москва, выезд по городу",
+  workHours: "Ежедневно 8:00–21:00",
+  reviewsUrl: "https://qrstars.ru",
 };
 
 export const demoWifiConfig = {

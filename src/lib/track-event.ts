@@ -24,6 +24,7 @@ function resolveMetrikaGoal(event: string, props?: TrackEventProps): string | nu
     if (intent === "reviews") return "setup_completed_reviews";
     if (intent === "landing") return "setup_completed_landing";
     if (intent === "menu") return "setup_completed_menu";
+    if (intent === "card") return "setup_completed_card";
     return METRIKA_GOAL_MAP[event] ?? null;
   }
   return METRIKA_GOAL_MAP[event] ?? null;

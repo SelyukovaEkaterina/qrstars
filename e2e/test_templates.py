@@ -109,7 +109,8 @@ def test_update_template(owner_session, base_url):
     assert r.status_code == 200
     updated = r.json()["template"]
     assert updated["name"] == "Обновлённый шаблон"
-    assert updated["isPublic"] is True
+    # Публичными бывают только встроенные пресеты — флаг от пользователя игнорируется.
+    assert updated["isPublic"] is False
 
 
 def test_update_template_not_found(owner_session, base_url):

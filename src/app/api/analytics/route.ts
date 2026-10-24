@@ -427,7 +427,7 @@ export async function GET(request: Request) {
   ];
 
   const modeLabels: Record<string, string> = {
-    LANDING: "Микро-лендинг",
+    LANDING: "Микросайт",
     REVIEW: "Отзывы",
     MENU: "Меню",
     REDIRECT: "Редирект",

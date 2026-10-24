@@ -260,3 +260,53 @@ class TestAdminPartnerWithdrawals:
             json={"id": "some-id"},
         )
         assert r.status_code == 400
+
+
+class TestActivateBatchAccess:
+    def _new_batch(self, admin_session, base_url):
+        r = admin_session.post(f"{base_url}/api/admin/batches", json={"qty": 1})
+        assert r.status_code == 200
+        return r.json()["batch"]["masterCode"]
+
+    def test_existing_project_requires_login(self, admin_session, base_url, owner_establishment_id):
+        master_code = self._new_batch(admin_session, base_url)
+        r = req_lib.post(
+            f"{base_url}/api/activate-batch",
+            json={"masterCode": master_code, "establishmentId": owner_establishment_id},
+        )
+        assert r.status_code == 401
+
+    def test_foreign_project_is_not_found(self, admin_session, base_url, owner_establishment_id):
+        master_code = self._new_batch(admin_session, base_url)
+        r = admin_session.post(
+            f"{base_url}/api/activate-batch",
+            json={"masterCode": master_code, "establishmentId": owner_establishment_id},
+        )
+        assert r.status_code == 404
+        check = req_lib.get(f"{base_url}/api/activate-batch", params={"masterCode": master_code})
+        assert check.json()["status"] != "ACTIVATED"
+
+    def test_existing_email_without_password_rejected(self, admin_session, base_url):
+        master_code = self._new_batch(admin_session, base_url)
+        r = req_lib.post(
+            f"{base_url}/api/activate-batch",
+            json={
+                "masterCode": master_code,
+                "establishmentName": "Чужой проект",
+                "email": "demo@smartreview.ru",
+            },
+        )
+        assert r.status_code == 401
+
+    def test_existing_email_wrong_password_rejected(self, admin_session, base_url):
+        master_code = self._new_batch(admin_session, base_url)
+        r = req_lib.post(
+            f"{base_url}/api/activate-batch",
+            json={
+                "masterCode": master_code,
+                "establishmentName": "Чужой проект",
+                "email": "demo@smartreview.ru",
+                "password": "wrong-password",
+            },
+        )
+        assert r.status_code == 401

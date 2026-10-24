@@ -39,7 +39,7 @@ export const PLAN_PRICING = {
   NETWORK: {
     monthlyRub: 242,
     yearlyRub: 2900,
-    yearlyNote: "≈242 ₽/мес · до 5 заведений",
+    yearlyNote: "≈242 ₽/мес · до 5 проектов",
     yearlyOnly: true,
     includedEstablishments: 5,
   },
@@ -83,16 +83,15 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     tagline: "Ядро продукта — навсегда бесплатно",
     pricing: { monthlyRub: 0, yearlyRub: 0, yearlyNote: "" },
     establishmentLimit: 1,
-    establishmentLimitNote: "1 заведение",
+    establishmentLimitNote: "1 проект",
     features: [
       "Маршрутизация 1–5★: низкие → жалоба, высокие → публичная площадка",
       "Жалобы (1–3★) → email-уведомление",
       "4–5★ → Яндекс.Карты (стандарт)",
       "Режимы QR: отзывы, меню, визитка, Wi‑Fi, редирект, файл",
-      "QR-кодов в заведении — без лимита",
+      "QR-кодов в проекте — без лимита",
       "Базовая аналитика: сканирования + средний рейтинг",
       "Вотермарка «Сделано в QrStars»",
-      "Партнёрская программа",
     ],
   },
   PRO: {
@@ -101,35 +100,35 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
     tagline: "Прямой переход без экрана и усиление отзывов",
     pricing: PLAN_PRICING.PRO,
     establishmentLimit: 1,
-    establishmentLimitNote: "1 заведение",
+    establishmentLimitNote: "1 проект",
     highlighted: true,
     features: [
       "Прямой переход по QR-ссылке — без экрана QrStars",
       "Микросайт — страница со всеми разделами в одном QR",
-      "Умная ротация площадок для 5★ (Яндекс / 2GIS / Авито / Flamp)",
+      "Умная ротация площадок для 5★ (Яндекс / 2GIS / Авито)",
       "Жалобы в Telegram и MAX — мгновенно, вместо email",
-      "White Label — логотип заведения вместо вотермарки",
+      "White Label — ваш логотип вместо вотермарки",
       "Промокод за отзыв 5★, интеграция чаевых",
       "Расширенная аналитика: конверсия, разрезы по дням и устройствам",
-      "QR-кодов в заведении — без лимита",
+      "QR-кодов в проекте — без лимита",
       "Приоритетная поддержка",
     ],
   },
   NETWORK: {
     id: "NETWORK",
     name: "Сеть",
-    tagline: "До 5 заведений на одном тарифе",
+    tagline: "До 5 проектов на одном тарифе",
     pricing: PLAN_PRICING.NETWORK,
     establishmentLimit: PLAN_PRICING.NETWORK.includedEstablishments,
-    establishmentLimitNote: `${PLAN_PRICING.NETWORK.includedEstablishments} заведений`,
+    establishmentLimitNote: `${PLAN_PRICING.NETWORK.includedEstablishments} проектов`,
     features: [
-      "Всё из PRO для каждой точки",
-      `До ${PLAN_PRICING.NETWORK.includedEstablishments} заведений в одном кабинете`,
-      "Сводный дашборд сети: рейтинг и динамика по точкам",
-      "Роли доступа: управляющий видит свою точку",
+      "Всё из PRO для каждого проекта",
+      `До ${PLAN_PRICING.NETWORK.includedEstablishments} проектов в одном кабинете`,
+      "Сводный дашборд сети: рейтинг и динамика по проектам",
+      "Роли доступа: управляющий видит свой проект",
       "White Label на уровне бренда сети",
       "Выгрузка отчётов (CSV)",
-      "QR-кодов в заведении — без лимита",
+      "QR-кодов в проекте — без лимита",
     ],
   },
 };
@@ -197,20 +196,20 @@ export function getUpgradeHint(
       requiredPlan: currentCount >= 1 ? "NETWORK" : "PRO",
       message:
         currentCount >= 1
-          ? "На FREE доступно 1 заведение. Для второй точки подключите тариф «Сеть»."
-          : "Достигнут лимит заведений на FREE.",
+          ? "На FREE доступен 1 проект. Для второго подключите тариф «Сеть»."
+          : "Достигнут лимит проектов на FREE.",
     };
   }
   if (plan === "PRO") {
     return {
       requiredPlan: "NETWORK",
       message:
-        "На PRO доступно 1 заведение. Для нескольких точек подключите тариф «Сеть» — до 5 заведений.",
+        "На PRO доступен 1 проект. Для нескольких проектов подключите тариф «Сеть» — до 5 проектов.",
     };
   }
   return {
     requiredPlan: "NETWORK",
-    message: `На тарифе «Сеть» доступно ${PLAN_PRICING.NETWORK.includedEstablishments} заведений. ${CUSTOM_PLAN_HINT}`,
+    message: `На тарифе «Сеть» доступно ${PLAN_PRICING.NETWORK.includedEstablishments} проектов. ${CUSTOM_PLAN_HINT}`,
   };
 }
 

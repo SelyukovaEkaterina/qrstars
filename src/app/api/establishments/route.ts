@@ -36,6 +36,7 @@ export async function GET() {
     isOwner: e.userId === userId,
     name: e.name,
     shortSlug: e.shortSlug,
+    hasBusinessCard: !!e.businessCardId,
     industry: e.industry,
     address: e.address,
     phone: e.phone,

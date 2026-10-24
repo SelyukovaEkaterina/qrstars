@@ -17,6 +17,7 @@ import {
   MENU_LANDING_SLUGS,
   menuRegisterUrl,
   generatorRegisterUrl,
+  cardRegisterUrl,
   reviewsRegisterUrl,
   redirectRegisterUrl,
   withSetupIntent,
@@ -46,6 +47,8 @@ if (entry.slug === 'qr-kod-dlya-restorana') {
   ctaHref = generatorRegisterUrl('qr-kod-dlya-video', Astro.url.searchParams);
 } else if (entry.slug === 'dinamicheskiy-qr-kod') {
   ctaHref = redirectRegisterUrl('dinamicheskiy-qr-kod', Astro.url.searchParams);
+} else if (entry.slug === 'elektronnaya-vizitka') {
+  ctaHref = cardRegisterUrl('elektronnaya-vizitka', Astro.url.searchParams);
 } else if (isAppUrl(ctaHref) && ctaHref.includes('/register')) {
   const campaign = new URL(ctaHref).searchParams.get('utm_campaign') ?? '';
   if (campaign.includes('menu')) ctaHref = withSetupIntent(ctaHref, 'menu');
@@ -53,8 +56,8 @@ if (entry.slug === 'qr-kod-dlya-restorana') {
   else if (campaign.includes('generator')) ctaHref = withSetupIntent(ctaHref, 'redirect');
 }
 
-const ctaExternal = isAppUrl(ctaHref);
-const ctaGoal = d.ctaGoal ?? (ctaExternal ? 'hero_start' : undefined);
+const ctaExternal = isAppUrl(ctaHref) && !ctaHref.includes('/register');
+const ctaGoal = d.ctaGoal ?? (isAppUrl(ctaHref) ? 'hero_start' : undefined);
 
 const rawSecondaryHref = d.ctaSecondaryHref;
 const ctaSecondaryHref = (() => {
@@ -179,7 +182,7 @@ const faqPageSchema = d.faq && d.faq.length > 0 ? {
   {!d.demoScanUrl && <QrExamples />}
   <Faq items={d.faq} />
   {d.related && <RelatedPages links={d.related} />}
-  <SeoCta ctaText={d.ctaText} ctaHref={ctaHref} ctaGoal={ctaGoal} ctaExternal={ctaExternal} />
+  <SeoCta ctaText={d.ctaText} ctaHref={ctaHref} ctaGoal={isAppUrl(ctaHref) ? 'bottom_cta' : ctaGoal} ctaExternal={ctaExternal} />
   {showStickyCta && ctaExternal && (
     <StickyRegisterCta href={ctaHref} />
   )}
@@ -244,6 +247,7 @@ const faqPageSchema = d.faq && d.faq.length > 0 ? {
             if (campaign.indexOf('menu') !== -1) url.searchParams.set('intent', 'menu');
             else if (campaign.indexOf('reviews') !== -1) url.searchParams.set('intent', 'reviews');
             else if (campaign.indexOf('generator') !== -1 || path.indexOf('dinamicheskiy') !== -1) url.searchParams.set('intent', 'redirect');
+            else if (path.indexOf('vizitka') !== -1) url.searchParams.set('intent', 'card');
           }
           
           for (var entry of params.entries()) {

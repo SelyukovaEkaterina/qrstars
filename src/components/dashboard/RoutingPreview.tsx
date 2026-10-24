@@ -18,6 +18,7 @@ import { DEFAULT_REVIEW_ROUTING } from "@/lib/review-routing";
 import type { RoutingGroup, SectionTarget } from "@/lib/qr-routing";
 import { isBuiltinSection } from "@/lib/qr-routing";
 import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
+import { toPublicBusinessCard } from "@/lib/business-card";
 
 export interface LandingPreviewPayload {
   pageModules: PageModules;
@@ -41,6 +42,13 @@ export interface LandingPreviewPayload {
     accentColor?: string | null;
     tipsUrl?: string | null;
     tipsLabel?: string | null;
+    whatsapp?: string | null;
+    telegram?: string | null;
+    maxUrl?: string | null;
+    services?: unknown;
+    serviceArea?: string | null;
+    workHours?: string | null;
+    reviewsUrl?: string | null;
   } | null;
   wifiConfig?: {
     id: string;
@@ -80,12 +88,30 @@ export interface LandingPreviewPayload {
   extraWifiConfigs?: NonNullable<LandingPreviewPayload["wifiConfig"]>[];
 }
 
+type PreviewCardInput = NonNullable<LandingPreviewPayload["businessCard"]>;
+
+function previewBusinessCard(bc: PreviewCardInput) {
+  return toPublicBusinessCard({
+    ...bc,
+    title: bc.title ?? null,
+    company: bc.company ?? null,
+    phone: bc.phone ?? null,
+    email: bc.email ?? null,
+    website: bc.website ?? null,
+    address: bc.address ?? null,
+    about: bc.about ?? null,
+    avatarUrl: bc.avatarUrl ?? null,
+    socialLinks: bc.socialLinks ?? [],
+    accentColor: bc.accentColor || "#4f46e5",
+  });
+}
+
 interface RoutingPreviewProps {
   routingGroup: RoutingGroup;
   section?: SectionTarget;
   establishmentName: string;
   establishmentId?: string;
-  /** Полный контент микро-лендинга с `/api/establishments/[id]/page` */
+  /** Полный контент микросайта с `/api/establishments/[id]/page` */
   landing?: LandingPreviewPayload | null;
   /** @deprecated используйте landing */
   pageModules?: PageModules;
@@ -134,22 +160,7 @@ export default function RoutingPreview({
               menu={menu}
               businessCard={
                 landing?.businessCard?.id
-                  ? {
-                      id: landing.businessCard.id,
-                      fullName: landing.businessCard.fullName,
-                      title: landing.businessCard.title ?? null,
-                      company: landing.businessCard.company ?? null,
-                      phone: landing.businessCard.phone ?? null,
-                      email: landing.businessCard.email ?? null,
-                      website: landing.businessCard.website ?? null,
-                      address: landing.businessCard.address ?? null,
-                      about: landing.businessCard.about ?? null,
-                      avatarUrl: landing.businessCard.avatarUrl ?? null,
-                      socialLinks: landing.businessCard.socialLinks ?? [],
-                      accentColor: landing.businessCard.accentColor || "#4f46e5",
-                      tipsUrl: landing.businessCard.tipsUrl,
-                      tipsLabel: landing.businessCard.tipsLabel,
-                    }
+                  ? previewBusinessCard({ ...landing.businessCard, id: landing.businessCard.id })
                   : null
               }
               wifiConfig={
@@ -168,22 +179,7 @@ export default function RoutingPreview({
               extraMenus={landing?.extraMenus}
               extraBusinessCards={landing?.extraBusinessCards
                 ?.filter((bc): bc is NonNullable<typeof bc> & { id: string } => !!bc?.id)
-                .map((bc) => ({
-                  id: bc.id,
-                  fullName: bc.fullName,
-                  title: bc.title ?? null,
-                  company: bc.company ?? null,
-                  phone: bc.phone ?? null,
-                  email: bc.email ?? null,
-                  website: bc.website ?? null,
-                  address: bc.address ?? null,
-                  about: bc.about ?? null,
-                  avatarUrl: bc.avatarUrl ?? null,
-                  socialLinks: bc.socialLinks ?? [],
-                  accentColor: bc.accentColor || "#4f46e5",
-                  tipsUrl: bc.tipsUrl,
-                  tipsLabel: bc.tipsLabel,
-                }))}
+                .map(previewBusinessCard)}
               extraWifiConfigs={landing?.extraWifiConfigs
                 ?.filter((wc): wc is NonNullable<typeof wc> & { id: string } => !!wc?.id)
                 .map((wc) => ({
@@ -227,7 +223,7 @@ export default function RoutingPreview({
           )}
           {routingGroup === "SECTION" && section === "REVIEW" && (
             <div className="p-6 text-center space-y-3">
-              <p className="font-semibold text-gray-900">{establishmentName || "Заведение"}</p>
+              <p className="font-semibold text-gray-900">{establishmentName || "Проект"}</p>
               <p className="text-sm text-gray-500">Гость сразу ставит оценку 1–5★</p>
               <div className="flex justify-center gap-1 text-2xl text-gray-300" aria-hidden>
                 ★★★★★
@@ -244,7 +240,7 @@ export default function RoutingPreview({
               <p className="font-medium text-gray-900">
                 {customPageLabel || "Кастомная страница"}
               </p>
-              <p className="text-xs text-gray-400">Контент из «Страниц заведений»</p>
+              <p className="text-xs text-gray-400">Контент — в разделе «Микросайт»</p>
             </div>
           )}
           {routingGroup === "REDIRECT" && showRedirectInterstitial && (
@@ -278,7 +274,7 @@ export default function RoutingPreview({
           )}
           {routingGroup === "LANDING" && (!establishmentId || !pageModules) && (
             <div className="p-6 text-center space-y-2">
-              <p className="text-sm font-medium text-gray-900">Сначала привяжите заведение</p>
+              <p className="text-sm font-medium text-gray-900">Сначала привяжите проект</p>
               <p className="text-xs text-gray-400">После сохранения здесь появится превью страницы гостя</p>
             </div>
           )}
@@ -304,7 +300,7 @@ function SectionPlaceholder({
   return (
     <div className="p-6 text-center space-y-2">
       <p className="font-medium text-gray-900">{labels[section]}</p>
-      <p className="text-xs text-gray-400">Контент из «Страниц заведений»</p>
+      <p className="text-xs text-gray-400">Контент — в разделе «Микросайт»</p>
     </div>
   );
 }

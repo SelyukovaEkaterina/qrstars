@@ -9,7 +9,7 @@ ctaText: "Создать QR для оплаты"
 ctaHref: "/free-qr-generator.html"
 ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Оформить визитку с реквизитами"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-dlya-oplaty"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-dlya-oplaty"
 ctaSecondaryGoal: "register_click"
 faq:
   - q: "Как сделать QR-код для оплаты по СБП?"
@@ -134,7 +134,7 @@ related:
    * [Умной системе сбора отзывов](/qr-kod-dlya-otzyvov.html), которая направляет довольных гостей на Яндекс Карты и 2GIS, защищая ваш рейтинг;
    * Форме быстрой оплаты или электронных чаевых сотрудникам.
 
-[Подключить QrStars для бизнеса бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=qr-kod-dlya-oplaty-pivot)
+[Подключить QrStars для бизнеса бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=qr-kod-dlya-oplaty-pivot)
 
 ---
 

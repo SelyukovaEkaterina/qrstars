@@ -9,7 +9,7 @@ ctaText: "Загрузить PDF и создать QR"
 ctaHref: "/file-sharing.html"
 ctaGoal: "file_sharing_cta"
 ctaSecondaryText: "Динамический QR в кабинете"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-na-pdf"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-na-pdf"
 ctaSecondaryGoal: "register_click"
 faq:
   - q: "Как сделать QR-код для открытия PDF-файла?"
@@ -121,7 +121,7 @@ related:
 * Моментальное отключение блюд, ушедших в стоп-лист;
 * Повышение среднего чека за счет красивой визуальной подачи.
 
-[Подключить интерактивное меню QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=menu&utm_content=qr-kod-na-pdf-pivot)
+[Подключить интерактивное меню QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=menu_search&utm_content=qr-kod-na-pdf-pivot&intent=menu)
 
 ---
 

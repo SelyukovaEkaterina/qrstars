@@ -35,6 +35,7 @@ export default function DashboardOnboardingBanner({
   onLinkQr,
 }: Props) {
   const unlinkedQrcodes = qrcodes.filter((q) => !q.establishmentId);
+  const canLink = unlinkedQrcodes.length > 0;
 
   if (filterEstId !== "all") {
     return null;
@@ -54,7 +55,7 @@ export default function DashboardOnboardingBanner({
             Создайте проект, чтобы привязать QR-код и настроить микросайт
           </p>
         </div>
-        <Button size="sm" onClick={onCreateEstablishment}>
+        <Button size="sm" className="h-10" onClick={onCreateEstablishment}>
           Создать проект
           <ArrowRight className="w-4 h-4 ml-1" />
         </Button>
@@ -80,7 +81,9 @@ export default function DashboardOnboardingBanner({
                 У проекта {quotedEstablishmentName(establishmentsWithoutQr[0].name)} нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
-                Выпустите новый код или привяжите уже существующий неактивный
+                {canLink
+                  ? "Выпустите новый код или привяжите уже существующий неактивный"
+                  : "Выпустите новый код — у него будет свой сценарий перехода"}
               </p>
             </div>
           ) : (
@@ -89,30 +92,29 @@ export default function DashboardOnboardingBanner({
                 У {establishmentsWithoutQr.length} {pluralize(establishmentsWithoutQr.length, "проекта", "проектов", "проектов")} нет QR-кода
               </p>
               <p className="text-sm opacity-90 mt-0.5">
-                Выпустите или привяжите код для каждого проекта
+                {canLink
+                  ? "Выпустите или привяжите код для каждого проекта"
+                  : "Выпустите код для каждого проекта"}
               </p>
             </div>
           )}
 
           {establishmentsWithoutQr.length === 1 ? (
             <div className="flex flex-wrap gap-2">
+              {canLink && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={`h-10 ${linkBtnClass}`}
+                  onClick={() => onLinkQr(establishmentsWithoutQr[0].id)}
+                >
+                  <Link2 className="w-4 h-4 mr-1" />
+                  Привязать
+                </Button>
+              )}
               <Button
                 size="sm"
-                variant="outline"
-                className={linkBtnClass}
-                onClick={() => onLinkQr(establishmentsWithoutQr[0].id)}
-                disabled={unlinkedQrcodes.length === 0}
-                title={
-                  unlinkedQrcodes.length === 0
-                    ? "Нет непривязанных QR-кодов"
-                    : undefined
-                }
-              >
-                <Link2 className="w-4 h-4 mr-1" />
-                Привязать
-              </Button>
-              <Button
-                size="sm"
+                className="h-10"
                 onClick={() => onCreateQr(establishmentsWithoutQr[0].id)}
               >
                 <Plus className="w-4 h-4 mr-1" />
@@ -128,17 +130,18 @@ export default function DashboardOnboardingBanner({
                 >
                   <span className="text-sm font-medium truncate">{est.name}</span>
                   <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className={linkBtnClass}
-                      onClick={() => onLinkQr(est.id)}
-                      disabled={unlinkedQrcodes.length === 0}
-                    >
-                      <Link2 className="w-3.5 h-3.5 mr-1" />
-                      Привязать
-                    </Button>
-                    <Button size="sm" onClick={() => onCreateQr(est.id)}>
+                    {canLink && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={`h-10 ${linkBtnClass}`}
+                        onClick={() => onLinkQr(est.id)}
+                      >
+                        <Link2 className="w-3.5 h-3.5 mr-1" />
+                        Привязать
+                      </Button>
+                    )}
+                    <Button size="sm" className="h-10" onClick={() => onCreateQr(est.id)}>
                       <Plus className="w-3.5 h-3.5 mr-1" />
                       Выпустить
                     </Button>

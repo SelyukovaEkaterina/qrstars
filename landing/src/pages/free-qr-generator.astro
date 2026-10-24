@@ -373,6 +373,16 @@ const QR_TABS = [
 
                             <div id="qr-styles" class="space-y-3 max-lg:order-2 lg:col-start-1 lg:row-start-2 lg:mt-2 min-w-0">
 
+                                <details class="qr-acc" data-acc="art" open>
+                                    <summary><i class="fa-solid fa-wand-magic-sparkles text-primary"></i>Арт-стили<span class="qr-acc-value">33 стиля</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                    <div class="qr-acc-body">
+                                        <div class="art-row art-row--cats mb-2" id="art-categories" aria-label="Для кого"></div>
+                                        <div class="art-row art-row--presets" id="art-presets" aria-label="Арт-стили"></div>
+                                        <button type="button" id="btn-art-more" class="hidden mt-2 text-sm font-semibold text-primary hover:underline">Показать все стили</button>
+                                        <p class="mt-2 text-xs text-slate-500">Стиль меняет форму и цвет, данные кода остаются. Всё можно донастроить ниже.</p>
+                                    </div>
+                                </details>
+
                                 <details class="qr-acc" data-acc="color" open>
                                     <summary><i class="fa-solid fa-palette text-primary"></i>Цвет<i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body space-y-5">
@@ -435,19 +445,40 @@ const QR_TABS = [
                                     </div>
                                 </details>
 
-                                <details class="qr-acc" data-acc="logo" open data-desktop-open>
-                                    <summary><i class="fa-solid fa-image text-primary"></i>Логотип в центре<span id="logo-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                <details class="qr-acc" data-acc="logo">
+                                    <summary><i class="fa-solid fa-image text-primary"></i>Логотип или текст в центре<span id="logo-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body">
-                                        <div class="qr-chip-row gap-2 mb-3" id="logo-presets"></div>
-                                        <div class="flex flex-wrap items-center gap-3">
-                                            <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:border-primary hover:text-primary transition">
+                                        <div class="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl border border-slate-200 bg-white" role="tablist" aria-label="Что в центре">
+                                            <button type="button" data-center-mode="image" class="center-mode-btn h-10 rounded-lg text-sm font-semibold">Картинка</button>
+                                            <button type="button" data-center-mode="text" class="center-mode-btn h-10 rounded-lg text-sm font-semibold">Текст</button>
+                                        </div>
+                                        <div id="center-image-controls">
+                                            <div class="qr-chip-row gap-2 mb-3" id="logo-presets"></div>
+                                            <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 mb-3 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:border-primary hover:text-primary transition">
                                                 <i class="fa-solid fa-upload"></i>
                                                 <span id="logo-label">Загрузить свой</span>
                                                 <input type="file" id="input-logo" accept="image/*" class="hidden" />
                                             </label>
+                                        </div>
+                                        <div id="center-text-controls" class="hidden space-y-3 mb-3">
+                                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                                                <input type="text" id="input-center-line-0" maxlength="24" placeholder="Строка 1, например: WELCOME" class="qr-input text-sm sm:col-span-3" aria-label="Строка 1" />
+                                                <input type="text" id="input-center-line-1" maxlength="24" placeholder="Строка 2 (необяз.)" class="qr-input text-sm sm:col-span-3" aria-label="Строка 2" />
+                                                <input type="text" id="input-center-line-2" maxlength="24" placeholder="Строка 3 (необяз.)" class="qr-input text-sm sm:col-span-3" aria-label="Строка 3" />
+                                            </div>
+                                            <div class="flex flex-wrap items-center gap-3">
+                                                <select id="input-center-font" class="qr-input bg-white text-sm !w-auto" aria-label="Шрифт"></select>
+                                                <input type="color" id="input-center-color" value="#1e293b" class="color-input" aria-label="Цвет текста" />
+                                                <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                                                    <input type="checkbox" id="input-center-bold" class="w-4 h-4 accent-primary" checked />
+                                                    Жирный
+                                                </label>
+                                            </div>
+                                        </div>
+                                        <div class="flex flex-wrap items-center gap-3">
                                             <label class="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
                                                 <input type="checkbox" id="input-logo-fill" class="w-4 h-4 accent-primary" />
-                                                Точки под логотипом
+                                                <span id="logo-fill-label">Точки под логотипом</span>
                                             </label>
                                             <div class="flex items-center gap-2">
                                                 <label for="input-logo-size" class="text-xs text-slate-600">Размер</label>
@@ -457,14 +488,19 @@ const QR_TABS = [
                                     </div>
                                 </details>
 
-                                <details class="qr-acc" data-acc="shape" data-desktop-open>
-                                    <summary><i class="fa-solid fa-shapes text-primary"></i>Форма точек и глазков<i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                <details class="qr-acc" data-acc="shape">
+                                    <summary><i class="fa-solid fa-shapes text-primary"></i>Форма точек и глазков<span id="shape-summary" class="qr-acc-value">квадраты</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body space-y-4">
                                         <div>
                                             <p class="text-xs font-medium text-slate-600 mb-2">Точки</p>
-                                            <div class="grid grid-cols-2 gap-2" id="style-picker">
+                                            <div class="grid grid-cols-4 gap-2" id="style-picker">
                                                 <button type="button" data-style="classic" class="style-btn active-style style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Квадраты</span></button>
                                                 <button type="button" data-style="rounded" class="style-btn style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Скруглённые</span></button>
+                                                <button type="button" data-style="dots" class="style-btn style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Точки</span></button>
+                                                <button type="button" data-style="diamond" class="style-btn style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Ромбы</span></button>
+                                                <button type="button" data-style="liquid" class="style-btn style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Жидкие</span></button>
+                                                <button type="button" data-style="splash" class="style-btn style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Клякса</span></button>
+                                                <button type="button" data-style="halftone" class="style-btn style-thumb-btn"><canvas width="40" height="40" class="style-canvas rounded"></canvas><span class="thumb-label">Растр</span></button>
                                             </div>
                                         </div>
                                         <div>
@@ -507,7 +543,11 @@ const QR_TABS = [
                                 <details class="qr-acc" data-acc="photo">
                                     <summary><i class="fa-solid fa-camera text-primary"></i>Фото-режим<span id="photo-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body">
-                                        <p class="text-xs text-slate-500 mb-3">Фото становится фоном, точки подстраиваются под яркость. Проверяйте предупреждения о сканировании.</p>
+                                        <div class="grid grid-cols-2 gap-1 p-1 mb-3 rounded-xl border border-slate-200 bg-white" role="group" aria-label="Как показать фото">
+                                            <button type="button" data-photo-style="overlay" class="photo-style-btn h-10 rounded-lg text-sm font-semibold">Фон под кодом</button>
+                                            <button type="button" data-photo-style="halftone" class="photo-style-btn h-10 rounded-lg text-sm font-semibold">Гравюра</button>
+                                        </div>
+                                        <p id="photo-style-hint" class="text-xs text-slate-500 mb-3">Фото становится фоном, поверх — полупрозрачные модули. Проверяйте предупреждения о сканировании.</p>
                                         <div class="qr-chip-row gap-2 mb-3" id="photo-presets"></div>
                                         <div class="flex flex-wrap items-center gap-3">
                                             <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 rounded-xl text-sm font-medium text-slate-700 hover:border-primary hover:text-primary transition">
@@ -520,20 +560,35 @@ const QR_TABS = [
                                     </div>
                                 </details>
 
-                                <details class="qr-acc" data-acc="scatter">
-                                    <summary><i class="fa-solid fa-braille text-primary"></i>Узор вокруг кода<span id="scatter-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
-                                    <div class="qr-acc-body">
-                                        <label class="flex items-center gap-2 text-sm font-semibold text-slate-700 cursor-pointer">
-                                            <input type="checkbox" id="input-scatter" class="w-4 h-4 accent-primary" />
-                                            Точки вокруг кода
-                                        </label>
-                                        <div id="scatter-controls" class="hidden mt-3 space-y-3 pl-6">
+                                <details class="qr-acc" data-acc="artshape">
+                                    <summary><i class="fa-solid fa-heart text-primary"></i>Форма кода<span id="artshape-summary" class="qr-acc-value">квадрат</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                    <div class="qr-acc-body space-y-3">
+                                        <div class="grid grid-cols-3 gap-1 p-1 rounded-xl border border-slate-200 bg-white" role="group" aria-label="Форма кода">
+                                            <button type="button" data-code-shape="none" class="code-shape-btn h-10 rounded-lg text-sm font-semibold">Квадрат</button>
+                                            <button type="button" data-code-shape="figure" class="code-shape-btn h-10 rounded-lg text-sm font-semibold">Фигура</button>
+                                            <button type="button" data-code-shape="pattern" class="code-shape-btn h-10 rounded-lg text-sm font-semibold">Узор вокруг</button>
+                                        </div>
+                                        <div id="sil-controls" class="hidden space-y-3">
+                                            <div class="sil-grid" id="sil-grid" aria-label="Фигура">
+                                                <label data-sil="custom" class="sil-btn sil-upload" title="Своя фигура">
+                                                    <i class="fa-solid fa-upload"></i>
+                                                    <span id="sil-label" class="sil-name">Своя</span>
+                                                    <input type="file" id="input-silhouette" accept="image/*" class="hidden" />
+                                                </label>
+                                            </div>
+                                            <p class="text-xs text-slate-500">Своя фигура — PNG с прозрачным фоном или тёмный силуэт на белом: собака, логотип, зуб. Рамка с подписью с фигурой не рисуется.</p>
+                                            <div id="sil-fit-controls">
+                                                <label for="input-sil-fit" class="block text-xs font-medium text-slate-600 mb-1">Размер кода в фигуре</label>
+                                                <input type="range" id="input-sil-fit" min="50" max="100" value="100" class="w-full accent-primary" />
+                                            </div>
+                                        </div>
+                                        <div id="scatter-controls" class="hidden space-y-3">
                                             <div>
-                                                <label for="input-scatter-size" class="block text-xs font-medium text-slate-600 mb-1">Расстояние</label>
+                                                <label for="input-scatter-size" class="block text-xs font-medium text-slate-600 mb-1">Ширина узора</label>
                                                 <input type="range" id="input-scatter-size" min="1" max="10" value="3" class="w-full accent-primary" />
                                             </div>
                                             <div>
-                                                <p class="block text-xs font-medium text-slate-600 mb-1">Форма контура</p>
+                                                <p class="block text-xs font-medium text-slate-600 mb-1">Контур узора</p>
                                                 <div class="flex flex-wrap gap-2">
                                                     <button type="button" data-sshape="square" class="sshape-btn">Квадрат</button>
                                                     <button type="button" data-sshape="circle" class="sshape-btn">Круг</button>
@@ -546,6 +601,16 @@ const QR_TABS = [
                                                     <button type="button" data-sshape="triangle" class="sshape-btn">Треуг.</button>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <div class="space-y-2 border-t border-slate-100 pt-3">
+                                            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                                <input type="checkbox" id="input-rotate45" class="w-4 h-4 accent-primary" />
+                                                Повернуть ромбом (логотип остаётся ровным)
+                                            </label>
+                                            <label class="flex items-center gap-2 text-sm text-slate-700 cursor-pointer">
+                                                <input type="checkbox" id="input-ink-shift" class="w-4 h-4 accent-primary" />
+                                                Эффект печати CMYK — сдвиг голубой и жёлтой краски
+                                            </label>
                                         </div>
                                     </div>
                                 </details>
@@ -1114,6 +1179,124 @@ const QR_TABS = [
     }
     .color-input::-webkit-color-swatch-wrapper { padding: 0; }
     .color-input::-webkit-color-swatch { border: none; border-radius: 0.4rem; }
+    /* Свои ряды: правила .qr-chip-row ужимают любую кнопку в квадрат 2.75rem. */
+    .art-row {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        scrollbar-width: none;
+        padding: 2px;
+        margin: -2px;
+    }
+    .art-row::-webkit-scrollbar { display: none; }
+    .art-row--cats { gap: 0.375rem; }
+    @media (min-width: 1024px) {
+        .art-row { flex-wrap: wrap; overflow: visible; }
+    }
+    .sil-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(4.25rem, 1fr));
+        gap: 0.375rem;
+    }
+    :global(.sil-btn) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.15rem;
+        min-height: 4.25rem;
+        padding: 0.3rem 0.15rem;
+        border-radius: 0.625rem;
+        border: 2px solid #e2e8f0;
+        background: white;
+        cursor: pointer;
+        color: #475569;
+    }
+    :global(.sil-btn canvas) { width: 2rem; height: 2rem; }
+    :global(.sil-btn .fa-upload) { font-size: 1.1rem; height: 2rem; display: flex; align-items: center; }
+    :global(.sil-name) {
+        max-width: 100%;
+        font-size: 0.62rem;
+        font-weight: 600;
+        line-height: 1.1;
+        text-align: center;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    :global(.sil-btn:hover) { border-color: #a5b4fc; }
+    :global(.sil-btn.is-active) {
+        border-color: #4F46E5;
+        background: rgba(79, 70, 229, 0.05);
+        color: #4F46E5;
+    }
+    :global(.logo-preset-btn[hidden]) { display: none; }
+    :global(.logo-more-btn) {
+        background: #f8fafc;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #4F46E5;
+    }
+    :global(.art-preset-btn) {
+        flex: 0 0 auto;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        width: 5.5rem;
+        padding: 0.375rem 0.25rem 0.3rem;
+        border-radius: 0.75rem;
+        border: 2px solid #e2e8f0;
+        background: white;
+        overflow: hidden;
+        transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    :global(.art-preset-btn[hidden]) { display: none; }
+    /* Миниатюра в фиксированной клетке: фигуры бывают шире и выше квадрата. */
+    :global(.art-thumb) {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 4.5rem;
+        height: 4.5rem;
+    }
+    :global(.art-thumb canvas) {
+        display: block;
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+    }
+    :global(.art-label) {
+        max-width: 100%;
+        font-size: 0.68rem;
+        font-weight: 600;
+        line-height: 1.15;
+        color: #334155;
+        text-align: center;
+        overflow-wrap: anywhere;
+    }
+    :global(.art-preset-btn:hover) { border-color: #a5b4fc; }
+    :global(.art-preset-btn.is-active) {
+        border-color: #4F46E5;
+        box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.28);
+    }
+    :global(.art-cat-btn) {
+        flex: 0 0 auto;
+        padding: 0.3rem 0.7rem;
+        border-radius: 999px;
+        border: 1px solid #e2e8f0;
+        background: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+        white-space: nowrap;
+    }
+    :global(.art-cat-btn.is-active) {
+        background: #4F46E5;
+        border-color: #4F46E5;
+        color: white;
+    }
     :global(.preset-btn),
     :global(.logo-preset-btn),
     :global(.photo-preset-btn) {
@@ -1414,14 +1597,40 @@ const QR_TABS = [
 <script>
     import QRCode from 'qrcode';
     import jsQR from 'jsqr';
-    import { buildPayload, QR_TYPES, type QrType } from '../lib/qr-generator/payload';
-    import { SvgContext } from '../lib/qr-generator/svg-context';
-    import { randomReadablePalette } from '../lib/qr-generator/palette';
+    // Общий движок с кабинетом: отрисовка, SVG, палитры, проверка данных и сканируемости.
+    import {
+        buildPayload,
+        checkScanLevel as checkQrScanLevel,
+        computeLayout,
+        drawQr,
+        isInFinder,
+        randomReadablePalette,
+        renderDotStylePreview,
+        renderEyeStylePreview,
+        renderToCanvas,
+        renderToSvg,
+        CENTER_TEXT_FONTS,
+        QR_SILHOUETTES,
+        QR_TYPES,
+        renderSilhouettePreview,
+        type QrAssets,
+        type QrCenterTextFont,
+        type QrLayout,
+        type QrModules,
+        type QrSilhouette,
+        type QrType,
+        ART_PRESETS,
+        ART_PRESET_CATEGORIES,
+        artPresetDesign,
+        type ArtPreset,
+        type ArtPresetCategory,
+    } from '../../../src/lib/qr-engine';
     import { encodeTransferStyle, isAppRegisterLink, withTransferStyle, type TransferStyle } from '../lib/qr-generator/style-transfer';
     import { canvasToBlob, deliverFile, isTouchDevice } from '../lib/qr-generator/deliver';
     import { METRIKA_GOALS } from '../lib/metrika-goals';
 
-    type DotStyle = 'classic' | 'rounded';
+    type DotStyle = 'classic' | 'rounded' | 'dots' | 'diamond' | 'liquid' | 'splash' | 'halftone';
+    type PhotoStyle = 'overlay' | 'halftone';
     type EyeStyle = 'square' | 'rounded' | 'circle' | 'leaf' | 'dot';
     type GradType = 'linear-tb' | 'linear-lr' | 'linear-diag' | 'radial';
     type FrameStyle = 'bottom' | 'rounded' | 'ribbon';
@@ -1429,14 +1638,14 @@ const QR_TABS = [
     type Ecc = 'L' | 'M' | 'Q' | 'H';
     type DownloadFormat = 'png' | 'jpg' | 'svg';
 
-    const DOT_STYLES: DotStyle[] = ['classic', 'rounded'];
+    const DOT_STYLES: DotStyle[] = ['classic', 'rounded', 'dots', 'diamond', 'liquid', 'splash', 'halftone'];
+    const SILHOUETTES: QrSilhouette[] = ['none', ...QR_SILHOUETTES.map(s => s.id), 'custom'];
     const EYE_STYLES: EyeStyle[] = ['square', 'rounded', 'circle', 'leaf', 'dot'];
     const GRAD_TYPES: GradType[] = ['linear-tb', 'linear-lr', 'linear-diag', 'radial'];
     const FRAME_STYLES: FrameStyle[] = ['bottom', 'rounded', 'ribbon'];
     const SCATTER_SHAPES: ScatterShape[] = ['square', 'circle', 'star', 'diamond', 'hexagon', 'heart', 'cross', 'octagon', 'triangle'];
     const ECC_LEVELS: Ecc[] = ['L', 'M', 'Q', 'H'];
     const EXPORT_SIZES = [600, 1200, 2000];
-    const QR_BASE_SIZE = 600;
 
     const state = {
         type: 'url' as QrType,
@@ -1456,8 +1665,19 @@ const QR_TABS = [
         logoKey: null as number | 'upload' | null,
         logoSize: 22,
         logoFill: false,
+        centerMode: 'image' as 'image' | 'text',
+        centerText: '',
+        centerTextFont: 'inter' as QrCenterTextFont,
+        centerTextColor: '#1e293b',
+        centerTextBold: true,
         photoImage: null as HTMLImageElement | null,
         photoKey: null as number | 'upload' | null,
+        photoStyle: 'overlay' as PhotoStyle,
+        silhouette: 'none' as QrSilhouette,
+        silhouetteImage: null as HTMLImageElement | null,
+        silhouetteFit: 100,
+        rotate45: false,
+        inkShift: false,
         frame: false,
         frameText: 'СКАНИРУЙ МЕНЯ',
         frameStyle: 'bottom' as FrameStyle,
@@ -1532,6 +1752,13 @@ const QR_TABS = [
         { name: 'Огонь', emoji: '🔥' },
         { name: 'Кошка', emoji: '🐱' },
         { name: 'Круг', emoji: '🎯' },
+        // Новые — только в конец: в ссылке (#lp=) хранится номер логотипа.
+        { name: 'Мастер', emoji: '🔨' },
+        { name: 'Ремонт', emoji: '🔧' },
+        { name: 'Сантехник', emoji: '🚿' },
+        { name: 'Клининг', emoji: '🧹' },
+        { name: 'Врач', emoji: '🩺' },
+        { name: 'Доставка', emoji: '📦' },
     ];
 
     const PHOTO_PRESETS = [
@@ -1541,6 +1768,16 @@ const QR_TABS = [
         { name: 'Мрамор', src: '/photo-presets/marble.jpg' },
         { name: 'Цветы',  src: '/photo-presets/flowers.jpg' },
     ];
+
+    /**
+     * Арт-стили — общий список с кабинетом (`src/lib/qr-engine/art-presets.ts`).
+     * Перед стилем сбрасываем всё «арт-специфичное», чтобы стили не смешивались.
+     */
+    const ART_RESET: Partial<typeof state> = {
+        bgTransparent: false, eyeCustom: false, frame: false, scatter: false, silhouette: 'none', silhouetteFit: 100,
+        rotate45: false, inkShift: false, photoStyle: 'overlay', logoFill: false, logoSize: 20, centerMode: 'image',
+        grad1: '#4f46e5', grad2: '#a855f7',
+    };
 
     /** Подпись на макете таблички — под тип кода. */
     const MOCK_TITLES: Record<QrType, string> = {
@@ -1575,7 +1812,7 @@ const QR_TABS = [
     const eyeBtns = document.querySelectorAll<HTMLButtonElement>('.eye-btn');
     const styleCanvases = document.querySelectorAll<HTMLCanvasElement>('.style-canvas');
     const eyeCanvases = document.querySelectorAll<HTMLCanvasElement>('.eye-canvas');
-    const sshapeBtns = document.querySelectorAll<HTMLButtonElement>('.sshape-btn');
+    const sshapeBtns = document.querySelectorAll<HTMLButtonElement>('.sshape-btn[data-sshape]');
     const dialog = $('qr-dialog') as HTMLDialogElement;
 
     const show = (el: HTMLElement, visible: boolean) => el.classList.toggle('hidden', !visible);
@@ -1617,10 +1854,12 @@ const QR_TABS = [
         } else {
             state.logoImage = await loadLogoPreset(idx);
             state.logoKey = idx;
+            state.centerMode = 'image';
+            if (state.ecc === 'L' || state.ecc === 'M') state.ecc = 'H';
         }
         input('input-logo').value = '';
         $('logo-label').textContent = 'Загрузить свой';
-        syncLogoUi();
+        syncUiFromState();
         scheduleUpdate();
     }
 
@@ -1659,6 +1898,35 @@ const QR_TABS = [
             btn.addEventListener('click', () => selectLogoPreset(i));
             container.appendChild(btn);
         });
+        const more = document.createElement('button');
+        more.type = 'button';
+        more.id = 'btn-logo-more';
+        more.className = 'logo-preset-btn logo-more-btn';
+        more.addEventListener('click', () => {
+            logosExpanded = true;
+            syncLogoCollapse();
+        });
+        container.appendChild(more);
+        desktopLogos.addEventListener('change', syncLogoCollapse);
+    }
+
+    /** На десктопе сначала два ряда логотипов: 47 эмодзи занимали пол-экрана. */
+    const LOGOS_COLLAPSED = 19;
+    let logosExpanded = false;
+    const desktopLogos = window.matchMedia('(min-width: 1024px)');
+    function syncLogoCollapse() {
+        const collapse = !logosExpanded && desktopLogos.matches;
+        const btns = [...document.querySelectorAll<HTMLElement>('.logo-preset-btn:not(.logo-more-btn)')];
+        btns.forEach((b, i) => {
+            // Выбранный логотип не прячем.
+            b.hidden = collapse && i >= LOGOS_COLLAPSED && !b.classList.contains('is-active');
+        });
+        const more = $('btn-logo-more');
+        const hiddenCount = btns.filter(b => b.hidden).length;
+        more.textContent = `+${hiddenCount}`;
+        more.title = 'Показать все логотипы';
+        more.setAttribute('aria-label', 'Показать все логотипы');
+        more.hidden = !collapse || hiddenCount === 0;
     }
 
     function renderPhotoPresets() {
@@ -1689,6 +1957,145 @@ const QR_TABS = [
             });
             container.appendChild(btn);
         });
+    }
+
+    function loadPhotoPreset(i: number): Promise<HTMLImageElement> {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => resolve(img);
+            img.onerror = reject;
+            img.src = PHOTO_PRESETS[i].src;
+        });
+    }
+
+    /** Логотип стиля: эмодзи из списка или `qrstars` — номер в LOGO_PRESETS, -1 — без логотипа. */
+    const artLogoIndex = (logo: string | undefined) =>
+        !logo ? -1 : LOGO_PRESETS.findIndex(p => (logo === 'qrstars' ? p.src === '/logo.svg' : p.emoji === logo));
+    const photoIndexBySrc = (src: string) => PHOTO_PRESETS.findIndex(p => p.src === src);
+
+    function artPresetFields(p: ArtPreset): Partial<typeof state> {
+        return { ...ART_RESET, ...artPresetDesign(p) } as Partial<typeof state>;
+    }
+
+    let artCategory: ArtPresetCategory | 'all' = 'all';
+    /** На десктопе «Все» сначала показывают два ряда: 33 карточки выталкивали настройки за экран. */
+    const ART_COLLAPSED = 12;
+    let artExpanded = false;
+    const desktopArt = window.matchMedia('(min-width: 1024px)');
+
+    function renderArtCategories() {
+        const row = $('art-categories');
+        const make = (id: ArtPresetCategory | 'all', label: string) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'art-cat-btn';
+            btn.dataset.cat = id;
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+                artCategory = id;
+                syncArtCategories();
+                goal(METRIKA_GOALS.qrArtCategory, { category: id });
+            });
+            row.appendChild(btn);
+        };
+        make('all', 'Все');
+        $('btn-art-more').addEventListener('click', () => {
+            artExpanded = true;
+            syncArtCategories();
+        });
+        desktopArt.addEventListener('change', syncArtCategories);
+        ART_PRESET_CATEGORIES.forEach(c => make(c.id, c.label));
+        syncArtCategories();
+    }
+
+    function syncArtCategories() {
+        document.querySelectorAll<HTMLElement>('.art-cat-btn').forEach(b => b.classList.toggle('is-active', b.dataset.cat === artCategory));
+        const collapse = artCategory === 'all' && !artExpanded && desktopArt.matches;
+        let shown = 0;
+        document.querySelectorAll<HTMLElement>('.art-preset-btn').forEach(b => {
+            const inCat = artCategory === 'all' || b.dataset.cat === artCategory;
+            // Выбранный стиль не прячем, даже если он за пределами двух рядов.
+            b.hidden = !inCat || (collapse && shown >= ART_COLLAPSED && !b.classList.contains('is-active'));
+            if (inCat) shown++;
+        });
+        const more = $('btn-art-more');
+        more.textContent = `Показать все стили (${ART_PRESETS.length})`;
+        show(more, collapse && shown > ART_COLLAPSED);
+        $('art-presets').scrollLeft = 0;
+    }
+
+    function renderArtPresets() {
+        const container = $('art-presets');
+        const thumbs: { canvas: HTMLCanvasElement; preset: ArtPreset }[] = [];
+        ART_PRESETS.forEach((p, i) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'art-preset-btn';
+            btn.dataset.art = String(i);
+            btn.dataset.cat = p.category;
+            btn.title = p.description;
+            const box = document.createElement('span');
+            box.className = 'art-thumb';
+            const thumb = document.createElement('canvas');
+            box.appendChild(thumb);
+            const label = document.createElement('span');
+            label.className = 'art-label';
+            label.textContent = p.name;
+            btn.append(box, label);
+            btn.addEventListener('click', () => {
+                applyArtPreset(i);
+                document.querySelectorAll('.art-preset-btn').forEach(b => b.classList.toggle('is-active', b === btn));
+                goal(METRIKA_GOALS.qrArtPreset, { preset: p.id });
+            });
+            container.appendChild(btn);
+            thumbs.push({ canvas: thumb, preset: p });
+        });
+
+        // Миниатюры — тем же движком, по одной в свободное время: 30+ отрисовок разом подвешивали страницу.
+        const renderThumb = async ({ canvas: thumb, preset: p }: (typeof thumbs)[number]) => {
+            const idx = artLogoIndex(p.logo);
+            const [logo, photo] = await Promise.all([
+                idx >= 0 ? loadLogoPreset(idx) : Promise.resolve(null),
+                p.photo ? loadPhotoPreset(photoIndexBySrc(p.photo)).catch(() => null) : Promise.resolve(null),
+            ]);
+            const d = { ...state, ...artPresetFields(p) };
+            const modules = QRCode.create('https://qrstars.ru', { errorCorrectionLevel: d.ecc }).modules as unknown as QrModules;
+            const assets: QrAssets = { logo, photo };
+            renderToCanvas(thumb, computeLayout(modules, d, assets), d, assets, 136);
+        };
+        const idle = (cb: () => void) => ('requestIdleCallback' in window ? window.requestIdleCallback(cb, { timeout: 500 }) : window.setTimeout(cb, 16));
+        const next = () => {
+            const item = thumbs.shift();
+            if (!item) return;
+            renderThumb(item).catch(() => {}).finally(() => idle(next));
+        };
+        idle(next);
+    }
+
+    async function applyArtPreset(i: number) {
+        const p = ART_PRESETS[i];
+        Object.assign(state, artPresetFields(p));
+        state.centerTextColor = state.fg;
+        // Свой загруженный логотип не трогаем — человек его уже выбрал.
+        if (state.logoKey !== 'upload') {
+            const idx = artLogoIndex(p.logo);
+            state.logoImage = idx >= 0 ? await loadLogoPreset(idx) : null;
+            state.logoKey = idx >= 0 ? idx : null;
+        }
+        if (p.photo) {
+            if (!state.photoImage) {
+                const idx = photoIndexBySrc(p.photo);
+                state.photoImage = await loadPhotoPreset(idx);
+                state.photoKey = idx;
+            }
+        } else if (state.photoKey !== 'upload') {
+            state.photoImage = null;
+            state.photoKey = null;
+        }
+        clearColorPresetMark();
+        syncUiFromState();
+        scheduleUpdate();
     }
 
     function renderColorPresets() {
@@ -1739,11 +2146,52 @@ const QR_TABS = [
             const key = b.dataset.logo === 'none' ? null : Number(b.dataset.logo);
             b.classList.toggle('is-active', state.logoKey !== 'upload' && key === state.logoKey);
         });
-        const summary = state.logoKey === null ? 'нет'
+        syncLogoCollapse();
+        const textMode = state.centerMode === 'text';
+        const summary = textMode ? (centerLines()[0] || 'текст')
+            : state.logoKey === null ? 'нет'
             : state.logoKey === 'upload' ? 'свой файл'
             : LOGO_PRESETS[state.logoKey].emoji ?? LOGO_PRESETS[state.logoKey].name;
         $('logo-summary').textContent = summary;
+        document.querySelectorAll<HTMLButtonElement>('.center-mode-btn').forEach(b => {
+            const active = b.dataset.centerMode === state.centerMode;
+            b.classList.toggle('active-tab', active);
+            b.setAttribute('aria-pressed', String(active));
+        });
+        show($('center-image-controls'), !textMode);
+        show($('center-text-controls'), textMode);
+        $('logo-fill-label').textContent = textMode ? 'Точки под надписью' : 'Точки под логотипом';
+        const lines = state.centerText.split('\n');
+        for (let i = 0; i < 3; i++) input(`input-center-line-${i}`).value = lines[i] ?? '';
+        ($('input-center-font') as HTMLSelectElement).value = state.centerTextFont;
+        input('input-center-color').value = state.centerTextColor;
+        input('input-center-bold').checked = state.centerTextBold;
     }
+
+    function centerLines(): string[] {
+        return state.centerText.split('\n').map(l => l.trim()).filter(Boolean);
+    }
+
+    // ── Текст в центре ───────────────────────────────────
+    const centerFontSelect = $('input-center-font') as HTMLSelectElement;
+    CENTER_TEXT_FONTS.forEach(f => centerFontSelect.add(new Option(f.label, f.id)));
+    document.querySelectorAll<HTMLButtonElement>('.center-mode-btn').forEach(btn => btn.addEventListener('click', () => {
+        state.centerMode = btn.dataset.centerMode as 'image' | 'text';
+        // Надпись закрывает центр кода так же, как логотип.
+        if (state.centerMode === 'text') state.ecc = 'H';
+        syncUiFromState();
+        scheduleUpdate();
+    }));
+    for (let i = 0; i < 3; i++) {
+        input(`input-center-line-${i}`).addEventListener('input', () => {
+            state.centerText = [0, 1, 2].map(j => input(`input-center-line-${j}`).value).join('\n').replace(/\n+$/, '');
+            $('logo-summary').textContent = centerLines()[0] || 'текст';
+            scheduleUpdate();
+        });
+    }
+    centerFontSelect.addEventListener('change', () => { state.centerTextFont = centerFontSelect.value as QrCenterTextFont; scheduleUpdate(); });
+    input('input-center-color').addEventListener('input', e => { state.centerTextColor = (e.target as HTMLInputElement).value; scheduleUpdate(); });
+    input('input-center-bold').addEventListener('change', e => { state.centerTextBold = (e.target as HTMLInputElement).checked; scheduleUpdate(); });
 
     function syncPhotoUi() {
         document.querySelectorAll<HTMLElement>('.photo-preset-btn').forEach(b => {
@@ -1753,6 +2201,10 @@ const QR_TABS = [
         $('photo-summary').textContent = !state.photoImage ? 'нет'
             : state.photoKey === 'upload' ? 'своё фото'
             : PHOTO_PRESETS[state.photoKey as number].name;
+    }
+
+    function codeShapeMode(): 'none' | 'figure' | 'pattern' {
+        return state.silhouette !== 'none' ? 'figure' : state.scatter ? 'pattern' : 'none';
     }
 
     function switchTabUi(type: QrType) {
@@ -1768,6 +2220,7 @@ const QR_TABS = [
     function syncUiFromState() {
         switchTabUi(state.type);
         styleBtns.forEach(b => b.classList.toggle('active-style', b.dataset.style === state.dotStyle));
+        $('shape-summary').textContent = (document.querySelector<HTMLElement>(`.style-btn[data-style="${state.dotStyle}"] .thumb-label`)?.textContent ?? '').toLowerCase();
         eyeBtns.forEach(b => b.classList.toggle('active-eye', b.dataset.eye === state.eyeStyle));
         input('input-fg').value = state.fg;
         input('input-fg-text').value = state.fg;
@@ -1799,11 +2252,35 @@ const QR_TABS = [
         ($('input-frame-style') as HTMLSelectElement).value = state.frameStyle;
         $('frame-summary').textContent = state.frame ? state.frameText : 'нет';
 
-        input('input-scatter').checked = state.scatter;
-        show($('scatter-controls'), state.scatter);
+        document.querySelectorAll<HTMLButtonElement>('.photo-style-btn').forEach(b => {
+            const active = b.dataset.photoStyle === state.photoStyle;
+            b.classList.toggle('active-tab', active);
+            b.setAttribute('aria-pressed', String(active));
+        });
+        $('photo-style-hint').textContent = state.photoStyle === 'halftone'
+            ? 'Фото превращается в точечную гравюру, модули встают точками в центр клетки. Лучше всего — предмет на светлом фоне.'
+            : 'Фото становится фоном, поверх — полупрозрачные модули. Проверяйте предупреждения о сканировании.';
+        // «Форма кода»: фигура важнее узора — движок с силуэтом узор не рисует.
+        const codeShape = codeShapeMode();
+        document.querySelectorAll<HTMLButtonElement>('.code-shape-btn').forEach(b => {
+            const active = b.dataset.codeShape === codeShape;
+            b.classList.toggle('active-tab', active);
+            b.setAttribute('aria-pressed', String(active));
+        });
+        show($('sil-controls'), codeShape === 'figure');
+        show($('scatter-controls'), codeShape === 'pattern');
+        document.querySelectorAll<HTMLElement>('.sil-btn').forEach(b => b.classList.toggle('is-active', b.dataset.sil === state.silhouette));
+        input('input-sil-fit').value = String(state.silhouetteFit);
+        input('input-rotate45').checked = state.rotate45;
+        input('input-ink-shift').checked = state.inkShift;
         input('input-scatter-size').value = String(state.scatterDensity);
         sshapeBtns.forEach(b => b.classList.toggle('is-active', b.dataset.sshape === state.scatterShape));
-        $('scatter-summary').textContent = state.scatter ? (document.querySelector<HTMLElement>(`.sshape-btn[data-sshape="${state.scatterShape}"]`)?.textContent ?? '') : 'нет';
+        const shapeLabel = codeShape === 'figure'
+            ? (state.silhouette === 'custom' ? 'своя фигура' : QR_SILHOUETTES.find(f => f.id === state.silhouette)?.label.toLowerCase())
+            : codeShape === 'pattern'
+                ? `узор: ${(document.querySelector<HTMLElement>(`.sshape-btn[data-sshape="${state.scatterShape}"]`)?.textContent ?? '').toLowerCase()}`
+                : 'квадрат';
+        $('artshape-summary').textContent = [shapeLabel, state.rotate45 ? 'ромб' : null, state.inkShift ? 'CMYK' : null].filter(Boolean).join(', ');
 
         ($('input-ecc') as HTMLSelectElement).value = state.ecc;
         input('input-margin').value = String(state.margin);
@@ -1906,6 +2383,7 @@ const QR_TABS = [
         readImageFile(file, img => {
             state.logoImage = img;
             state.logoKey = 'upload';
+            state.centerMode = 'image';
             // Свой логотип перекрывает центр — держим максимальную коррекцию ошибок.
             state.ecc = 'H';
             $('logo-label').textContent = shortName(file.name);
@@ -1959,11 +2437,6 @@ const QR_TABS = [
         scheduleUpdate();
     });
 
-    input('input-scatter').addEventListener('change', e => {
-        state.scatter = (e.target as HTMLInputElement).checked;
-        syncUiFromState();
-        scheduleUpdate();
-    });
     input('input-scatter-size').addEventListener('input', e => {
         state.scatterDensity = parseInt((e.target as HTMLInputElement).value, 10);
         scheduleUpdate();
@@ -1973,6 +2446,88 @@ const QR_TABS = [
         syncUiFromState();
         scheduleUpdate();
     }));
+
+    // ── Арт-форма и фото-гравюра ─────────────────────────
+    document.querySelectorAll<HTMLButtonElement>('.photo-style-btn').forEach(btn => btn.addEventListener('click', () => {
+        state.photoStyle = btn.dataset.photoStyle as PhotoStyle;
+        syncUiFromState();
+        scheduleUpdate();
+    }));
+    // Сетка фигур — миниатюрами силуэтов из движка; «Своя» (загрузка) уже стоит в разметке последней.
+    const silGrid = $('sil-grid');
+    QR_SILHOUETTES.forEach(f => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'sil-btn';
+        btn.dataset.sil = f.id;
+        btn.title = f.label;
+        btn.setAttribute('aria-label', f.label);
+        const icon = document.createElement('canvas');
+        icon.width = 56;
+        icon.height = 56;
+        renderSilhouettePreview(icon, f.id);
+        const name = document.createElement('span');
+        name.className = 'sil-name';
+        name.textContent = f.label;
+        btn.append(icon, name);
+        btn.addEventListener('click', () => selectSilhouette(f.id));
+        silGrid.insertBefore(btn, silGrid.lastElementChild);
+    });
+
+    /** Последняя выбранная фигура — к ней возвращает режим «Фигура». */
+    let lastSilhouette: QrSilhouette = 'heart';
+    function selectSilhouette(id: QrSilhouette) {
+        state.silhouette = id;
+        if (id !== 'none') {
+            lastSilhouette = id;
+            state.scatter = false;
+            state.margin = Math.min(state.margin, 2);
+        }
+        syncUiFromState();
+        scheduleUpdate();
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('.code-shape-btn').forEach(btn => btn.addEventListener('click', () => {
+        const mode = btn.dataset.codeShape as 'none' | 'figure' | 'pattern';
+        if (mode === 'figure') {
+            selectSilhouette(lastSilhouette === 'custom' && !state.silhouetteImage ? 'heart' : lastSilhouette);
+            return;
+        }
+        // Фигура могла прийти из арт-стиля или ссылки, а не кликом — запоминаем её при уходе из режима.
+        if (state.silhouette !== 'none') lastSilhouette = state.silhouette;
+        state.silhouette = 'none';
+        state.scatter = mode === 'pattern';
+        syncUiFromState();
+        scheduleUpdate();
+    }));
+    input('input-silhouette').addEventListener('change', e => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+        readImageFile(file, img => {
+            state.silhouetteImage = img;
+            state.silhouette = 'custom';
+            lastSilhouette = 'custom';
+            state.scatter = false;
+            state.margin = Math.min(state.margin, 2);
+            $('sil-label').closest('label')?.setAttribute('title', file.name);
+            syncUiFromState();
+            scheduleUpdate();
+        });
+    });
+    input('input-sil-fit').addEventListener('input', e => {
+        state.silhouetteFit = parseInt((e.target as HTMLInputElement).value, 10);
+        scheduleUpdate();
+    });
+    input('input-rotate45').addEventListener('change', e => {
+        state.rotate45 = (e.target as HTMLInputElement).checked;
+        syncUiFromState();
+        scheduleUpdate();
+    });
+    input('input-ink-shift').addEventListener('change', e => {
+        state.inkShift = (e.target as HTMLInputElement).checked;
+        syncUiFromState();
+        scheduleUpdate();
+    });
 
     ($('input-ecc') as HTMLSelectElement).addEventListener('change', e => {
         state.ecc = (e.target as HTMLSelectElement).value as Ecc;
@@ -1998,591 +2553,25 @@ const QR_TABS = [
         });
     }
 
-    // ── Drawing helpers ───────────────────────────────────
-    function addRoundRectPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-    }
-
-    function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.beginPath();
-        addRoundRectPath(ctx, x, y, w, h, r);
-        ctx.fill();
-    }
-
-    function addLeafPath(
-        ctx: CanvasRenderingContext2D,
-        bx: number, by: number, bw: number,
-        cellSize: number, isTL: boolean, isTR: boolean,
-        outer: boolean,
-    ) {
-        const r = cellSize * (outer ? 2.2 : 1.4);
-        const small = cellSize * (outer ? 0.5 : 0.35);
-        const tl = isTL ? r : isTR ? small : r;
-        const tr = isTL ? r : isTR ? r : small;
-        const br = isTL ? small : isTR ? r : r;
-        const bl = isTL ? r : isTR ? small : small;
-        ctx.moveTo(bx + tl, by);
-        ctx.lineTo(bx + bw - tr, by);
-        ctx.quadraticCurveTo(bx + bw, by, bx + bw, by + tr);
-        ctx.lineTo(bx + bw, by + bw - br);
-        ctx.quadraticCurveTo(bx + bw, by + bw, bx + bw - br, by + bw);
-        ctx.lineTo(bx + bl, by + bw);
-        ctx.quadraticCurveTo(bx, by + bw, bx, by + bw - bl);
-        ctx.lineTo(bx, by + tl);
-        ctx.quadraticCurveTo(bx, by, bx + tl, by);
-        ctx.closePath();
-    }
-
-    function strokeRoundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + w - r, y);
-        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-        ctx.lineTo(x + w, y + h - r);
-        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-        ctx.lineTo(x + r, y + h);
-        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.closePath();
-        ctx.stroke();
-    }
-
-    function drawDot(ctx: CanvasRenderingContext2D, x: number, y: number, size: number, style: DotStyle) {
-        const gap = style === 'classic' ? 0 : size * 0.1;
-        const s = size - gap * 2;
-
-        switch (style) {
-            case 'classic': {
-                // Лёгкий нахлёст убирает светлые «швы» между соседними квадратами при сглаживании.
-                const bleed = ctx.globalAlpha === 1 ? size * 0.02 : 0;
-                ctx.fillRect(x, y, size + bleed, size + bleed);
-                break;
-            }
-            case 'rounded': roundRect(ctx, x + gap, y + gap, s, s, s * 0.3); break;
-            default: ctx.fillRect(x, y, size, size); break;
-        }
-    }
-
-    // ── Finder patterns (with eye styles) ─────────────────
-    function isInFinder(row: number, col: number, count: number): boolean {
-        if (row < 8 && col < 8) return true;
-        if (row < 8 && col >= count - 8) return true;
-        if (row >= count - 8 && col < 8) return true;
-        return false;
-    }
-
-    function drawFinderPattern(
-        ctx: CanvasRenderingContext2D,
-        startRow: number, startCol: number,
-        cellSize: number, offX: number, offY: number,
-        eye: EyeStyle, bgColor: string,
-        transparentHole = false,
-    ) {
-        const x = offX + startCol * cellSize;
-        const y = offY + startRow * cellSize;
-        const s7 = 7 * cellSize;
-        const s5 = 5 * cellSize;
-        const s3 = 3 * cellSize;
-        const x5 = x + cellSize, y5 = y + cellSize;
-        const x3 = x + 2 * cellSize, y3 = y + 2 * cellSize;
-
-        // Determine corner identity (TL, TR, BL) for "leaf" style
-        const isTL = startRow === 0 && startCol === 0;
-        const isTR = startRow === 0 && startCol !== 0;
-        const isBL = startRow !== 0 && startCol === 0;
-
-        const addOuterPath = () => {
-            switch (eye) {
-                case 'square': ctx.rect(x, y, s7, s7); break;
-                case 'rounded': addRoundRectPath(ctx, x, y, s7, s7, cellSize * 1.6); break;
-                case 'circle':
-                    ctx.moveTo(x + s7 / 2 + s7 / 2, y + s7 / 2);
-                    ctx.arc(x + s7 / 2, y + s7 / 2, s7 / 2, 0, Math.PI * 2);
-                    break;
-                case 'leaf': addLeafPath(ctx, x, y, s7, cellSize, isTL, isTR, true); break;
-                case 'dot':
-                    ctx.moveTo(x + s7 / 2 + s7 / 2, y + s7 / 2);
-                    ctx.arc(x + s7 / 2, y + s7 / 2, s7 / 2, 0, Math.PI * 2);
-                    break;
-            }
-        };
-        const addInnerHolePath = () => {
-            switch (eye) {
-                case 'square': ctx.rect(x5, y5, s5, s5); break;
-                case 'rounded': addRoundRectPath(ctx, x5, y5, s5, s5, cellSize * 1.0); break;
-                case 'circle':
-                    ctx.moveTo(x5 + s5 / 2 + s5 / 2, y5 + s5 / 2);
-                    ctx.arc(x5 + s5 / 2, y5 + s5 / 2, s5 / 2, 0, Math.PI * 2);
-                    break;
-                case 'leaf': addLeafPath(ctx, x5, y5, s5, cellSize, isTL, isTR, false); break;
-                case 'dot':
-                    ctx.moveTo(x5 + s5 / 2 + s5 / 2, y5 + s5 / 2);
-                    ctx.arc(x5 + s5 / 2, y5 + s5 / 2, s5 / 2, 0, Math.PI * 2);
-                    break;
-            }
-        };
-        const drawOuter = () => {
-            ctx.beginPath();
-            addOuterPath();
-            ctx.fill();
-        };
-        const drawInnerHole = () => {
-            ctx.beginPath();
-            addInnerHolePath();
-            ctx.fill();
-        };
-        const drawCenter = () => {
-            switch (eye) {
-                case 'square':  ctx.fillRect(x3, y3, s3, s3); break;
-                case 'rounded': roundRect(ctx, x3, y3, s3, s3, cellSize * 0.7); break;
-                case 'circle':
-                    ctx.beginPath();
-                    ctx.arc(x3 + s3 / 2, y3 + s3 / 2, s3 / 2, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-                case 'leaf': {
-                    const r = cellSize * 0.9;
-                    const small = cellSize * 0.25;
-                    const tl = isTL ? r : isTR ? small : r;
-                    const tr = isTL ? r : isTR ? r : small;
-                    const br = isTL ? small : isTR ? r : r;
-                    const bl = isTL ? r : isTR ? small : small;
-                    ctx.beginPath();
-                    ctx.moveTo(x3 + tl, y3);
-                    ctx.lineTo(x3 + s3 - tr, y3);
-                    ctx.quadraticCurveTo(x3 + s3, y3, x3 + s3, y3 + tr);
-                    ctx.lineTo(x3 + s3, y3 + s3 - br);
-                    ctx.quadraticCurveTo(x3 + s3, y3 + s3, x3 + s3 - br, y3 + s3);
-                    ctx.lineTo(x3 + bl, y3 + s3);
-                    ctx.quadraticCurveTo(x3, y3 + s3, x3, y3 + s3 - bl);
-                    ctx.lineTo(x3, y3 + tl);
-                    ctx.quadraticCurveTo(x3, y3, x3 + tl, y3);
-                    ctx.closePath();
-                    ctx.fill();
-                    break;
-                }
-                case 'dot':
-                    ctx.beginPath();
-                    ctx.arc(x3 + s3 / 2, y3 + s3 / 2, s3 * 0.45, 0, Math.PI * 2);
-                    ctx.fill();
-                    break;
-            }
-        };
-
-        const savedFill = ctx.fillStyle;
-        if (transparentHole) {
-            ctx.beginPath();
-            addOuterPath();
-            addInnerHolePath();
-            ctx.fill('evenodd');
-        } else {
-            drawOuter();
-            ctx.fillStyle = bgColor;
-            drawInnerHole();
-            ctx.fillStyle = savedFill;
-        }
-        ctx.fillStyle = savedFill;
-        drawCenter();
-    }
-
-    // ── Style preview thumbnails ──────────────────────────
-    function renderDotPreview(previewCanvas: HTMLCanvasElement, style: DotStyle) {
-        const size = previewCanvas.width;
-        const ctx = previewCanvas.getContext('2d')!;
-        const cellSize = size / 5;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        const pattern = [
-            [1, 0, 1, 0, 1],
-            [0, 1, 1, 1, 0],
-            [1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 0],
-            [1, 0, 1, 0, 1],
-        ];
-        ctx.fillStyle = '#1e293b';
-        for (let row = 0; row < 5; row++) {
-            for (let col = 0; col < 5; col++) {
-                if (pattern[row][col]) {
-                    drawDot(ctx, col * cellSize, row * cellSize, cellSize, style);
-                }
-            }
-        }
-    }
-
-    function renderEyePreview(c: HTMLCanvasElement, eye: EyeStyle) {
-        const size = c.width;
-        const ctx = c.getContext('2d')!;
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, size, size);
-        const cell = size / 8;
-        const offX = cell / 2;
-        const offY = cell / 2;
-        ctx.fillStyle = '#1e293b';
-        drawFinderPattern(ctx, 0, 0, cell, offX, offY, eye, '#ffffff');
-    }
-
-    const allStyles: DotStyle[] = ['classic', 'rounded'];
-    styleCanvases.forEach((c, i) => renderDotPreview(c, allStyles[i]));
-
-    const allEyes: EyeStyle[] = ['square', 'rounded', 'circle', 'leaf', 'dot'];
-    eyeCanvases.forEach((c, i) => renderEyePreview(c, allEyes[i]));
-
-    // ── Gradient builder ──────────────────────────────────
-    function makeFgFill(ctx: CanvasRenderingContext2D, x0: number, y0: number, x1: number, y1: number): CanvasGradient | string {
-        if (!state.gradient) return state.fg;
-        const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-        let g: CanvasGradient;
-        switch (state.gradType) {
-            case 'linear-tb': g = ctx.createLinearGradient(x0, y0, x0, y1); break;
-            case 'linear-lr': g = ctx.createLinearGradient(x0, y0, x1, y0); break;
-            case 'linear-diag': g = ctx.createLinearGradient(x0, y0, x1, y1); break;
-            case 'radial': g = ctx.createRadialGradient(cx, cy, 0, cx, cy, Math.max(x1 - x0, y1 - y0) / 2); break;
-        }
-        g.addColorStop(0, state.grad1);
-        g.addColorStop(1, state.grad2);
-        return g;
-    }
-
-    function drawLogo(ctx: CanvasRenderingContext2D, img: HTMLImageElement, qrLeft: number, qrTop: number, qrSize: number, bgColor: string) {
-        const logoSize = qrSize * (state.logoSize / 100);
-        const padding = qrSize * 0.02;
-        const boxSize = logoSize + padding * 2;
-        const cx = qrLeft + qrSize / 2;
-        const cy = qrTop + qrSize / 2;
-        const boxX = cx - boxSize / 2;
-        const boxY = cy - boxSize / 2;
-
-        ctx.save();
-        if (!state.logoFill) {
-            ctx.fillStyle = bgColor;
-            roundRect(ctx, boxX, boxY, boxSize, boxSize, boxSize * 0.18);
-        }
-
-        const iw = img.naturalWidth || img.width;
-        const ih = img.naturalHeight || img.height;
-        const ratio = iw / ih;
-        let dw = logoSize, dh = logoSize;
-        if (ratio > 1) dh = logoSize / ratio;
-        else dw = logoSize * ratio;
-        ctx.drawImage(img, cx - dw / 2, cy - dh / 2, dw, dh);
-        ctx.restore();
-    }
-
-    function parseHexColor(hex: string): { r: number; g: number; b: number } {
-        const h = hex.replace('#', '');
-        return {
-            r: parseInt(h.slice(0, 2), 16),
-            g: parseInt(h.slice(2, 4), 16),
-            b: parseInt(h.slice(4, 6), 16),
-        };
-    }
-
-    function rgbaFromHex(hex: string, alpha: number): string {
-        const { r, g, b } = parseHexColor(hex);
-        return `rgba(${r},${g},${b},${alpha.toFixed(3)})`;
-    }
-
-    // ── Photo mode: per-cell overlay strength from background luminance ──
-    function photoLightOverlayAlpha(luminance: number): number {
-        const target = 200;
-        if (luminance >= target) return 0;
-        const needed = (target - luminance) / (255 - luminance);
-        return Math.min(0.38, needed * 0.72);
-    }
-
-    function photoDarkOverlayAlpha(luminance: number): number {
-        const target = 58;
-        if (luminance <= 45) return 0.55;
-        if (luminance <= target) return 0.5;
-        const needed = 1 - target / luminance;
-        return Math.min(0.92, Math.max(0.5, needed));
-    }
-
-    function samplePhotoLuminance(
-        snap: ImageData, qrLeft: number, qrTop: number, qrSize: number,
-        offX: number, offY: number, row: number, col: number, cellSize: number,
-    ): number {
-        const px = Math.min(qrSize - 1, Math.max(0, Math.floor(offX - qrLeft + (col + 0.5) * cellSize)));
-        const py = Math.min(qrSize - 1, Math.max(0, Math.floor(offY - qrTop + (row + 0.5) * cellSize)));
-        const idx = (py * qrSize + px) * 4;
-        const r = snap.data[idx], g = snap.data[idx + 1], b = snap.data[idx + 2];
-        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    }
-
-    // ── Layout & render ───────────────────────────────────
-    interface QrLayout {
-        payload: string;
-        modules: { size: number; data: ArrayLike<number | boolean> };
-        count: number;
-        margin: number;
-        cellSize: number;
-        qrSize: number;
-        canvasW: number;
-        canvasH: number;
-        qrLeft: number;
-        qrTop: number;
-        offX: number;
-        offY: number;
-        captionH: number;
-        ribbonH: number;
-        framePad: number;
-        /** Яркость фото под кодом (считается в базовом масштабе, общий для PNG/SVG). */
-        photoSnap: ImageData | null;
-    }
+    // ── Отрисовка (общий движок src/lib/qr-engine) ───────
+    styleCanvases.forEach((c, i) => renderDotStylePreview(c, DOT_STYLES[i]));
+    eyeCanvases.forEach((c, i) => renderEyeStylePreview(c, EYE_STYLES[i]));
 
     let current: QrLayout | null = null;
 
     const TOO_MUCH_DATA = 'Слишком много данных для одного QR — сократите текст или поставьте уровень коррекции L в «Дополнительно».';
 
-    function computeLayout(payload: string): QrLayout {
-        const qrSize = QR_BASE_SIZE;
-        const qrData = QRCode.create(payload, { errorCorrectionLevel: state.ecc });
-        const modules = qrData.modules;
-        const count = modules.size;
-        const margin = state.margin;
-        const cellSize = qrSize / (count + margin * 2);
-        const hasFrame = state.frame;
-        const captionH = hasFrame && state.frameStyle !== 'rounded' ? 80 : 0;
-        const ribbonH = hasFrame && state.frameStyle === 'ribbon' ? 80 : 0;
-        const framePad = hasFrame && state.frameStyle === 'rounded' ? 36 : 0;
-        const scatterPad = (state.scatter ? state.scatterDensity : 0) * cellSize;
-        const canvasW = qrSize + framePad * 2 + scatterPad * 2;
-        const canvasH = qrSize + framePad * 2 + scatterPad * 2
-            + (hasFrame && state.frameStyle === 'bottom' ? captionH : 0)
-            + (hasFrame && state.frameStyle === 'ribbon' ? ribbonH : 0);
-        const qrLeft = framePad + scatterPad;
-        const qrTop = framePad + scatterPad + (hasFrame && state.frameStyle === 'ribbon' ? ribbonH : 0);
-        const layout: QrLayout = {
-            payload, modules, count, margin, cellSize, qrSize, canvasW, canvasH, qrLeft, qrTop,
-            offX: qrLeft + margin * cellSize,
-            offY: qrTop + margin * cellSize,
-            captionH, ribbonH, framePad,
-            photoSnap: null,
+    function qrAssets(): QrAssets {
+        return {
+            logo: state.centerMode === 'text' ? null : state.logoImage,
+            photo: state.photoImage,
+            silhouette: state.silhouette === 'custom' ? state.silhouetteImage : null,
         };
-        if (state.photoImage) {
-            const c = document.createElement('canvas');
-            c.width = Math.ceil(canvasW);
-            c.height = Math.ceil(canvasH);
-            const pctx = c.getContext('2d', { willReadFrequently: true })!;
-            drawPhoto(pctx, layout);
-            layout.photoSnap = pctx.getImageData(qrLeft, qrTop, qrSize, qrSize);
-        }
-        return layout;
     }
 
-    function drawPhoto(ctx: CanvasRenderingContext2D, L: QrLayout) {
-        const img = state.photoImage!;
-        const iw = img.naturalWidth || img.width;
-        const ih = img.naturalHeight || img.height;
-        const imgRatio = iw / ih;
-        const photoX = state.scatter ? 0 : L.qrLeft;
-        const photoY = state.scatter ? 0 : L.qrTop;
-        const photoW = state.scatter ? L.canvasW : L.qrSize;
-        const photoH = state.scatter ? L.canvasH : L.qrSize;
-        const photoRatio = photoW / photoH;
-        let sx = 0, sy = 0, sw = iw, sh = ih;
-        if (imgRatio > photoRatio) {
-            sw = ih * photoRatio;
-            sx = (iw - sw) / 2;
-        } else {
-            sh = iw / photoRatio;
-            sy = (ih - sh) / 2;
-        }
-        ctx.drawImage(img, sx, sy, sw, sh, photoX, photoY, photoW, photoH);
-    }
-
-    /** Вся отрисовка в базовых координатах (QR = 600). Масштаб задаёт вызывающий через ctx.scale. */
-    function drawQr(ctx: CanvasRenderingContext2D, L: QrLayout) {
-        const { modules, count, cellSize, qrSize, canvasW, canvasH, qrLeft, qrTop, offX, offY, captionH, ribbonH } = L;
-
-        if (!state.bgTransparent) {
-            ctx.fillStyle = state.bg;
-            ctx.fillRect(0, 0, canvasW, canvasH);
-        } else {
-            ctx.clearRect(0, 0, canvasW, canvasH);
-        }
-
-        const fgFill = makeFgFill(ctx, qrLeft, qrTop, qrLeft + qrSize, qrTop + qrSize);
-
-        if (state.photoImage && L.photoSnap) {
-            drawPhoto(ctx, L);
-            const photoSnap = L.photoSnap;
-            const photoLightColor = state.bgTransparent ? '#ffffff' : state.bg;
-
-            for (let row = 0; row < count; row++) {
-                for (let col = 0; col < count; col++) {
-                    if (modules.data[row * count + col] || isInFinder(row, col, count)) continue;
-                    const lum = samplePhotoLuminance(photoSnap, qrLeft, qrTop, qrSize, offX, offY, row, col, cellSize);
-                    const alpha = photoLightOverlayAlpha(lum);
-                    if (alpha < 0.02) continue;
-                    ctx.fillStyle = rgbaFromHex(photoLightColor, alpha);
-                    ctx.fillRect(offX + col * cellSize, offY + row * cellSize, cellSize, cellSize);
-                }
-            }
-
-            ctx.fillStyle = fgFill;
-            for (let row = 0; row < count; row++) {
-                for (let col = 0; col < count; col++) {
-                    if (!modules.data[row * count + col] || isInFinder(row, col, count)) continue;
-                    const lum = samplePhotoLuminance(photoSnap, qrLeft, qrTop, qrSize, offX, offY, row, col, cellSize);
-                    ctx.globalAlpha = photoDarkOverlayAlpha(lum);
-                    drawDot(ctx, offX + col * cellSize, offY + row * cellSize, cellSize, state.dotStyle);
-                }
-            }
-            ctx.globalAlpha = 1;
-        } else {
-            ctx.fillStyle = fgFill;
-            for (let row = 0; row < count; row++) {
-                for (let col = 0; col < count; col++) {
-                    if (modules.data[row * count + col] && !isInFinder(row, col, count)) {
-                        drawDot(ctx, offX + col * cellSize, offY + row * cellSize, cellSize, state.dotStyle);
-                    }
-                }
-            }
-        }
-
-        const eyeBgForHole = state.bgTransparent ? '#ffffff' : state.bg;
-        const finderHoleTransparent = !!state.photoImage || state.bgTransparent;
-        ctx.fillStyle = state.eyeCustom ? state.eyeColor : (typeof fgFill === 'string' ? fgFill : state.grad1);
-        drawFinderPattern(ctx, 0, 0, cellSize, offX, offY, state.eyeStyle, eyeBgForHole, finderHoleTransparent);
-        drawFinderPattern(ctx, 0, count - 7, cellSize, offX, offY, state.eyeStyle, eyeBgForHole, finderHoleTransparent);
-        drawFinderPattern(ctx, count - 7, 0, cellSize, offX, offY, state.eyeStyle, eyeBgForHole, finderHoleTransparent);
-
-        if (state.logoImage) {
-            drawLogo(ctx, state.logoImage, qrLeft, qrTop, qrSize, state.bgTransparent ? '#ffffff' : state.bg);
-        }
-
-        if (state.frame) {
-            const frameColor = state.eyeCustom ? state.eyeColor : (state.gradient ? state.grad1 : state.fg);
-            if (state.frameStyle === 'rounded') {
-                ctx.save();
-                ctx.strokeStyle = frameColor;
-                ctx.lineWidth = 12;
-                strokeRoundRect(ctx, 6, 6, canvasW - 12, canvasH - 12, 36);
-                ctx.restore();
-            } else if (state.frameStyle === 'bottom') {
-                ctx.save();
-                ctx.fillStyle = frameColor;
-                ctx.fillRect(0, qrTop + qrSize, canvasW, captionH);
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `800 ${Math.round(captionH * 0.42)}px Inter, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(state.frameText, canvasW / 2, qrTop + qrSize + captionH / 2);
-                ctx.restore();
-            } else if (state.frameStyle === 'ribbon') {
-                ctx.save();
-                ctx.fillStyle = frameColor;
-                ctx.beginPath();
-                ctx.moveTo(0, 0);
-                ctx.lineTo(canvasW, 0);
-                ctx.lineTo(canvasW, ribbonH - 14);
-                ctx.lineTo(canvasW / 2, ribbonH);
-                ctx.lineTo(0, ribbonH - 14);
-                ctx.closePath();
-                ctx.fill();
-                ctx.fillStyle = '#ffffff';
-                ctx.font = `800 ${Math.round(ribbonH * 0.4)}px Inter, sans-serif`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(state.frameText, canvasW / 2, (ribbonH - 14) / 2);
-                ctx.restore();
-            }
-        }
-
-        if (state.scatter) drawScatter(ctx, L);
-    }
-
-    function drawScatter(ctx: CanvasRenderingContext2D, L: QrLayout) {
-        const { count, cellSize, offX, offY, canvasW, canvasH } = L;
-        const cellsOut = state.scatterDensity;
-        const totalSize = count + cellsOut * 2;
-        const centerX = (count - 1) / 2;
-        const centerY = (count - 1) / 2;
-        const outerR = totalSize / 2;
-            const rng = (seed: number) => {
-                let x = Math.sin(seed * 127.1 + 311.7) * 43758.5453;
-                return x - Math.floor(x);
-            };
-
-            const isInsideShape = (r: number, c: number): boolean => {
-                const dx = c - centerX - cellsOut;
-                const dy = r - centerY - cellsOut;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                const normDist = dist / outerR;
-                const angle = Math.atan2(dy, dx);
-                switch (state.scatterShape) {
-                    case 'square': return true;
-                    case 'circle': return normDist <= 1;
-                    case 'star': {
-                        const a2 = angle + Math.PI / 2;
-                        const points = 5;
-                        const sa = ((a2 + Math.PI * 2) % (Math.PI * 2)) / (Math.PI * 2 / points);
-                        const sectorAngle = sa % 1;
-                        const outerStarR = 1;
-                        const innerStarR = 0.45;
-                        const t = sectorAngle < 0.5 ? sectorAngle * 2 : (1 - sectorAngle) * 2;
-                        const maxR = outerStarR + (innerStarR - outerStarR) * t;
-                        return normDist <= maxR;
-                    }
-                    case 'diamond': {
-                        return Math.abs(dx) / outerR + Math.abs(dy) / outerR <= 1;
-                    }
-                    case 'hexagon': {
-                        const s3 = Math.sqrt(3);
-                        const nx = Math.abs(dx) / outerR;
-                        const ny = Math.abs(dy) / outerR;
-                        return ny <= 1 && nx <= s3 / 2 && (s3 * ny + nx) <= s3;
-                    }
-                    case 'heart': {
-                        const s = 0.8;
-                        const hx = dx / outerR / s;
-                        const hy = (-dy / outerR + 0.2) / s;
-                        const eq = (hx * hx + hy * hy - 1);
-                        return eq * eq * eq - hx * hx * hy * hy * hy <= 0;
-                    }
-                    case 'cross': {
-                        const nx = Math.abs(dx) / outerR;
-                        const ny = Math.abs(dy) / outerR;
-                        return (nx <= 0.35 && ny <= 1) || (ny <= 0.35 && nx <= 1);
-                    }
-                    case 'octagon': {
-                        const nx = Math.abs(dx) / outerR;
-                        const ny = Math.abs(dy) / outerR;
-                        return nx <= 1 && ny <= 1 && (nx + ny) <= 1 + Math.SQRT2 - 1;
-                    }
-                    case 'triangle': {
-                        const nx = dx / outerR;
-                        const ny = -(dy / outerR) - 0.15;
-                        const side = 2 / Math.sqrt(3);
-                        return ny >= -side && ny <= side && Math.abs(nx) <= (side - ny) * 0.5 / side * 2;
-                    }
-                }
-            };
-
-        const scatterFill = makeFgFill(ctx, offX - cellsOut * cellSize, offY - cellsOut * cellSize, offX + count * cellSize + cellsOut * cellSize, offY + count * cellSize + cellsOut * cellSize);
-        ctx.fillStyle = scatterFill;
-        for (let r = -cellsOut; r < count + cellsOut; r++) {
-            for (let c = -cellsOut; c < count + cellsOut; c++) {
-                if (r >= 0 && r < count && c >= 0 && c < count) continue;
-                if (!isInsideShape(r + cellsOut, c + cellsOut)) continue;
-                if (rng(r * 997 + c + 7) < 0.5) continue;
-                const x = offX + c * cellSize;
-                const y = offY + r * cellSize;
-                if (x < -cellSize || y < -cellSize || x > canvasW + cellSize || y > canvasH + cellSize) continue;
-                drawDot(ctx, x, y, cellSize, state.dotStyle);
-            }
-        }
+    function computeQrLayout(payload: string): QrLayout {
+        const modules = QRCode.create(payload, { errorCorrectionLevel: state.ecc }).modules as unknown as QrModules;
+        return computeLayout(modules, state, qrAssets());
     }
 
     function setDownloadsEnabled(enabled: boolean) {
@@ -2623,7 +2612,7 @@ const QR_TABS = [
         }
         let L: QrLayout;
         try {
-            L = computeLayout(res.payload);
+            L = computeQrLayout(res.payload);
         } catch {
             showInputMessage('error', TOO_MUCH_DATA);
             clearPreview('Слишком много данных');
@@ -2635,7 +2624,7 @@ const QR_TABS = [
         canvas.width = Math.ceil(L.canvasW);
         canvas.height = Math.ceil(L.canvasH);
         const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
-        drawQr(ctx, L);
+        drawQr(ctx, L, state, qrAssets());
 
         canvas.classList.remove('hidden');
         placeholder.classList.add('hidden');
@@ -2643,7 +2632,7 @@ const QR_TABS = [
 
         // Фото-режим: средний контраст тёмных и светлых модулей поверх фото.
         const warningEl = $('qr-readability-warning');
-        if (state.photoImage) {
+        if (state.photoImage && state.photoStyle === 'overlay' && !L.rotated) {
             const rendered = ctx.getImageData(L.qrLeft, L.qrTop, L.qrSize, L.qrSize);
             let darkLum = 0, lightLum = 0, darkN = 0, lightN = 0;
             for (let row = 0; row < L.count; row++) {
@@ -2702,24 +2691,7 @@ const QR_TABS = [
     type ScanLevel = 'ok' | 'print' | 'screen';
 
     function checkScanLevel(): ScanLevel {
-        if (!current) return 'ok';
-        const { qrLeft, qrTop, qrSize } = current;
-        const tmp = document.createElement('canvas');
-        const tctx = tmp.getContext('2d', { willReadFrequently: true })!;
-
-        function decodeAt(s: number, blurPx: number): boolean {
-            tmp.width = s;
-            tmp.height = s;
-            tctx.filter = blurPx > 0 ? `blur(${blurPx}px)` : 'none';
-            tctx.drawImage(canvas, qrLeft, qrTop, qrSize, qrSize, 0, 0, s, s);
-            tctx.filter = 'none';
-            return jsQR(tctx.getImageData(0, 0, s, s).data, s, s) !== null;
-        }
-        const anyOk = (sizes: number[], blur: number) => sizes.some(s => decodeAt(s, blur));
-
-        if (!anyOk([600, 500, 400, 300], 0)) return 'screen';
-        if (!anyOk([300, 240, 180], 0.5) || !anyOk([240, 180, 140], 1)) return 'print';
-        return 'ok';
+        return current ? checkQrScanLevel(canvas, current, jsQR) : 'ok';
     }
 
     const SCAN_TEXT: Record<Exclude<ScanLevel, 'ok'>, { icon: string; text: string }> = {
@@ -2760,41 +2732,13 @@ const QR_TABS = [
 
     // ── Export ────────────────────────────────────────────
     function renderScaled(width: number): HTMLCanvasElement {
-        const L = current!;
-        const k = width / L.canvasW;
         const c = document.createElement('canvas');
-        c.width = Math.round(L.canvasW * k);
-        c.height = Math.round(L.canvasH * k);
-        const ctx = c.getContext('2d')!;
-        ctx.scale(k, k);
-        drawQr(ctx, L);
+        renderToCanvas(c, current!, state, qrAssets(), width);
         return c;
     }
 
-    const imageHrefCache = new WeakMap<object, string>();
-    /** Картинки для SVG встраиваются data-URL'ом: файл должен открываться без нашего сайта. */
-    function imageHref(img: CanvasImageSource): string {
-        if (img instanceof HTMLImageElement && img.src.startsWith('data:')) return img.src;
-        const cached = imageHrefCache.get(img);
-        if (cached) return cached;
-        const el = img as HTMLImageElement;
-        const w = el.naturalWidth || 512;
-        const h = el.naturalHeight || 512;
-        const scale = Math.min(1600 / Math.max(w, h), Math.max(1, 512 / Math.max(w, h)));
-        const c = document.createElement('canvas');
-        c.width = Math.round(w * scale);
-        c.height = Math.round(h * scale);
-        c.getContext('2d')!.drawImage(el, 0, 0, c.width, c.height);
-        const href = img === state.photoImage ? c.toDataURL('image/jpeg', 0.9) : c.toDataURL('image/png');
-        imageHrefCache.set(img, href);
-        return href;
-    }
-
     function buildSvg(): string {
-        const L = current!;
-        const svg = new SvgContext(L.canvasW, L.canvasH, imageHref);
-        drawQr(svg as unknown as CanvasRenderingContext2D, L);
-        return svg.toString();
+        return renderToSvg(current!, state, qrAssets());
     }
 
     const DOWNLOAD_GOALS: Record<DownloadFormat, string> = {
@@ -2914,6 +2858,7 @@ const QR_TABS = [
         state.dotStyle = randomFrom(DOT_STYLES);
         state.eyeStyle = randomFrom(EYE_STYLES);
 
+        state.centerMode = 'image';
         // Свой загруженный логотип не трогаем — человек его уже выбрал.
         if (state.logoKey !== 'upload') {
             if (Math.random() < 0.45) {
@@ -2942,6 +2887,10 @@ const QR_TABS = [
         state.margin = 1 + Math.floor(Math.random() * 3);
         state.photoImage = null;
         state.photoKey = null;
+        state.photoStyle = 'overlay';
+        state.silhouette = 'none';
+        state.inkShift = false;
+        state.rotate45 = !state.frame && Math.random() < 0.1;
         clearColorPresetMark();
         syncUiFromState();
     }
@@ -3001,6 +2950,13 @@ const QR_TABS = [
             p.set('ecl', state.eyeColor.replace('#', ''));
         }
         if (typeof state.logoKey === 'number') p.set('lp', String(state.logoKey));
+        if (state.centerMode === 'text') {
+            p.set('cm', 'text');
+            p.set('ct', state.centerText);
+            p.set('ctf', state.centerTextFont);
+            p.set('ctc', state.centerTextColor.replace('#', ''));
+            if (!state.centerTextBold) p.set('ctb', '0');
+        }
         p.set('ls', String(state.logoSize));
         if (state.logoFill) p.set('lf', '1');
         if (state.frame) {
@@ -3013,6 +2969,14 @@ const QR_TABS = [
             p.set('sd', String(state.scatterDensity));
             p.set('ssh', state.scatterShape);
         }
+        if (state.photoStyle === 'halftone') p.set('pst', 'h');
+        // Своя фигура — картинка, в ссылку не влезает.
+        if (state.silhouette !== 'none' && state.silhouette !== 'custom') {
+            p.set('sil', state.silhouette);
+            p.set('sf', String(state.silhouetteFit));
+        }
+        if (state.rotate45) p.set('r45', '1');
+        if (state.inkShift) p.set('ink', '1');
         p.set('ecc', state.ecc);
         p.set('m', String(state.margin));
         if (state.exportSize !== 1200) p.set('sz', String(state.exportSize));
@@ -3068,6 +3032,15 @@ const QR_TABS = [
         if (ecl && HEX6.test(ecl)) state.eyeColor = `#${ecl.toLowerCase()}`;
 
         state.logoSize = intParam(params, 'ls', 10, 30) ?? state.logoSize;
+        if (params.get('cm') === 'text') {
+            state.centerMode = 'text';
+            state.centerText = (params.get('ct') ?? '').split('\n').slice(0, 3).map(l => l.slice(0, 24)).join('\n');
+            const ctf = params.get('ctf') as QrCenterTextFont | null;
+            if (ctf && CENTER_TEXT_FONTS.some(f => f.id === ctf)) state.centerTextFont = ctf;
+            const ctc = params.get('ctc');
+            if (ctc && HEX6.test(ctc)) state.centerTextColor = `#${ctc.toLowerCase()}`;
+            state.centerTextBold = params.get('ctb') !== '0';
+        }
         state.logoFill = params.get('lf') === '1';
 
         state.frame = params.get('fr') === '1';
@@ -3080,6 +3053,13 @@ const QR_TABS = [
         state.scatterDensity = intParam(params, 'sd', 1, 10) ?? state.scatterDensity;
         const ssh = params.get('ssh') as ScatterShape | null;
         if (ssh && SCATTER_SHAPES.includes(ssh)) state.scatterShape = ssh;
+
+        state.photoStyle = params.get('pst') === 'h' ? 'halftone' : 'overlay';
+        const sil = params.get('sil') as QrSilhouette | null;
+        state.silhouette = sil && sil !== 'custom' && SILHOUETTES.includes(sil) ? sil : 'none';
+        state.silhouetteFit = intParam(params, 'sf', 50, 100) ?? state.silhouetteFit;
+        state.rotate45 = params.get('r45') === '1';
+        state.inkShift = params.get('ink') === '1';
 
         const ecc = params.get('ecc') as Ecc | null;
         if (ecc && ECC_LEVELS.includes(ecc)) state.ecc = ecc;
@@ -3128,6 +3108,16 @@ const QR_TABS = [
             scatter: state.scatter,
             scatterDensity: state.scatterDensity,
             scatterShape: state.scatterShape,
+            centerMode: state.centerMode,
+            centerText: state.centerMode === 'text' ? state.centerText : '',
+            centerTextFont: state.centerTextFont,
+            centerTextColor: state.centerTextColor,
+            centerTextBold: state.centerTextBold,
+            ...(state.silhouette !== 'none' && state.silhouette !== 'custom'
+                ? { silhouette: state.silhouette, silhouetteFit: state.silhouetteFit }
+                : {}),
+            ...(state.rotate45 ? { rotate45: true } : {}),
+            ...(state.inkShift ? { inkShift: true } : {}),
         };
     }
 
@@ -3142,14 +3132,17 @@ const QR_TABS = [
     document.addEventListener('auxclick', attachStyleToRegisterLink, true);
 
     // ── Init ──────────────────────────────────────────────
+    /** Сразу открыты только «Арт-стили» и «Цвет»: остальное — тонкая настройка, в заголовке видно текущее значение. */
     function initAccordions() {
-        const desktop = window.matchMedia('(min-width: 1024px)').matches;
         document.querySelectorAll<HTMLDetailsElement>('.qr-acc').forEach(d => {
-            d.open = d.dataset.acc === 'color' || (desktop && d.hasAttribute('data-desktop-open'));
+            d.open = d.dataset.acc === 'color' || d.dataset.acc === 'art';
         });
     }
 
     renderColorPresets();
+    renderArtCategories();
+    renderArtPresets();
+    syncArtCategories();
     renderLogoPresets();
     renderPhotoPresets();
     const hashLogo = loadFromHash();
@@ -3178,4 +3171,15 @@ const QR_TABS = [
         selectLogoPreset(hashLogo).then(generateNow);
     }
     generateNow();
+
+    // `?art=` — переход из галереи на главной: сразу применяем стиль. Своя ссылка с #hash важнее.
+    const artParam = new URLSearchParams(location.search).get('art');
+    const artIdx = artParam && !location.hash ? ART_PRESETS.findIndex(p => p.id === artParam) : -1;
+    if (artIdx >= 0) {
+        artExpanded = true;
+        document.querySelectorAll('.art-preset-btn').forEach(b => b.classList.toggle('is-active', b.getAttribute('data-art') === String(artIdx)));
+        syncArtCategories();
+        designTouched = true;
+        applyArtPreset(artIdx).then(generateNow);
+    }
 </script>

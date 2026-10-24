@@ -125,7 +125,7 @@ QR-код имеет физический предел вместимости. �
 * Довольный клиент сразу переходит на Яндекс Карты или 2GIS и повышает рейтинг заведения;
 * Клиент с замечанием оставляет жалобу в закрытой форме, которая мгновенно попадает лично руководителю в Telegram до появления негатива в сети.
 
-[Подключить умные отзывы QrStars бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=qr-kod-dlya-vizitki-pivot)
+[Подключить умные отзывы QrStars бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=qr-kod-dlya-vizitki-pivot)
 
 ---
 

@@ -7,17 +7,19 @@ import { sendTelegramContactNotification } from "@/lib/telegram";
 export interface ContactNotificationPayload {
   qrLabel: string;
   guestName: string;
+  guestPhone?: string;
   message: string;
   client: ClientInfo;
 }
 
 function buildContactText(payload: ContactNotificationPayload): string {
-  const { qrLabel, guestName, message, client } = payload;
+  const { qrLabel, guestName, guestPhone, message, client } = payload;
   return [
     `<b>📩 Новое сообщение с визитки</b>`,
     "",
     `<b>QR:</b> ${escapeHtml(qrLabel)}`,
     `<b>От:</b> ${escapeHtml(guestName)}`,
+    ...(guestPhone ? [`<b>Телефон:</b> ${escapeHtml(guestPhone)}`] : []),
     "",
     `<b>Сообщение:</b>`,
     `<i>${escapeHtml(message)}</i>`,

@@ -21,15 +21,15 @@ const qrDataUrl = await generateBrandedQrDataUrl(scanUrl);
 <section class="py-16 lg:py-20 bg-gradient-to-b from-indigo-50/80 to-white border-y border-indigo-100">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="max-w-4xl mx-auto">
-      <div class="bg-white rounded-3xl border border-slate-200 shadow-lg shadow-indigo-500/10 p-8 md:p-10 flex flex-col md:flex-row gap-8 md:gap-12 items-center">
-        <div class="shrink-0 text-center">
+      <div class="bg-white rounded-3xl border border-slate-200 shadow-lg shadow-indigo-500/10 p-5 md:p-10 flex flex-col md:flex-row gap-6 md:gap-12 items-center">
+        <div class="shrink-0 text-center order-2 md:order-1">
           <div class="relative inline-block p-3 bg-white rounded-2xl border border-slate-100 shadow-md">
             <img
               src={qrDataUrl}
               width="280"
               height="280"
               alt={`QR-код QrStars: ${modeLabel}`}
-              class="rounded-xl block"
+              class="rounded-xl block w-56 h-56 sm:w-[280px] sm:h-[280px]"
               loading="lazy"
             />
             <div
@@ -42,7 +42,7 @@ const qrDataUrl = await generateBrandedQrDataUrl(scanUrl);
           <p class="mt-4 text-xs font-semibold uppercase tracking-wide text-primary">qrstars.ru</p>
         </div>
 
-        <div class="flex-1 text-center md:text-left">
+        <div class="flex-1 text-center md:text-left order-1 md:order-2 w-full">
           <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-primary/20">
             <i class="fa-solid fa-qrcode"></i>
             Демо · {modeLabel}
@@ -52,22 +52,35 @@ const qrDataUrl = await generateBrandedQrDataUrl(scanUrl);
           <ul class="space-y-2 text-sm text-slate-700 mb-6 text-left max-w-md mx-auto md:mx-0">
             <li class="flex items-start gap-2">
               <i class="fa-solid fa-camera text-primary mt-0.5"></i>
-              <span>Наведите камеру смартфона на код</span>
+              <span>Наведите камеру смартфона на код или откройте демо по кнопке</span>
             </li>
             <li class="flex items-start gap-2">
               <i class="fa-solid fa-mobile-screen text-primary mt-0.5"></i>
-              <span>Откроется сценарий в приложении QrStars</span>
+              <span>Откроется в браузере, приложение не нужно</span>
             </li>
             <li class="flex items-start gap-2">
               <i class="fa-solid fa-palette text-primary mt-0.5"></i>
-              <span>Брендирование: цвета и логотип QrStars</span>
+              <span>Ваши цвета, а на PRO — ваш логотип вместо QrStars</span>
             </li>
           </ul>
           <a
             href={scanUrl}
             target="_blank"
             rel="noopener noreferrer"
-            class="inline-flex items-center justify-center gap-2 text-primary font-semibold hover:underline"
+            data-goal="demo_open"
+            data-goal-params={JSON.stringify({ source: 'demo_qr_scan', mode: modeLabel })}
+            class="md:hidden flex w-full items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/20 hover:bg-indigo-700 transition"
+          >
+            Открыть демо
+            <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+          </a>
+          <a
+            href={scanUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-goal="demo_open"
+            data-goal-params={JSON.stringify({ source: 'demo_qr_scan', mode: modeLabel })}
+            class="hidden md:inline-flex items-center justify-center gap-2 text-primary font-semibold hover:underline"
           >
             Открыть демо в браузере
             <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>

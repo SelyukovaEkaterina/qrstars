@@ -10,7 +10,13 @@ const SNOOZE_DAYS = 30;
 const UXCHECK_URL =
   "https://uxcheck.ru/?utm_source=qrstars&utm_medium=referral&utm_campaign=qrstars_cross&utm_content=dashboard_banner";
 
-/** Промо соседнего сервиса UXCheck — ИИ-аудит юзабилити сайта. Скрывается на 30 дней. */
+/** Только главная проекта: /dashboard/projects/[id] (без вложенных разделов и «Без проекта»). */
+const PROJECT_HOME_RE = /^\/dashboard\/projects\/(?!unassigned$)[^/]+\/?$/;
+
+/**
+ * Промо соседнего сервиса UXCheck — ИИ-аудит юзабилити сайта. Скрывается на 30 дней.
+ * Показывается только на главной проекта; на мобильном — одна-две строки.
+ */
 export default function UxCheckPromoBanner() {
   const pathname = usePathname();
   const [visible, setVisible] = useState(false);
@@ -25,14 +31,15 @@ export default function UxCheckPromoBanner() {
   }, []);
 
   if (!visible) return null;
-  if (pathname === "/dashboard/subscription") return null;
+  if (!pathname || !PROJECT_HOME_RE.test(pathname)) return null;
 
   return (
-    <div className="flex items-center gap-3 border-b border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm text-emerald-950">
-      <ScanSearch className="h-4 w-4 shrink-0 text-emerald-600" />
+    <div className="flex items-center gap-2 border-b border-emerald-200 bg-emerald-50 py-1.5 pl-4 pr-1 text-xs text-emerald-950 sm:gap-3 sm:py-2.5 sm:pr-4 sm:text-sm">
+      <ScanSearch className="hidden h-4 w-4 shrink-0 text-emerald-600 sm:block" />
       <p className="min-w-0 flex-1 leading-snug">
         <span className="font-semibold">Сайт теряет заявки?</span>{" "}
-        <span className="text-emerald-900/80">
+        <span className="text-emerald-900/80 sm:hidden">UXCheck найдёт ошибки, первый аудит бесплатно.</span>
+        <span className="hidden text-emerald-900/80 sm:inline">
           Наш второй сервис UXCheck проходит сайт в реальном браузере и находит битые кнопки, трение
           в формах и слабые тексты. Первый аудит бесплатно, без карты.
         </span>{" "}
@@ -48,7 +55,7 @@ export default function UxCheckPromoBanner() {
       <button
         type="button"
         aria-label="Скрыть"
-        className="shrink-0 rounded-md p-1 text-emerald-600 transition-colors hover:bg-emerald-100 hover:text-emerald-800"
+        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-emerald-600 sm:h-auto sm:w-auto sm:p-1 transition-colors hover:bg-emerald-100 hover:text-emerald-800"
         onClick={() => {
           setVisible(false);
           try {

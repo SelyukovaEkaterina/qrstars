@@ -32,16 +32,18 @@ export default function ProductIdeasPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 px-4 py-8">
+    <div className="mx-auto max-w-2xl space-y-6 p-4 sm:p-6 lg:p-8">
       <div>
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-1 text-sm font-medium text-gray-500 transition hover:text-indigo-600"
+          className="inline-flex min-h-10 items-center gap-1 text-sm font-medium text-gray-500 transition hover:text-indigo-600"
         >
           <ArrowLeft className="h-4 w-4" /> Назад в кабинет
         </Link>
-        <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
-          <Lightbulb className="h-4 w-4" /> Влияем на продукт
+        <div className="mt-3 flex">
+          <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-sm font-semibold text-amber-800">
+            <Lightbulb className="h-4 w-4" /> Влияем на продукт
+          </div>
         </div>
         <h1 className="mt-3 text-2xl font-bold text-gray-950">Есть идея или что-то не работает?</h1>
         <p className="mt-2 text-gray-600">
@@ -49,7 +51,7 @@ export default function ProductIdeasPage() {
         </p>
       </div>
 
-      <Card className="p-6">
+      <Card className="p-4 sm:p-6">
         {status === "sent" ? (
           <div className="space-y-3 text-center py-5">
             <div className="text-3xl">Спасибо!</div>
@@ -69,11 +71,11 @@ export default function ProductIdeasPage() {
               required
               rows={8}
               placeholder="Например: хотелось бы видеть отдельно отзывы из 2GIS, или на такой-то странице не получается сохранить изменения…"
-              className="w-full resize-y rounded-xl border border-gray-300 px-4 py-3 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
+              className="w-full resize-y rounded-xl border border-gray-300 px-4 py-3 text-base sm:text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100"
             />
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-gray-500">{message.length}/4000</p>
-              <Button type="submit" disabled={status === "sending"}>
+              <Button type="submit" className="min-h-10" disabled={status === "sending"}>
                 <Send className="mr-2 h-4 w-4" />
                 {status === "sending" ? "Отправляем…" : "Отправить команде"}
               </Button>

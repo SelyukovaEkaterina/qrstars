@@ -10,7 +10,7 @@ fullTitle: true
 ctaText: "Открыть бесплатный генератор"
 ctaHref: "/free-qr-generator.html"
 ctaSecondaryText: "Динамический QR в кабинете"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=generator-qr-kodov"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=generator-qr-kodov"
 faq:
   - q: "Где бесплатный генератор QR-кода без регистрации?"
     a: "На странице конструктора QrStars: создайте статический QR и скачайте PNG/SVG без аккаунта. Регистрация нужна только для динамического кода со статистикой."
@@ -69,6 +69,6 @@ related:
 
 Если у вас физическая точка, «просто PNG» часто не закрывает задачу. Эффективнее [QR-код для отзывов](/qr-kod-dlya-otzyvov.html) на [Яндекс Картах](/qr-kod-dlya-yandeks-kart.html) и в [2ГИС](/qr-kod-dlya-2gis.html).
 
-[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=generator-qr-kodov-pivot)
+[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=generator-qr-kodov-pivot)
 
 Попробуйте **генератор qr кодов на русском** — [создайте первый код](/free-qr-generator.html) за 30 секунд.

@@ -9,7 +9,7 @@ ctaText: "Создать QR на видео"
 ctaHref: "/free-qr-generator.html"
 ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Динамический QR в кабинете"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-dlya-video"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-dlya-video"
 ctaSecondaryGoal: "register_click"
 faq:
   - q: "Как сделать QR-код для видео на YouTube?"
@@ -166,7 +166,7 @@ YouTube остаётся крупнейшей видеоплатформой, и
 * **Защита репутации**: В системе QrStars довольные гости (4–5★) направляются сразу на карточку Яндекс Карт или 2GIS, а гости с претензией (1–3★) попадают в закрытую форму, где их замечание мгновенно уходит управляющему на Email или в Telegram.
 * **Все модули в одном коде**: В личном кабинете QrStars можно объединить отзывы, электронное [меню](/qr-menu.html) и подключение к [гостевому Wi-Fi](/qr-kod-dlya-wifi.html) на едином стильном микросайте заведения.
 
-[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=qr-kod-dlya-video-pivot)
+[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=qr-kod-dlya-video-pivot)
 
 ---
 

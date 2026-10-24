@@ -8,6 +8,7 @@ import {
   UNASSIGNED_PROJECT_ID,
   isUnassignedProjectId,
   projectPagePath,
+  projectCardPath,
   projectQrPath,
   projectQrcodesPath,
 } from "@/lib/project-routes";
@@ -95,13 +96,12 @@ import {
   Download,
   Save,
   Palette,
-  FileText,
   X,
   Layout,
   ChevronDown,
   QrCode,
-  LayoutTemplate,
   Pencil,
+  ExternalLink,
   Crown,
   Copy,
   Check,
@@ -109,16 +109,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
-import { generatePDFFromLayout, generateQRForPDF } from "@/lib/pdf-generator";
-import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
 import { scanUrlForCode } from "@/lib/utils";
 import type { TemplateLayout } from "@/types/template";
-import {
-  renderSticker,
-  FORMATS,
-  DEFAULT_STICKER_CONFIG,
-  type StickerConfig,
-} from "@/components/dashboard/StickerDesigner";
 import QRTemplateEditor from "@/components/dashboard/QRTemplateEditor";
 import {
   QR_CODE_TEMPLATES,
@@ -130,16 +122,13 @@ import {
   resolveQrStyleName,
   isBuiltInQrStyleTemplateId,
   type QRTemplateConfig,
-  type QrStyleTemplateSource,
 } from "@/lib/qr-code-templates";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
 import {
   BUILTIN_STICKER_TEMPLATES,
-  builtinStickerTemplateRows,
-  isBuiltInStickerTemplateId,
-  resolveStickerTemplate,
   stickerPresetTemplateId,
 } from "@/lib/builtin-sticker-templates";
+import { PLAN_PRICING, formatRub } from "@/lib/plans";
 import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
 
@@ -222,12 +211,11 @@ export default function QRCodeSettingsPage() {
   const [legacyFileMode, setLegacyFileMode] = useState(false);
 
   const [isPro, setIsPro] = useState(false);
-  const [pdfDownloading, setPdfDownloading] = useState(false);
   const [qrDownloading, setQrDownloading] = useState(false);
-  const [pdfHint, setPdfHint] = useState("");
   const [qrHint, setQrHint] = useState("");
   const [deletingQr, setDeletingQr] = useState(false);
-  const [showTableTemplatePicker, setShowTableTemplatePicker] = useState(false);
+  /** API вернул upgradeRequired (403 по тарифу) — показываем ссылку на тарифы. */
+  const [upgradeRequired, setUpgradeRequired] = useState(false);
   const [showQrStyleTemplatePicker, setShowQrStyleTemplatePicker] = useState(false);
   const [editingQrStyleTemplate, setEditingQrStyleTemplate] = useState<Template | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
@@ -267,29 +255,9 @@ export default function QRCodeSettingsPage() {
     [qrId, isCreateMode],
   );
 
-  const persistTableTemplate = useCallback(
-    async (nextId: string) => {
-      setTemplateId(nextId);
-      if (isCreateMode) return;
-      try {
-        const res = await fetch("/api/qrcodes", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: qrId, templateId: nextId || null }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setQrData((prev) => (prev ? { ...prev, templateId: data.qrcode.templateId } : prev));
-        }
-      } catch {
-        /* ignore */
-      }
-    },
-    [qrId, isCreateMode],
-  );
-
   useEffect(() => {
-    setShowWelcome(new URLSearchParams(window.location.search).get("welcome") === "1");
+    const welcome = new URLSearchParams(window.location.search).get("welcome") === "1";
+    if (welcome) queueMicrotask(() => setShowWelcome(true));
   }, []);
 
   useEffect(() => {
@@ -475,24 +443,10 @@ export default function QRCodeSettingsPage() {
     return () => clearTimeout(timer);
   }, [qrStyleTemplateId, isPro, qrData, templates, generateQRImage]);
 
-  const stickerTemplates = [
-    ...builtinStickerTemplateRows(),
-    ...templates.filter(
-      (t) =>
-        (t.layout as { __type?: string }).__type === "sticker"
-        && !isBuiltInStickerTemplateId(t.id),
-    ),
-  ];
-
   const qrStyleTemplates = templates.filter(
     (t) => (t.layout as { __type?: string }).__type === "qr-style"
   );
 
-  const getEnhancedStickerConfig = useCallback((baseCfg: StickerConfig): StickerConfig => {
-    const qrStyle = resolveQrStyleConfig(qrStyleTemplateId, qrStyleTemplates);
-    if (!qrStyle) return baseCfg;
-    return { ...baseCfg, qrStyleConfig: qrStyle };
-  }, [qrStyleTemplateId, qrStyleTemplates]);
   const userQrStyleTemplates = qrStyleTemplates.filter((t) => !isBuiltInQrStyleTemplateId(t.id));
 
   const openEditQrStyleTemplate = useCallback((t: Template) => {
@@ -561,78 +515,9 @@ export default function QRCodeSettingsPage() {
     }
   };
 
-  const handleDownloadTablePDF = async () => {
-    if (isCreateMode) {
-      setPdfHint("Сначала создайте QR-код");
-      return;
-    }
-    if (!templateId || !qrData) {
-      setPdfHint("Для скачивания таблички привяжите шаблон");
-      return;
-    }
-
-    const resolved = resolveStickerTemplate(templateId, templates);
-    if (!resolved?.layout) {
-      setPdfHint("Шаблон не найден");
-      return;
-    }
-
-    setPdfDownloading(true);
-    setPdfHint("");
-    try {
-      const layout = resolved.layout as { __type?: string; stickerConfig?: StickerConfig; elements?: unknown[] };
-
-      if (layout.__type === "sticker" && layout.stickerConfig) {
-        /* ── New sticker renderer ── */
-        const baseCfg: StickerConfig = { ...layout.stickerConfig, url: scanUrlForCode(qrData.code) };
-        const cfg = getEnhancedStickerConfig(baseCfg);
-        const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-        const canvas = document.createElement("canvas");
-        await renderSticker(canvas, cfg, fmt, false);
-        const imgData = canvas.toDataURL("image/png", 1.0);
-        const { jsPDF } = await import("jspdf");
-        const grid = calcA4StickerGrid(fmt.id, fmt.wMm, fmt.hMm);
-        const doc = new jsPDF({ unit: "mm", format: "a4", orientation: grid.orientation });
-        const { cols, rows, marginX, marginY, spacing } = grid;
-
-        for (let r = 0; r < rows; r++) {
-          for (let c = 0; c < cols; c++) {
-            const x = marginX + c * (fmt.wMm + spacing);
-            const y = marginY + r * (fmt.hMm + spacing);
-
-            // Add sticker image
-            doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
-
-            // Draw dashed cut border
-            doc.setDrawColor(180, 180, 180);
-            doc.setLineDashPattern([2, 2], 0);
-            doc.rect(x, y, fmt.wMm, fmt.hMm);
-          }
-        }
-
-        doc.save(`sticker-${qrData.code}.pdf`);
-      } else {
-        /* ── Legacy layout renderer ── */
-        const legacyLayout = resolved.layout as unknown as TemplateLayout;
-        const qrEl = legacyLayout.elements?.find((e) => e.type === "qr");
-        const qrDataUrl = await generateQRForPDF(
-          scanUrlForCode(qrData.code),
-          qrEl?.qrColor || "#1e1b4b",
-          qrEl?.qrBgColor || "#ffffff",
-          { isPro },
-        );
-        await generatePDFFromLayout(legacyLayout, qrDataUrl);
-      }
-    } catch {
-      setPdfHint("Ошибка генерации PDF");
-    } finally {
-      setPdfDownloading(false);
-    }
-  };
-
   useEffect(() => {
     if (!establishmentId) {
-      setLandingPreview(null);
+      queueMicrotask(() => setLandingPreview(null));
       return;
     }
     fetch(`/api/establishments/${establishmentId}/page`)
@@ -685,6 +570,7 @@ export default function QRCodeSettingsPage() {
     }
     setSaving(true);
     setError("");
+    setUpgradeRequired(false);
     setSaved(false);
 
     try {
@@ -702,6 +588,7 @@ export default function QRCodeSettingsPage() {
         const postData = await postRes.json();
         if (!postRes.ok) {
           setError(postData.error || "Ошибка создания");
+          setUpgradeRequired(Boolean(postData.upgradeRequired));
           return;
         }
 
@@ -727,6 +614,7 @@ export default function QRCodeSettingsPage() {
         if (!putRes.ok) {
           const putData = await putRes.json();
           setError(putData.error || "QR создан, но не все настройки сохранились");
+          setUpgradeRequired(Boolean(putData.upgradeRequired));
           router.replace(projectQrPath(lockedEstId || establishmentId || UNASSIGNED_PROJECT_ID, newId));
           return;
         }
@@ -758,8 +646,9 @@ export default function QRCodeSettingsPage() {
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setError(data.error || "Ошибка сохранения");
+        setUpgradeRequired(Boolean(data.upgradeRequired));
         return;
       }
 
@@ -834,7 +723,7 @@ export default function QRCodeSettingsPage() {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+          <main className="flex min-w-0 flex-1 items-center justify-center p-4">
           <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
         </main>
       </div>
@@ -844,7 +733,7 @@ export default function QRCodeSettingsPage() {
   if (!isCreateMode && !qrData) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
+          <main className="flex min-w-0 flex-1 items-center justify-center p-4">
           <div className="text-center space-y-4">
             <p className="text-lg text-gray-500">{error || "QR-код не найден"}</p>
             <Button onClick={() => router.push(projectQrcodesPath(lockedEstId || lockedProjectId || UNASSIGNED_PROJECT_ID))}>
@@ -864,9 +753,22 @@ export default function QRCodeSettingsPage() {
   const previewName =
     qrData.establishment?.name ||
     establishments.find((e) => e.id === establishmentId)?.name ||
-    "Заведение";
+    "Проект";
   const canSelectLanding =
     isPro || !!qrData.landingGrandfathered || (!isCreateMode && mode === "LANDING");
+  const backProjectId =
+    lockedEstId || lockedProjectId || establishmentId || UNASSIGNED_PROJECT_ID;
+  const micrositeHref =
+    lockedEstId || establishmentId
+      ? projectPagePath(lockedEstId || establishmentId)
+      : "/dashboard/projects";
+  const guestHref = `/q/${encodeURIComponent(qrData.code)}`;
+  /** На мобиле в режиме создания «Режим работы» идёт раньше «Основных настроек». */
+  const reorderForCreate = isCreateMode;
+  const selectClass =
+    "w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500";
+  const smallActionClass =
+    "inline-flex min-h-10 items-center gap-0.5 text-xs font-medium sm:min-h-0";
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -874,50 +776,90 @@ export default function QRCodeSettingsPage() {
         open={showLandingPaywall}
         onClose={() => setShowLandingPaywall(false)}
       />
-      <main className="flex-1 p-8">
-        <div className="w-full space-y-6">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push(projectQrcodesPath(lockedEstId || lockedProjectId || establishmentId || UNASSIGNED_PROJECT_ID))}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
+        <div className="mx-auto w-full max-w-6xl space-y-6">
+          <div className="flex items-start gap-2 sm:items-center sm:gap-3">
+            <Link
+              href={projectQrcodesPath(backProjectId)}
+              aria-label="К списку QR-кодов"
+              className="-ml-2 shrink-0 rounded-lg p-2 text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
             >
               <ArrowLeft className="w-5 h-5" />
-            </button>
-            <div>
+            </Link>
+            <div className="min-w-0 flex-1">
               <h1 className="text-2xl font-bold text-gray-900">
                 {isCreateMode ? "Новый QR-код" : "Настройка QR-кода"}
               </h1>
               <p className="text-gray-500 mt-1 text-sm">
                 {isCreateMode
-                  ? "Настройте маршрут и оформление, затем создайте код"
-                  : <span className="font-mono">{qrData.code}</span>}
+                  ? "Выберите, куда попадёт гость, затем создайте код"
+                  : <span className="font-mono break-all">{qrData.code}</span>}
               </p>
             </div>
+            {!isCreateMode && (
+              <a
+                href={guestHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden shrink-0 items-center gap-1.5 rounded-lg border-2 border-gray-300 px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 sm:inline-flex"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Открыть как гость
+              </a>
+            )}
           </div>
 
-          {showWelcome && (
+          {showWelcome && !isCreateMode && (
             <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-900">
-              <strong>QR готов к работе.</strong> Гости увидят страницу заведения. Скачайте QR-код
-              или табличку ниже и проверьте ссылку «Открыть как гость».
+              <strong>QR готов к работе.</strong> Скачайте QR-код (PNG или SVG) в блоке «Шаблон
+              QR-кода» и проверьте, что увидит гость:{" "}
+              <a
+                href={guestHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium underline underline-offset-2 hover:text-green-700"
+              >
+                открыть как гость
+              </a>
+              .
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-1 space-y-4">
+          <div className="flex flex-col gap-6">
+          <div
+            className={
+              reorderForCreate
+                ? "contents lg:grid lg:grid-cols-3 lg:gap-6"
+                : "grid grid-cols-1 lg:grid-cols-3 gap-6"
+            }
+          >
+            <div className={`lg:col-span-1 space-y-4 ${reorderForCreate ? "order-1 lg:order-none" : ""}`}>
               <Card padding="sm">
-                <div className="flex items-center justify-center min-h-[220px]">
+                <div className="relative flex items-center justify-center min-h-[180px] sm:min-h-[220px]">
                   {qrImageUrl && (
                     <img
                       src={qrImageUrl}
-                      alt={`QR ${qrData.code}`}
-                      className="max-w-full max-h-64 w-auto h-auto rounded-lg object-contain"
+                      alt={isCreateMode ? "Черновик QR-кода" : `QR ${qrData.code}`}
+                      className={`max-w-full max-h-56 sm:max-h-64 w-auto h-auto rounded-lg object-contain ${
+                        isCreateMode ? "opacity-40" : ""
+                      }`}
                     />
                   )}
+                  {isCreateMode && (
+                    <span className="absolute inset-x-0 top-1/2 mx-auto w-fit -translate-y-1/2 rounded-full bg-gray-900/80 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
+                      Черновик
+                    </span>
+                  )}
                 </div>
+                {isCreateMode && (
+                  <p className="mt-2 text-center text-xs text-gray-500">
+                    Настоящий код и ссылка появятся после создания
+                  </p>
+                )}
                 {!isCreateMode && (
                   <div className="mt-3 border-t border-gray-100 pt-3">
                     <p className="mb-1 text-xs font-medium text-gray-500">Короткая ссылка</p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="min-w-0 flex-1 truncate rounded-lg bg-gray-50 px-3 py-2 font-mono text-xs text-gray-700">
                         {scanUrlForCode(qrData.code)}
                       </span>
@@ -925,6 +867,7 @@ export default function QRCodeSettingsPage() {
                         type="button"
                         size="sm"
                         variant="outline"
+                        className="h-10 sm:h-auto"
                         onClick={() => {
                           const url = scanUrlForCode(qrData.code);
                           const copyPromise = navigator.clipboard
@@ -948,6 +891,15 @@ export default function QRCodeSettingsPage() {
                         {shortLinkCopied ? "Скопировано" : "Копировать"}
                       </Button>
                     </div>
+                    <a
+                      href={guestHref}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-2 inline-flex min-h-10 items-center gap-1.5 text-sm font-medium text-indigo-600 hover:text-indigo-800 sm:min-h-0"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Открыть как гость
+                    </a>
                   </div>
                 )}
               </Card>
@@ -974,7 +926,7 @@ export default function QRCodeSettingsPage() {
                   )}
                   {qrData.establishment && (
                     <div className="flex items-center justify-between">
-                      <span className="text-gray-500">Заведение</span>
+                      <span className="text-gray-500">Проект</span>
                       <span className="font-medium text-right truncate max-w-[140px]">
                         {qrData.establishment.name}
                       </span>
@@ -997,7 +949,7 @@ export default function QRCodeSettingsPage() {
               </Card>
             </div>
 
-            <div className="lg:col-span-2 space-y-4">
+            <div className={`lg:col-span-2 space-y-4 ${reorderForCreate ? "order-3 lg:order-none" : ""}`}>
               <Card>
                 <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <Palette className="w-4 h-4" />
@@ -1023,7 +975,7 @@ export default function QRCodeSettingsPage() {
                     <select
                       value={establishmentId}
                       onChange={(e) => setEstablishmentId(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className={selectClass}
                     >
                       <option value="">Без проекта · Активен</option>
                       {establishments.map((est) => (
@@ -1067,7 +1019,7 @@ export default function QRCodeSettingsPage() {
                                 <button
                                   type="button"
                                   onClick={() => setShowQrStyleTemplatePicker(true)}
-                                  className="text-xs text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-0.5"
+                                  className={`${smallActionClass} text-indigo-600 hover:text-indigo-800`}
                                 >
                                   {selectedName ? "Сменить" : "Выбрать"} <ChevronDown className="w-3 h-3" />
                                 </button>
@@ -1077,7 +1029,7 @@ export default function QRCodeSettingsPage() {
                                     <button
                                       type="button"
                                       onClick={() => openEditQrStyleTemplate(selectedUserTpl)}
-                                      className="text-xs text-gray-500 hover:text-indigo-600"
+                                      className={`${smallActionClass} text-gray-500 hover:text-indigo-600`}
                                     >
                                       Редактировать
                                     </button>
@@ -1089,7 +1041,7 @@ export default function QRCodeSettingsPage() {
                                     <button
                                       type="button"
                                       onClick={() => void persistQrStyleTemplate("")}
-                                      className="text-xs text-gray-400 hover:text-red-500"
+                                      className={`${smallActionClass} text-gray-400 hover:text-red-500`}
                                     >
                                       Убрать
                                     </button>
@@ -1098,7 +1050,7 @@ export default function QRCodeSettingsPage() {
                                 <span className="text-gray-300">·</span>
                                 <Link
                                   href={TEMPLATE_ROUTES.qr}
-                                  className="text-xs text-gray-500 hover:text-indigo-600"
+                                  className={`${smallActionClass} text-gray-500 hover:text-indigo-600`}
                                 >
                                   Шаблоны QR-кодов →
                                 </Link>
@@ -1107,11 +1059,17 @@ export default function QRCodeSettingsPage() {
                           </div>
                         );
                       })()}
+                      {isCreateMode ? (
+                        <p className="text-xs text-gray-500">
+                          Скачать PNG и SVG можно после создания QR-кода.
+                        </p>
+                      ) : (
                       <div className="flex flex-wrap items-center gap-2">
                         <Button
                           type="button"
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
+                          className="h-10 sm:h-9"
                           onClick={() => void handleDownloadQR("png")}
                           disabled={qrDownloading}
                         >
@@ -1121,7 +1079,8 @@ export default function QRCodeSettingsPage() {
                         <Button
                           type="button"
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
+                          className="h-10 sm:h-9"
                           onClick={() =>
                             void handleDownloadQR("png", { transparentBackground: true })
                           }
@@ -1134,7 +1093,8 @@ export default function QRCodeSettingsPage() {
                         <Button
                           type="button"
                           size="sm"
-                          variant="ghost"
+                          variant="outline"
+                          className="h-10 sm:h-9"
                           onClick={() => void handleDownloadQR("svg")}
                           disabled={qrDownloading}
                         >
@@ -1142,6 +1102,7 @@ export default function QRCodeSettingsPage() {
                           SVG
                         </Button>
                       </div>
+                      )}
                       {qrHint && (
                         <p className="mt-1 text-xs text-amber-700">{qrHint}</p>
                       )}
@@ -1154,7 +1115,11 @@ export default function QRCodeSettingsPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+          <div
+            className={`grid grid-cols-1 xl:grid-cols-3 gap-6 ${
+              reorderForCreate ? "order-2 lg:order-none" : ""
+            }`}
+          >
             <div className="xl:col-span-2 space-y-4">
               <Card>
                 <h3 className="font-semibold text-gray-900 mb-2">Режим работы</h3>
@@ -1229,13 +1194,14 @@ export default function QRCodeSettingsPage() {
                       </p>
                     )}
                     <p className="text-sm text-indigo-900 mb-3">
-                      Контент страницы настраивается один раз для всего заведения
+                      Контент страницы настраивается один раз для всего проекта
                     </p>
-                    <Link href={lockedEstId || establishmentId ? projectPagePath(lockedEstId || establishmentId) : "/dashboard/projects"}>
-                      <Button type="button" variant="secondary" size="sm">
-                        <Layout className="w-4 h-4 mr-2" />
-                        Редактировать микросайт
-                      </Button>
+                    <Link
+                      href={micrositeHref}
+                      className="inline-flex h-10 items-center justify-center rounded-lg bg-gray-100 px-3 text-sm font-medium text-gray-900 transition-colors hover:bg-gray-200 sm:h-9"
+                    >
+                      <Layout className="w-4 h-4 mr-2" />
+                      Редактировать микросайт
                     </Link>
                   </div>
                 )}
@@ -1256,7 +1222,7 @@ export default function QRCodeSettingsPage() {
                           applyRouting("SECTION", val as BuiltinSectionTarget, null);
                         }
                       }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                      className={selectClass}
                     >
                       <optgroup label="Основные разделы">
                         {BUILTIN_SECTION_OPTIONS.map((opt) => (
@@ -1295,15 +1261,29 @@ export default function QRCodeSettingsPage() {
                       if (!hiddenBuiltin && !hiddenCustom) return null;
                       return (
                         <p className="text-xs text-indigo-600 mt-1">
-                          Раздел скрыт на микро-лендинге, но откроется по этому QR-коду.
+                          Раздел скрыт в микросайте, но откроется по этому QR-коду.
                         </p>
                       );
                     })()}
                     <p className="text-xs text-gray-400 mt-2">
-                      Контент раздела — в{" "}
-                      <Link href={lockedEstId || establishmentId ? projectPagePath(lockedEstId || establishmentId) : "/dashboard/projects"} className="text-indigo-600 hover:underline">
-                        Микросайте
-                      </Link>
+                      {sectionTarget === "BUSINESS_CARD" && (lockedEstId || establishmentId) ? (
+                        <>
+                          Данные визитки — в разделе{" "}
+                          <Link
+                            href={projectCardPath(lockedEstId || establishmentId)}
+                            className="text-indigo-600 hover:underline"
+                          >
+                            «Визитка»
+                          </Link>
+                        </>
+                      ) : (
+                        <>
+                          Контент раздела — в{" "}
+                          <Link href={micrositeHref} className="text-indigo-600 hover:underline">
+                            Микросайте
+                          </Link>
+                        </>
+                      )}
                     </p>
                   </div>
                 )}
@@ -1338,7 +1318,7 @@ export default function QRCodeSettingsPage() {
                           href="/dashboard/subscription"
                           className="sm:col-span-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-base font-semibold text-white hover:bg-indigo-700"
                         >
-                          Купить PRO за 990 ₽ на год →
+                          Купить PRO за {formatRub(PLAN_PRICING.PRO.yearlyRub)} на год →
                         </Link>
                       </div>
                     )}
@@ -1349,7 +1329,7 @@ export default function QRCodeSettingsPage() {
                   <div className="mt-4 space-y-3">
                     <div className="p-3 rounded-lg bg-amber-50 border border-amber-100 text-sm text-amber-900">
                       Режим «Скачать файл» устарел. Создайте страницу типа «Скачать файл» в{" "}
-                      <Link href={lockedEstId || establishmentId ? projectPagePath(lockedEstId || establishmentId) : "/dashboard/projects"} className="font-medium underline">
+                      <Link href={micrositeHref} className="font-medium underline">
                         Микросайте
                       </Link>{" "}
                       и выберите её в «Быстрый доступ».
@@ -1364,9 +1344,13 @@ export default function QRCodeSettingsPage() {
                 )}
 
                 {error && (
-                  <div className="mt-4 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  <div
+                    className={`mt-4 bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm ${
+                      reorderForCreate ? "hidden lg:block" : ""
+                    }`}
+                  >
                     {error}
-                    {error.includes("PRO") && (
+                    {upgradeRequired && (
                       <Link
                         href="/dashboard/subscription"
                         className="block mt-2 font-medium text-indigo-700 hover:text-indigo-900"
@@ -1378,8 +1362,12 @@ export default function QRCodeSettingsPage() {
                 )}
 
                 {!legacyFileMode && (
-                  <div className="mt-6 flex items-center gap-3">
-                    <Button onClick={handleSaveBasic} disabled={saving}>
+                  <div
+                    className={`mt-6 flex-wrap items-center gap-3 ${
+                      reorderForCreate ? "hidden lg:flex" : "flex"
+                    }`}
+                  >
+                    <Button onClick={handleSaveBasic} disabled={saving} className="h-10 w-full sm:w-auto">
                       {saving ? (
                         <>
                           <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1401,7 +1389,7 @@ export default function QRCodeSettingsPage() {
             </div>
 
             <div className="xl:col-span-1">
-              <Card className="sticky top-8">
+              <Card className="xl:sticky xl:top-8">
                 <RoutingPreview
                   routingGroup={routingGroup}
                   section={routingGroup === "SECTION" ? sectionTarget : undefined}
@@ -1418,21 +1406,69 @@ export default function QRCodeSettingsPage() {
               </Card>
             </div>
           </div>
+
+          {reorderForCreate && !legacyFileMode && (
+            /* На мобиле «Основные настройки» идут после режима — кнопка создания в самом конце. */
+            <div className="order-4 space-y-3 lg:hidden">
+              {error && (
+                <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                  {upgradeRequired && (
+                    <Link
+                      href="/dashboard/subscription"
+                      className="block mt-2 font-medium text-indigo-700 hover:text-indigo-900"
+                    >
+                      Перейти к тарифам →
+                    </Link>
+                  )}
+                </div>
+              )}
+              <Button onClick={handleSaveBasic} disabled={saving} className="h-11 w-full">
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Создаём...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Создать QR-код
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          </div>
         </div>
       </main>
 
       {/* ── QR style template picker ── */}
       {showQrStyleTemplatePicker && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900 text-lg">Шаблон QR-кода</h3>
-              <button onClick={() => setShowQrStyleTemplatePicker(false)} className="text-gray-400 hover:text-gray-600">
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 backdrop-blur-sm sm:items-center sm:p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowQrStyleTemplatePicker(false);
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="qr-style-picker-title"
+            className="flex h-[92dvh] w-full max-w-3xl flex-col rounded-t-2xl bg-white shadow-2xl sm:h-auto sm:max-h-[85vh] sm:rounded-2xl"
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-3 sm:p-5">
+              <h3 id="qr-style-picker-title" className="font-bold text-gray-900 text-lg">Шаблон QR-кода</h3>
+              <button
+                type="button"
+                aria-label="Закрыть"
+                onClick={() => setShowQrStyleTemplatePicker(false)}
+                className="-mr-2 rounded-lg p-2 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-y-auto p-5 space-y-5">
-              <div className="grid grid-cols-3 gap-3">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 space-y-5 sm:p-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <button
                   onClick={() => { void persistQrStyleTemplate(""); setShowQrStyleTemplatePicker(false); }}
                   className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
@@ -1446,7 +1482,7 @@ export default function QRCodeSettingsPage() {
 
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Готовые стили</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                   {QR_CODE_TEMPLATES.map((preset) => {
                     const id = qrStylePresetTemplateId(preset.id);
                     return (
@@ -1472,7 +1508,7 @@ export default function QRCodeSettingsPage() {
               {userQrStyleTemplates.length > 0 && (
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Мои шаблоны</p>
-                  <div className="grid grid-cols-3 gap-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     {userQrStyleTemplates.map((t) => {
                       const config = (t.layout as { config?: QRTemplateConfig }).config;
                       if (!config) return null;
@@ -1496,7 +1532,7 @@ export default function QRCodeSettingsPage() {
                           <button
                             type="button"
                             onClick={() => openEditQrStyleTemplate(t)}
-                            className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium flex items-center gap-1"
+                            className="flex min-h-10 items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 sm:min-h-0"
                           >
                             <Pencil className="w-3 h-3" />
                             Редактировать
@@ -1508,15 +1544,15 @@ export default function QRCodeSettingsPage() {
                 </div>
               )}
             </div>
-            <div className="p-4 border-t border-gray-100 flex justify-between items-center">
+            <div className="flex items-center justify-between gap-3 border-t border-gray-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
               <Link
                 href={TEMPLATE_ROUTES.qr}
                 onClick={() => setShowQrStyleTemplatePicker(false)}
-                className="text-sm text-indigo-600 hover:underline"
+                className="inline-flex min-h-10 items-center text-sm text-indigo-600 hover:underline"
               >
                 + Создать шаблон QR-кода
               </Link>
-              <button onClick={() => setShowQrStyleTemplatePicker(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
+              <button type="button" onClick={() => setShowQrStyleTemplatePicker(false)} className="h-10 shrink-0 px-4 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
                 Закрыть
               </button>
             </div>
@@ -1551,61 +1587,6 @@ export default function QRCodeSettingsPage() {
         );
       })()}
 
-      {/* ── Table template picker ── */}
-      {showTableTemplatePicker && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[80vh] flex flex-col">
-            <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900 text-lg">Шаблон таблички</h3>
-              <button onClick={() => setShowTableTemplatePicker(false)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            <div className="overflow-y-auto p-5">
-              <div className="grid grid-cols-3 gap-3">
-                <button
-                  onClick={() => { void persistTableTemplate(""); setShowTableTemplatePicker(false); }}
-                  className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                    !templateId ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
-                  }`}
-                >
-                  <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">—</div>
-                  <span className="text-xs text-gray-600 font-medium">Без шаблона</span>
-                </button>
-                {stickerTemplates.map((t) => {
-                    const cfg = (t.layout as { stickerConfig?: StickerConfig }).stickerConfig || DEFAULT_STICKER_CONFIG;
-                    return (
-                      <button
-                        key={t.id}
-                        onClick={() => { void persistTableTemplate(t.id); setShowTableTemplatePicker(false); }}
-                        className={`flex flex-col items-center gap-2 p-3 rounded-xl border-2 transition-all ${
-                          templateId === t.id ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"
-                        }`}
-                      >
-                        <div className="rounded-lg overflow-hidden shadow-sm">
-                          <StickerMiniPreview cfg={getEnhancedStickerConfig({ ...cfg, url: scanUrlForCode(qrData?.code || "demo") })} size={80} />
-                        </div>
-                        <span className="text-xs text-gray-700 font-medium text-center leading-tight line-clamp-2">{t.name}</span>
-                      </button>
-                    );
-                  })}
-              </div>
-            </div>
-            <div className="p-4 border-t border-gray-100 flex justify-between items-center">
-              <Link
-                href={TEMPLATE_ROUTES.tableTents}
-                onClick={() => setShowTableTemplatePicker(false)}
-                className="text-sm text-indigo-600 hover:underline"
-              >
-                + Создать шаблон таблички
-              </Link>
-              <button onClick={() => setShowTableTemplatePicker(false)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200">
-                Закрыть
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -1639,21 +1620,3 @@ function QRStyleMiniPreview({
   );
 }
 
-function StickerMiniPreview({ cfg, size = 56 }: { cfg: StickerConfig; size?: number }) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-
-  useEffect(() => {
-    const c = ref.current;
-    if (!c) return;
-    const thumbFmt = { ...fmt, previewW: size, previewH: size, dpi: 72 };
-    renderSticker(c, cfg, thumbFmt, true).catch(() => {});
-  }, [cfg, fmt, size]);
-
-  return (
-    <canvas
-      ref={ref}
-      style={{ display: "block", width: size, height: size }}
-    />
-  );
-}

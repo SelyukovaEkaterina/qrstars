@@ -12,10 +12,10 @@ import {
   isBuiltInQrStyleTemplateId,
   qrStylePresetTemplateId,
 } from "@/lib/qr-code-templates";
-import { calcA4StickerGrid } from "@/lib/a4-sticker-grid";
 import { scanUrlForCode, quotedEstablishmentName } from "@/lib/utils";
 import { trackEvent } from "@/lib/track-event";
-import type { RegistrationUtm } from "@/lib/registration-utm";
+import { parseRequestedPlanParam, type RegistrationUtm } from "@/lib/registration-utm";
+import { PLAN_PRICING, formatRub } from "@/lib/plans";
 import {
   orderSetupIntents,
   parseSetupIntentParam,
@@ -31,11 +31,6 @@ import YandexMapsOrgConfirm, {
   type YandexMapsOrgConfirmHandle,
 } from "@/components/dashboard/YandexMapsOrgConfirm";
 import {
-  renderSticker,
-  FORMATS,
-  type StickerConfig,
-} from "@/components/dashboard/StickerDesigner";
-import {
   inferIndustryFromUtm,
   industryQrStylePreset,
   isHorecaIndustry,
@@ -49,15 +44,13 @@ import {
 } from "@/lib/pd-consent";
 import { SETUP_GUIDE_DISMISS_KEY } from "@/lib/setup-wizard-path";
 import {
+  projectCardPath,
   projectHomePath,
   projectPagePath,
   projectQrPath,
 } from "@/lib/project-routes";
+import { MASTER_PROFESSION_SUGGESTIONS } from "@/lib/business-card";
 import { TEMPLATE_ROUTES } from "@/lib/template-routes";
-import {
-  BUILTIN_STICKER_TEMPLATES,
-  stickerPresetLayout,
-} from "@/lib/builtin-sticker-templates";
 import {
   Store,
   MapPin,
@@ -73,72 +66,29 @@ import {
   Star,
   LayoutGrid,
   ChevronLeft,
+  ChevronDown,
   ArrowUpRight,
-  Printer,
-  FileText,
   Palette,
   UtensilsCrossed,
   Crown,
   Copy,
+  LifeBuoy,
+  LogOut,
+  Contact,
+  Share2,
   type LucideIcon,
 } from "lucide-react";
 import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
+import { signOutTo } from "@/lib/sign-out-client";
 
-export type SetupIntent = "reviews" | "landing" | "redirect" | "menu";
+export type SetupIntent = "reviews" | "landing" | "redirect" | "menu" | "card";
 
-const ONBOARDING_TEMPLATES = BUILTIN_STICKER_TEMPLATES.map((preset) => ({
-  id: preset.id,
-  name: preset.shortName,
-  size: preset.sizeLabel,
-  desc: preset.description,
-  formatId: preset.stickerConfig.formatId,
-  config: {
-    url: "",
-    ...preset.stickerConfig,
-  } as StickerConfig,
-}));
+const REDIRECT_INSTANT_FEATURE = "Мгновенный переход по вашей ссылке при сканировании";
+const REDIRECT_FREE_FEATURE = "Переход через короткий экран QrStars (на PRO — мгновенно)";
 
-function StickerOnboardingPreview({
-  cfg,
-  code,
-}: {
-  cfg: StickerConfig;
-  code: string;
-}) {
-  const ref = useRef<HTMLCanvasElement>(null);
-  const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-
-  useEffect(() => {
-    const canvas = ref.current;
-    if (!canvas) return;
-
-    const maxPx = 200;
-    const scale = maxPx / Math.max(fmt.previewW, fmt.previewH);
-    const previewFmt = {
-      ...fmt,
-      previewW: Math.round(fmt.previewW * scale),
-      previewH: Math.round(fmt.previewH * scale),
-      dpi: 72,
-    };
-
-    const url = scanUrlForCode(code);
-    const renderCfg = { ...cfg, url };
-
-    renderSticker(canvas, renderCfg, previewFmt, true).catch(() => {});
-  }, [cfg, code, fmt]);
-
-  const displayW = Math.round((160 * fmt.previewW) / Math.max(fmt.previewW, fmt.previewH));
-  const displayH = Math.round((160 * fmt.previewH) / Math.max(fmt.previewW, fmt.previewH));
-
-  return (
-    <div className="flex items-center justify-center p-3 bg-slate-50 border border-slate-100 rounded-2xl shadow-inner max-w-[220px] mx-auto">
-      <canvas
-        ref={ref}
-        className="rounded-lg shadow-md max-w-full h-auto object-contain"
-        style={{ width: `${displayW}px`, height: `${displayH}px` }}
-      />
-    </div>
-  );
+function intentFeatures(option: (typeof INTENT_OPTIONS)[number], paid: boolean): string[] {
+  if (option.id !== "redirect" || paid) return option.features;
+  return option.features.map((f) => (f === REDIRECT_INSTANT_FEATURE ? REDIRECT_FREE_FEATURE : f));
 }
 
 const INTENT_OPTIONS: {
@@ -164,7 +114,7 @@ const INTENT_OPTIONS: {
       "1–3★ — жалоба отправляется вам, а не в открытый доступ",
       "Все оценки и отзывы сохраняются в личном кабинете",
       "Уведомления о новых отзывах в Telegram, MAX или на email",
-      "На тарифе PRO: свои сценарии и другие площадки (2GIS, Flamp)",
+      "На тарифе PRO: свои сценарии и другие площадки (2GIS, Авито)",
     ],
   },
   {
@@ -183,9 +133,24 @@ const INTENT_OPTIONS: {
     ],
   },
   {
+    id: "card",
+    title: "QR-визитка",
+    tagline: "Для мастера, специалиста или фрилансера",
+    icon: Contact,
+    accent: "hover:border-sky-300 hover:shadow-sky-100/80 group-hover:ring-sky-200",
+    iconWrap: "bg-gradient-to-br from-sky-100 to-cyan-50 text-sky-700 ring-sky-200/60",
+    features: [
+      "Клиент сканирует QR и сразу звонит или пишет в WhatsApp / Telegram",
+      "«Сохранить контакт» — ваш номер остаётся в телефоне клиента",
+      "Услуги и цены, район выезда, фото, ссылка на отзывы",
+      "Заявки с визитки приходят вам на почту или в мессенджер",
+      "Бесплатно, без ограничения по времени",
+    ],
+  },
+  {
     id: "landing",
-    title: "Микросайт с визиткой и ссылками",
-    tagline: "Для заведения, доклада или видео",
+    title: "Микросайт",
+    tagline: "Визитка, ссылки и разделы — для бизнеса, доклада или видео",
     icon: LayoutGrid,
     paid: true,
     accent: "hover:border-indigo-400 hover:shadow-indigo-100/80 group-hover:ring-indigo-300",
@@ -206,7 +171,7 @@ const INTENT_OPTIONS: {
     accent: "hover:border-emerald-300 hover:shadow-emerald-100/80 group-hover:ring-emerald-200",
     iconWrap: "bg-gradient-to-br from-emerald-100 to-teal-50 text-emerald-700 ring-emerald-200/60",
     features: [
-      "Мгновенный переход по вашей ссылке при сканировании",
+      REDIRECT_INSTANT_FEATURE,
       "Ссылку можно менять в любой момент — без перепечатки QR",
       "Подходит для сайта, Telegram-канала, соцсетей или приложения",
       "Встроенный конструктор дизайна: цвета, логотип, форма QR",
@@ -217,7 +182,7 @@ const INTENT_OPTIONS: {
 
 function SetupWizardShell({ children }: { children: ReactNode }) {
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-50 flex items-center justify-center px-4 py-10 sm:py-14">
+    <div className="relative min-h-screen w-full max-w-full overflow-hidden bg-slate-50 flex items-center justify-center px-4 py-10 sm:py-14">
       <div
         className="pointer-events-none absolute -top-32 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-indigo-200/40 blur-3xl"
         aria-hidden
@@ -231,23 +196,88 @@ function SetupWizardShell({ children }: { children: ReactNode }) {
   );
 }
 
+function WizardStepper({ labels, current }: { labels: string[]; current: number }) {
+  return (
+    <ol
+      className="flex flex-wrap items-center justify-center gap-x-1.5 gap-y-2 text-xs text-gray-500"
+      aria-label={`Шаг ${current + 1} из ${labels.length}`}
+    >
+      {labels.map((label, i) => {
+        const done = i < current;
+        const active = i === current;
+        return (
+          <li key={label} className="flex items-center gap-1.5">
+            {i > 0 && <span className="text-gray-300" aria-hidden>→</span>}
+            <span
+              className={`flex items-center gap-1 rounded-full border bg-white px-2 py-1 ${
+                active
+                  ? "border-indigo-200 text-indigo-700"
+                  : done
+                    ? "border-green-200 text-green-700"
+                    : "text-gray-400"
+              }`}
+              aria-current={active ? "step" : undefined}
+            >
+              <span
+                className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
+                  active
+                    ? "bg-indigo-600 text-white"
+                    : done
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-200 text-gray-600"
+                }`}
+              >
+                {done ? <Check className="h-3 w-3" strokeWidth={3} /> : i + 1}
+              </span>
+              {label}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/** Запасной выход из мастера: поддержка (страница доступна без проекта) и выход из аккаунта. */
+function WizardFooter() {
+  return (
+    <p className="flex items-center justify-center gap-4 text-sm text-slate-500">
+      <Link href="/dashboard/support" className="inline-flex items-center gap-1 hover:text-indigo-600">
+        <LifeBuoy className="h-4 w-4" />
+        Поддержка
+      </Link>
+      <span className="text-slate-300" aria-hidden>·</span>
+      <button
+        type="button"
+        className="inline-flex items-center gap-1 hover:text-indigo-600"
+        onClick={() => void signOutTo("/login")}
+      >
+        <LogOut className="h-4 w-4" />
+        Выйти
+      </button>
+    </p>
+  );
+}
+
 function IntentOptionCard({
   option,
   onSelect,
   recommended = false,
   secondary = false,
+  paid = false,
 }: {
   option: (typeof INTENT_OPTIONS)[number];
   onSelect: () => void;
   recommended?: boolean;
   secondary?: boolean;
+  paid?: boolean;
 }) {
   const Icon = option.icon;
   return (
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex h-full flex-col rounded-2xl border bg-white/90 p-6 text-left shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
+      className={`group relative flex h-full flex-col rounded-2xl border bg-white/90 p-5 sm:p-6 text-left shadow-sm backdrop-blur-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 ${
         recommended
           ? "border-amber-300 ring-2 ring-amber-200/80 shadow-amber-100/80"
           : secondary
@@ -266,7 +296,7 @@ function IntentOptionCard({
           PRO
         </span>
       )}
-      <div className="mb-4 flex items-start gap-3">
+      <div className="mb-3 sm:mb-4 flex items-start gap-3">
         <span
           className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ring-1 ${option.iconWrap}`}
         >
@@ -274,16 +304,17 @@ function IntentOptionCard({
         </span>
         <div className="min-w-0 pt-0.5">
           <h2 className="text-base font-bold text-slate-900 leading-snug">{option.title}</h2>
-          <p className="mt-0.5 text-xs font-medium text-slate-500">{option.tagline}</p>
+          <p className="mt-0.5 text-sm font-medium text-slate-500 sm:text-xs">{option.tagline}</p>
           {option.id === "reviews" && (
-            <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-xs font-medium leading-snug text-amber-900">
+            <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-sm sm:text-xs font-medium leading-snug text-amber-900">
               Нужна ссылка на карточку в Яндекс.Картах
             </p>
           )}
         </div>
       </div>
-      <ul className="mb-5 flex-1 space-y-2">
-        {option.features.map((feature) => (
+      {/* На телефоне карточка — заголовок, слоган и CTA; подробности с sm+. */}
+      <ul className="mb-5 hidden flex-1 space-y-2 sm:block">
+        {intentFeatures(option, paid).map((feature) => (
           <li key={feature} className="flex items-start gap-2 text-xs leading-relaxed text-slate-600">
             <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-indigo-500" strokeWidth={2.5} />
             <span>{feature}</span>
@@ -308,10 +339,11 @@ export type SetupEstablishmentOption = {
   legalName: string | null;
   inn: string | null;
   industry: string | null;
+  businessCardId?: string | null;
 };
 
 interface SetupStartWizardProps {
-  /** Повторный просмотр мастера без создания заведения (для отладки). */
+  /** Повторный просмотр мастера без создания проекта (для отладки). */
   rerun?: boolean;
   existingEstablishments?: SetupEstablishmentOption[];
   canAddNewEstablishment?: boolean;
@@ -329,6 +361,7 @@ export default function SetupStartWizard({
 }: SetupStartWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const requestedPlan = parseRequestedPlanParam(searchParams.get("plan"));
   const utmCampaign =
     searchParams.get("utm_campaign") ?? initialRegistrationUtm?.utm_campaign ?? null;
   const utmContent =
@@ -365,16 +398,34 @@ export default function SetupStartWizard({
       ? options.filter((o) => o.id !== "redirect")
       : options;
     if (industry && !isHorecaIndustry(industry)) {
-      return [...visible.filter((o) => o.id !== "menu"), ...visible.filter((o) => o.id === "menu")];
+      const ordered = [...visible.filter((o) => o.id !== "menu"), ...visible.filter((o) => o.id === "menu")];
+      return industry === "SERVICES"
+        ? [...ordered.filter((o) => o.id === "card"), ...ordered.filter((o) => o.id !== "card")]
+        : ordered;
     }
     return visible;
   }, [industry, utmContext]);
   const hasExistingOrgs = existingEstablishments.length > 0 && !rerun;
   const isFirstLaunch = existingEstablishments.length === 0 && !rerun;
-  /** Триал включается прямо в мастере, поэтому серверный проп может устареть. */
-  const [paidFeatures] = useState(hasPaidFeatures);
-  const [landingPaywallOpen, setLandingPaywallOpen] = useState(false);
-  const [step, setStep] = useState<Step>(() => {
+  const stepLabels = hasExistingOrgs
+    ? ["Проект", "Сценарий", "Данные", "Готовый QR"]
+    : ["Сценарий", "Данные", "Готовый QR"];
+  const stepIndex = (s: Step): number => {
+    const base = hasExistingOrgs ? 1 : 0;
+    if (s === "org") return 0;
+    if (s === "intent") return base;
+    if (s === "form") return base + 1;
+    return base + 2;
+  };
+  const paidFeatures = hasPaidFeatures;
+  const [landingPaywallOpen, setLandingPaywallOpen] = useState(
+    () =>
+      autoSelectedIntent === "landing" &&
+      !hasPaidFeatures &&
+      !rerun &&
+      !(existingEstablishments.length > 0 && !rerun)
+  );
+  const [step, setStepState] = useState<Step>(() => {
     if (hasExistingOrgs) return "org";
     if (autoSelectedIntent === "landing" && !hasPaidFeatures && !rerun) return "intent";
     if (autoSelectedIntent) return "form";
@@ -388,6 +439,7 @@ export default function SetupStartWizard({
   const [yandexUrlFieldError, setYandexUrlFieldError] = useState("");
   const [yandexConfirmedUrl, setYandexConfirmedUrl] = useState<string | null>(null);
   const [yandexPreviewReady, setYandexPreviewReady] = useState(false);
+  const [requisitesOpen, setRequisitesOpen] = useState(false);
   const yandexCheckRef = useRef<YandexMapsOrgConfirmHandle>(null);
   const creatingRef = useRef(false);
   const [qrImageUrl, setQrImageUrl] = useState("");
@@ -403,6 +455,13 @@ export default function SetupStartWizard({
     legalName: "",
     inn: "",
   });
+  const [cardForm, setCardForm] = useState({
+    profession: "",
+    whatsappSame: true,
+    telegram: "",
+    serviceArea: "",
+  });
+  const [cardLinkShared, setCardLinkShared] = useState(false);
 
   const [result, setResult] = useState<{
     establishment?: { id: string; name: string };
@@ -418,9 +477,10 @@ export default function SetupStartWizard({
     trackEvent("setup.intent_viewed");
   }, []);
 
-  useEffect(() => {
-    if (step !== "form") setYandexPreviewReady(false);
-  }, [step]);
+  const changeStep = (next: Step) => {
+    if (next !== "form") setYandexPreviewReady(false);
+    setStepState(next);
+  };
 
   const selectedEstablishment = selectedEstablishmentId
     ? existingEstablishments.find((e) => e.id === selectedEstablishmentId) ?? null
@@ -454,7 +514,16 @@ export default function SetupStartWizard({
       }
     }
 
-    if (!usingExistingOrg && !form.name.trim()) {
+    if (intent === "card") {
+      if (!form.name.trim() && !(usingExistingOrg && selectedEstablishment?.businessCardId)) {
+        setError("Укажите ваше имя");
+        return;
+      }
+      if (form.phone.replace(/\D/g, "").length < 10) {
+        setError("Укажите телефон — по нему клиенты будут звонить");
+        return;
+      }
+    } else if (!usingExistingOrg && !form.name.trim()) {
       setError("Укажите название проекта");
       return;
     }
@@ -483,7 +552,9 @@ export default function SetupStartWizard({
               ? "demo-redirect"
               : intent === "menu"
                 ? "demo-menu"
-                : "demo-landing";
+                : intent === "card"
+                  ? "demo-business-card"
+                  : "demo-landing";
         const mockResult = {
           establishment: { id: "demo", name: form.name.trim() || "Демо-проект" },
           qrcode: {
@@ -497,19 +568,26 @@ export default function SetupStartWizard({
         trackEvent("setup.completed", { intent, rerun: true });
         const img = await qrPreviewDataUrl(scanUrlForCode(demoCode), {
           qrStyleTemplateId: mockResult.qrcode.qrStyleTemplateId,
-          isPro: false,
+          isPro: paidFeatures,
           size: 320,
         });
         setQrImageUrl(img);
-        setStep("success");
+        changeStep("success");
         return;
       }
 
       const payload: Record<string, string> = { ...form, intent };
       if (industry) payload.industry = industry;
+      if (intent === "card") {
+        payload.profession = cardForm.profession;
+        payload.telegram = cardForm.telegram;
+        payload.serviceArea = cardForm.serviceArea;
+        if (cardForm.whatsappSame) payload.whatsapp = form.phone;
+      }
       if (usingExistingOrg && selectedEstablishmentId) {
         payload.establishmentId = selectedEstablishmentId;
-        delete payload.name;
+        // Для визитки name — имя человека, а не название проекта.
+        if (intent !== "card") delete payload.name;
       }
       if (confirmed) {
         payload.yandexMapsUrl = confirmed;
@@ -541,11 +619,11 @@ export default function SetupStartWizard({
       });
       const img = await qrPreviewDataUrl(scanUrlForCode(data.qrcode.code), {
         qrStyleTemplateId: data.qrcode.qrStyleTemplateId,
-        isPro: false,
+        isPro: paidFeatures,
         size: 320,
       });
       setQrImageUrl(img);
-      setStep("success");
+      changeStep("success");
     } catch {
       setError("Ошибка соединения");
     } finally {
@@ -580,7 +658,7 @@ export default function SetupStartWizard({
             ? data.error || "Сессия устарела. Выйдите и войдите снова."
             : data.error || "Не удалось создать QR-код",
         );
-        setStep("form");
+        changeStep("form");
         return;
       }
 
@@ -592,14 +670,14 @@ export default function SetupStartWizard({
       });
       const img = await qrPreviewDataUrl(scanUrlForCode(data.qrcode.code), {
         qrStyleTemplateId: data.qrcode.qrStyleTemplateId,
-        isPro: false,
+        isPro: paidFeatures,
         size: 320,
       });
       setQrImageUrl(img);
-      setStep("success");
+      changeStep("success");
     } catch {
       setError("Ошибка соединения");
-      setStep("form");
+      changeStep("form");
     } finally {
       setLoading(false);
     }
@@ -617,13 +695,22 @@ export default function SetupStartWizard({
       }));
       const selectedIndustry = parseEstablishmentIndustry(selectedEstablishment.industry);
       setIndustry(selectedIndustry);
-      if (value === "landing" || value === "menu" || (value === "reviews" && selectedEstablishment.yandexMapsUrl)) {
+      if (value === "card") {
+        // Имя человека не равно названию проекта — просим ввести заново.
+        setForm((prev) => ({ ...prev, name: "" }));
+      }
+      if (
+        value === "landing" ||
+        value === "menu" ||
+        (value === "reviews" && selectedEstablishment.yandexMapsUrl) ||
+        (value === "card" && selectedEstablishment.businessCardId)
+      ) {
         void submitForExistingEstablishment(value, selectedIndustry);
         return;
       }
     }
 
-    setStep("form");
+    changeStep("form");
   };
 
   const chooseIntent = (value: SetupIntent) => {
@@ -645,13 +732,9 @@ export default function SetupStartWizard({
   useEffect(() => {
     if (!autoSelectedIntent || autoIntentHandled.current) return;
 
-    if (step === "intent") {
-      autoIntentHandled.current = true;
-      chooseIntent(autoSelectedIntent);
-      return;
-    }
-
-    if (step === "form" && intent === autoSelectedIntent) {
+    // Авто-сценарий из URL/UTM: состояние (intent, шаг, paywall) задано при инициализации,
+    // здесь только аналитика.
+    if (step === "intent" || (step === "form" && intent === autoSelectedIntent)) {
       autoIntentHandled.current = true;
       trackEvent("setup.intent_selected", {
         intent: autoSelectedIntent,
@@ -664,7 +747,7 @@ export default function SetupStartWizard({
   const continueFromOrgStep = () => {
     if (!orgMode) return;
     if (orgMode === "existing" && !selectedEstablishmentId) {
-      setError("Выберите заведение из списка");
+      setError("Выберите проект из списка");
       return;
     }
     setError("");
@@ -673,7 +756,7 @@ export default function SetupStartWizard({
       chooseIntent(autoSelectedIntent);
       return;
     }
-    setStep("intent");
+    changeStep("intent");
   };
 
   const downloadQr = async (
@@ -689,7 +772,7 @@ export default function SetupStartWizard({
     });
     await downloadQrCode(format, scanUrlForCode(result.qrcode.code), `qr-${result.qrcode.code}`, {
       qrStyleTemplateId: result.qrcode.qrStyleTemplateId,
-      isPro: false,
+      isPro: paidFeatures,
       size: QR_EXPORT_SIZE,
       transparentBackground: opts?.transparentBackground,
     });
@@ -703,16 +786,6 @@ export default function SetupStartWizard({
     });
     setGuestPreviewOpened(true);
     window.open(scanUrl, "_blank", "noopener,noreferrer");
-  };
-
-  const openDashboardInNewTab = (destination: string, href: string) => {
-    if (result) {
-      trackEvent("setup.next_step_clicked", {
-        intent: result.intent,
-        destination,
-      });
-    }
-    window.open(href, "_blank", "noopener,noreferrer");
   };
 
   /** Уйти из мастера до создания проекта — иначе SetupGuideRedirect вернёт обратно. */
@@ -736,142 +809,145 @@ export default function SetupStartWizard({
     router.push(href);
   };
 
-  const [downloadType, setDownloadType] = useState<"pdf" | "png">("png");
-  const [selectedPresetId, setSelectedPresetId] = useState("universal-a6");
-  const [pdfDownloading, setPdfDownloading] = useState(false);
-  const [tableTemplateId, setTableTemplateId] = useState<string | null>(null);
-  const [tableTemplateLoading, setTableTemplateLoading] = useState(false);
-
-  const openTableTentDesigner = async (openInNewTab = false) => {
-    if (!result) return;
-    const newTab = openInNewTab ? window.open("", "_blank") : null;
-    if (newTab) {
-      newTab.opener = null;
-    }
-
-    if (rerun) {
-      const href = TEMPLATE_ROUTES.tableTents;
-      if (newTab) {
-        newTab.location.href = href;
-      } else {
-        goNextStep("table-template", href);
-      }
-      return;
-    }
-
-    setTableTemplateLoading(true);
-    try {
-      let tplId = tableTemplateId;
-      if (!tplId) {
-        const preset =
-          BUILTIN_STICKER_TEMPLATES.find((p) => p.id === selectedPresetId) ||
-          BUILTIN_STICKER_TEMPLATES[0];
-        const layout = stickerPresetLayout(preset);
-        layout.stickerConfig = {
-          ...layout.stickerConfig,
-          url: scanUrlForCode(result.qrcode.code),
-        };
-
-        const createRes = await fetch("/api/templates", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: `${result.establishment?.name ?? "Отзывы"} — ${preset.shortName}`,
-            width: preset.width,
-            height: preset.height,
-            layout,
-          }),
-        });
-        const createData = await createRes.json();
-        if (!createRes.ok) {
-          throw new Error(createData.error || "create failed");
+  if (step === "success" && result && result.intent === "card") {
+    const scanUrl = scanUrlForCode(result.qrcode.code);
+    const projectId = result.establishment?.id;
+    const shareCardLink = async () => {
+      trackEvent("setup.next_step_clicked", { intent: "card", destination: "share-card-link" });
+      if (navigator.share) {
+        try {
+          await navigator.share({ title: "Моя визитка", url: scanUrl });
+          setCardLinkShared(true);
+        } catch {
+          /* пользователь закрыл окно «Поделиться» */
         }
-        tplId = createData.template.id as string;
-        setTableTemplateId(tplId);
-
-        const bindRes = await fetch("/api/qrcodes", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: result.qrcode.id, templateId: tplId }),
-        });
-        if (!bindRes.ok) {
-          throw new Error("bind failed");
-        }
+        return;
       }
-
-      trackEvent("setup.next_step_clicked", {
-        intent: result.intent,
-        destination: "table-template",
-      });
-      const href = TEMPLATE_ROUTES.qr;
-      if (newTab) {
-        newTab.location.href = href;
-      } else {
-        router.push(href);
+      try {
+        await navigator.clipboard.writeText(scanUrl);
+        setCardLinkShared(true);
+        setTimeout(() => setCardLinkShared(false), 2000);
+      } catch {
+        /* буфер обмена недоступен */
       }
-    } catch {
-      newTab?.close();
-      alert("Не удалось открыть редактор таблички. Попробуйте ещё раз.");
-    } finally {
-      setTableTemplateLoading(false);
-    }
-  };
+    };
+    return (
+      <SetupWizardShell>
+        <div className="max-w-lg mx-auto w-full space-y-6">
+          <WizardStepper labels={stepLabels} current={stepIndex("success")} />
+          {rerun && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950">
+              Демонстрация завершена — визитка и QR не создавались.
+            </div>
+          )}
+          <div className="text-center space-y-2">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-green-100 text-green-600 mb-2">
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Визитка готова!</h1>
+            <p className="text-gray-600 text-sm leading-relaxed">
+              Клиент сканирует QR или открывает ссылку — и сразу звонит, пишет в мессенджер или сохраняет ваш номер.
+            </p>
+          </div>
 
-  const downloadTablePDF = async () => {
-    if (!result) return;
-    const preset = ONBOARDING_TEMPLATES.find((p) => p.id === selectedPresetId) || ONBOARDING_TEMPLATES[0];
-    setPdfDownloading(true);
-    try {
-      trackEvent("setup.pdf_downloaded", {
-        intent: result.intent,
-        qrCodeId: result.qrcode.id,
-        presetId: preset.id,
-      });
+          <Card className="p-5 space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button className="w-full sm:flex-1" onClick={() => openGuestPreview(scanUrl)}>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Посмотреть визитку
+              </Button>
+              <Button variant="outline" className="w-full sm:flex-1" onClick={() => void shareCardLink()}>
+                {cardLinkShared ? <Check className="w-4 h-4 mr-2" /> : <Share2 className="w-4 h-4 mr-2" />}
+                {cardLinkShared ? "Готово" : "Отправить ссылку"}
+              </Button>
+            </div>
+            <p className="break-all rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-center font-mono text-xs text-gray-600">
+              {scanUrl}
+            </p>
+            <p className="text-xs text-gray-500 leading-relaxed text-center">
+              Ссылку можно отправить клиенту в WhatsApp после заказа или поставить в профиль на Авито.
+            </p>
+          </Card>
 
-      const cfg: StickerConfig = { ...preset.config, url: scanUrlForCode(result.qrcode.code) };
-      const fmt = FORMATS.find((f) => f.id === cfg.formatId) || FORMATS[0];
-      const canvas = document.createElement("canvas");
-      await renderSticker(canvas, cfg, fmt, false);
-      const imgData = canvas.toDataURL("image/png", 1.0);
-      const { jsPDF } = await import("jspdf");
-      const grid = calcA4StickerGrid(fmt.id, fmt.wMm, fmt.hMm);
-      const doc = new jsPDF({ unit: "mm", format: "a4", orientation: grid.orientation });
-      const { cols, rows, marginX, marginY, spacing } = grid;
+          <Card className="p-5 space-y-4 text-center">
+            <p className="font-semibold text-gray-900">QR-код для наклейки или визитки</p>
+            {qrImageUrl && (
+              <img
+                src={qrImageUrl}
+                alt="QR-код визитки"
+                className="max-w-40 max-h-40 w-auto h-auto mx-auto rounded-xl border border-gray-100 shadow-sm object-contain"
+              />
+            )}
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => void downloadQr("png")} disabled={!qrImageUrl}>
+                <Download className="w-4 h-4 mr-1" />
+                PNG
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => void downloadQr("svg")} disabled={!qrImageUrl}>
+                <Download className="w-4 h-4 mr-1" />
+                SVG для типографии
+              </Button>
+            </div>
+            <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed text-left">
+              <Sparkles className="inline w-3.5 h-3.5 mr-1 text-amber-600" />
+              Наклейте QR на щиток, котёл или бойлер после работы. Через полгода клиент отсканирует его и позвонит вам, а не будет искать нового мастера.
+            </p>
+          </Card>
 
-      for (let r = 0; r < rows; r++) {
-        for (let c = 0; c < cols; c++) {
-          const x = marginX + c * (fmt.wMm + spacing);
-          const y = marginY + r * (fmt.hMm + spacing);
-
-          // Add sticker image
-          doc.addImage(imgData, "PNG", x, y, fmt.wMm, fmt.hMm);
-
-          // Draw dashed cut border
-          doc.setDrawColor(180, 180, 180);
-          doc.setLineDashPattern([2, 2], 0);
-          doc.rect(x, y, fmt.wMm, fmt.hMm);
-        }
-      }
-
-      doc.save(`sticker-${result.qrcode.code}.pdf`);
-    } catch {
-      alert("Ошибка генерации PDF. Попробуйте ещё раз.");
-    } finally {
-      setPdfDownloading(false);
-    }
-  };
+          {rerun ? (
+            <p className="text-center text-sm text-gray-500">
+              <button
+                type="button"
+                className="text-indigo-600 hover:text-indigo-800 font-medium"
+                onClick={() => router.push("/dashboard")}
+              >
+                Закрыть
+              </button>
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {projectId && (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => goNextStep("card-editor", `${projectCardPath(projectId)}?welcome=1`)}
+                >
+                  Добавить фото, услуги и цены
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
+              <p className="text-center text-sm text-gray-500">
+                <button
+                  type="button"
+                  className="text-indigo-600 hover:text-indigo-800 font-medium"
+                  onClick={() => {
+                    router.refresh();
+                    goNextStep("dashboard", projectId ? projectHomePath(projectId) : "/dashboard");
+                  }}
+                >
+                  В кабинет
+                </button>
+              </p>
+            </div>
+          )}
+        </div>
+      </SetupWizardShell>
+    );
+  }
 
   if (step === "success" && result) {
     const scanUrl = scanUrlForCode(result.qrcode.code);
     const isReviews = result.intent === "reviews";
     const isRedirect = result.intent === "redirect";
     const isMenu = result.intent === "menu";
+    const projectId = result.establishment?.id;
     return (
       <SetupWizardShell>
         <div className="max-w-lg mx-auto w-full space-y-6">
+          <WizardStepper labels={stepLabels} current={stepIndex("success")} />
           {rerun && (
             <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950">
-              Демонстрация завершена — заведение и QR не создавались.
+              Демонстрация завершена — проект и QR не создавались.
             </div>
           )}
           <div className="text-center space-y-2">
@@ -884,17 +960,21 @@ export default function SetupStartWizard({
             <p className="text-gray-600 text-sm leading-relaxed">
               {isReviews ? (
                 <>
-                  Ваш QR-код для заведения <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong> настроен на сбор отзывов.
+                  Ваш QR-код для проекта <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong> настроен на сбор отзывов.
                   Пройдите три коротких шага: проверьте сценарий как гость, подготовьте QR к печати и подключите уведомления о новых отзывах.
                 </>
               ) : isRedirect ? (
                 <>
                   QR-код проекта <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong> готов.
-                  При сканировании гости сразу перейдут по вашей ссылке — её можно поменять в кабинете без перепечатки.
+                  {" "}
+                  {paidFeatures
+                    ? "При сканировании гости сразу перейдут по вашей ссылке"
+                    : `При сканировании гости перейдут по вашей ссылке через короткий экран QrStars (${REDIRECT_INTERSTITIAL_SECONDS} сек.; на PRO — мгновенно)`}
+                  {" "}— ссылку можно поменять в кабинете без перепечатки.
                 </>
               ) : isMenu ? (
                 <>
-                  QR-код ведёт на электронное меню заведения{" "}
+                  QR-код ведёт на электронное меню проекта{" "}
                   <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
                   Отредактируйте позиции и цены в разделе «Микросайт» и разместите QR на столах.
                 </>
@@ -1025,7 +1105,7 @@ export default function SetupStartWizard({
                       variant="outline"
                       size="sm"
                       onClick={() =>
-                        openDashboardInNewTab(
+                        goNextStep(
                           "templates",
                           `${TEMPLATE_ROUTES.qr}?${new URLSearchParams({
                             bindQr: result.qrcode.id,
@@ -1045,10 +1125,12 @@ export default function SetupStartWizard({
                       Настроить дизайн кода
                     </Button>
                   )}
-                  <Button variant="outline" size="sm" onClick={() => openGuestPreview(scanUrl)}>
-                    <ExternalLink className="w-4 h-4 mr-1" />
-                    Открыть как гость
-                  </Button>
+                  {!isReviews && (
+                    <Button variant="outline" size="sm" onClick={() => openGuestPreview(scanUrl)}>
+                      <ExternalLink className="w-4 h-4 mr-1" />
+                      Открыть как гость
+                    </Button>
+                  )}
                 </div>
               </div>
           </Card>
@@ -1074,14 +1156,14 @@ export default function SetupStartWizard({
                 size="sm"
                 className="w-full"
                 onClick={() =>
-                  openDashboardInNewTab(
+                  goNextStep(
                     "notification-settings",
                     "/dashboard/settings#notification-channels",
                   )
                 }
               >
                 <MessageCircle className="w-4 h-4 mr-1 text-blue-500" />
-                Открыть настройки уведомлений в новой вкладке
+                Настроить уведомления
               </Button>
             </Card>
           )}
@@ -1100,85 +1182,103 @@ export default function SetupStartWizard({
             </div>
           )}
 
-          {(isFirstLaunch || rerun) && (
+          {rerun ? (
+            <p className="text-center text-sm text-gray-500">
+              <button
+                type="button"
+                className="text-indigo-600 hover:text-indigo-800 font-medium"
+                onClick={() => router.push("/dashboard")}
+              >
+                Закрыть
+              </button>
+            </p>
+          ) : (
             <div className="space-y-3">
-              {isFirstLaunch && (
-                <>
-                  {isRedirect && (
-                    <>
-                      <Button
-                        size="lg"
-                        className="w-full"
-                        onClick={() =>
-                          goNextStep("templates", `${TEMPLATE_ROUTES.qr}?bindQr=${result.qrcode.id}`)
-                        }
-                      >
-                        Оформить дизайн QR-кода
-                        <ArrowRight className="w-4 h-4 ml-2" />
-                      </Button>
-                      <Button
-                        size="lg"
-                        variant="outline"
-                        className="w-full"
-                        onClick={() =>
-                          goNextStep("qrcode-settings", result.establishment?.id
-                            ? `${projectQrPath(result.establishment.id, result.qrcode.id)}?welcome=1`
-                            : "/dashboard")
-                        }
-                      >
-                        Настройки редиректа
-                      </Button>
-                    </>
-                  )}
-                  {!isRedirect && !isReviews && (
-                    <Button
-                      size="lg"
-                      className="w-full"
-                      onClick={() =>
-                        goNextStep(
-                          isMenu ? "my-page-menu" : "my-page",
-                          result.establishment?.id
-                            ? isMenu
-                              ? `${projectPagePath(result.establishment.id)}?section=menu`
-                              : projectPagePath(result.establishment.id)
-                            : "/dashboard",
-                        )
-                      }
-                    >
-                        {isMenu ? "Редактировать меню" : "Оформить и наполнить микросайт"}
-                      <ArrowRight className="w-4 h-4 ml-2" />
-                    </Button>
-                  )}
-                  <p className="text-center text-sm text-gray-500">
-                    <button
-                      type="button"
-                      className="text-indigo-600 hover:text-indigo-800 font-medium"
-                      onClick={() => {
-                        trackEvent("setup.next_step_clicked", {
-                          intent: result.intent,
-                          destination: "dashboard",
-                        });
-                        router.refresh();
-                        router.push("/dashboard");
-                      }}
-                    >
-                      Перейти в личный кабинет
-                    </button>
+              {requestedPlan && !paidFeatures && (
+                <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-left">
+                  <p className="text-sm text-indigo-900">
+                    Вы выбрали тариф {requestedPlan === "NETWORK" ? "«Сеть»" : "PRO"} на сайте —{" "}
+                    {formatRub(PLAN_PRICING[requestedPlan].yearlyRub)} в год.
                   </p>
-                  <p className="text-center text-xs text-gray-400 max-w-sm mx-auto">
-                    Выбрали не тот сценарий? Ничего страшного — тип QR-кода, ссылки и разделы можно изменить в личном кабинете в любой момент.
-                  </p>
-                </>
-              )}
-              {rerun && (
-                <p className="text-center text-sm text-gray-500">
-                  <button
-                    type="button"
-                    className="text-indigo-600 hover:text-indigo-800 font-medium"
-                    onClick={() => router.push("/dashboard")}
+                  <Button
+                    size="lg"
+                    className="mt-3 w-full"
+                    onClick={() =>
+                      goNextStep("subscription", `/dashboard/subscription?plan=${requestedPlan.toLowerCase()}`)
+                    }
                   >
-                    Закрыть
-                  </button>
+                    Оформить {requestedPlan === "NETWORK" ? "«Сеть»" : "PRO"}
+                  </Button>
+                </div>
+              )}
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() =>
+                  goNextStep(
+                    "qrcode-settings",
+                    result.establishment?.id
+                      ? `${projectQrPath(result.establishment.id, result.qrcode.id)}?welcome=1`
+                      : "/dashboard",
+                  )
+                }
+              >
+                Перейти к QR-коду
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+              {isRedirect && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    goNextStep("templates", `${TEMPLATE_ROUTES.qr}?bindQr=${result.qrcode.id}`)
+                  }
+                >
+                  <Palette className="w-4 h-4 mr-2" />
+                  Оформить дизайн QR-кода
+                </Button>
+              )}
+              {!isRedirect && !isReviews && projectId && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() =>
+                    goNextStep(
+                      isMenu ? "my-page-menu" : "my-page",
+                      isMenu
+                        ? `${projectPagePath(projectId)}?section=menu`
+                        : projectPagePath(projectId),
+                    )
+                  }
+                >
+                  {isMenu ? "Редактировать меню" : "Оформить и наполнить микросайт"}
+                </Button>
+              )}
+              <p className="text-center text-sm text-gray-500">
+                <button
+                  type="button"
+                  className="text-indigo-600 hover:text-indigo-800 font-medium"
+                  onClick={() => {
+                    trackEvent("setup.next_step_clicked", {
+                      intent: result.intent,
+                      destination: "dashboard",
+                    });
+                    router.refresh();
+                    router.push(
+                      result.establishment?.id
+                        ? projectHomePath(result.establishment.id)
+                        : "/dashboard",
+                    );
+                  }}
+                >
+                  В кабинет
+                </button>
+              </p>
+              {isFirstLaunch && (
+                <p className="text-center text-xs text-gray-400 max-w-sm mx-auto">
+                  Выбрали не тот сценарий? Ничего страшного — тип QR-кода, ссылки и разделы можно изменить в личном кабинете в любой момент.
                 </p>
               )}
             </div>
@@ -1198,12 +1298,14 @@ export default function SetupStartWizard({
               Настройка QR
             </div>
             <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
-              "Для какого проекта создаём QR-код?"
+              Для какого проекта создаём QR-код?
             </h1>
             <p className="mx-auto max-w-lg text-sm leading-relaxed text-slate-600 sm:text-base">
               Выберите проект из списка или создайте новый. Затем выберите, куда будет вести QR-код.
             </p>
           </div>
+
+          <WizardStepper labels={stepLabels} current={stepIndex("org")} />
 
           <Card className="space-y-4">
             {error && (
@@ -1308,18 +1410,18 @@ export default function SetupStartWizard({
               </div>
             </button>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
-                className="w-1/3"
+                className="w-full whitespace-nowrap sm:w-auto sm:min-w-[9rem]"
                 onClick={() => router.push("/dashboard")}
               >
                 В кабинет
               </Button>
               <Button
                 type="button"
-                className="flex-1"
+                className="w-full sm:flex-1"
                 disabled={!orgMode || (orgMode === "existing" && !selectedEstablishmentId)}
                 onClick={continueFromOrgStep}
               >
@@ -1328,6 +1430,8 @@ export default function SetupStartWizard({
               </Button>
             </div>
           </Card>
+
+          <WizardFooter />
         </div>
       </SetupWizardShell>
     );
@@ -1339,7 +1443,7 @@ export default function SetupStartWizard({
         <div className="mx-auto max-w-5xl w-full space-y-10">
           {rerun && (
             <div className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950">
-              Режим повторного просмотра — заведение и QR не создаются, только демонстрация шагов мастера.
+              Режим повторного просмотра — проект и QR не создаются, только демонстрация шагов мастера.
             </div>
           )}
           <div className="text-center space-y-4 px-2">
@@ -1359,12 +1463,14 @@ export default function SetupStartWizard({
             </p>
           </div>
 
+          <WizardStepper labels={stepLabels} current={stepIndex("intent")} />
+
           {hasExistingOrgs && (
             <div className="flex justify-center">
               <button
                 type="button"
                 onClick={() => {
-                  setStep("org");
+                  changeStep("org");
                   setIntent(null);
                   setError("");
                 }}
@@ -1382,9 +1488,15 @@ export default function SetupStartWizard({
             </div>
           )}
 
+          {utmContext.hint === "card" && (
+            <div className="mx-auto max-w-2xl rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-center text-sm text-sky-950 leading-relaxed">
+              Вы перешли по ссылке про визитку — начните с «QR-визитки»: заполните имя и телефон, и визитка с QR-кодом будет готова через минуту.
+            </div>
+          )}
+
           {utmContext.hint === "menu" && (
             <div className="mx-auto max-w-2xl rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-center text-sm text-rose-950 leading-relaxed">
-              Вы перешли по ссылке про электронное меню — начните с «QR-меню»: мы создадим заведение, базовое меню и QR-код для столов.
+              Вы перешли по ссылке про электронное меню — начните с «QR-меню»: мы создадим проект, базовое меню и QR-код для столов.
             </div>
           )}
 
@@ -1404,7 +1516,8 @@ export default function SetupStartWizard({
                 recommended={
                   (utmContext.hint === "reviews" && option.id === "reviews") ||
                   (utmContext.hint === "menu" && option.id === "menu") ||
-                  (utmContext.hint === "generator" && option.id === "redirect")
+                  (utmContext.hint === "generator" && option.id === "redirect") ||
+                  (utmContext.hint === "card" && option.id === "card")
                 }
                 secondary={
                   utmContext.hint === "reviews"
@@ -1416,6 +1529,7 @@ export default function SetupStartWizard({
                         : false
                 }
                 onSelect={() => chooseIntent(option.id)}
+                paid={paidFeatures}
               />
             ))}
           </div>
@@ -1436,7 +1550,7 @@ export default function SetupStartWizard({
 
           <p className="text-center text-xs text-slate-500 max-w-lg mx-auto leading-relaxed">
           {utmContext.hint === "reviews"
-              ? "«Сайт-визитка» (PRO) и «QR-меню» тоже подойдут — к ним можно добавить сбор отзывов."
+              ? "«Микросайт» (PRO) и «QR-меню» тоже подойдут — к ним можно добавить сбор отзывов."
               : utmContext.hint === "menu"
                 ? "Нужны отзывы на картах? Выберите «Умный сбор отзывов» — или добавьте их позже в личном кабинете."
                 : "Нет карточки на картах? Выберите прямую ссылку или QR-меню. «Умный сбор отзывов» работает только со ссылкой на организацию в Яндекс.Картах."}
@@ -1454,6 +1568,8 @@ export default function SetupStartWizard({
             </p>
           )}
 
+          {!rerun && <WizardFooter />}
+
           <LandingProPaywall
             open={landingPaywallOpen}
             onClose={() => {
@@ -1469,13 +1585,17 @@ export default function SetupStartWizard({
   const isReviews = intent === "reviews";
   const isRedirect = intent === "redirect";
   const isMenu = intent === "menu";
+  const isCard = intent === "card";
   const yandexRequired =
     isReviews && (!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl);
   const yandexNeedsCheck = Boolean(yandexRequired && !yandexConfirmedUrl);
 
   const autoSubmitExisting =
     usingExistingOrg &&
-    (intent === "landing" || intent === "menu" || (intent === "reviews" && !!selectedEstablishment?.yandexMapsUrl));
+    (intent === "landing" ||
+      intent === "menu" ||
+      (intent === "reviews" && !!selectedEstablishment?.yandexMapsUrl) ||
+      (intent === "card" && !!selectedEstablishment?.businessCardId));
 
   if (loading && autoSubmitExisting) {
     return (
@@ -1485,7 +1605,7 @@ export default function SetupStartWizard({
             <QrCode className="w-7 h-7" />
           </div>
           <h1 className="text-xl font-semibold text-gray-900">Создаём QR-код…</h1>
-          <p className="text-sm text-gray-500">Заведение {quotedEstablishmentName(selectedEstablishment?.name)}</p>
+          <p className="text-sm text-gray-500">Проект {quotedEstablishmentName(selectedEstablishment?.name)}</p>
         </div>
       </SetupWizardShell>
     );
@@ -1506,12 +1626,16 @@ export default function SetupStartWizard({
                 ? "Настройка редиректа"
                 : isMenu
                   ? "Настройка QR-меню"
-                  : "Настройка сайта-визитки"}
+                  : isCard
+                    ? "Ваша QR-визитка"
+                    : "Настройка микросайта"}
           </h1>
           <p className="text-gray-600 max-w-md mx-auto text-sm leading-relaxed">
-            {usingExistingOrg ? (
+            {isCard ? (
+              "Имя и телефон — и визитка готова. Фото, услуги и цены добавите потом в кабинете."
+            ) : usingExistingOrg ? (
               <>
-                Создаём QR-код для заведения{" "}
+                Создаём QR-код для проекта{" "}
                 <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(selectedEstablishment?.name)}</strong>.
                 {isReviews
                   ? " Укажите ссылку на вашу карточку в Яндекс.Картах."
@@ -1519,7 +1643,7 @@ export default function SetupStartWizard({
                     ? " Введите ссылку, по которой будут переходить гости."
                     : isMenu
                       ? " Подтвердите создание QR-кода с базовым меню."
-                      : " Подтвердите создание QR-кода для визитки."}
+                      : " Подтвердите создание QR-кода для микросайта."}
               </>
             ) : isReviews ? (
               "Укажите название проекта и ссылку на Яндекс.Карты. Мы сгенерируем QR-код, который сразу начнёт собирать отзывы."
@@ -1528,61 +1652,91 @@ export default function SetupStartWizard({
             ) : isMenu ? (
               "Введите название проекта. Мы создадим базовое меню с примерами позиций и QR-код для гостей."
             ) : (
-              "Введите название проекта. Мы автоматически создадим для него мобильную визитку и рабочий QR-код."
+              "Введите название проекта. Мы автоматически создадим для него микросайт и рабочий QR-код."
             )}
           </p>
         </div>
 
-        <div className="flex justify-center gap-2 text-xs text-gray-500">
-          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border text-gray-400">
-            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
-              1
-            </span>
-            Сценарий
-          </span>
-          <span className="text-gray-300">→</span>
-          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border border-indigo-200 text-indigo-700">
-            <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">
-              2
-            </span>
-            Информация
-          </span>
-          <span className="text-gray-300">→</span>
-          <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-white border text-gray-400">
-            <span className="w-5 h-5 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center text-[10px] font-bold">
-              3
-            </span>
-            Готовый QR
-          </span>
-        </div>
+        <WizardStepper labels={stepLabels} current={stepIndex("form")} />
 
         <Card>
-          {!isRedirect && (
-            <button
-              type="button"
-              onClick={() => {
-                setStep("intent");
-                setError("");
-              }}
-              className="mb-4 flex items-center gap-1 text-sm text-gray-500 hover:text-indigo-600 transition"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Назад к выбору сценария
-            </button>
-          )}
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {error && (
               <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
             )}
 
-            {!usingExistingOrg && (
+            {isCard && (
+              <>
+                <Input
+                  label="Имя *"
+                  className="max-sm:text-base"
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Например: Сергей Иванов"
+                  autoComplete="name"
+                />
+                <div>
+                  <Input
+                    label="Чем занимаетесь"
+                    className="max-sm:text-base"
+                    value={cardForm.profession}
+                    onChange={(e) => setCardForm({ ...cardForm, profession: e.target.value })}
+                    placeholder="Например: Электрик"
+                    list="setup-card-professions"
+                  />
+                  <datalist id="setup-card-professions">
+                    {MASTER_PROFESSION_SUGGESTIONS.map((p) => (
+                      <option key={p} value={p} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <Input
+                    label="Телефон *"
+                    className="max-sm:text-base"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="tel"
+                    value={form.phone}
+                    onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    placeholder="+7 (999) 123-45-67"
+                  />
+                  <label className="mt-2 flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 rounded border-gray-300 text-indigo-600"
+                      checked={cardForm.whatsappSame}
+                      onChange={(e) => setCardForm({ ...cardForm, whatsappSame: e.target.checked })}
+                    />
+                    На этот номер есть WhatsApp
+                  </label>
+                </div>
+                <Input
+                  label="Telegram (необязательно)"
+                  className="max-sm:text-base"
+                  value={cardForm.telegram}
+                  onChange={(e) => setCardForm({ ...cardForm, telegram: e.target.value })}
+                  placeholder="@username"
+                />
+                <Input
+                  label="Город или район работы (необязательно)"
+                  className="max-sm:text-base"
+                  value={cardForm.serviceArea}
+                  onChange={(e) => setCardForm({ ...cardForm, serviceArea: e.target.value })}
+                  placeholder="Например: Казань, выезд по городу"
+                />
+              </>
+            )}
+
+            {!usingExistingOrg && !isCard && (
               <div>
                 <Input
                   label="Название проекта *"
+                  className="max-sm:text-base"
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Например: проект, кампания или заведение"
+                  placeholder="Например: кафе «Ромашка»"
                 />
               </div>
             )}
@@ -1591,6 +1745,7 @@ export default function SetupStartWizard({
               <>
                 <Input
                   label="Название / метка QR"
+                  className="max-sm:text-base"
                   value={form.qrLabel}
                   onChange={(e) => setForm({ ...form, qrLabel: e.target.value })}
                   placeholder="Например: Сайт, Баннер, Telegram"
@@ -1598,6 +1753,7 @@ export default function SetupStartWizard({
                 <div>
                   <Input
                     label="Ссылка для перенаправления *"
+                  className="max-sm:text-base"
                     type="url"
                     value={form.redirectUrl}
                     onChange={(e) => setForm({ ...form, redirectUrl: e.target.value })}
@@ -1639,7 +1795,7 @@ export default function SetupStartWizard({
                   <button
                     type="button"
                     onClick={() => {
-                      setStep("intent");
+                      changeStep("intent");
                       setError("");
                       setYandexUrlFieldError("");
                     }}
@@ -1658,10 +1814,8 @@ export default function SetupStartWizard({
                   searchName={form.name || selectedEstablishment?.name || ""}
                 />
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                  Дополнительные площадки (2GIS, Flamp, Авито) можно добавить позже в{" "}
-                  <Link href="/dashboard/projects" className="text-indigo-600 hover:text-indigo-800 font-medium">
-                    настройках проекта
-                  </Link>.
+                  Дополнительные площадки (2GIS, Авито) можно добавить позже в настройках
+                  проекта в личном кабинете.
                 </p>
               </div>
             )}
@@ -1669,7 +1823,8 @@ export default function SetupStartWizard({
             {intent === "landing" && (
               <>
                 <Input
-                  label="Номер телефона заведения (необязательно)"
+                  label="Номер телефона (необязательно)"
+                  className="max-sm:text-base"
                   type="tel"
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
@@ -1685,62 +1840,70 @@ export default function SetupStartWizard({
                   />
                   <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
                     <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-500" />
-                    Если указать ссылку, на визитке появится блок сбора отзывов. Довольных гостей мы направим на Яндекс.Карты.
+                    Если указать ссылку, на микросайте появится блок сбора отзывов. Довольных гостей мы направим на Яндекс.Карты.
                   </p>
                 </div>
               </>
             )}
 
-            {!isRedirect && intent !== "reviews" && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50/50 px-4 py-4 space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">
-                    Реквизиты для политики персональных данных
+            {!isRedirect && intent !== "reviews" && !isCard && (
+              <details
+                className="group rounded-lg border border-slate-200 bg-slate-50/50"
+                open={requisitesOpen}
+                onToggle={(e) => setRequisitesOpen(e.currentTarget.open)}
+              >
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+                  Реквизиты (необязательно)
+                  <ChevronDown className="h-4 w-4 shrink-0 text-gray-400 transition group-open:rotate-180" />
+                </summary>
+                <div className="space-y-4 border-t border-slate-200 px-4 py-4">
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    {LEGAL_REQUISITES_HINT} Можно заполнить позже в настройках проекта.
                   </p>
-                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">
-                    {LEGAL_REQUISITES_HINT}
-                  </p>
+                  <Input
+                    label="Юридическое наименование"
+                    value={form.legalName}
+                    onChange={(e) => setForm({ ...form, legalName: e.target.value })}
+                    placeholder="ИП Иванов Иван Иванович / ООО «Название»"
+                    className="max-sm:text-base"
+                  />
+                  <Input
+                    label="ИНН"
+                    inputMode="numeric"
+                    value={form.inn}
+                    onChange={(e) => setForm({ ...form, inn: e.target.value })}
+                    placeholder="123456789012"
+                    className="max-sm:text-base"
+                  />
+                  {form.legalName.trim() && form.inn.trim() ? (
+                    <p className="text-xs text-green-600">
+                      ✓ {LEGAL_REQUISITES_READY}
+                    </p>
+                  ) : form.legalName.trim() || form.inn.trim() ? (
+                    <p className="text-xs text-amber-600">
+                      ⚠ {LEGAL_REQUISITES_INCOMPLETE}
+                    </p>
+                  ) : null}
                 </div>
-                <Input
-                  label="Юридическое наименование"
-                  value={form.legalName}
-                  onChange={(e) => setForm({ ...form, legalName: e.target.value })}
-                  placeholder="ИП Иванов Иван Иванович / ООО «Название»"
-                />
-                <Input
-                  label="ИНН"
-                  value={form.inn}
-                  onChange={(e) => setForm({ ...form, inn: e.target.value })}
-                  placeholder="123456789012"
-                />
-                {form.legalName.trim() && form.inn.trim() ? (
-                  <p className="text-xs text-green-600">
-                    ✓ {LEGAL_REQUISITES_READY}
-                  </p>
-                ) : form.legalName.trim() || form.inn.trim() ? (
-                  <p className="text-xs text-amber-600">
-                    ⚠ {LEGAL_REQUISITES_INCOMPLETE}
-                  </p>
-                ) : null}
-              </div>
+              </details>
             )}
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  setStep("intent");
+                  changeStep("intent");
                   setError("");
                 }}
-                className="w-1/3"
+                className="w-full whitespace-nowrap sm:w-auto sm:min-w-[8rem]"
               >
                 <ChevronLeft className="w-4 h-4 mr-1 inline shrink-0" />
                 Назад
               </Button>
               <Button
                 type={yandexNeedsCheck ? "button" : "submit"}
-                className="flex-1"
+                className="w-full sm:flex-1"
                 disabled={loading || (yandexNeedsCheck && yandexPreviewReady)}
                 onClick={
                   yandexNeedsCheck
@@ -1760,19 +1923,21 @@ export default function SetupStartWizard({
                   "Создаём..."
                 ) : yandexNeedsCheck && !yandexPreviewReady ? (
                   "Проверить ссылку"
+                ) : yandexNeedsCheck ? (
+                  "Подтвердите карточку выше"
                 ) : (
                   <>
                     <QrCode className="w-5 h-5 mr-2" />
-                    Создать QR-код
+                    {isCard ? "Создать визитку" : "Создать QR-код"}
                   </>
                 )}
               </Button>
             </div>
-            {!isReviews && !isRedirect && (
+            {!isReviews && !isRedirect && !isCard && (
               <p className="text-xs text-gray-500 text-center leading-relaxed pt-1">
                 {isMenu
                   ? "Добавить фото, изменить цены и включить корзину можно в разделе «Микросайт»."
-                  : "Наполнить визитку (добавить меню, Wi‑Fi, ссылки на соцсети) можно будет в личном кабинете."}
+                  : "Наполнить микросайт (добавить меню, Wi‑Fi, ссылки на соцсети) можно будет в личном кабинете."}
               </p>
             )}
           </form>
@@ -1791,9 +1956,19 @@ export default function SetupStartWizard({
             </ul>
           ) : isRedirect ? (
             <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
-              <li>Динамический QR-код, мгновенно перенаправляющий гостей по вашей ссылке</li>
+              <li>
+                {paidFeatures
+                  ? "Динамический QR-код, мгновенно перенаправляющий гостей по вашей ссылке"
+                  : "Динамический QR-код: переход через короткий экран QrStars (на PRO — мгновенно)"}
+              </li>
               <li>Возможность менять ссылку в личном кабинете без перепечатки самого QR-кода</li>
               <li>Доступ к визуальному конструктору дизайна QR-кода</li>
+            </ul>
+          ) : isCard ? (
+            <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
+              <li>Страницу-визитку с кнопками «Позвонить», WhatsApp и Telegram</li>
+              <li>QR-код для наклейки, магнита или бумажной визитки</li>
+              <li>Ссылку на визитку, которую можно отправить клиенту в мессенджер</li>
             </ul>
           ) : isMenu ? (
             <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
@@ -1803,12 +1978,14 @@ export default function SetupStartWizard({
             </ul>
           ) : (
             <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
-              <li>Мобильную страницу заведения с вашим фирменным стилем</li>
+              <li>Мобильную страницу проекта с вашим фирменным стилем</li>
               <li>Удобный редактор для добавления меню, Wi‑Fi, контактов и ссылок на соцсети</li>
               <li>Возможность легко подключить сбор отзывов в любой момент</li>
             </ul>
           )}
         </div>
+
+        {!rerun && <WizardFooter />}
       </div>
     </SetupWizardShell>
   );

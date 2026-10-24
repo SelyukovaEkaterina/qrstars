@@ -23,7 +23,7 @@ const hex = z.string().regex(/^#[0-9a-fA-F]{6}$/);
 
 const generatorStyleSchema = z.object({
   v: z.literal(1),
-  dotStyle: z.enum(["classic", "rounded"]),
+  dotStyle: z.enum(["classic", "rounded", "dots", "diamond", "liquid", "splash", "halftone"]),
   eyeStyle: z.enum(["square", "rounded", "circle", "leaf", "dot"]),
   fg: hex,
   bg: hex,
@@ -58,6 +58,45 @@ const generatorStyleSchema = z.object({
     "octagon",
     "triangle",
   ]),
+  /** Текст в центре — необязательные поля: старые ссылки генератора их не содержат. */
+  centerMode: z.enum(["image", "text"]).optional(),
+  centerText: z
+    .string()
+    .max(80)
+    .refine((t) => t.split("\n").length <= 3, "Не больше 3 строк")
+    .optional(),
+  centerTextFont: z.enum(["inter", "sans", "serif", "mono", "display"]).optional(),
+  centerTextColor: hex.optional(),
+  centerTextBold: z.boolean().optional(),
+  /** Арт-режимы — тоже необязательные. Своя фигура и фото в ссылку не влезают, переносятся только пресеты. */
+  silhouette: z
+    .enum([
+      "none",
+      "heart",
+      "tooth",
+      "cat",
+      "cloud",
+      "bubble",
+      "shield",
+      "drop",
+      "house",
+      "cup",
+      "circle",
+      "gear",
+      "pin",
+      "cross",
+      "car",
+      "bag",
+      "shirt",
+      "paw",
+      "star",
+      "hexagon",
+      "crown",
+    ])
+    .optional(),
+  silhouetteFit: z.number().int().min(50).max(100).optional(),
+  rotate45: z.boolean().optional(),
+  inkShift: z.boolean().optional(),
 });
 
 export type GeneratorStyle = z.infer<typeof generatorStyleSchema>;
@@ -92,17 +131,29 @@ export function parseGeneratorStyle(encoded: string | null | undefined): Generat
 }
 
 export function generatorStyleToTemplateConfig(style: GeneratorStyle): QRTemplateConfig {
-  const { v: _version, ...rest } = style;
+  const { v: _version, silhouette, silhouetteFit, rotate45, inkShift, ...rest } = style;
   void _version;
+  // Новые поля пишем, только если они есть: стиль из старой ссылки даёт тот же конфиг, что и раньше.
+  const art: Partial<QRTemplateConfig> = {};
+  if (silhouette && silhouette !== "none") {
+    art.silhouette = silhouette;
+    if (silhouetteFit !== undefined) art.silhouetteFit = silhouetteFit;
+  }
+  if (rotate45) art.rotate45 = true;
+  if (inkShift) art.inkShift = true;
+  const textMode = rest.centerMode === "text" && !!rest.centerText?.trim();
   return normalizeQRTemplateConfig({
     ...rest,
     logoDataUrl: null,
-    centerMode: "image",
-    centerText: "",
-    centerTextFont: "inter",
-    centerTextColor: rest.fg,
-    centerTextBold: true,
+    logoPreset: textMode ? null : rest.logoPreset,
+    logoSrc: textMode ? null : rest.logoSrc,
+    centerMode: textMode ? "text" : "image",
+    centerText: textMode ? rest.centerText! : "",
+    centerTextFont: rest.centerTextFont ?? "inter",
+    centerTextColor: rest.centerTextColor ?? rest.fg,
+    centerTextBold: rest.centerTextBold ?? true,
     frameText: rest.frameText.trim() || "СКАНИРУЙ МЕНЯ",
+    ...art,
   });
 }
 

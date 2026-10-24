@@ -32,6 +32,7 @@ import { hasPaidFeatures } from "@/lib/plans";
 import RedirectInterstitial from "@/components/scan/RedirectInterstitial";
 import { canViewLandingPage } from "@/lib/qr-mode-access";
 import LandingLockedState from "@/components/scan/LandingLockedState";
+import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
 
 interface ScanPageProps {
   params: Promise<{ code: string }>;
@@ -78,6 +79,12 @@ export async function generateMetadata({ params }: ScanPageProps): Promise<Metad
   const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://app.qrstars.ru";
   const url = `${baseUrl}/q/${code}`;
 
+  if (code === "demo-master") {
+    const title = "Сергей Петров — Электрик";
+    const description = "Электрик: телефон, мессенджеры и услуги · демо QR-визитки QrStars";
+    return { title, description, openGraph: { title, description, type: "profile", url } };
+  }
+
   if (isDemoQrCode(code)) {
     const catalog = DEMO_QR_CATALOG.find((d) => d.slug === code);
     const estName = demoEstName(code as DemoQrSlug);
@@ -102,12 +109,14 @@ export async function generateMetadata({ params }: ScanPageProps): Promise<Metad
       where: { code },
       select: {
         mode: true,
+        businessCard: { select: { fullName: true, title: true, avatarUrl: true, serviceArea: true } },
         establishment: {
           select: {
             name: true,
             landingSubtitle: true,
             coverUrl: true,
             logoUrl: true,
+            businessCard: { select: { fullName: true, title: true, avatarUrl: true, serviceArea: true } },
           },
         },
       },
@@ -119,6 +128,29 @@ export async function generateMetadata({ params }: ScanPageProps): Promise<Metad
   }
 
   const est = qrCode.establishment;
+  const metaCard = qrCode.mode === "BUSINESS_CARD" ? (est.businessCard ?? qrCode.businessCard ?? null) : null;
+  if (metaCard?.fullName) {
+    // Ссылку на визитку пересылают в мессенджерах — в превью человек, а не название проекта.
+    const cardTitle = [metaCard.fullName, metaCard.title].filter(Boolean).join(" — ");
+    const cardDescription = [
+      metaCard.title ? `${metaCard.title}: телефон, мессенджеры и услуги` : "Контакты, мессенджеры и услуги",
+      metaCard.serviceArea,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+    const cardImage = absolutePublicUrl(metaCard.avatarUrl || est.logoUrl || est.coverUrl);
+    return {
+      title: cardTitle,
+      description: cardDescription,
+      openGraph: {
+        title: cardTitle,
+        description: cardDescription,
+        type: "profile",
+        url,
+        ...(cardImage ? { images: [cardImage] } : {}),
+      },
+    };
+  }
   const title = scanMetaTitle(qrCode.mode, est.name);
   const description = scanMetaDescription(qrCode.mode, est.name, est.landingSubtitle);
   const image = absolutePublicUrl(est.coverUrl || est.logoUrl);
@@ -451,24 +483,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     const moduleLabels = parseModuleLabels(est.moduleLabels);
     const moduleIcons = parseModuleIcons(est.moduleIcons);
     const moduleTypes = parseModuleTypes(est.moduleTypes);
-    const safeCard = businessCard
-      ? {
-          id: businessCard.id,
-          fullName: businessCard.fullName,
-          title: businessCard.title,
-          company: businessCard.company,
-          phone: businessCard.phone,
-          email: businessCard.email,
-          website: businessCard.website,
-          address: businessCard.address,
-          about: businessCard.about,
-          avatarUrl: businessCard.avatarUrl,
-          socialLinks: (businessCard.socialLinks as { type: string; url: string }[]) || [],
-          accentColor: businessCard.accentColor,
-          tipsUrl: businessCard.tipsUrl,
-          tipsLabel: businessCard.tipsLabel,
-        }
-      : null;
+    const safeCard = businessCard ? toPublicBusinessCard(businessCard) : null;
 
     // Use cached extras when available (#2), otherwise compute now
     const extras = cachedExtras ?? await computeLandingExtras(qrCode);
@@ -501,22 +516,13 @@ export default async function ScanPage({ params }: ScanPageProps) {
         reviewRouting={reviewRouting}
         customPages={JSON.parse(JSON.stringify(est.customPages || []))}
         extraMenus={extraMenus}
-        extraBusinessCards={JSON.parse(JSON.stringify(extraBusinessCards.map((bc: Record<string, unknown>) => ({
-          id: bc.id,
-          fullName: bc.fullName,
-          title: bc.title,
-          company: bc.company,
-          phone: bc.phone,
-          email: bc.email,
-          website: bc.website,
-          address: bc.address,
-          about: bc.about,
-          avatarUrl: bc.avatarUrl,
-          socialLinks: bc.socialLinks || [],
-          accentColor: bc.accentColor,
-          tipsUrl: bc.tipsUrl,
-          tipsLabel: bc.tipsLabel,
-        }))))}
+        extraBusinessCards={JSON.parse(
+          JSON.stringify(
+            extraBusinessCards.map((bc: Record<string, unknown>) =>
+              toPublicBusinessCard(bc as unknown as BusinessCardRow),
+            ),
+          ),
+        )}
         extraWifiConfigs={JSON.parse(JSON.stringify(extraWifiConfigs))}
         forms={JSON.parse(JSON.stringify(est.forms || []))}
         platformUrls={platformUrls}
@@ -553,29 +559,15 @@ export default async function ScanPage({ params }: ScanPageProps) {
 
   if (qrCode.mode === "BUSINESS_CARD") {
     if (!businessCard) {
-      return <ScanEmptyState emoji="📋" title="Визитка не настроена" desc="Заполните визитку в разделе «Моя страница»." />;
+      return <ScanEmptyState emoji="📋" title="Визитка не настроена" desc="Владелец ещё не заполнил визитку." />;
     }
     incrementScan();
     const bc = businessCard;
     const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
     return (
       <BusinessCardView
-        card={{
-          id: bc.id,
-          fullName: bc.fullName,
-          title: bc.title,
-          company: bc.company,
-          phone: bc.phone,
-          email: bc.email,
-          website: bc.website,
-          address: bc.address,
-          about: bc.about,
-          avatarUrl: bc.avatarUrl,
-          socialLinks: (bc.socialLinks as { type: string; url: string }[]) || [],
-          accentColor: bc.accentColor,
-          tipsUrl: bc.tipsUrl,
-          tipsLabel: bc.tipsLabel,
-        }}
+        card={toPublicBusinessCard(bc)}
+        shareUrl={`${process.env.NEXT_PUBLIC_BASE_URL || "https://app.qrstars.ru"}/q/${code}`}
         qrCode={code}
         showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
         pdConsent={pdConsent}

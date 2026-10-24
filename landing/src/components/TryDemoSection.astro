@@ -17,27 +17,27 @@ interface DemoScenario {
 const scenariosCoffee: DemoScenario[] = [
   {
     name: 'Динамическая ссылка',
-    path: '/scan/demo-redirect',
+    path: '/q/demo-redirect',
     badge: 'Без перепечатки',
     button: 'Открыть ссылку',
     featured: true,
   },
   {
     name: 'Визитка и чаевые',
-    path: '/scan/demo-business-card',
+    path: '/q/demo-business-card',
     badge: 'Визитка сотрудника',
     button: 'Оставить чаевые',
   },
   {
     name: 'Сбор отзывов',
-    path: '/scan/demo-review',
+    path: '/q/demo-review',
     badge: 'Оценки и отзывы на картах',
     button: 'Оценить заведение',
     showDisclaimer: true,
   },
   {
     name: 'Микросайт со всеми разделами',
-    path: '/scan/demo-landing',
+    path: '/q/demo-landing',
     badge: 'Микросайт · PRO',
     button: 'Открыть микросайт',
   },
@@ -46,27 +46,27 @@ const scenariosCoffee: DemoScenario[] = [
 const scenariosTire: DemoScenario[] = [
   {
     name: 'Динамическая ссылка',
-    path: '/scan/demo2-redirect',
+    path: '/q/demo2-redirect',
     badge: 'Без перепечатки',
     button: 'Открыть ссылку',
     featured: true,
   },
   {
     name: 'Визитка и чаевые',
-    path: '/scan/demo2-business-card',
+    path: '/q/demo2-business-card',
     badge: 'Визитка мастера',
     button: 'Оставить чаевые',
   },
   {
     name: 'Сбор отзывов',
-    path: '/scan/demo2-review',
+    path: '/q/demo2-review',
     badge: 'Оценки и отзывы на картах',
     button: 'Оценить сервис',
     showDisclaimer: true,
   },
   {
     name: 'Микросайт со всеми разделами',
-    path: '/scan/demo2-landing',
+    path: '/q/demo2-landing',
     badge: 'Микросайт · PRO',
     button: 'Открыть микросайт',
   },
@@ -75,27 +75,27 @@ const scenariosTire: DemoScenario[] = [
 const scenariosClinic: DemoScenario[] = [
   {
     name: 'Динамическая ссылка',
-    path: '/scan/demo3-redirect',
+    path: '/q/demo3-redirect',
     badge: 'Без перепечатки',
     button: 'Открыть ссылку',
     featured: true,
   },
   {
     name: 'Визитка и запись',
-    path: '/scan/demo3-business-card',
+    path: '/q/demo3-business-card',
     badge: 'Визитка врача',
     button: 'Сохранить контакт',
   },
   {
     name: 'Сбор отзывов',
-    path: '/scan/demo3-review',
+    path: '/q/demo3-review',
     badge: 'Оценки и отзывы на картах',
     button: 'Оценить приём',
     showDisclaimer: true,
   },
   {
     name: 'Микросайт со всеми разделами',
-    path: '/scan/demo3-landing',
+    path: '/q/demo3-landing',
     badge: 'Микросайт · PRO',
     button: 'Открыть микросайт',
   },
@@ -228,7 +228,7 @@ const qrByPath = Object.fromEntries(
                       sIdx === 0 ? 'flex' : 'hidden'
                     ]}
                   >
-                    <div class="shrink-0 flex flex-col items-center">
+                    <div class="hidden md:flex shrink-0 flex-col items-center">
                       <div class="relative inline-block p-3 bg-slate-50 rounded-2xl border border-slate-100 shadow-inner">
                         <img
                           src={qr}
@@ -248,7 +248,7 @@ const qrByPath = Object.fromEntries(
                           QR
                         </div>
                       </div>
-                      <p class="mt-3 text-[10px] font-bold uppercase tracking-widest text-slate-400">app.qrstars.ru</p>
+                      <p class="mt-3 text-xs font-bold uppercase tracking-widest text-slate-400">app.qrstars.ru</p>
                     </div>
 
                     <div class="flex-1 flex flex-col min-w-0 w-full text-center md:text-left">
@@ -288,7 +288,7 @@ const qrByPath = Object.fromEntries(
                       </a>
 
                       {scenario.showDisclaimer && (
-                        <p class="text-[11px] text-slate-400 mt-4 leading-relaxed md:max-w-md">
+                        <p class="text-xs text-slate-400 mt-4 leading-relaxed md:max-w-md">
                           * Демонстрационный режим: оценки и отзывы не сохраняются в базу данных и не отправляются в Telegram.
                         </p>
                       )}
@@ -319,23 +319,23 @@ const qrByPath = Object.fromEntries(
                   <div class="mx-auto w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl mb-4">
                     <i class="fa-solid fa-link"></i>
                   </div>
-                  <p class="font-bold text-lg text-slate-900 leading-snug mb-1">Гость сразу попадает на&nbsp;вашу ссылку</p>
-                  <p class="text-sm text-slate-500 mb-7">Открывается в браузере, приложение не нужно</p>
-                  <p class="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">Куда ведёт этот QR сейчас</p>
+                  <p class="font-bold text-lg text-slate-900 leading-snug mb-1">Гость попадает на&nbsp;вашу ссылку</p>
+                  <p class="text-sm text-slate-500 mb-7">На PRO — сразу; на FREE — через экран QrStars (3&nbsp;сек). Приложение не нужно.</p>
+                  <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Куда ведёт этот QR сейчас</p>
                   <div class="rounded-xl border border-primary/20 bg-white shadow-sm px-3 py-3 text-sm font-semibold text-slate-800">
                     <span data-redirect-cycle class="inline-block transition-opacity duration-300">yandex.ru/maps · карточка</span>
                   </div>
                   <p class="text-xs text-slate-500 mt-5 leading-relaxed">
                     Сменили ссылку в кабинете — тот же напечатанный QR ведёт на новую.
                   </p>
-                  <div class="mt-auto text-[11px] text-slate-400">Отсканируйте QR слева или нажмите «Открыть ссылку»</div>
+                  <div class="mt-auto text-xs text-slate-400">Отсканируйте QR или нажмите «Открыть ссылку»</div>
                 </div>
               </div>
             </div>
             <div class="flex items-center gap-3 mt-4 text-xs text-slate-500">
               <span class="font-medium" data-phone-caption={v.id}>Динамическая ссылка</span>
             </div>
-            <p class="mt-2 text-[11px] text-slate-400 text-center max-w-[300px]">
+            <p class="mt-2 text-xs text-slate-400 text-center max-w-[300px]">
               Яндекс Карты и 2ГИС откроются в новой вкладке — их нельзя показать внутри демо-экрана.
             </p>
           </div>
@@ -344,7 +344,7 @@ const qrByPath = Object.fromEntries(
     ))}
 
     <div class="text-center mt-12 text-slate-500 text-sm">
-      <p>Таким же QR можно открыть Wi-Fi, PDF-файл, меню или страницу оплаты — всё меняется в кабинете.</p>
+      <p>Таким же QR можно открыть Wi-Fi, PDF-файл или меню — всё меняется в кабинете.</p>
     </div>
   </div>
 </section>

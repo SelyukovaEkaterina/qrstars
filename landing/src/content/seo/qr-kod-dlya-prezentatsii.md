@@ -6,12 +6,12 @@ badge: "Слайд → визитка и материалы"
 intro: "Нужен <strong>qr код для презентации</strong>? На финальном слайде — не голая ссылка, а <strong>цифровая визитка</strong>: контакты, Telegram и <strong>материалы к докладу</strong> (PDF, Google Drive, Notion, запись). В QrStars страницу можно обновить даже после митапа — QR на слайде останется тем же."
 fullTitle: true
 ctaText: "Создать QR для презентации"
-ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=presentation&utm_content=qr-kod-dlya-prezentatsii"
+ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=qr-kod-dlya-prezentatsii"
 ctaGoal: "register_click"
 ctaSecondaryText: "Смотреть демо визитки спикера"
-ctaSecondaryHref: "https://app.qrstars.ru/scan/demo-business-card"
+ctaSecondaryHref: "https://app.qrstars.ru/q/demo-business-card"
 ctaSecondaryGoal: "demo_scan_click"
-demoScanUrl: "https://app.qrstars.ru/scan/demo-business-card"
+demoScanUrl: "https://app.qrstars.ru/q/demo-business-card"
 demoScanLabel: "Визитка спикера"
 demoScanTitle: "Отсканируйте демо визитки спикера"
 demoScanSubtitle: "Посмотрите, как выглядит интерактивный финальный слайд и страница спикера с материалами"
@@ -124,10 +124,10 @@ related:
 * Негативные отзывы перехватываются закрытой формой обратной связи и отправляются управляющему;
 * На одной табличке можно разместить отзывы, электронное [меню](/qr-menu.html) и гостевой [Wi-Fi](/qr-kod-dlya-wifi.html).
 
-[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=qr-kod-dlya-prezentatsii-pivot)
+[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=qr-kod-dlya-prezentatsii-pivot)
 
 ---
 
 ## Подготовьте идеальный финальный слайд прямо сейчас
 
-Не теряйте контакты вашей аудитории. Создайте интерактивную визитку спикера и скачайте QR-код для презентации в [сервисе QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=presentation&utm_content=qr-kod-dlya-prezentatsii) за несколько минут.
+Не теряйте контакты вашей аудитории. Создайте интерактивную визитку спикера и скачайте QR-код для презентации в [сервисе QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=qr-kod-dlya-prezentatsii) за несколько минут.

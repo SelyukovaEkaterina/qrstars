@@ -26,7 +26,7 @@ interface Establishment {
   reviews: {
     id: string;
     rating: number;
-    comment: string | null;
+    comment?: string | null;
     isNegative: boolean;
     qrCodeId: string | null;
     createdAt: string;
@@ -62,6 +62,8 @@ const MODE_LABELS: Record<string, string> = {
   BUSINESS_CARD: "Визитка",
   WIFI: "Wi-Fi",
   FILE: "Файл",
+  MENU: "Меню",
+  LANDING: "Микросайт",
 };
 
 const MODE_COLORS: Record<string, string> = {
@@ -216,7 +218,7 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
 
       <Card padding="sm">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-1">
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex min-w-0 items-center gap-2">
             <Store className="w-4 h-4 text-gray-400 shrink-0" />
             {lockedEstablishmentId ? (
               <span className="text-sm text-gray-600">Статистика текущего проекта</span>
@@ -227,7 +229,7 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
                 setFilterEstId(e.target.value);
                 setFilterQrId("");
               }}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+              className="w-full min-w-0 sm:w-auto sm:max-w-xs px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
             >
               <option value="">Все</option>
               {establishments.map((est) => (
@@ -242,17 +244,17 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
             )}
           </div>
           <div className="hidden sm:block w-px h-8 bg-gray-200" />
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex min-w-0 items-center gap-2">
             <QrCodeIcon className="w-4 h-4 text-gray-400 shrink-0" />
             <select
               value={filterQrId}
               onChange={(e) => setFilterQrId(e.target.value)}
-              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+              className="w-full min-w-0 sm:w-auto sm:max-w-xs px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
             >
               <option value="">Все QR-коды</option>
               {qrcodes.map((q) => (
                 <option key={q.id} value={q.id}>
-                  {q.code}{q.label ? ` (${q.label})` : ""} [{MODE_LABELS[q.mode] || q.mode}] — {q.establishmentName}
+                  {q.code}{q.label ? ` (${q.label})` : ""} [{MODE_LABELS[q.mode] || q.mode}]{lockedEstablishmentId ? "" : ` — ${q.establishmentName}`}
                 </option>
               ))}
             </select>
@@ -268,7 +270,7 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
 
       {activeTab === "reviews" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Card>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-50 rounded-lg">
@@ -352,23 +354,23 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
                 Общая статистика
               </h3>
               <div className="space-y-4">
-                <div className="flex justify-between">
+                <div className="flex min-w-0 items-baseline justify-between gap-3">
                   <span className="text-gray-600">Всего отзывов</span>
                   <span className="font-semibold">{allReviews.length}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex min-w-0 items-baseline justify-between gap-3">
                   <span className="text-gray-600">Позитивных (4-5 ★)</span>
                   <span className="font-semibold text-green-600">
                     {positiveCount}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex min-w-0 items-baseline justify-between gap-3">
                   <span className="text-gray-600">Негативных (1-3 ★)</span>
                   <span className="font-semibold text-red-600">
                     {negativeCount}
                   </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex min-w-0 items-baseline justify-between gap-3">
                   <span className="text-gray-600">За последние 30 дней</span>
                   <span className="font-semibold">{recentReviews.length}</span>
                 </div>
@@ -423,7 +425,7 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
 
       {activeTab === "scans" && (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Card>
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-indigo-50 rounded-lg">
@@ -538,9 +540,11 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
                       <th className="text-left py-2 px-3 text-gray-500 font-medium">
                         Тип
                       </th>
-                      <th className="text-left py-2 px-3 text-gray-500 font-medium">
-                        Заведение
-                      </th>
+                      {!lockedEstablishmentId && (
+                        <th className="text-left py-2 px-3 text-gray-500 font-medium">
+                          Проект
+                        </th>
+                      )}
                       <th className="text-right py-2 px-3 text-gray-500 font-medium">
                         Сканирований
                       </th>
@@ -563,9 +567,11 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
                           <td className="py-2 px-3">
                             <ModeBadge mode={q.mode} />
                           </td>
-                          <td className="py-2 px-3 text-gray-600">
-                            {q.establishmentName}
-                          </td>
+                          {!lockedEstablishmentId && (
+                            <td className="py-2 px-3 text-gray-600">
+                              {q.establishmentName}
+                            </td>
+                          )}
                           <td className="text-right py-2 px-3 font-medium">
                             {q.scansCount}
                           </td>
@@ -577,9 +583,10 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
             </Card>
           )}
 
+          {!lockedEstablishmentId && (
           <Card>
             <h3 className="font-semibold text-gray-900 mb-4">
-              Сканирования по заведениям
+              Сканирования по проектам
             </h3>
             {filteredEst.length > 0 || orphanForFilter.length > 0 ? (
               <div className="space-y-4">
@@ -667,6 +674,7 @@ export default function BasicAnalytics({ establishments, orphanQrcodes = [], loc
               </div>
             )}
           </Card>
+          )}
         </>
       )}
     </>

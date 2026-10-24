@@ -142,7 +142,7 @@ interface AnalyticsData {
 type Tab = "reviews" | "scans";
 
 const MODE_LABELS: Record<string, string> = {
-  LANDING: "Микро-лендинг",
+  LANDING: "Микросайт",
   REVIEW: "Отзывы",
   MENU: "Меню",
   REDIRECT: "Редирект",
@@ -261,8 +261,11 @@ function TrendBadge({
 
 export default function EnhancedAnalytics({
   lockedEstablishmentId,
+  title = "Расширенная аналитика",
 }: {
   lockedEstablishmentId?: string;
+  /** Заголовок блока; `null` — без H1 (заголовок рисует страница). */
+  title?: string | null;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>("scans");
   const [queryStr, setQueryStr] = useState("period=30d");
@@ -320,7 +323,7 @@ export default function EnhancedAnalytics({
         "QR-код",
         "Метка",
         "Тип QR",
-        "Заведение",
+        "Проект",
         "Устройство",
         "Браузер",
         "Регион",
@@ -350,7 +353,7 @@ export default function EnhancedAnalytics({
 
     const headers = [
       "Дата",
-      "Заведение",
+      "Проект",
       "Оценка",
       "Комментарий",
       "Имя гостя",
@@ -419,11 +422,11 @@ export default function EnhancedAnalytics({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Расширенная аналитика
-            </h1>
+        <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+          <div className="flex min-w-0 flex-wrap items-center gap-3 sm:gap-4">
+            {title && (
+              <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+            )}
             <div className="flex bg-gray-100 rounded-lg p-1">
               <button
                 onClick={() => setActiveTab("scans")}
@@ -460,7 +463,7 @@ export default function EnhancedAnalytics({
 
         <Card padding="sm">
           <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-1">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex min-w-0 items-center gap-2">
               <Store className="w-4 h-4 text-gray-400 shrink-0" />
               {lockedEstablishmentId ? (
                 <span className="text-sm text-gray-600">Статистика текущего проекта</span>
@@ -471,7 +474,7 @@ export default function EnhancedAnalytics({
                   setFilterEstId(e.target.value);
                   setFilterQrId("");
                 }}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                className="w-full min-w-0 sm:w-auto sm:max-w-xs px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
               >
                 <option value="">Все</option>
                 {data?.establishments.map((est) => (
@@ -481,12 +484,12 @@ export default function EnhancedAnalytics({
               )}
             </div>
             <div className="hidden sm:block w-px h-8 bg-gray-200" />
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex min-w-0 items-center gap-2">
               <QrCode className="w-4 h-4 text-gray-400 shrink-0" />
               <select
                 value={filterQrId}
                 onChange={(e) => setFilterQrId(e.target.value)}
-                className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
+                className="w-full min-w-0 sm:w-auto sm:max-w-xs px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent bg-white"
               >
                 <option value="">Все QR-коды</option>
                 {filteredQrs.map((q) => (
@@ -501,7 +504,7 @@ export default function EnhancedAnalytics({
 
         <Card padding="sm">
           <div className="flex flex-col lg:flex-row lg:items-center gap-3 p-1">
-            <div className="flex bg-gray-100 rounded-lg p-1 shrink-0">
+            <div className="flex flex-wrap bg-gray-100 rounded-lg p-1 sm:w-fit">
               {PRESETS.map((p) => (
                 <button
                   key={p.value}
@@ -526,7 +529,7 @@ export default function EnhancedAnalytics({
                 value={customFrom}
                 onChange={(e) => setCustomFrom(e.target.value)}
                 max={customTo || todayISO()}
-                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="min-w-0 flex-1 sm:flex-none px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
               <span className="text-gray-400 text-sm">&mdash;</span>
               <input
@@ -535,7 +538,7 @@ export default function EnhancedAnalytics({
                 onChange={(e) => setCustomTo(e.target.value)}
                 min={customFrom || undefined}
                 max={todayISO()}
-                className="px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="min-w-0 flex-1 sm:flex-none px-2.5 py-1.5 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
               />
               <Button
                 size="sm"
@@ -774,7 +777,7 @@ export default function EnhancedAnalytics({
             </Card>
 
             <Card>
-              <h3 className="font-semibold text-gray-900 mb-4">Топ заведений</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">Топ проектов</h3>
               {topEstablishments.length > 0 ? (
                 <div className="space-y-3">
                   {topEstablishments.map((est, i) => (
@@ -824,7 +827,7 @@ export default function EnhancedAnalytics({
                         Дата
                       </th>
                       <th className="text-left py-2 px-3 text-gray-500 font-medium">
-                        Заведение
+                        Проект
                       </th>
                       <th className="text-center py-2 px-3 text-gray-500 font-medium">
                         Оценка
@@ -1245,7 +1248,7 @@ export default function EnhancedAnalytics({
                         Тип
                       </th>
                       <th className="text-left py-2 px-3 text-gray-500 font-medium">
-                        Заведение
+                        Проект
                       </th>
                       <th className="text-left py-2 px-3 text-gray-500 font-medium">
                         Устройство
@@ -1319,7 +1322,7 @@ export default function EnhancedAnalytics({
                         Тип
                       </th>
                       <th className="text-left py-2 px-3 text-gray-500 font-medium">
-                        Заведение
+                        Проект
                       </th>
                       <th className="text-right py-2 px-3 text-gray-500 font-medium">
                         Сканирований
@@ -1364,10 +1367,10 @@ export default function EnhancedAnalytics({
             )}
           </Card>
 
-          {data.establishmentScans && data.establishmentScans.length > 0 && (
+          {!lockedEstablishmentId && data.establishmentScans && data.establishmentScans.length > 0 && (
             <Card>
               <h3 className="font-semibold text-gray-900 mb-4">
-                Сканирования по заведениям
+                Сканирования по проектам
               </h3>
               <div className="space-y-4">
                 {data.establishmentScans
@@ -1377,9 +1380,9 @@ export default function EnhancedAnalytics({
                       key={est.id}
                       className="border-b border-gray-50 pb-4 last:border-0 last:pb-0"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <Store className="w-4 h-4 text-gray-400" />
+                      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 mb-2">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Store className="w-4 h-4 shrink-0 text-gray-400" />
                           <span className="font-medium text-gray-900">
                             {est.name}
                           </span>

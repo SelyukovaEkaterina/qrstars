@@ -27,8 +27,8 @@ const ctaHref = isReviewArticle
     : isAppUrl(rawCtaHref)
       ? withSetupIntent(appendAttributionParams(rawCtaHref, Astro.url.searchParams), 'redirect')
       : rawCtaHref;
-const ctaExternal = isAppUrl(ctaHref);
-const ctaGoal = ctaExternal ? 'hero_start' : undefined;
+const ctaExternal = isAppUrl(ctaHref) && !ctaHref.includes('/register');
+const ctaGoal = isAppUrl(ctaHref) ? 'bottom_cta' : undefined;
 
 const canonicalUrl = d.canonical ?? `https://qrstars.ru/blog/${entry.slug}.html`;
 const isNoindex = d.noindex ?? false;

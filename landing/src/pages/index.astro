@@ -1,7 +1,8 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import TryDemoSection from '../components/TryDemoSection.astro';
-import { registerUrl } from '../lib/utm';
+import QrGallery from '../components/QrGallery.astro';
+import { registerUrl, withPlan } from '../lib/utm';
 
 const APP_URL = registerUrl('home', Astro.url.searchParams);
 
@@ -9,35 +10,35 @@ const trustSignals = [
   { icon: 'fa-arrows-rotate', text: 'Смена ссылок онлайн без перепечатки' },
   { icon: 'fa-shield-halved', text: 'Серверы в РФ (152-ФЗ) · Безнал для юрлиц' },
   { icon: 'fa-map-location-dot', text: 'Маршрутизация на Яндекс Карты и 2ГИС' },
-  { icon: 'fa-network-wired', text: 'До 5 заведений на одном тарифе' },
+  { icon: 'fa-gift', text: 'Бесплатный тариф без ограничения по сроку' },
 ];
 
 const steps = [
   {
     icon: 'fa-sliders',
-    title: '1. Настройте проект и сценарии',
+    title: 'Настройте проект и сценарии',
     text: 'Выберите задачу: сбор отзывов на Яндекс Картах и 2ГИС, электронное меню, визитки или динамическая ссылка. Настройте фирменные цвета и загрузите логотип бренда.',
   },
   {
     icon: 'fa-qrcode',
-    title: '2. Разместите коды в локациях',
+    title: 'Разместите коды в локациях',
     text: 'Скачайте готовые коды в высоком разрешении PNG или векторном SVG. Печатайте наклейки, тейбл-тенты, бейджи или промо-материалы один раз на весь сезон.',
   },
   {
     icon: 'fa-chart-line',
-    title: '3. Управляйте и анализируйте в облаке',
-    text: 'Обновляйте адреса и акции в кабинете за 10 секунд без перепечатки. Получайте жалобы до публикации на картах и отслеживайте статистику по филиалам.',
+    title: 'Управляйте и анализируйте в облаке',
+    text: 'Обновляйте адреса и акции в кабинете за 10 секунд без перепечатки. Получайте жалобы до публикации на картах и отслеживайте статистику сканирований (сводка по филиалам — на тарифе «Сеть»).',
   },
 ];
 
 const faq = [
   {
     q: 'Что такое динамический QR-код и зачем он нужен бизнесу?',
-    a: 'В обычном статическом QR-коде ссылка зашита навсегда в рисунок: если адрес изменился — весь тираж наклеек, меню или баннеров летит в мусор. В динамическом коде ссылка проходит через облачную платформу QrStars. Вы можете менять адрес (сайт, акцию, меню, форму) в кабинете за 10 секунд без перепечатки полиграфии. При этом код собирает подробную аналитику сканирований по филиалам и устройствам.',
+    a: 'В обычном статическом QR-коде ссылка зашита навсегда в рисунок: если адрес изменился — весь тираж наклеек, меню или баннеров летит в мусор. В динамическом коде ссылка проходит через облачную платформу QrStars. Вы можете менять адрес (сайт, акцию, меню, форму) в кабинете за 10 секунд без перепечатки полиграфии. При этом код считает сканирования на всех тарифах, а на PRO и «Сеть» — показывает детальную аналитику по дням, устройствам и филиалам.',
   },
   {
     q: 'Подходит ли QrStars для филиальной сети или франшизы?',
-    a: 'Да. Тариф «Сеть» (2 900 ₽/год за 5 заведений) специально разработан для компаний с филиалами. Если точек больше пяти или нужны особые условия — напишите в техподдержку в личном кабинете, подберём индивидуальный выгодный тариф. В едином кабинете объединяются все точки бренда: топ-менеджмент видит сводный дашборд с рейтингами филиалов, управляющие на местах работают только со своими отзывами, а аналитика легко выгружается в CSV.',
+    a: 'Да. Тариф «Сеть» (2 900 ₽/год за 5 заведений) специально разработан для компаний с филиалами. Если точек больше пяти или нужны особые условия — напишите в техподдержку в личном кабинете или на support@qrstars.ru, подберём индивидуальный выгодный тариф. В едином кабинете объединяются все точки бренда: топ-менеджмент видит сводный дашборд с рейтингами филиалов, управляющие на местах работают только со своими отзывами, а аналитика легко выгружается в CSV.',
   },
   {
     q: 'Работаете ли вы с юрлицами по безналичному расчёту и через ЭДО?',
@@ -49,11 +50,11 @@ const faq = [
   },
   {
     q: 'Как работает модуль умных отзывов и перехват негатива?',
-    a: 'Гость сканирует QR-код и выбирает оценку от 1 до 5 звёзд. Довольным клиентам (4–5★) предлагается оставить отзыв на Яндекс Картах, 2ГИС или Авито в один клик. При оценке 1–3★ гость оставляет обратную связь напрямую вам: обращение мгновенно приходит управляющему в Telegram или на email, чтобы вы успели решить проблему до публикации на картах.',
+    a: 'Гость сканирует QR-код и выбирает оценку от 1 до 5 звёзд. Довольным клиентам (4–5★) предлагается оставить отзыв на Яндекс Картах, 2ГИС или Авито в один клик. При оценке 1–3★ гость оставляет обратную связь напрямую вам: обращение приходит управляющему на email (FREE) или мгновенно в Telegram и MAX (PRO), чтобы вы успели решить проблему до публикации на картах.',
   },
   {
     q: 'Что происходит с напечатанными материалами, если закончилась подписка?',
-    a: 'Все созданные QR-коды продолжают работать! Ссылки и редиректы не ломаются, офлайн-трафик не теряется. На бесплатном тарифе сохраняются базовые функции перенаправления, а расширенные опции (White Label, Telegram-уведомления) можно возобновить в любой момент.',
+    a: 'QR-коды продолжают сканироваться, напечатанные материалы выбрасывать не нужно. Аккаунт переходит на FREE: микросайт остаётся опубликованным (правки оформления замораживаются), редиректы снова показывают экран QrStars на 3 секунды, уведомления о жалобах приходят на email вместо Telegram и MAX. Платные опции можно вернуть в любой момент, продлив подписку.',
   },
   {
     q: 'Можно ли настроить White Label и добавить свой логотип?',
@@ -62,6 +63,19 @@ const faq = [
   {
     q: 'Сколько сканирований включено и есть ли лимиты?',
     a: 'Количество сканирований не ограничено ни на одном тарифе. Мы не блокируем QR-коды при высоких нагрузках и росте посещаемости ваших заведений.',
+  },
+  {
+    q: 'Чем бесплатный тариф FREE отличается от PRO?',
+    a: 'FREE бесплатен навсегда: 1 проект, QR-кодов без лимита, сбор отзывов (4–5★ на Яндекс Карты, жалобы 1–3★ на email), меню, визитка, Wi‑Fi, файл и редирект, базовая статистика сканирований и средний рейтинг. Ограничения FREE: вотермарка QrStars и экран QrStars на 3 секунды перед редиректом. PRO (990 ₽/год) добавляет прямой переход без экрана, микросайт со всеми разделами в одном QR, ротацию площадок Яндекс / 2ГИС / Авито, жалобы в Telegram и MAX, White Label, промокод за отзыв 5★ и чаевые, расширенную аналитику по дням, устройствам и регионам.',
+  },
+  {
+    q: 'Как проходит оплата, автосписание, отмена и возврат?',
+    a: 'Платные тарифы оплачиваются банковской картой раз в год: PRO — 990 ₽, «Сеть» — 2 900 ₽. При оформлении вы отдельно соглашаетесь на автопродление; за несколько дней до списания приходит напоминание на email. Отменить подписку можно в любой момент в кабинете, раздел «Тариф и оплата» — платные функции сохранятся до конца оплаченного периода. Порядок возврата описан на странице «Условия оплаты и возврата».',
+    link: { href: '/usloviya-oplaty-i-vozvrata.html', label: 'Условия оплаты и возврата →' },
+  },
+  {
+    q: 'Где купить готовую табличку с QR-кодом?',
+    a: 'Готовые акриловые таблички QrStars продаются на маркетплейсах Wildberries и Ozon — найдите их в поиске по названию «QrStars». Табличка не обязательна: QR-код можно создать бесплатно в кабинете, скачать в PNG или SVG и напечатать в любой типографии.',
   },
 ];
 
@@ -87,42 +101,47 @@ const softwareSchema = {
   url: 'https://qrstars.ru',
   description: 'Платформа динамических QR-кодов: управление офлайн-точками, перехват негатива и сбор отзывов на Яндекс Картах и 2ГИС, смена ссылок без перепечатки полиграфии.',
   offers: {
-    '@type': 'Offer',
-    price: '0',
+    '@type': 'AggregateOffer',
+    lowPrice: '0',
+    highPrice: '2900',
     priceCurrency: 'RUB',
+    offerCount: 3,
   },
 };
 ---
 
 <Layout
-  title="QrStars — платформа динамических QR-кодов и умных отзывов для бизнеса и сетей"
+  title="QrStars — динамические QR-коды: отзывы на Яндекс Картах и 2ГИС, меню, визитки"
   fullTitle={true}
-  description="Платформа динамических QR-кодов для заведений, сетей и ритейла. Управление офлайн-точками, защита рейтинга на Яндекс Картах и 2ГИС, смена контента без перепечатки полиграфии. Попробуйте бесплатно."
+  description="Динамические QR-коды для бизнеса и специалистов: отзывы на Яндекс Картах и 2ГИС, электронное меню, визитки, файлы и видео. Ссылку можно менять после печати. Бесплатный тариф."
   yandexVerification="3dc4de0473e128f8"
 >
   <!-- ───────────── Главный экран ───────────── -->
-  <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
+  <section class="pt-24 pb-12 sm:pt-32 sm:pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
     <div
       class="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-primary/5 rounded-full blur-3xl pointer-events-none"
     >
     </div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
       <div
-        class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20"
+        class="hidden sm:inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20"
       >
         <i class="fa-solid fa-qrcode"></i>
-        Платформа динамических QR-кодов и умных отзывов для бизнеса и сетей
+        Динамические QR-коды для бизнеса и специалистов
       </div>
       <h1
-        class="text-3xl md:text-4xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1] mb-6 max-w-4xl mx-auto"
+        class="text-3xl md:text-4xl lg:text-[3.25rem] font-extrabold tracking-tight leading-[1.1] mb-4 sm:mb-6 max-w-4xl mx-auto"
       >
-        Динамические QR-коды и умные отзывы:
+        Динамические QR-коды для отзывов, меню и визиток:
         <span class="bg-gradient-to-r from-primary to-purple-500 gradient-text">
-          управляйте репутацией и офлайн-трафиком
+          ссылку можно менять после печати
         </span>
       </h1>
-      <p class="text-lg md:text-xl text-slate-600 mb-9 max-w-3xl mx-auto leading-relaxed">
-        Объединяйте отзывы на картах, электронное меню, визитки и акции в одном QR-коде. Меняйте ссылки в облаке без перепечатки полиграфии, защищайте рейтинг заведений и контролируйте все филиалы из единого кабинета.
+      <p class="sm:hidden text-base text-slate-600 mb-6 leading-relaxed">
+        Отзывы на картах, меню, визитки и акции в одном QR. Меняйте ссылки без перепечатки.
+      </p>
+      <p class="hidden sm:block text-lg md:text-xl text-slate-600 mb-9 max-w-3xl mx-auto leading-relaxed">
+        Объединяйте отзывы на картах, электронное меню, визитки и акции в одном QR-коде. Меняйте ссылки в облаке без перепечатки полиграфии, собирайте отзывы на Яндекс Картах и 2ГИС и смотрите, сколько раз отсканировали каждый код.
       </p>
 
       <div class="flex flex-col sm:flex-row gap-3 justify-center">
@@ -156,15 +175,15 @@ const softwareSchema = {
         </li>
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">Защита репутации:</strong> поток отзывов 4–5★ на Яндекс Карты и 2ГИС, перехват жалоб 1–3★ до публикации.</span>
+          <span><strong class="text-slate-800">Защита репутации:</strong> поток отзывов 4–5★ на Яндекс Карты и 2ГИС, перехват жалоб 1–3★ до публикации (email на FREE · Telegram и MAX на PRO).</span>
         </li>
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">Единое управление сетью:</strong> сводный дашборд филиалов, роли для управляющих и сквозная аналитика.</span>
+          <span><strong class="text-slate-800">QR-визитка для мастеров и специалистов:</strong> звонок, WhatsApp, услуги с ценами и сохранение контакта — <a href="/qr-vizitka-mastera.html" class="text-primary hover:underline">бесплатно</a>.</span>
         </li>
         <li class="flex items-start gap-3">
           <i class="fa-solid fa-circle-check text-primary mt-1 shrink-0"></i>
-          <span><strong class="text-slate-800">White Label и свой бренд:</strong> прямой переход без промежуточных экранов и сторонних логотипов.</span>
+          <span><strong class="text-slate-800">White Label и свой бренд на PRO:</strong> прямой переход без промежуточных экранов и сторонних логотипов.</span>
         </li>
       </ul>
     </div>
@@ -173,9 +192,9 @@ const softwareSchema = {
   <!-- ───────────── Полоса доверия ───────────── -->
   <section class="bg-slate-50 border-y border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         {trustSignals.map((s) => (
-          <div class="flex items-center justify-center gap-2.5 text-slate-600 text-sm font-medium">
+          <div class="flex items-center sm:justify-center gap-2.5 text-slate-600 text-sm font-medium">
             <i class={`fa-solid ${s.icon} text-primary`}></i>
             <span>{s.text}</span>
           </div>
@@ -183,6 +202,9 @@ const softwareSchema = {
       </div>
     </div>
   </section>
+
+  <!-- ───────────── Галерея красивых QR ───────────── -->
+  <QrGallery />
 
   <!-- ───────────── Как работает динамика ───────────── -->
   <section class="py-20 bg-white">
@@ -197,7 +219,7 @@ const softwareSchema = {
           Забудьте о повторной печати полиграфии при каждой смене акции
         </h2>
         <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
-          В обычном QR-коде ссылка зашита намертво в рисунок: смена сайта, ошибка в адресе или новое меню требуют выбросить весь тираж. Динамический QR QrStars перенаправляет трафик через облачную платформу, позволяя мгновенно обновлять ссылки во всей сети филиалов.
+          В обычном QR-коде ссылка зашита намертво в рисунок: смена сайта, ошибка в адресе или новое меню требуют выбросить весь тираж. Динамический QR QrStars перенаправляет трафик через облачную платформу, позволяя обновить ссылку за секунды — напечатанный код продолжит работать.
         </p>
       </div>
 
@@ -210,8 +232,8 @@ const softwareSchema = {
           </div>
           <h3 class="font-bold text-lg mb-3">Обычный статический QR</h3>
           <ul class="space-y-2.5 text-sm text-slate-600">
-            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Ссылка «зашита» намертво: сменился сайт или акция — перепечатывайте тираж во всей сети</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Опечатка в адресе блокирует работу филиалов и приводит к убыткам</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Ссылка «зашита» намертво: сменился сайт или акция — перепечатывайте весь тираж</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Опечатка в адресе — и напечатанный тираж уходит в мусор</li>
             <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Офлайн остаётся «чёрным ящиком»: нет данных о сканированиях и конверсиях</li>
             <li class="flex gap-2.5"><i class="fa-solid fa-xmark text-rose-400 mt-1 shrink-0"></i> Нельзя защитить рейтинг: недовольные гости сразу пишут негатив на картах</li>
           </ul>
@@ -226,8 +248,8 @@ const softwareSchema = {
           <ul class="space-y-2.5 text-sm text-slate-700">
             <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Адрес меняется в личном кабинете за 10 секунд без перепечатки материалов</li>
             <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Напечатали на столах, стойках или баннерах один раз — и меняйте контент круглый год</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Сквозная статистика по каждой точке, дням недели и типам устройств</li>
-            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Умные отзывы: 4–5★ на карты, а негатив 1–3★ — сразу руководству в Telegram</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Статистика сканирований на всех тарифах; разрезы по дням и устройствам — на PRO, по филиалам — на «Сеть»</li>
+            <li class="flex gap-2.5"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i> Умные отзывы: 4–5★ на карты, а негатив 1–3★ — руководству (email на FREE · Telegram и MAX на PRO)</li>
           </ul>
         </div>
       </div>
@@ -235,47 +257,6 @@ const softwareSchema = {
   </section>
 
   <TryDemoSection />
-
-  <!-- ───────────── Результаты внедрения ───────────── -->
-  <section class="py-20 bg-slate-50 border-y border-slate-200">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="text-center mb-14">
-        <h2 class="text-3xl font-bold mb-4">Результаты внедрения в филиальных сетях</h2>
-        <p class="text-slate-600 max-w-2xl mx-auto">
-          Автоматизация сбора обратной связи, защита рейтинга филиалов и сокращение операционных расходов на офлайн-маркетинг.
-        </p>
-      </div>
-      
-      <div class="grid md:grid-cols-3 gap-6">
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
-          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-chart-line"></i></div>
-          <div class="text-2xl font-extrabold text-slate-900 mb-1">+0.6 балла</div>
-          <h3 class="font-bold text-lg mb-2">Рост на Яндекс Картах и 2ГИС</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Поток оценок 4–5★ от лояльных гостей направляется на карты, поднимая филиалы в локальной выдаче и привлекая новых клиентов без доплат за платное продвижение.
-          </p>
-        </div>
-
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
-          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-shield-halved"></i></div>
-          <div class="text-2xl font-extrabold text-slate-900 mb-1">85% перехвата</div>
-          <h3 class="font-bold text-lg mb-2">Защита репутации до публикации</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Жалобы 1–3★ моментально поступают управляющим точек в Telegram и на почту. Вы успеваете урегулировать инцидент на месте, пока гость не опубликовал негатив в интернете.
-          </p>
-        </div>
-
-        <div class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm relative">
-          <div class="text-primary mb-4 text-3xl"><i class="fa-solid fa-coins"></i></div>
-          <div class="text-2xl font-extrabold text-slate-900 mb-1">До 70% экономии</div>
-          <h3 class="font-bold text-lg mb-2">Сокращение расходов на полиграфию</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">
-            Больше не нужно заклеивать цены или выбрасывать сотни тейбл-тентов, меню и баннеров из-за смены промо-акции. Весь контент обновляется в облаке за пару секунд.
-          </p>
-        </div>
-      </div>
-    </div>
-  </section>
 
   <!-- ───────────── Как это работает ───────────── -->
   <section class="py-20 bg-white">
@@ -328,7 +309,7 @@ const softwareSchema = {
       <div class="text-center mb-16">
         <h2 class="text-3xl font-bold mb-4">Единая платформа для решения задач офлайн-бизнеса</h2>
         <p class="text-slate-600 max-w-2xl mx-auto">
-          Все инструменты в одном кабинете: от сбора отзывов на картах и электронного меню до управления сетью филиалов.
+          Все инструменты в одном кабинете: отзывы на картах, электронное меню, визитки, файлы и аналитика сканирований.
         </p>
       </div>
 
@@ -344,7 +325,7 @@ const softwareSchema = {
           </div>
           <h3 class="font-bold text-xl mb-3">Умные отзывы на картах</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Растите в рейтинге Яндекс Карт и 2ГИС. Перенаправляйте довольных клиентов на карты, а негатив принимайте лично в Telegram, чтобы исправить ситуацию до публикации.
+            Растите в рейтинге Яндекс Карт и 2ГИС. Перенаправляйте довольных клиентов на карты, а негатив принимайте лично (email на FREE · Telegram и MAX на PRO), чтобы исправить ситуацию до публикации.
           </p>
           <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее об отзывах →</span>
         </a>
@@ -389,7 +370,7 @@ const softwareSchema = {
           </div>
           <h3 class="font-bold text-xl mb-3">Визитки и чаевые</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Персональные QR-коды мастеров, врачей и официантов: сохранение контактов в записную книжку в один клик, интеграция чаевых и ссылки на соцсети.
+            Персональные QR-коды мастеров, врачей и официантов: сохранение контактов в записную книжку в один клик и ссылки на соцсети бесплатно, чаевые — на PRO.
           </p>
           <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о визитках →</span>
         </a>
@@ -449,25 +430,25 @@ const softwareSchema = {
           </div>
           <h3 class="font-bold text-xl mb-3">Оплата и переводы</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Оплата по СБП и перевод чаевых персоналу в один клик. Разместите код на счёте, стойке или бейдже для быстрых безналичных расчётов.
+            QR со ссылкой на оплату / СБП и чаевые персоналу (PRO). Разместите код на счёте, стойке или бейдже для быстрых безналичных расчётов.
           </p>
           <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее об оплате →</span>
         </a>
 
-        <!-- 9. Управление сетью филиалов -->
+        <!-- 9. Визитка мастера -->
         <a
-          href="#buy"
-          class="bg-white p-8 rounded-2xl border border-purple-200 shadow-sm hover:shadow-md transition feature-card group block relative"
+          href="/qr-vizitka-mastera.html"
+          class="bg-white p-8 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition feature-card group block relative"
         >
-          <div class="absolute top-6 right-6 bg-purple-100 text-purple-700 text-xs font-bold px-2.5 py-1 rounded-full">Для сетей</div>
-          <div class="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-6">
-            <i class="fa-solid fa-network-wired text-2xl text-purple-600 group-hover:scale-110 transition"></i>
+          <div class="absolute top-6 right-6 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full">Бесплатно</div>
+          <div class="w-14 h-14 bg-sky-100 rounded-xl flex items-center justify-center mb-6">
+            <i class="fa-solid fa-screwdriver-wrench text-2xl text-sky-600 group-hover:scale-110 transition"></i>
           </div>
-          <h3 class="font-bold text-xl mb-3">Управление сетью филиалов</h3>
+          <h3 class="font-bold text-xl mb-3">QR-визитка мастера</h3>
           <p class="text-slate-600 text-sm leading-relaxed">
-            Сводный дашборд сети, разделение прав доступа для управляющих, сравнение рейтингов и динамики филиалов, а также выгрузка отчётов в CSV.
+            Для электриков, сантехников и мастеров на час: наклейка на щитке или котле, по которой клиент через полгода звонит вам, а не ищет нового мастера.
           </p>
-          <span class="inline-block mt-4 text-purple-600 text-sm font-semibold group-hover:underline">Подробнее о тарифе «Сеть» →</span>
+          <span class="inline-block mt-4 text-primary text-sm font-semibold group-hover:underline">Подробнее о визитке мастера →</span>
         </a>
       </div>
     </div>
@@ -479,83 +460,83 @@ const softwareSchema = {
       <div class="max-w-2xl mb-12">
         <h2 class="text-3xl font-bold mb-4">Готовые сценарии для вашей отрасли</h2>
         <p class="text-slate-600 leading-relaxed">
-          Проверенные связки для сетевых заведений, клиник, автосервисов и бьюти-сферы — каждая настроена под специфику работы с клиентами в вашей нише.
+          Проверенные связки для кафе, клиник, автосервисов и бьюти-сферы — каждая настроена под специфику работы с клиентами в вашей нише.
         </p>
         <a href="/otraslevye-resheniya.html" class="inline-flex mt-5 text-primary font-semibold hover:underline">
           Все отраслевые решения →
         </a>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <!-- Рестораны -->
-        <a href="/qr-kod-dlya-restorana.html" class="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-slate-900 block">
+        <a href="/qr-kod-dlya-restorana.html" class="group relative rounded-2xl overflow-hidden aspect-[3/4] sm:aspect-[4/5] bg-slate-900 block">
           <img
-            src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800"
-            alt="Ресторанные сети и кафе"
+            src="/images/industries/restaurant.webp"
+            alt="Рестораны и кафе"
             loading="lazy"
-            width="800"
-            height="1000"
+            width="600"
+            height="750"
             class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-50 transition duration-500 group-hover:scale-105"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 p-6">
-            <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white inline-block mb-3">Рестораны</div>
-            <h3 class="text-xl font-bold text-white mb-2">Ресторанные сети и кафе</h3>
-            <p class="text-slate-200 text-sm leading-snug">Меню без перепечатки, оперативные стоп-листы, чаевые персоналу и системный сбор 5★</p>
+          <div class="absolute bottom-0 left-0 p-3 sm:p-6">
+            <div class="hidden sm:inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white mb-3">Рестораны</div>
+            <h3 class="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Рестораны и кафе</h3>
+            <p class="hidden sm:block text-slate-200 text-sm leading-snug">Меню без перепечатки, оперативные стоп-листы, чаевые персоналу (PRO) и системный сбор 5★</p>
           </div>
         </a>
 
         <!-- Красота -->
-        <a href="/qr-kod-dlya-salona-krasoty.html" class="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-slate-900 block">
+        <a href="/qr-kod-dlya-salona-krasoty.html" class="group relative rounded-2xl overflow-hidden aspect-[3/4] sm:aspect-[4/5] bg-slate-900 block">
           <img
-            src="https://images.unsplash.com/photo-1560066984-138dadb4c035?auto=format&fit=crop&q=80&w=800"
+            src="/images/industries/beauty.webp"
             alt="Сети салонов красоты"
             loading="lazy"
-            width="800"
-            height="1000"
+            width="600"
+            height="750"
             class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-50 transition duration-500 group-hover:scale-105"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 p-6">
-            <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white inline-block mb-3">Красота</div>
-            <h3 class="text-xl font-bold text-white mb-2">Сети салонов и барбершопов</h3>
-            <p class="text-slate-200 text-sm leading-snug">Визитки мастеров, сбор отзывов на зеркалах, безналичные чаевые и онлайн-запись</p>
+          <div class="absolute bottom-0 left-0 p-3 sm:p-6">
+            <div class="hidden sm:inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white mb-3">Красота</div>
+            <h3 class="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Сети салонов и барбершопов</h3>
+            <p class="hidden sm:block text-slate-200 text-sm leading-snug">Визитки мастеров, сбор отзывов на зеркалах, безналичные чаевые (PRO) и кнопка записи</p>
           </div>
         </a>
 
         <!-- Медицина -->
-        <a href="/qr-kod-dlya-stomatologii.html" class="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-slate-900 block">
+        <a href="/qr-kod-dlya-stomatologii.html" class="group relative rounded-2xl overflow-hidden aspect-[3/4] sm:aspect-[4/5] bg-slate-900 block">
           <img
-            src="https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?auto=format&fit=crop&q=80&w=800"
+            src="/images/industries/clinic.webp"
             alt="Сети клиник и медцентров"
             loading="lazy"
-            width="800"
-            height="1000"
+            width="600"
+            height="750"
             class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-50 transition duration-500 group-hover:scale-105"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 p-6">
-            <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white inline-block mb-3">Медицина</div>
-            <h3 class="text-xl font-bold text-white mb-2">Клиники и стоматологии</h3>
-            <p class="text-slate-200 text-sm leading-snug">Приватная обратная связь главврачу, защита репутации врачей и разгрузка ресепшн</p>
+          <div class="absolute bottom-0 left-0 p-3 sm:p-6">
+            <div class="hidden sm:inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white mb-3">Медицина</div>
+            <h3 class="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Клиники и стоматологии</h3>
+            <p class="hidden sm:block text-slate-200 text-sm leading-snug">Приватная обратная связь главврачу, защита репутации врачей и разгрузка ресепшн</p>
           </div>
         </a>
 
         <!-- Авто -->
-        <a href="/qr-kod-dlya-avtoservisa.html" class="group relative rounded-2xl overflow-hidden aspect-[4/5] bg-slate-900 block">
+        <a href="/qr-kod-dlya-avtoservisa.html" class="group relative rounded-2xl overflow-hidden aspect-[3/4] sm:aspect-[4/5] bg-slate-900 block">
           <img
-            src="https://images.unsplash.com/photo-1619642751034-765dfdf7c58e?auto=format&fit=crop&q=80&w=800"
+            src="/images/industries/auto.webp"
             alt="Сети автосервисов"
             loading="lazy"
-            width="800"
-            height="1000"
+            width="600"
+            height="750"
             class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:opacity-50 transition duration-500 group-hover:scale-105"
           />
           <div class="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent"></div>
-          <div class="absolute bottom-0 left-0 p-6">
-            <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white inline-block mb-3">Авто</div>
-            <h3 class="text-xl font-bold text-white mb-2">Автосервисы и техцентры</h3>
-            <p class="text-slate-200 text-sm leading-snug">Перехват недовольства до публичных отзывов, рост рейтинга филиалов на картах</p>
+          <div class="absolute bottom-0 left-0 p-3 sm:p-6">
+            <div class="hidden sm:inline-block bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-semibold text-white mb-3">Авто</div>
+            <h3 class="text-base sm:text-xl font-bold text-white mb-1 sm:mb-2 leading-tight">Автосервисы и техцентры</h3>
+            <p class="hidden sm:block text-slate-200 text-sm leading-snug">Перехват недовольства до публичных отзывов, рост рейтинга на картах</p>
           </div>
         </a>
       </div>
@@ -629,7 +610,7 @@ const softwareSchema = {
         <div class="inline-block bg-white/10 border border-white/20 text-white font-semibold px-4 py-1.5 rounded-full text-sm mb-5">Тарифные планы</div>
         <h2 class="text-3xl lg:text-4xl font-bold mb-4">Прозрачные тарифы без скрытых переплат</h2>
         <p class="text-slate-400">
-          Оплата за количество заведений, а не за число QR-кодов. На всех платных тарифах — безлимит
+          Оплата за количество заведений, а не за число QR-кодов. На всех тарифах, включая FREE, — безлимит
           кодов для столов, сотрудников, залов и входных групп.
         </p>
 
@@ -641,9 +622,9 @@ const softwareSchema = {
         <div class="bg-slate-800/50 backdrop-blur border border-slate-700 p-7 rounded-3xl flex flex-col">
           <div class="mb-5">
             <div class="inline-block bg-slate-700 text-slate-300 font-semibold px-3 py-1 rounded-full text-xs mb-4">FREE</div>
-            <h3 class="text-xl font-bold text-white mb-1">Тест-драйв</h3>
+            <h3 class="text-xl font-bold text-white mb-1">Бесплатно навсегда</h3>
             <div class="text-4xl font-bold text-white mb-1">0 ₽</div>
-            <p class="text-slate-400 text-xs leading-relaxed mt-2">Базовый доступ для проверки функционала на одном заведении. Позволяет протестировать механику распределения отзывов и смену ссылок.</p>
+            <p class="text-slate-400 text-xs leading-relaxed mt-2">Ядро продукта без срока действия: сбор отзывов, меню, визитка, Wi‑Fi, файл и динамические ссылки для одного заведения.</p>
           </div>
           <ul class="space-y-3 mb-6 flex-1 text-sm">
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-slate-400 mt-0.5 shrink-0"></i> <strong>1 заведение</strong> (любое число QR-кодов)</li>
@@ -653,9 +634,10 @@ const softwareSchema = {
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-slate-400 mt-0.5 shrink-0"></i> Базовая статистика сканирований и средний рейтинг</li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-slate-400 mt-0.5 shrink-0"></i> Партнёрская программа (15%)</li>
             <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-eye text-slate-500 mt-0.5 shrink-0"></i> Вотермарка «Сделано в QrStars»</li>
+            <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-hourglass-half text-slate-500 mt-0.5 shrink-0"></i> Экран QrStars 3 сек перед редиректом</li>
           </ul>
           <a href={registerUrl('pricing_free', Astro.url.searchParams)} data-goal="pricing_free" class="block w-full text-center bg-slate-700 text-white px-5 py-3 rounded-xl font-bold hover:bg-slate-600 transition text-sm">
-            Начать тест-драйв
+            Начать бесплатно
           </a>
         </div>
 
@@ -678,15 +660,16 @@ const softwareSchema = {
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Микросайт заведения со всеми разделами в одном QR</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> <strong>Своё имя сайта:</strong> ваше-имя.qrstars.ru</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Мгновенные уведомления о жалобах в Telegram и MAX</li>
-            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Умная ротация карт: Яндекс / 2ГИС / Авито / Flamp</li>
+            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Умная ротация площадок: Яндекс / 2ГИС / Авито</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> White Label: ваш логотип вместо чужой вотермарки</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Выдача промокодов за отзывы 5★ и чаевые персоналу</li>
-            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Расширенная статистика по дням, часам и устройствам</li>
+            <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Расширенная аналитика: конверсия, дни, часы, устройства и регионы</li>
             <li class="flex items-start gap-2 text-slate-200"><i class="fa-solid fa-check text-indigo-400 mt-0.5 shrink-0"></i> Приоритетная поддержка</li>
           </ul>
-          <a href={registerUrl('pricing_pro', Astro.url.searchParams)} data-goal="pricing_pro" class="block w-full text-center bg-indigo-500 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-600 transition text-sm shadow-lg shadow-indigo-500/30">
+          <a href={withPlan(registerUrl('pricing_pro', Astro.url.searchParams), 'pro')} data-goal="pricing_pro" class="block w-full text-center bg-indigo-500 text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-600 transition text-sm shadow-lg shadow-indigo-500/30">
             Выбрать PRO
           </a>
+          <p class="text-indigo-300/80 text-xs text-center mt-2">Оплата после регистрации — раздел «Тариф и оплата»</p>
         </div>
 
         <!-- Сеть -->
@@ -707,12 +690,13 @@ const softwareSchema = {
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Сводный дашборд сети (рейтинги, динамика, сравнение)</li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Роли доступа: управляющий видит только свой филиал</li>
             <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> White Label на уровне бренда сети или франшизы</li>
-            <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Выгрузка отчетов и аналитики в CSV / BI</li>
-            <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-circle-nodes text-slate-500 mt-0.5 shrink-0"></i> * Больше 5 точек или нужны особые условия — напишите в техподдержку в личном кабинете, подберём индивидуальный выгодный тариф</li>
+            <li class="flex items-start gap-2 text-slate-300"><i class="fa-solid fa-check text-purple-400 mt-0.5 shrink-0"></i> Выгрузка отчётов в CSV</li>
+            <li class="flex items-start gap-2 text-slate-400"><i class="fa-solid fa-circle-nodes text-slate-500 mt-0.5 shrink-0"></i> * Больше 5 точек или нужны особые условия — напишите на support@qrstars.ru или в техподдержку в личном кабинете, подберём индивидуальный выгодный тариф</li>
           </ul>
-          <a href={registerUrl('pricing_network', Astro.url.searchParams)} data-goal="pricing_network" class="block w-full text-center bg-purple-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-purple-700 transition text-sm">
+          <a href={withPlan(registerUrl('pricing_network', Astro.url.searchParams), 'network')} data-goal="pricing_network" class="block w-full text-center bg-purple-600 text-white px-5 py-3 rounded-xl font-bold hover:bg-purple-700 transition text-sm">
             Выбрать Сеть
           </a>
+          <p class="text-slate-400 text-xs text-center mt-2">Оплата после регистрации — раздел «Тариф и оплата»</p>
         </div>
       </div>
 
@@ -725,7 +709,7 @@ const softwareSchema = {
           <div>
             <h3 class="text-lg font-bold text-white mb-1">Работаем с юридическими лицами и ИП по всей России</h3>
             <p class="text-slate-300 text-sm leading-relaxed max-w-2xl">
-              Оплата по счёту, закрывающие акты через ЭДО (Диадок, СБИС) или на бумаге. Договор, 54-ФЗ и серверы в РФ по 152-ФЗ. Для сетей больше 5 филиалов подберём индивидуальный тариф — напишите в техподдержку в личном кабинете.
+              Оплата по счёту, закрывающие акты через ЭДО (Диадок, СБИС) или на бумаге. Договор, 54-ФЗ и серверы в РФ по 152-ФЗ. Для сетей больше 5 филиалов подберём индивидуальный тариф — напишите на support@qrstars.ru или в техподдержку в личном кабинете.
             </p>
           </div>
         </div>
@@ -758,7 +742,7 @@ const softwareSchema = {
           <div>
             <h3 class="font-bold text-white mb-1.5">Непрерывность работы при окончании подписки</h3>
             <p class="text-slate-400 text-sm leading-relaxed">
-              QR-коды продолжают сканироваться, ссылки и маршрутизация не ломаются. Ограничиваются лишь расширенные инструменты управления в кабинете. Никаких внезапных отключений офлайн-материалов.
+              QR-коды продолжают сканироваться, тираж перепечатывать не нужно. Микросайт остаётся опубликованным, редиректы показывают экран QrStars на 3 секунды, уведомления о жалобах приходят на email.
             </p>
           </div>
         </div>
@@ -783,7 +767,7 @@ const softwareSchema = {
               {item.q}
               <i class="fa-solid fa-chevron-down text-slate-400 text-sm transition-transform group-open:rotate-180 shrink-0"></i>
             </summary>
-            <p class="px-6 pb-5 -mt-1 text-slate-600 text-sm leading-relaxed">{item.a}</p>
+            <p class="px-6 pb-5 -mt-1 text-slate-600 text-sm leading-relaxed">{item.a}{item.link && (<> <a href={item.link.href} class="text-primary font-semibold hover:underline">{item.link.label}</a></>)}</p>
           </details>
         ))}
       </div>

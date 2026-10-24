@@ -38,3 +38,83 @@ textarea:focus {
   font-size: 12px;
   color: #9ca3af;
 }
+
+/*
+ * iOS Safari зумит страницу при фокусе на поле со шрифтом < 16px.
+ * Слой не указан намеренно: так правило перебивает утилиты Tailwind (text-sm / text-xs) на мобильных.
+ * Чекбоксы, радио, range, color и file не трогаем — их размер задаётся отдельно.
+ */
+@media (max-width: 639.98px) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([type="hidden"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+/*
+ * Верхняя «шапка» кабинета: QA-баннер (fixed) + мобильный хедер (fixed).
+ * --qa-banner-h  — высота QA-баннера (0, если режим QA выключен);
+ * --dash-safe-top — отступ под чёлку, если его ещё не забрал QA-баннер.
+ */
+:root {
+  --qa-banner-h: 0px;
+  --dash-safe-top: env(safe-area-inset-top, 0px);
+  --dash-header-h: 3.5rem;
+}
+
+html.qa-mode {
+  --qa-banner-h: calc(1.75rem + env(safe-area-inset-top, 0px));
+  --dash-safe-top: 0px;
+}
+
+.dash-qa-banner {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.dash-header {
+  top: var(--qa-banner-h);
+  padding-top: var(--dash-safe-top);
+  height: calc(var(--dash-header-h) + var(--dash-safe-top));
+}
+
+.dash-main {
+  padding-top: calc(var(--qa-banner-h) + var(--dash-safe-top) + var(--dash-header-h));
+}
+
+.dash-drawer {
+  top: var(--qa-banner-h);
+  height: calc(100dvh - var(--qa-banner-h));
+}
+
+.dash-drawer-safe-top {
+  padding-top: var(--dash-safe-top);
+}
+
+@media (min-width: 1024px) {
+  .dash-main {
+    padding-top: 0;
+  }
+
+  .dash-shell {
+    padding-top: var(--qa-banner-h);
+  }
+
+  .dash-drawer {
+    top: auto;
+    height: auto;
+  }
+
+  .dash-drawer-safe-top {
+    padding-top: 0;
+  }
+}
+
+.dash-shell-start {
+  padding-top: var(--qa-banner-h);
+}
+
+/* Мобильный тур: карточка-шторка снизу с отступом под home-индикатор. */
+.onboarding-sheet {
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+}

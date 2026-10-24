@@ -5,7 +5,9 @@ import MenuStickerPreview from '../components/MenuStickerPreview.astro';
 import StickyRegisterCta from '../components/seo/StickyRegisterCta.astro';
 import { menuRegisterUrl } from '../lib/utm';
 
-const DEMO_SCAN_URL = 'https://app.qrstars.ru/scan/demo-menu';
+const DEMO_SCAN_URL = 'https://app.qrstars.ru/q/demo-menu';
+const BOTTOM_REGISTER_URL = menuRegisterUrl('qr-menu-bottom', Astro.url.searchParams);
+const STICKER_REGISTER_URL = menuRegisterUrl('qr-menu-sticker', Astro.url.searchParams);
 const REGISTER_URL = menuRegisterUrl('qr-menu-hero', Astro.url.searchParams);
 const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchParams);
 ---
@@ -15,7 +17,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
   description="Создайте электронное QR-меню для ресторана или кафе за 2 минуты. Актуальные цены, фото блюд, наклейки на столики. Попробуйте QrStars бесплатно."
   fullTitle={true}
 >
-    <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
+    <section class="pt-24 pb-16 sm:pt-32 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
                 <div class="z-10">
@@ -24,10 +26,10 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                             🍔 Меню всегда актуально
                         </div>
                         <div class="inline-block bg-emerald-100 text-emerald-800 font-semibold px-3 py-1.5 rounded-full text-xs border border-emerald-200">
-                            Попробовать бесплатно
+                            Бесплатно на FREE
                         </div>
                     </div>
-                    <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+                    <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
                         Электронное <span class="text-primary">QR-меню</span> <br/>
                         для ресторана и кафе
                     </h1>
@@ -38,7 +40,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                     <ul class="space-y-4 mb-8">
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Гибкий конструктор страниц: блоки, фото, категории</span></li>
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Моментальное обновление цен и стоп-листов</span></li>
-                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Идеально для NFC-наклеек на столики и тейбл-тентов</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Идеально для наклеек на столики и тейбл-тентов</span></li>
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Аналитика просмотров по каждому столику (при разных метках)</span></li>
                     </ul>
 
@@ -47,10 +49,10 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                     </p>
 
                     <div class="flex flex-col sm:flex-row gap-4">
-                        <a href={REGISTER_URL} data-goal="hero_start" target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                        <a href={REGISTER_URL} data-goal="hero_start" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
                             Создать меню бесплатно
                         </a>
-                        <a href={DEMO_SCAN_URL} target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
+                        <a href={DEMO_SCAN_URL} data-goal="demo_open" data-goal-params='{"source":"qr_menu_hero"}' target="_blank" rel="noopener noreferrer" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
                             Посмотреть демо
                         </a>
                     </div>
@@ -58,16 +60,19 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
 
                 <div class="relative flex justify-center">
                     <video
+                        id="qrmenu-video"
                         src="/video/qrmenu.mp4"
-                        poster="/video/qrmenu-poster.jpg"
-                        autoplay
+                        poster="/video/qrmenu-poster.webp"
+                        preload="none"
                         muted
                         loop
                         playsinline
-                        class="rounded-3xl shadow-2xl rotate-3 hover:rotate-0 transition duration-500 max-h-[min(70vh,640px)] w-auto"
+                        width="540"
+                        height="960"
+                        class="rounded-3xl shadow-2xl rotate-3 hover:rotate-0 transition duration-500 max-h-[min(70vh,640px)] w-auto h-auto"
                         aria-label="Демо QR-меню на смартфоне"
                     ></video>
-                    <div class="absolute -bottom-6 -left-6 bg-white p-4 rounded-xl shadow-xl border border-slate-100 flex items-center gap-4 max-w-[240px]">
+                    <div class="absolute -bottom-6 left-0 sm:-left-6 bg-white p-4 rounded-xl shadow-xl border border-slate-100 flex items-center gap-4 max-w-[240px]">
                         <i class="fa-solid fa-mobile-screen text-2xl text-primary shrink-0"></i>
                         <div>
                             <div class="font-bold text-sm text-slate-800">Удобно со смартфона</div>
@@ -107,7 +112,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                 <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                     <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-tags"></i></div>
                     <h3 class="font-bold text-lg mb-2">Наклейки на столики</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">Разместите QR-коды и NFC-метки на каждом столике. Гостям не нужно ждать официанта, чтобы посмотреть меню.</p>
+                    <p class="text-slate-600 text-sm leading-relaxed">Разместите QR-коды на каждом столике. Гостям не нужно ждать официанта, чтобы посмотреть меню.</p>
                 </div>
             </div>
             
@@ -137,9 +142,9 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                     <ul class="space-y-3 mb-8">
                         <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Печать на самоклеящейся плёнке</span></li>
                         <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Индивидуальный дизайн под ваш бренд</span></li>
-                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Работает с NFC-метками</span></li>
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Один QR на все столики или свой на каждый — без лимита</span></li>
                     </ul>
-                    <a href={REGISTER_URL} data-goal="hero_start" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+                    <a href={STICKER_REGISTER_URL} data-goal="howto_register" class="inline-flex items-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
                         Создать меню бесплатно
                     </a>
                 </div>
@@ -171,12 +176,27 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
     <section class="py-16 bg-slate-50 border-t border-slate-200">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-2xl font-bold mb-4">Быстрый и бесплатный старт</h2>
-            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты наклеек на столы. Тариф Pro можно подключить в любой момент для расширенной аналитики, маршрутизации отзывов или NFC-табличек.</p>
-            <a href={REGISTER_URL} data-goal="hero_start" target="_blank" rel="noopener noreferrer" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
+            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты наклеек на столы. Тариф PRO (990 ₽/год) можно подключить в любой момент: микросайт со всеми разделами в одном QR, жалобы в Telegram и MAX, White Label и расширенная аналитика.</p>
+            <a href={BOTTOM_REGISTER_URL} data-goal="bottom_cta" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
                 Создать меню бесплатно
             </a>
         </div>
     </section>
 
     <StickyRegisterCta href={STICKY_REGISTER_URL} text="Создать меню бесплатно" />
+
+    <script is:inline>
+      (function () {
+        var video = document.getElementById('qrmenu-video');
+        if (!video) return;
+        // 5 МБ видео грузим и запускаем только на широких экранах; на телефоне — постер и кнопка воспроизведения.
+        if (window.matchMedia('(min-width: 768px)').matches && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          video.preload = 'auto';
+          var p = video.play();
+          if (p && p.catch) p.catch(function () { video.controls = true; });
+        } else {
+          video.controls = true;
+        }
+      })();
+    </script>
 </Layout>

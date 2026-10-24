@@ -53,7 +53,7 @@ export async function GET() {
         email: true,
         createdAt: true,
         subscriptions: {
-          where: { status: "ACTIVE", plan: "PRO" },
+          where: { status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
           take: 1,
           orderBy: { createdAt: "desc" },
           select: { plan: true, status: true },

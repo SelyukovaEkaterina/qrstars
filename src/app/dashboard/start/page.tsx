@@ -37,6 +37,7 @@ export default async function SetupStartPage({
         phone: true,
         legalName: true,
         inn: true,
+        businessCardId: true,
       },
       orderBy: { createdAt: "desc" },
     }),

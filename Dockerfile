@@ -1,5 +1,7 @@
 FROM node:22-alpine
-RUN apk add --no-cache libc6-compat curl ttf-dejavu
+# dl-cdn.alpinelinux.org с VPS в РФ отвечает десятки секунд и рвёт TLS — сборка зависала на apk.
+RUN sed -i 's#https\?://dl-cdn.alpinelinux.org/alpine#https://mirror.yandex.ru/mirrors/alpine#' /etc/apk/repositories \
+  && apk add --no-cache libc6-compat curl ttf-dejavu
 WORKDIR /app
 
 COPY deploy/certs/russiantrustedca.pem /usr/local/share/qrstars/russian-trusted-ca.pem

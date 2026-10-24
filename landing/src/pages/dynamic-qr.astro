@@ -32,7 +32,7 @@ const benefits = [
   'Произвольный редирект на любой URL: сайт, форму, мессенджер, карту, PDF или оплату.',
   'Ссылка меняется в кабинете без перепечатки баннеров, афиш, флаеров и тейбл-тентов.',
   'Короткий URL делает QR-код проще и стабильнее для сканирования с расстояния.',
-  'Статистика показывает сканы по дням, устройствам и отдельным размещениям.',
+  'Статистика сканов по каждому размещению на всех тарифах; разрезы по дням, устройствам и городам — на PRO.',
 ];
 
 const faqList = [
@@ -54,7 +54,7 @@ const faqList = [
   },
   {
     q: 'Как быстро срабатывает редирект при сканировании?',
-    a: 'Мгновенно. Время отклика (TTFB) серверов перенаправления QrStars составляет менее 50 миллисекунд. Пользователь сразу попадает на конечный сайт без задержек и промежуточных баннеров.',
+    a: 'Сервер перенаправления QrStars отвечает быстро (время отклика — менее 50 миллисекунд). На PRO пользователь попадает на конечный сайт мгновенно. На FREE перед переходом на 3 секунды показывается экран QrStars.',
   },
   {
     q: 'Что делать, если в ссылке много UTM-меток?',
@@ -80,11 +80,11 @@ const faqSchema = {
   title="Создать динамический QR-код бесплатно — поменять ссылку в личном кабинете"
   description="Создавайте QR-коды с произвольным редиректом для баннеров, конференций, выставок и печатной рекламы. Меняйте ссылку после печати и смотрите статистику сканирований."
 >
-  <section class="pt-32 pb-16 lg:pt-40 lg:pb-24 bg-white overflow-hidden relative">
+  <section class="pt-24 sm:pt-32 pb-16 lg:pt-40 lg:pb-24 bg-white overflow-hidden relative">
     <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[620px] h-[620px] bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-      <div class="grid lg:grid-cols-2 gap-12 items-center">
-        <div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div class="min-w-0">
           <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20">
             <i class="fa-solid fa-route"></i>
             QR-коды с изменяемой ссылкой
@@ -109,12 +109,12 @@ const faqSchema = {
           </div>
         </div>
 
-        <div class="bg-slate-900 text-white rounded-3xl p-6 md:p-8 shadow-2xl shadow-slate-900/20">
+        <div class="min-w-0 bg-slate-900 text-white rounded-3xl p-5 md:p-8 shadow-2xl shadow-slate-900/20">
           <div class="bg-white rounded-2xl p-5 text-slate-900 mb-5">
             <div class="flex items-center justify-between gap-4 mb-5">
               <div>
                 <div class="text-xs font-bold text-primary uppercase tracking-wide">Редирект</div>
-                <div class="font-bold">app.qrstars.ru/q/spring-sale</div>
+                <div class="font-bold break-all">app.qrstars.ru/q/spring-sale</div>
               </div>
               <div class="w-16 h-16 bg-slate-900 rounded-xl grid grid-cols-3 gap-1 p-2">
                 <span class="bg-white rounded-sm"></span><span class="bg-white rounded-sm"></span><span class="bg-white rounded-sm"></span>
@@ -140,7 +140,7 @@ const faqSchema = {
             </div>
             <div class="bg-white/10 border border-white/10 rounded-2xl p-4">
               <div class="text-2xl font-bold">37%</div>
-              <div class="text-xs text-slate-300">моб. iOS</div>
+              <div class="text-xs text-slate-300">iOS · PRO</div>
             </div>
             <div class="bg-white/10 border border-white/10 rounded-2xl p-4">
               <div class="text-2xl font-bold">4</div>
@@ -231,7 +231,7 @@ const faqSchema = {
             <tr>
               <td class="p-4 sm:p-5 font-semibold text-slate-800">Аналитика переходов</td>
               <td class="p-4 sm:p-5 text-slate-400">Нет данных</td>
-              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Сканы, устройства, города, даты</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Сканы на всех тарифах; устройства, города, даты — PRO</td>
             </tr>
             <tr>
               <td class="p-4 sm:p-5 font-semibold text-slate-800">Плотность узора</td>
@@ -246,7 +246,7 @@ const faqSchema = {
             <tr>
               <td class="p-4 sm:p-5 font-semibold text-slate-800">Тариф</td>
               <td class="p-4 sm:p-5 text-slate-700 font-medium">Бесплатно без регистрации</td>
-              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Бесплатно на тарифе FREE</td>
+              <td class="p-4 sm:p-5 text-emerald-600 font-medium"><i class="fa-solid fa-check mr-1.5"></i>Бесплатно на FREE (экран QrStars 3 сек), мгновенно на PRO</td>
             </tr>
           </tbody>
         </table>

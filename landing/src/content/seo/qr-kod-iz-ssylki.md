@@ -9,7 +9,7 @@ ctaText: "Создать QR из ссылки"
 ctaHref: "/free-qr-generator.html"
 ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Динамический QR с аналитикой"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-iz-ssylki"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-iz-ssylki"
 ctaSecondaryGoal: "register_click"
 faq:
   - q: "Как создать QR-код из ссылки на сайт бесплатно?"
@@ -143,7 +143,7 @@ related:
 * [QR-код для подключения к Wi-Fi](/qr-kod-dlya-wifi.html): быстрый вход в гостевую сеть без ручного ввода сложных паролей.
 * **Единый микросайт заведения**: все нужные разделы, кнопки связи и прайс-листы на одной стильной странице с вашим фирменным дизайном.
 
-[Попробовать QrStars бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-iz-ssylki-pivot)
+[Попробовать QrStars бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-iz-ssylki-pivot)
 
 ---
 

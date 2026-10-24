@@ -33,6 +33,11 @@ export function appendAttributionParams(baseUrl: string, searchParams: URLSearch
     if (intent && url.pathname.startsWith('/register') && !url.searchParams.has('intent')) {
       url.searchParams.set('intent', intent);
     }
+    // Реферальный код блогера; в браузере его же подставляет скрипт в Layout.astro (с памятью на 30 дней).
+    const ref = searchParams.get('ref');
+    if (ref && /^[A-Za-z0-9_-]{2,64}$/.test(ref) && url.pathname.startsWith('/register') && !url.searchParams.has('ref')) {
+      url.searchParams.set('ref', ref);
+    }
     return url.toString();
   } catch {
     return baseUrl;
@@ -46,13 +51,24 @@ export function isAppUrl(href: string): boolean {
 }
 
 /** Сценарий онбординга в кабинете (`/register?intent=` → мастер на /dashboard/start). */
-export type SetupIntent = 'reviews' | 'landing' | 'redirect' | 'menu';
+export type SetupIntent = 'reviews' | 'landing' | 'redirect' | 'menu' | 'card';
 
 export function withSetupIntent(href: string, intent: SetupIntent): string {
   try {
     const url = new URL(href);
     if (!url.pathname.startsWith('/register')) return href;
     if (!url.searchParams.has('intent')) url.searchParams.set('intent', intent);
+    return url.toString();
+  } catch {
+    return href;
+  }
+}
+
+/** Выбранный на лендинге тариф (`/register?plan=pro|network`) — кабинет может сразу предложить оплату. */
+export function withPlan(href: string, plan: 'pro' | 'network'): string {
+  try {
+    const url = new URL(href);
+    if (!url.searchParams.has('plan')) url.searchParams.set('plan', plan);
     return url.toString();
   } catch {
     return href;
@@ -73,6 +89,15 @@ export function registerUrl(
   url.searchParams.set('utm_content', content);
   if (options.intent) url.searchParams.set('intent', options.intent);
   return appendAttributionParams(url.toString(), searchParams);
+}
+
+/** Register URL для визитки: кампания `master_card` → в кабинете отрасль «Мастер / услуги». */
+export function cardRegisterUrl(
+  content: string,
+  searchParams: URLSearchParams,
+  campaign: 'master_card' | 'main_landing' = 'main_landing',
+): string {
+  return registerUrl(content, searchParams, { campaign, intent: 'card' });
 }
 
 export function redirectRegisterUrl(content: string, searchParams: URLSearchParams): string {

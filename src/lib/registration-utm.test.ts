@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   parseRegistrationUtmCookie,
   readOAuthRegistrationAttribution,
+  REGISTRATION_REF_COOKIE,
   REGISTRATION_UTM_COOKIE,
 } from "./registration-utm";
 
@@ -30,10 +31,12 @@ describe("readOAuthRegistrationAttribution", () => {
     const jar: Record<string, string> = {
       [REGISTRATION_UTM_COOKIE]: encodeURIComponent(JSON.stringify({ utm_campaign: "menu_search" })),
       _ym_uid: "1727712345123456789",
+      [REGISTRATION_REF_COOKIE]: "BLOGGER_1",
     };
     assert.deepEqual(readOAuthRegistrationAttribution((name) => jar[name]), {
       registrationUtm: { utm_campaign: "menu_search" },
       metrikaClientId: "1727712345123456789",
+      referralCode: "BLOGGER_1",
     });
   });
 
@@ -41,6 +44,7 @@ describe("readOAuthRegistrationAttribution", () => {
     assert.deepEqual(readOAuthRegistrationAttribution(() => undefined), {
       registrationUtm: null,
       metrikaClientId: null,
+      referralCode: null,
     });
   });
 });

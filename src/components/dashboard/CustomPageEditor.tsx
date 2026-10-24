@@ -150,10 +150,10 @@ export default function CustomPageEditor({
                 : "Например: О нас, Акции, Контакты"
           }
           maxLength={100}
-          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+          className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
         />
         <p className="text-xs text-gray-400 mt-1">
-          Текст кнопки на микро-лендинге
+          Текст кнопки в микросайте
         </p>
       </div>
 
@@ -171,7 +171,7 @@ export default function CustomPageEditor({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Заголовок, который увидит гость"
               maxLength={200}
-              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
             />
           </div>
 
@@ -199,7 +199,7 @@ export default function CustomPageEditor({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder="https://example.com"
-            className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            className="w-full max-w-md px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
           />
           <p className="text-xs text-gray-400 mt-1">
             Гость перейдёт по этой ссылке при нажатии на кнопку
@@ -220,7 +220,7 @@ export default function CustomPageEditor({
             saving={saving}
           />
           <p className="text-xs text-gray-400 mt-2">
-            PDF, изображения и другие документы. Гость сможет скачать файл с микро-лендинга или по QR «Быстрый доступ».
+            PDF, изображения и другие документы. Гость сможет скачать файл с микросайта или по QR «Быстрый доступ».
           </p>
         </div>
       )}

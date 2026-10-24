@@ -5,6 +5,14 @@ import prisma from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { sendWelcomeEmail } from "@/lib/mailer";
 import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
+import { establishmentAccessWhere } from "@/lib/establishment-access";
+import {
+  canAddEstablishment,
+  countUserEstablishments,
+  effectivePlan,
+  findActiveSubscription,
+  getUpgradeHint,
+} from "@/lib/subscription-utils";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -72,11 +80,17 @@ export async function POST(request: Request) {
   }
 
   if (establishmentId) {
-    const existingEst = await prisma.establishment.findUnique({
-      where: { id: establishmentId },
+    const sessionUser = session?.user?.email
+      ? await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
+      : null;
+    if (!sessionUser) {
+      return NextResponse.json({ error: "Войдите в кабинет, чтобы привязать набор к проекту" }, { status: 401 });
+    }
+    const existingEst = await prisma.establishment.findFirst({
+      where: { id: establishmentId, ...establishmentAccessWhere(sessionUser.id) },
     });
     if (!existingEst) {
-      return NextResponse.json({ error: "Заведение не найдено" }, { status: 404 });
+      return NextResponse.json({ error: "Проект не найден" }, { status: 404 });
     }
 
     await prisma.$transaction(async (tx) => {
@@ -128,6 +142,16 @@ export async function POST(request: Request) {
     const existingUser = await prisma.user.findUnique({ where: { email } });
 
     if (existingUser) {
+      const passwordOk =
+        !!password &&
+        !!existingUser.hashedPassword &&
+        (await bcrypt.compare(password, existingUser.hashedPassword));
+      if (!passwordOk) {
+        return NextResponse.json(
+          { error: "Аккаунт с этим email уже есть. Войдите в кабинет и активируйте набор в разделе «Активация»." },
+          { status: 401 }
+        );
+      }
       user = existingUser;
     } else {
       if (!password) {
@@ -143,6 +167,20 @@ export async function POST(request: Request) {
         },
       });
       isNewUser = true;
+    }
+  }
+
+  if (!isNewUser) {
+    const plan = effectivePlan(await findActiveSubscription(user.id));
+    const count = await countUserEstablishments(user.id);
+    if (!canAddEstablishment(plan, count)) {
+      return NextResponse.json(
+        {
+          error: getUpgradeHint(plan, count)?.message || "Достигнут лимит проектов на вашем тарифе",
+          upgradeRequired: true,
+        },
+        { status: 403 }
+      );
     }
   }
 

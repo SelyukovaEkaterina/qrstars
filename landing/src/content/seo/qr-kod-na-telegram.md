@@ -9,7 +9,7 @@ ctaText: "Создать QR для соцсетей"
 ctaHref: "/free-qr-generator.html"
 ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Мультиссылка на все соцсети"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=qr-kod-na-telegram"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-na-telegram"
 ctaSecondaryGoal: "register_click"
 faq:
   - q: "Как сделать QR-код на Телеграм-канал бесплатно?"
@@ -125,7 +125,7 @@ WhatsApp используется миллионами людей для быс�
 * Гости с замечаниями оставляют претензии в закрытой форме лично управляющему, защищая ваш рейтинг;
 * А кнопки перехода в социальные сети можно гармонично расположить внизу той же страницы!
 
-[Создать умный QR-код для заведения](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=qr-kod-na-telegram-pivot)
+[Создать умный QR-код для заведения](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=qr-kod-na-telegram-pivot)
 
 ---
 

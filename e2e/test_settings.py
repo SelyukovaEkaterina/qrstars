@@ -27,14 +27,12 @@ def test_update_settings(owner_session, base_url, owner_establishment_id):
             "address": "New Address",
             "yandexMapsUrl": "https://yandex.ru/maps/org/updated",
             "twoGisUrl": "https://2gis.ru/updated",
-            "platformRotation": True,
             "watermarkEnabled": False,
         },
     )
     assert r.status_code == 200
     data = r.json()
     assert data["establishment"]["name"] == "Updated Name"
-    assert data["establishment"]["platformRotation"] is True
     assert data["establishment"]["watermarkEnabled"] is False
 
     r2 = owner_session.put(

@@ -4,6 +4,7 @@ export const ESTABLISHMENT_INDUSTRIES = [
   "AUTO",
   "CLINIC",
   "HOTEL",
+  "SERVICES",
   "OTHER",
 ] as const;
 
@@ -18,6 +19,7 @@ export const INDUSTRY_OPTIONS: Array<{
   { value: "AUTO", label: "Авто" },
   { value: "CLINIC", label: "Клиника" },
   { value: "HOTEL", label: "Отель" },
+  { value: "SERVICES", label: "Мастер / услуги на выезде" },
   { value: "OTHER", label: "Спикер / мероприятие / другое" },
 ];
 
@@ -42,6 +44,9 @@ export function inferIndustryFromUtm(
     return "CLINIC";
   }
   if (/(hotel|отел|гостиниц|hostel)/i.test(haystack)) return "HOTEL";
+  if (/(master|мастер|электрик|elektrik|сантехник|santehnik|remont|ремонт)/i.test(haystack)) {
+    return "SERVICES";
+  }
   if (/(horeca|restaurant|ресторан|cafe|кафе|bar|бар|menu|меню)/i.test(haystack)) {
     return "HORECA";
   }
@@ -116,6 +121,13 @@ export function industryReviewCopy(
         complaintTitle: "Расскажите, что вас не устроило",
         complaintSubtitle: "Мы хотим сделать пребывание гостей комфортнее.",
         commentPlaceholder: "Что во время пребывания можно было сделать лучше?",
+      };
+    case "SERVICES":
+      return {
+        ratingQuestion: "Как вам работа мастера?",
+        complaintTitle: "Расскажите, что вас не устроило",
+        complaintSubtitle: "Мастер разберётся и постарается всё исправить.",
+        commentPlaceholder: "Что в работе или общении можно было сделать лучше?",
       };
     default:
       return {

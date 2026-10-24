@@ -9,7 +9,7 @@ intro: "<strong>Динамический QR-код</strong> — это код, �
 fullTitle: true
 ctaText: "Создать динамический QR"
 ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=dinamicheskiy-qr-kod&intent=redirect"
-demoScanUrl: "https://app.qrstars.ru/scan/demo-redirect"
+demoScanUrl: "https://app.qrstars.ru/q/demo-redirect"
 demoScanLabel: "Динамический редирект"
 demoScanTitle: "Отсканируйте демо редиректа"
 demoScanSubtitle: "Один напечатанный QR — разные ссылки в кабинете. Посмотрите, как работает динамический код QrStars"
@@ -71,4 +71,4 @@ related:
 
 В отличие от бесплатных статических сервисов, **динамические qr коды сервисы** уровня QrStars экономят до 15 000 ₽ на перепечатке табличек и меню в год.
 
-[Создайте динамический QR](/#features) — код один, возможности меняются вместе с бизнесом.
+[Создайте динамический QR](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=dinamicheskiy-qr-kod-bottom&intent=redirect) — код один, возможности меняются вместе с бизнесом.

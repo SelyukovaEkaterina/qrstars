@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Loader2, MessageCircle } from "lucide-react";
+import { Check, Clock, Loader2, MapPin, MessageCircle, Phone, Share2, Star } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -16,59 +16,45 @@ import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/b
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
 import { useConsentGate } from "@/components/scan/use-consent-gate";
 import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
+import {
+  buildBusinessCardVCard,
+  cardChipLinks,
+  cardMessengerButtons,
+  normalizeCardServices,
+  safeHttpUrl,
+  telHref,
+  yandexMapsSearchHref,
+  type CardMessengerKind,
+  type PublicBusinessCard,
+} from "@/lib/business-card";
 
-interface SocialLink {
-  type: string;
-  url: string;
-}
-
-export interface BusinessCardData {
-  id: string;
-  fullName: string;
-  title: string | null;
-  company: string | null;
-  phone: string | null;
-  email: string | null;
-  website: string | null;
-  address: string | null;
-  about: string | null;
-  avatarUrl: string | null;
-  socialLinks: SocialLink[];
-  accentColor: string;
-  tipsUrl?: string | null;
-  tipsLabel?: string | null;
-}
+export type BusinessCardData = PublicBusinessCard;
 
 const socialLabels: Record<string, { label: string; icon: string }> = {
-  telegram: { label: "Telegram", icon: "\u2708\ufe0f" },
-  whatsapp: { label: "WhatsApp", icon: "\ud83d\udcde" },
-  vk: { label: "VK", icon: "\ud83d\udcbb" },
-  instagram: { label: "Instagram", icon: "\ud83d\udcf7" },
-  facebook: { label: "Facebook", icon: "\ud83d\udcbb" },
-  youtube: { label: "YouTube", icon: "\ud83c\udfa5" },
-  tiktok: { label: "TikTok", icon: "\ud83c\udfae" },
-  twitter: { label: "Twitter / X", icon: "\ud83d\udc26" },
-  linkedin: { label: "LinkedIn", icon: "\ud83d\udcbc" },
-  github: { label: "GitHub", icon: "\ud83d\udcbb" },
+  telegram: { label: "Telegram", icon: "✈️" },
+  whatsapp: { label: "WhatsApp", icon: "📞" },
+  max: { label: "MAX", icon: "💬" },
+  vk: { label: "VK", icon: "💻" },
+  instagram: { label: "Instagram", icon: "📷" },
+  facebook: { label: "Facebook", icon: "💻" },
+  youtube: { label: "YouTube", icon: "🎥" },
+  tiktok: { label: "TikTok", icon: "🎮" },
+  twitter: { label: "Twitter / X", icon: "🐦" },
+  linkedin: { label: "LinkedIn", icon: "💼" },
+  github: { label: "GitHub", icon: "💻" },
 };
 
-function buildVCard(card: BusinessCardData): string {
-  let vcard = "BEGIN:VCARD\nVERSION:3.0\n";
-  vcard += `FN:${card.fullName}\n`;
-  if (card.company) vcard += `ORG:${card.company}\n`;
-  if (card.title) vcard += `TITLE:${card.title}\n`;
-  if (card.phone) vcard += `TEL;TYPE=CELL:${card.phone}\n`;
-  if (card.email) vcard += `EMAIL:${card.email}\n`;
-  if (card.website) vcard += `URL:${card.website}\n`;
-  if (card.address) vcard += `ADR;TYPE=WORK:;;${card.address};;;;\n`;
-  if (card.about) vcard += `NOTE:${card.about}\n`;
-  vcard += "END:VCARD";
-  return vcard;
-}
+const messengerMeta: Record<CardMessengerKind, { label: string; color: string }> = {
+  whatsapp: { label: "WhatsApp", color: "#25D366" },
+  telegram: { label: "Telegram", color: "#229ED9" },
+  max: { label: "MAX", color: "#7B3FE4" },
+};
 
 interface BusinessCardViewProps extends BrandThemeScanProps {
   card: BusinessCardData;
   qrCode?: string;
+  /** Публичная ссылка на визитку — для «Поделиться» и vCard. */
+  shareUrl?: string;
   showContactForm?: boolean;
   isBg?: boolean;
   pdConsent?: PdConsent;
@@ -78,6 +64,7 @@ interface BusinessCardViewProps extends BrandThemeScanProps {
 export default function BusinessCardView({
   card,
   qrCode,
+  shareUrl,
   showContactForm,
   brandColor,
   pageAppearance,
@@ -87,17 +74,27 @@ export default function BusinessCardView({
 }: BusinessCardViewProps) {
   const { theme, dark } = useBrandThemeScan({ brandColor, pageAppearance });
   const accent = "var(--brand-600)";
-  const vcard = useMemo(() => buildVCard(card), [card]);
+  const vcard = useMemo(() => buildBusinessCardVCard(card, { cardUrl: shareUrl }), [card, shareUrl]);
   const vcardUrl = useMemo(() => `data:text/vcard;charset=utf-8,${encodeURIComponent(vcard)}`, [vcard]);
+  const phoneHref = telHref(card.phone);
+  const messengers = useMemo(() => cardMessengerButtons(card), [card]);
+  const chips = useMemo(() => cardChipLinks(card), [card]);
+  const services = useMemo(() => normalizeCardServices(card.services), [card.services]);
+  const websiteHref = safeHttpUrl(card.website);
+  const reviewsHref = safeHttpUrl(card.reviewsUrl);
+  const tipsHref = safeHttpUrl(card.tipsUrl);
 
   const [contactOpen, setContactOpen] = useState(false);
   const [guestName, setGuestName] = useState("");
+  const [guestPhone, setGuestPhone] = useState("");
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [contactError, setContactError] = useState("");
   const [contactSuccess, setContactSuccess] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
-  const needsConsent = !!pdConsent?.ready;
+  // Согласие — когда гость оставляет телефон или у владельца опубликована своя политика.
+  const needsConsent = !!pdConsent?.ready || guestPhone.trim() !== "";
   const policyUrl = guestPdPolicyUrl(pdConsent);
   const { consentChecked, setConsentChecked, consentHighlight, consentRef, ensureConsent } =
     useConsentGate(needsConsent);
@@ -108,6 +105,28 @@ export default function BusinessCardView({
     .join("")
     .toUpperCase()
     .slice(0, 2);
+
+  const handleShare = async () => {
+    const url = shareUrl || (typeof window !== "undefined" ? window.location.href : "");
+    if (!url) return;
+    const text = [card.fullName, card.title].filter(Boolean).join(" — ");
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: card.fullName, text, url });
+        return;
+      } catch {
+        // отмена шаринга — не ошибка; ниже не копируем, чтобы не мешать
+        return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      /* буфер обмена недоступен */
+    }
+  };
 
   const handleSendContact = async () => {
     if (!qrCode) return;
@@ -132,6 +151,7 @@ export default function BusinessCardView({
         body: JSON.stringify({
           qrCode,
           guestName: guestName.trim(),
+          guestPhone: guestPhone.trim() || undefined,
           message: message.trim(),
         }),
       });
@@ -145,6 +165,7 @@ export default function BusinessCardView({
 
       setContactSuccess(true);
       setGuestName("");
+      setGuestPhone("");
       setMessage("");
     } catch {
       setContactError("Ошибка соединения");
@@ -152,6 +173,8 @@ export default function BusinessCardView({
       setSending(false);
     }
   };
+
+  const rowClass = "flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90";
 
   return (
     <div
@@ -187,7 +210,7 @@ export default function BusinessCardView({
             </div>
           </div>
 
-          <div className="pt-14 pb-6 px-6 text-center">
+          <div className="pt-14 pb-4 px-6 text-center">
             <h1 className="text-xl font-bold" style={{ color: headingColor(isBg) }}>
               {card.fullName}
             </h1>
@@ -201,86 +224,152 @@ export default function BusinessCardView({
                 {card.company}
               </p>
             )}
+            {(card.serviceArea || card.workHours) && (
+              <div className="mt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-xs" style={{ color: mutedColor(isBg) }}>
+                {card.serviceArea && (
+                  <span className="inline-flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5" />
+                    {card.serviceArea}
+                  </span>
+                )}
+                {card.workHours && (
+                  <span className="inline-flex items-center gap-1">
+                    <Clock className="w-3.5 h-3.5" />
+                    {card.workHours}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
+
+          {(phoneHref || messengers.length > 0) && (
+            <div className="px-6 pb-4 space-y-2">
+              {phoneHref && (
+                <a
+                  href={phoneHref}
+                  className="flex w-full items-center justify-center gap-2 py-3.5 rounded-xl text-white font-semibold transition-opacity hover:opacity-90"
+                  style={{ backgroundColor: accent }}
+                >
+                  <Phone className="w-5 h-5" />
+                  Позвонить
+                </a>
+              )}
+              {messengers.length > 0 && (
+                <div
+                  className="grid gap-2"
+                  style={{ gridTemplateColumns: `repeat(${messengers.length}, minmax(0, 1fr))` }}
+                >
+                  {messengers.map((m) => (
+                    <a
+                      key={m.kind}
+                      href={m.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-center py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
+                      style={{ backgroundColor: messengerMeta[m.kind].color }}
+                    >
+                      {messengerMeta[m.kind].label}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {card.about && (
             <div className="px-6 pb-4">
-              <p className="text-sm text-center leading-relaxed" style={{ color: mutedColor(isBg) }}>
+              <p className="text-sm text-center leading-relaxed whitespace-pre-line" style={{ color: mutedColor(isBg) }}>
                 {card.about}
               </p>
             </div>
           )}
 
-          <div className="px-6 pb-4 space-y-2">
-            {card.phone && (
-              <a
-                href={`tel:${card.phone}`}
-                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
-                style={rowSurfaceStyle(isBg)}
-              >
-                <span className="text-lg">{"\ud83d\udcde"}</span>
-                <div>
-                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>
-                    Телефон
-                  </p>
-                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>
-                    {card.phone}
-                  </p>
-                </div>
-              </a>
-            )}
-            {card.email && (
-              <a
-                href={`mailto:${card.email}`}
-                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
-                style={rowSurfaceStyle(isBg)}
-              >
-                <span className="text-lg">{"\u2709\ufe0f"}</span>
-                <div>
-                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>Email</p>
-                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>{card.email}</p>
-                </div>
-              </a>
-            )}
-            {card.website && (
-              <a
-                href={card.website}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
-                style={rowSurfaceStyle(isBg)}
-              >
-                <span className="text-lg">{"\ud83c\udf10"}</span>
-                <div>
-                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>Сайт</p>
-                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>
-                    {card.website.replace(/^https?:\/\//, "")}
-                  </p>
-                </div>
-              </a>
-            )}
-            {card.address && (
-              <a
-                href={`https://maps.google.com/?q=${encodeURIComponent(card.address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90"
-                style={rowSurfaceStyle(isBg)}
-              >
-                <span className="text-lg">{"\ud83d\udccd"}</span>
-                <div>
-                  <p className="text-xs" style={{ color: submutedColor(isBg) }}>Адрес</p>
-                  <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>{card.address}</p>
-                </div>
-              </a>
-            )}
-          </div>
+          {services.length > 0 && (
+            <div className="px-6 pb-4">
+              <h2 className="text-sm font-semibold mb-2" style={{ color: headingColor(isBg) }}>
+                Услуги и цены
+              </h2>
+              <ul className="rounded-xl border divide-y" style={rowSurfaceStyle(isBg)}>
+                {services.map((s, i) => (
+                  <li key={i} className="flex items-baseline justify-between gap-3 px-3 py-2.5 text-sm">
+                    <span style={{ color: headingColor(isBg) }}>{s.name}</span>
+                    {s.price && (
+                      <span className="shrink-0 font-semibold" style={{ color: headingColor(isBg) }}>
+                        {s.price}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
 
-          {card.socialLinks && card.socialLinks.length > 0 && (
+          {reviewsHref && (
+            <div className="px-6 pb-4">
+              <a
+                href={reviewsHref}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 py-3 rounded-xl font-medium border-2 transition-opacity hover:opacity-90"
+                style={{ borderColor: accent, color: accent }}
+              >
+                <Star className="w-4 h-4" />
+                Отзывы обо мне
+              </a>
+            </div>
+          )}
+
+          {(card.email || websiteHref || card.address) && (
+            <div className="px-6 pb-4 space-y-2">
+              {card.email && (
+                <a href={`mailto:${card.email}`} className={rowClass} style={rowSurfaceStyle(isBg)}>
+                  <span className="text-lg">{"✉️"}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs" style={{ color: submutedColor(isBg) }}>Email</p>
+                    <p className="text-sm font-medium break-all" style={{ color: headingColor(isBg) }}>{card.email}</p>
+                  </div>
+                </a>
+              )}
+              {websiteHref && (
+                <a
+                  href={websiteHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={rowClass}
+                  style={rowSurfaceStyle(isBg)}
+                >
+                  <span className="text-lg">{"🌐"}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs" style={{ color: submutedColor(isBg) }}>Сайт</p>
+                    <p className="text-sm font-medium break-all" style={{ color: headingColor(isBg) }}>
+                      {websiteHref.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+                    </p>
+                  </div>
+                </a>
+              )}
+              {card.address && (
+                <a
+                  href={yandexMapsSearchHref(card.address)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={rowClass}
+                  style={rowSurfaceStyle(isBg)}
+                >
+                  <span className="text-lg">{"📍"}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs" style={{ color: submutedColor(isBg) }}>Адрес</p>
+                    <p className="text-sm font-medium" style={{ color: headingColor(isBg) }}>{card.address}</p>
+                  </div>
+                </a>
+              )}
+            </div>
+          )}
+
+          {chips.length > 0 && (
             <div className="px-6 pb-4">
               <div className="flex flex-wrap justify-center gap-2">
-                {card.socialLinks.map((link, i) => {
-                  const meta = socialLabels[link.type] || { label: link.type, icon: "\ud83d\udcbb" };
+                {chips.map((link, i) => {
+                  const meta = socialLabels[link.type] || { label: link.type, icon: "💻" };
                   return (
                     <a
                       key={i}
@@ -309,7 +398,7 @@ export default function BusinessCardView({
                   style={{ borderColor: accent, color: accent }}
                 >
                   <MessageCircle className="w-4 h-4" />
-                  Написать человеку
+                  Оставить заявку
                 </button>
               ) : contactSuccess ? (
                 <div
@@ -318,7 +407,7 @@ export default function BusinessCardView({
                 >
                   <p className="font-medium">Сообщение отправлено!</p>
                   <p className="mt-1" style={{ color: mutedColor(isBg) }}>
-                    Владелец визитки получит его в мессенджере.
+                    {card.fullName} получит его и свяжется с вами.
                   </p>
                   <button
                     type="button"
@@ -347,6 +436,14 @@ export default function BusinessCardView({
                     placeholder="Как к вам обращаться"
                     maxLength={100}
                   />
+                  <Input
+                    label="Телефон для ответа"
+                    type="tel"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="+7 (999) 123-45-67"
+                    maxLength={40}
+                  />
                   <div>
                     <label className={`block text-sm font-medium mb-1 ${isBg ? "text-white/80" : dark ? "text-slate-300" : "text-gray-700"}`}>Сообщение</label>
                     <textarea
@@ -361,7 +458,7 @@ export default function BusinessCardView({
                             ? "bg-slate-800 border-slate-600 text-white placeholder:text-slate-500 focus:ring-indigo-400"
                             : "border-gray-300 focus:ring-indigo-500"
                       }`}
-                      placeholder="Ваш вопрос или предложение..."
+                      placeholder="Что нужно сделать, адрес, удобное время..."
                     />
                   </div>
                   {needsConsent && (
@@ -401,10 +498,10 @@ export default function BusinessCardView({
             </div>
           )}
 
-          {card.tipsUrl && (
+          {tipsHref && (
             <div className="px-6 pb-4">
               <a
-                href={card.tipsUrl}
+                href={tipsHref}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="block w-full py-3 rounded-xl text-center font-medium transition-opacity hover:opacity-90 border-2"
@@ -415,21 +512,35 @@ export default function BusinessCardView({
             </div>
           )}
 
-          <div className="px-6 pb-6">
+          <div className="px-6 pb-6 flex gap-2">
             <a
               href={vcardUrl}
               download={`${card.fullName}.vcf`}
-              className="block w-full py-3 rounded-xl text-center text-white font-medium transition-opacity hover:opacity-90"
+              className="flex-1 block py-3 rounded-xl text-center text-white font-medium transition-opacity hover:opacity-90"
               style={{ backgroundColor: accent }}
             >
-              {"\ud83d\udcbe"} Сохранить контакт
+              {"💾"} Сохранить контакт
             </a>
+            {qrCode && (
+              <button
+                type="button"
+                onClick={() => void handleShare()}
+                className="shrink-0 px-4 rounded-xl border-2 transition-opacity hover:opacity-90"
+                style={{ borderColor: accent, color: accent }}
+                aria-label="Поделиться визиткой"
+                title="Поделиться визиткой"
+              >
+                {shareCopied ? <Check className="w-5 h-5" /> : <Share2 className="w-5 h-5" />}
+              </button>
+            )}
           </div>
         </div>
 
         {watermarkEnabled && (
           <p className="text-center text-xs mt-6 relative z-10" style={{ color: submutedColor(isBg) }}>
-            QrStars.ru
+            <a href="https://qrstars.ru/qr-business-cards.html?utm_source=qrstars&utm_medium=watermark&utm_campaign=business_card" target="_blank" rel="noopener noreferrer">
+              QrStars.ru — сделать такую визитку бесплатно
+            </a>
           </p>
         )}
       </div>

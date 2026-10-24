@@ -381,6 +381,46 @@ export async function notifyPaymentAttempt(params: {
   });
 }
 
+/** Успешная оплата подписки (первая или автопродление) → общий канал (только production). */
+export async function notifyPaymentSuccess(params: {
+  userId: string;
+  plan: string;
+  billing: string;
+  amount: number;
+  invId: number;
+  kind: "INITIAL" | "RECURRING";
+}): Promise<void> {
+  if (!shouldNotifySupportTelegram()) return;
+
+  const groupId = GROUP_ID()!;
+  const user = await prisma.user.findUnique({
+    where: { id: params.userId },
+    select: { email: true, name: true },
+  });
+  const planLabel = params.plan === "NETWORK" ? "Сеть" : params.plan;
+  const periodLabel = params.billing === "yearly" ? "1 год" : "1 месяц";
+  const kindLabel = params.kind === "INITIAL" ? "первая оплата" : "автопродление";
+
+  const dashboardUrl = process.env.NEXT_PUBLIC_BASE_URL
+    ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/users`
+    : "";
+
+  await tgApi("sendMessage", {
+    chat_id: groupId,
+    parse_mode: "HTML",
+    text:
+      `<b>✅ Оплата прошла</b> (${kindLabel})\n\n` +
+      `<b>Имя:</b> ${escapeHtml(user?.name || "—")}\n` +
+      `<b>Email:</b> ${escapeHtml(user?.email || "—")}\n` +
+      `<b>Тариф:</b> ${escapeHtml(planLabel)}\n` +
+      `<b>Период:</b> ${escapeHtml(periodLabel)}\n` +
+      `<b>Сумма:</b> ${params.amount.toLocaleString("ru-RU")} ₽\n` +
+      `<b>Payment ID:</b> <code>${params.invId}</code>\n` +
+      `<b>User ID:</b> <code>${escapeHtml(params.userId)}</code>` +
+      (dashboardUrl ? `\n\n<a href="${escapeHtml(dashboardUrl)}">Пользователи в админке</a>` : ""),
+  });
+}
+
 /** Новая регистрация → сообщение в общий канал (только production). */
 export async function notifyNewUserRegistration(user: {
   id: string;

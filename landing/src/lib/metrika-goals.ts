@@ -24,6 +24,12 @@ export const METRIKA_GOALS = {
   /** Проверка jsQR предупредила, что код может плохо сканироваться. */
   qrScanWarning: 'qr_scan_warning',
   qrRandom: 'qr_random',
+  /** Клик по арт-стилю в один клик (`preset` — id стиля). */
+  qrArtPreset: 'qr_art_preset',
+  /** Фильтр арт-стилей по аудитории (`category`). */
+  qrArtCategory: 'qr_art_category',
+  /** Главная: клик по картинке в галерее красивых QR (`preset` — id стиля). */
+  qrGalleryClick: 'qr_gallery_click',
   qrFullscreen: 'qr_fullscreen',
   qrMockup: 'qr_mockup',
   /** Клик на регистрацию с переносом дизайна из генератора (`?qr_style=`). */

@@ -26,7 +26,7 @@ import type { SetupFunnelReport } from "@/lib/setup-funnel-admin";
 
 const INTENT_LABELS: Record<string, string> = {
   reviews: "Оставить отзыв",
-  landing: "Микро-лендинг",
+  landing: "Микросайт",
   redirect: "Редирект",
   menu: "QR-меню",
 };

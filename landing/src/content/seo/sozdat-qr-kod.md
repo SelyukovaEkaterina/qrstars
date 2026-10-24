@@ -10,7 +10,7 @@ fullTitle: true
 ctaText: "Создать QR-код сейчас"
 ctaHref: "/free-qr-generator.html"
 ctaSecondaryText: "Динамический QR в кабинете"
-ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator&utm_content=sozdat-qr-kod"
+ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=sozdat-qr-kod"
 faq:
   - q: "Как создать QR-код бесплатно?"
     a: "Откройте QrStars, выберите тип кода, введите данные (ссылка, WiFi, контакты), оформите дизайн и скачайте PNG — базовый тариф бесплатный."
@@ -75,6 +75,6 @@ QrStars помогает **сделать qr код** без техническ�
 
 Не ограничивайтесь статической картинкой, если можно собирать отзывы и расти в картах.
 
-[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews&utm_content=sozdat-qr-kod-pivot)
+[Создать QR для отзывов бесплатно](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=sozdat-qr-kod-pivot)
 
 **Qr код создать онлайн бесплатно** можно прямо сейчас — [начните в генераторе](/free-qr-generator.html).

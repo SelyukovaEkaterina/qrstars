@@ -14,14 +14,16 @@ export type DashboardProject = {
   id: string;
   name: string;
   shortSlug: string | null;
+  hasBusinessCard?: boolean;
 };
 
 export async function getAccessibleProjects(userId: string): Promise<DashboardProject[]> {
-  return prisma.establishment.findMany({
+  const rows = await prisma.establishment.findMany({
     where: establishmentAccessWhere(userId),
-    select: { id: true, name: true, shortSlug: true },
+    select: { id: true, name: true, shortSlug: true, businessCardId: true },
     orderBy: { createdAt: "asc" },
   });
+  return rows.map(({ businessCardId, ...p }) => ({ ...p, hasBusinessCard: !!businessCardId }));
 }
 
 export async function userHasOrphanQrcodes(userId: string): Promise<boolean> {

@@ -86,4 +86,4 @@ related:
 
 Главное правило: **дизайн не должен ломать контраст**. QrStars предупреждает о рискованных сочетаниях. Так **красивый qr код** остаётся рабочим инструментом, а не картинкой.
 
-[Создайте красивый QR](/#features) — куаркод, которым гордится бренд.
+[Создайте красивый QR](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=krasivyy-qr-kod-bottom) — куаркод, которым гордится бренд.

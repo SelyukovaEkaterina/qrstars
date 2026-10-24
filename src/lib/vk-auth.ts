@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { findReferrerId } from "@/lib/referral";
 import type { OAuthRegistrationAttribution } from "@/lib/registration-utm";
 import prisma from "@/lib/prisma";
 import {
@@ -200,6 +201,8 @@ async function findOrCreateVkUser(
     return { user, created: false };
   }
 
+  const referredById = await findReferrerId(attribution?.referralCode, profile.email);
+
   try {
     const user = await prisma.user.create({
       data: {
@@ -212,6 +215,7 @@ async function findOrCreateVkUser(
           ? { registrationUtm: attribution.registrationUtm as Prisma.InputJsonValue }
           : {}),
         ...(attribution?.metrikaClientId ? { metrikaClientId: attribution.metrikaClientId } : {}),
+        ...(referredById ? { referredBy: { connect: { id: referredById } } } : {}),
       },
     });
     return { user, created: true };

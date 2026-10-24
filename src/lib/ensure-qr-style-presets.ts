@@ -10,10 +10,14 @@ function presetLayout(presetId: string, config: (typeof QR_CODE_TEMPLATES)[numbe
   };
 }
 
-/** Ensures public DB rows for each preset in QR_CODE_TEMPLATES so they can be linked via qrStyleTemplateId. */
-export async function ensureQrStylePresets(): Promise<void> {
+/**
+ * Ensures public DB rows for each preset in QR_CODE_TEMPLATES so they can be linked via qrStyleTemplateId.
+ * `onlyId` — один пресет (`qr-preset-…`): пресетов уже 40+, а привязке к QR нужен только выбранный.
+ */
+export async function ensureQrStylePresets(onlyId?: string): Promise<void> {
   for (const preset of QR_CODE_TEMPLATES) {
     const id = qrStylePresetTemplateId(preset.id);
+    if (onlyId && id !== onlyId) continue;
     const layout = presetLayout(preset.id, preset.config);
     await prisma.template.upsert({
       where: { id },

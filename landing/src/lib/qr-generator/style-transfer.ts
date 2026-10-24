@@ -8,7 +8,7 @@ export const STYLE_PARAM = 'qr_style';
 
 export interface TransferStyle {
   v: 1;
-  dotStyle: 'classic' | 'rounded';
+  dotStyle: 'classic' | 'rounded' | 'dots' | 'diamond' | 'liquid' | 'splash' | 'halftone';
   eyeStyle: 'square' | 'rounded' | 'circle' | 'leaf' | 'dot';
   fg: string;
   bg: string;
@@ -32,6 +32,17 @@ export interface TransferStyle {
   scatter: boolean;
   scatterDensity: number;
   scatterShape: string;
+  centerMode: 'image' | 'text';
+  /** До 3 строк через перевод строки, по 24 символа. */
+  centerText: string;
+  centerTextFont: string;
+  centerTextColor: string;
+  centerTextBold: boolean;
+  /** Только пресеты фигур: своя картинка в ссылку не влезает. */
+  silhouette?: string;
+  silhouetteFit?: number;
+  rotate45?: boolean;
+  inkShift?: boolean;
 }
 
 export function encodeTransferStyle(style: TransferStyle): string {

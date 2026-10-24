@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { ensureStickerPresets } from "@/lib/ensure-sticker-presets";
+import { validateTemplateLayout } from "@/lib/template-layout";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -34,10 +35,14 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { name, description, width, height, layout, isPublic } = body;
+  const { name, description, width, height, layout } = body;
 
   if (!name || !layout) {
     return NextResponse.json({ error: "Name and layout required" }, { status: 400 });
+  }
+  const layoutError = validateTemplateLayout(layout);
+  if (layoutError) {
+    return NextResponse.json({ error: layoutError }, { status: 400 });
   }
 
   const template = await prisma.template.create({
@@ -47,7 +52,8 @@ export async function POST(request: Request) {
       width: width || 210,
       height: height || 148,
       layout,
-      isPublic: isPublic || false,
+      // Публичные — только встроенные пресеты: иначе чужой шаблон с логотипом увидят все.
+      isPublic: false,
       user: { connect: { id: userId } },
     },
   });

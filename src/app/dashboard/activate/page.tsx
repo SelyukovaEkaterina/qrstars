@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
-import { Loader2, Package, CheckCircle2 } from "lucide-react";
+import { Package, CheckCircle2 } from "lucide-react";
+import { pluralize } from "@/lib/utils";
+import { projectQrcodesPath } from "@/lib/project-routes";
 
 interface TabletInfo {
   id: string;
@@ -23,7 +25,6 @@ interface Establishment {
 type Step = "enterCode" | "form" | "success";
 
 export default function DashboardActivatePage() {
-  const { status } = useSession();
   const router = useRouter();
   const [step, setStep] = useState<Step>("enterCode");
   const [loading, setLoading] = useState(false);
@@ -34,6 +35,9 @@ export default function DashboardActivatePage() {
   const [establishments, setEstablishments] = useState<Establishment[]>([]);
   const [selectedEstId, setSelectedEstId] = useState("");
   const [tablets, setTablets] = useState<TabletInfo[]>([]);
+  /** null — ещё не знаем; по умолчанию не блокируем форму. */
+  const [canAddProject, setCanAddProject] = useState<boolean | null>(null);
+  const [activatedProjectId, setActivatedProjectId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     establishmentName: "",
@@ -42,8 +46,8 @@ export default function DashboardActivatePage() {
     phone: "",
   });
 
+  // Авторизацию проверяет dashboard/layout.tsx.
   useEffect(() => {
-    if (status !== "authenticated") return;
     fetch("/api/establishments")
       .then((r) => r.json())
       .then((data) => {
@@ -55,7 +59,18 @@ export default function DashboardActivatePage() {
         }
       })
       .catch(() => {});
-  }, [status]);
+    fetch("/api/subscription")
+      .then((r) => r.json())
+      .then((data) => {
+        if (typeof data.canAddEstablishment === "boolean") {
+          setCanAddProject(data.canAddEstablishment);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const allowNewProject = establishments.length === 0 || canAddProject !== false;
+  const effectiveLinkMode = allowNewProject ? linkMode : "existing";
 
   const handleCheckCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +108,7 @@ export default function DashboardActivatePage() {
     try {
       const payload: Record<string, string> = { masterCode };
 
-      if (linkMode === "existing" && selectedEstId) {
+      if (effectiveLinkMode === "existing" && selectedEstId) {
         payload.establishmentId = selectedEstId;
       } else {
         payload.establishmentName = form.establishmentName;
@@ -114,6 +129,9 @@ export default function DashboardActivatePage() {
         return;
       }
 
+      setActivatedProjectId(
+        typeof data.establishmentId === "string" ? data.establishmentId : null
+      );
       setStep("success");
     } catch {
       setError("Ошибка соединения");
@@ -122,24 +140,9 @@ export default function DashboardActivatePage() {
     }
   };
 
-  if (status === "loading") {
-    return (
-      <div className="flex min-h-screen bg-gray-50">
-          <main className="flex-1 flex items-center justify-center">
-          <Loader2 className="w-8 h-8 animate-spin text-indigo-600" />
-        </main>
-      </div>
-    );
-  }
-
-  if (status === "unauthenticated") {
-    router.push("/login");
-    return null;
-  }
-
   return (
     <div className="flex min-h-screen bg-gray-50">
-      <main className="flex-1 p-8">
+      <main className="min-w-0 flex-1 p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -147,7 +150,7 @@ export default function DashboardActivatePage() {
               Активация набора табличек
             </h1>
             <p className="text-gray-500 mt-1">
-              Введите мастер-код с упаковки для привязки табличек к вашему заведению
+              Введите мастер-код с упаковки для привязки табличек к вашему проекту
             </p>
           </div>
 
@@ -157,7 +160,7 @@ export default function DashboardActivatePage() {
                 <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto" />
                 <h2 className="text-xl font-bold text-gray-900">Набор активирован!</h2>
                 <p className="text-gray-600">
-                  Активировано табличек: {tablets.length}. Теперь они привязаны к вашему заведению.
+                  Активировано табличек: {tablets.length}. Теперь они привязаны к вашему проекту.
                 </p>
                 {tablets.length > 0 && (
                   <div className="flex flex-wrap gap-2 justify-center mt-4">
@@ -168,13 +171,25 @@ export default function DashboardActivatePage() {
                     ))}
                   </div>
                 )}
-                <div className="flex gap-3 justify-center mt-4">
-                  <Button onClick={() => router.push("/dashboard")}>
+                <div className="mt-4 flex flex-col justify-center gap-3 sm:flex-row">
+                  <Button
+                    className="min-h-11"
+                    onClick={() =>
+                      router.push(
+                        activatedProjectId
+                          ? projectQrcodesPath(activatedProjectId)
+                          : "/dashboard/projects"
+                      )
+                    }
+                  >
                     Перейти к QR-кодам
                   </Button>
-                  <Button variant="outline" onClick={() => router.push("/dashboard")}>
-                    На дашборд
-                  </Button>
+                  <Link
+                    href="/dashboard"
+                    className="inline-flex min-h-11 items-center justify-center rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                  >
+                    На главную кабинета
+                  </Link>
                 </div>
               </div>
             </Card>
@@ -195,7 +210,7 @@ export default function DashboardActivatePage() {
                 <p className="text-xs text-gray-400">
                   Мастер-код напечатан на упаковке набора табличек или в инструкции
                 </p>
-                <Button type="submit" disabled={checkingCode}>
+                <Button type="submit" className="min-h-11 w-full sm:w-auto" disabled={checkingCode}>
                   {checkingCode ? "Проверяем..." : "Проверить код"}
                 </Button>
               </form>
@@ -223,40 +238,43 @@ export default function DashboardActivatePage() {
 
                 {establishments.length > 0 && (
                   <div className="space-y-3">
+                    {allowNewProject && (
                     <div className="flex bg-gray-100 rounded-lg p-1">
                       <button
                         type="button"
                         onClick={() => setLinkMode("existing")}
-                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        className={`flex-1 min-h-10 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                           linkMode === "existing"
                             ? "bg-white text-indigo-700 shadow-sm"
                             : "text-gray-600 hover:text-gray-900"
                         }`}
                       >
-                        Существующее заведение
+                        Существующий проект
                       </button>
                       <button
                         type="button"
                         onClick={() => setLinkMode("new")}
-                        className={`flex-1 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                        className={`flex-1 min-h-10 px-3 py-2 text-sm font-medium rounded-md transition-colors ${
                           linkMode === "new"
                             ? "bg-white text-indigo-700 shadow-sm"
                             : "text-gray-600 hover:text-gray-900"
                         }`}
                       >
-                        Новое заведение
+                        Новый проект
                       </button>
                     </div>
+                    )}
 
-                    {linkMode === "existing" && (
+                    {effectiveLinkMode === "existing" && (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Заведение
+                        <label htmlFor="activate-project" className="block text-sm font-medium text-gray-700 mb-1">
+                          Проект
                         </label>
                         <select
+                          id="activate-project"
                           value={selectedEstId}
                           onChange={(e) => setSelectedEstId(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full min-h-10 px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                           {establishments.map((est) => (
                             <option key={est.id} value={est.id}>
@@ -264,16 +282,25 @@ export default function DashboardActivatePage() {
                             </option>
                           ))}
                         </select>
+                        {!allowNewProject && (
+                          <p className="mt-2 text-xs text-gray-500">
+                            Новый проект на вашем тарифе создать нельзя — таблички привяжутся к
+                            выбранному.{" "}
+                            <Link href="/dashboard/subscription" className="text-indigo-600 hover:underline">
+                              Тарифы
+                            </Link>
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
                 )}
 
-                {(linkMode === "new" || establishments.length === 0) && (
+                {(effectiveLinkMode === "new" || establishments.length === 0) && (
                   <>
                     <Input
                       id="establishmentName"
-                      label="Название заведения *"
+                      label="Название проекта *"
                       required
                       value={form.establishmentName}
                       onChange={(e) => setForm({ ...form, establishmentName: e.target.value })}
@@ -306,11 +333,13 @@ export default function DashboardActivatePage() {
                   </>
                 )}
 
-                <div className="flex gap-3">
-                  <Button type="submit" disabled={loading}>
-                    {loading ? "Активируем..." : `Активировать (${tablets.length} табличек)`}
+                <div className="flex flex-wrap gap-3">
+                  <Button type="submit" className="min-h-11" disabled={loading}>
+                    {loading
+                      ? "Активируем..."
+                      : `Активировать ${tablets.length} ${pluralize(tablets.length, "табличку", "таблички", "табличек")}`}
                   </Button>
-                  <Button type="button" variant="ghost" onClick={() => { setStep("enterCode"); setError(""); }}>
+                  <Button type="button" variant="ghost" className="min-h-11" onClick={() => { setStep("enterCode"); setError(""); }}>
                     Назад
                   </Button>
                 </div>

@@ -1,0 +1,98 @@
+---
+/**
+ * Галерея красивых QR на главной: статичные WebP из `public/images/qr-gallery/`,
+ * отрисованные тем же движком, что и генератор (все коды ведут на qrstars.ru).
+ * Клик открывает генератор с этим стилем (`?art=` — id из `src/lib/qr-engine/art-presets.ts`).
+ */
+import { ART_PRESETS, ART_PRESET_CATEGORIES } from '../../../src/lib/qr-engine/art-presets';
+import { registerUrl } from '../lib/utm';
+
+/** Порядок — для витрины: сначала самые узнаваемые формы. */
+const GALLERY: { id: string; w: number; h: number }[] = [
+  { id: 'art-heart', w: 640, h: 596 },
+  { id: 'auto-taxi', w: 640, h: 405 },
+  { id: 'art-diamond', w: 640, h: 640 },
+  { id: 'art-cat', w: 640, h: 627 },
+  { id: 'art-print', w: 640, h: 640 },
+  { id: 'master-handyman', w: 640, h: 614 },
+  { id: 'beauty-salon', w: 640, h: 561 },
+  { id: 'med-clinic', w: 640, h: 640 },
+  { id: 'food-coffee', w: 640, h: 542 },
+  { id: 'art-liquid', w: 640, h: 640 },
+  { id: 'med-vet', w: 640, h: 632 },
+  { id: 'art-cloud', w: 640, h: 483 },
+];
+
+const items = GALLERY.map((g) => {
+  const preset = ART_PRESETS.find((p) => p.id === g.id);
+  if (!preset) throw new Error(`QrGallery: нет арт-стиля ${g.id}`);
+  const category = ART_PRESET_CATEGORIES.find((c) => c.id === preset.category)?.label ?? '';
+  return { ...g, name: preset.name, description: preset.description, category };
+});
+
+const dynamicUrl = registerUrl('home_gallery', Astro.url.searchParams);
+---
+
+<section id="qr-design" class="py-20 bg-white">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-10">
+      <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-4 border border-primary/20">
+        Дизайн QR-кодов
+      </div>
+      <h2 class="text-3xl font-bold mb-4 max-w-2xl mx-auto">QR-код может быть красивым</h2>
+      <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
+        Сердце для цветочного, машина для такси, крест для клиники — {ART_PRESETS.length} готовых арт-стилей с вашим логотипом и цветами. Все коды на этой странице настоящие: наведите камеру телефона.
+      </p>
+    </div>
+
+    <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
+      {items.map((item) => (
+        <a
+          href={`/free-qr-generator.html?art=${item.id}`}
+          data-goal="qr_gallery_click"
+          data-goal-params={JSON.stringify({ preset: item.id })}
+          title={`${item.name} — ${item.description}`}
+          class="qr-gallery-card group flex flex-col rounded-2xl border border-slate-200 bg-white hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 transition"
+        >
+          <span class="flex aspect-square items-center justify-center p-2.5 sm:p-4">
+            <img
+              src={`/images/qr-gallery/${item.id}.webp`}
+              width={item.w}
+              height={item.h}
+              alt={`Красивый QR-код в стиле «${item.name}»: ${item.description.toLowerCase()}`}
+              loading="lazy"
+              decoding="async"
+              class="max-h-full max-w-full object-contain"
+            />
+          </span>
+          <span class="border-t border-slate-100 px-2 py-2 sm:px-3 sm:py-2.5 text-center">
+            <span class="block text-xs sm:text-sm font-semibold text-slate-800 leading-tight">{item.name}</span>
+            <span class="hidden sm:block text-[11px] text-slate-400 mt-0.5 group-hover:hidden">{item.category}</span>
+            <span class="hidden sm:group-hover:block text-[11px] font-semibold text-primary mt-0.5">Сделать такой →</span>
+          </span>
+        </a>
+      ))}
+    </div>
+
+    <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
+      <a
+        href="/free-qr-generator.html"
+        data-goal="qr_generator_link"
+        data-goal-params='{"source":"home_gallery"}'
+        class="inline-flex items-center gap-2 bg-primary hover:bg-indigo-700 text-white px-6 py-3.5 rounded-xl font-bold shadow-lg shadow-indigo-500/25 transition"
+      >
+        <i class="fa-solid fa-wand-magic-sparkles"></i>
+        Сделать красивый QR бесплатно
+      </a>
+      <a
+        href={dynamicUrl}
+        data-goal="qr_dynamic_cta"
+        data-goal-params='{"source":"home_gallery"}'
+        class="inline-flex items-center gap-2 bg-white border border-slate-300 hover:border-primary hover:text-primary text-slate-700 px-6 py-3.5 rounded-xl font-semibold transition"
+      >
+        Динамический QR с таким дизайном
+        <i class="fa-solid fa-arrow-right text-sm"></i>
+      </a>
+    </div>
+  </div>
+</section>

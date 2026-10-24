@@ -8,12 +8,21 @@ import SetupGuideRedirect from "@/components/dashboard/SetupGuideRedirect";
 import { getSetupProfile, userNeedsSetupGuide } from "@/lib/setup-guide";
 import { sessionUserId } from "@/lib/session-user";
 import DashboardChrome from "@/components/dashboard/DashboardChrome";
+import { findActiveSubscription, effectivePlan } from "@/lib/subscription-utils";
+import { orphanQrcodeWhere } from "@/lib/establishment-access";
 import GeneratorStyleImporter from "@/components/dashboard/GeneratorStyleImporter";
 import { Suspense } from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
   title: "Кабинет — QrStars",
+};
+
+/** viewport-fit=cover — чтобы env(safe-area-inset-*) работали в мобильной шапке и меню. */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default async function DashboardLayout({
@@ -27,14 +36,17 @@ export default async function DashboardLayout({
   const userId = sessionUserId(session);
   if (!userId) redirect("/login?session=expired");
 
-  const [user, needsSetup, setupProfile] = await Promise.all([
+  const [user, needsSetup, setupProfile, activeSubscription, orphanQr] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       select: { onboardingCompleted: true },
     }),
     userNeedsSetupGuide(userId),
     getSetupProfile(userId),
+    findActiveSubscription(userId),
+    prisma.qRCode.findFirst({ where: orphanQrcodeWhere(userId), select: { id: true } }),
   ]);
+  const plan = effectivePlan(activeSubscription);
 
   if (!user) redirect("/login?session=expired");
 
@@ -45,7 +57,9 @@ export default async function DashboardLayout({
       <Suspense fallback={null}>
         <GeneratorStyleImporter />
       </Suspense>
-      <DashboardChrome>{children}</DashboardChrome>
+      <DashboardChrome plan={plan} hasOrphanQrs={Boolean(orphanQr)}>
+        {children}
+      </DashboardChrome>
       {!needsSetup && (
         <OnboardingTour
           userId={userId}

@@ -63,7 +63,8 @@ interface NotificationPrefs {
 }
 
 interface MessengerContactsManagerProps {
-  establishmentId: string;
+  /** Без проекта показываем только каналы аккаунта, без галочек типов уведомлений. */
+  establishmentId?: string | null;
   establishmentName?: string;
 }
 
@@ -144,6 +145,10 @@ export default function MessengerContactsManager({
   }, []);
 
   const fetchPrefs = useCallback(async () => {
+    if (!establishmentId) {
+      setPrefs(null);
+      return;
+    }
     const r = await fetch(`/api/settings?id=${establishmentId}`);
     if (!r.ok) return;
     const data = await r.json();
@@ -178,11 +183,15 @@ export default function MessengerContactsManager({
       void fetchContacts();
       void fetchPrefs();
     };
-    window.addEventListener("focus", refresh);
-    document.addEventListener("visibilitychange", () => {
+    const onVisibility = () => {
       if (document.visibilityState === "visible") refresh();
-    });
-    return () => window.removeEventListener("focus", refresh);
+    };
+    window.addEventListener("focus", refresh);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("focus", refresh);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
   }, [fetchContacts, fetchPrefs]);
 
   useEffect(() => {
@@ -284,6 +293,7 @@ export default function MessengerContactsManager({
   };
 
   const handleTestEmail = async (contactId: string) => {
+    if (!establishmentId) return;
     setEmailTestBusy(true);
     setEmailTestStatus("");
     try {
@@ -321,7 +331,7 @@ export default function MessengerContactsManager({
   };
 
   const saveToggle = async (field: ToggleField, value: boolean) => {
-    if (!prefs) return;
+    if (!prefs || !establishmentId) return;
     setSavingToggle(field);
     setPrefs((prev) => (prev ? { ...prev, [field]: value } : prev));
     try {
@@ -361,50 +371,41 @@ export default function MessengerContactsManager({
     );
   }
 
+  const hasProject = !!establishmentId;
+
   return (
-    <Card id="notification-channels">
+    <Card>
       <h3 className="font-semibold text-gray-900 mb-1">Каналы для уведомлений</h3>
       <p className="text-sm text-gray-500 mb-4">
         Email аккаунта подключается автоматически. Telegram и MAX — один раз на аккаунт
-        {establishmentName
-          ? `; для заведения «${establishmentName}» выберите типы уведомлений`
-          : "; выберите типы уведомлений для заведения"}
+        {!hasProject
+          ? ". Какие уведомления куда слать, выберете после создания проекта"
+          : establishmentName
+            ? `; для проекта «${establishmentName}» выберите типы уведомлений`
+            : "; выберите типы уведомлений для проекта"}
         .
       </p>
 
-      <div className="overflow-x-auto -mx-1">
-        <table className="w-full min-w-[540px] text-sm">
-          <thead>
-            <tr className="border-b border-gray-200 text-left text-xs text-gray-500">
-              <th className="pb-2 pl-1 pr-3 font-medium">Канал</th>
-              <th className="pb-2 pr-3 font-medium">Аккаунт</th>
-              <th className="pb-2 pr-3 font-medium text-center w-24">Отзывы</th>
-              <th className="pb-2 pr-3 font-medium text-center w-24">Заявки</th>
-              <th className="pb-2 pr-1 font-medium text-right w-28">Действие</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {CHANNELS.map((channel) => {
-              const Icon = channel.icon;
-              const connected = primaryContact(channel.provider);
-              const linked = !!connected;
-              const isLinking = linkingChannel === channel.provider;
-              const reviewsChecked = prefs?.[channel.reviewsField] ?? false;
-              const requestsChecked = prefs?.[channel.requestsField] ?? false;
-              const toggleDisabled = !linked || savingToggle !== null;
+      <ul className="divide-y divide-gray-100 rounded-xl border border-gray-200">
+        {CHANNELS.map((channel) => {
+          const Icon = channel.icon;
+          const connected = primaryContact(channel.provider);
+          const linked = !!connected;
+          const isLinking = linkingChannel === channel.provider;
+          const reviewsChecked = prefs?.[channel.reviewsField] ?? false;
+          const requestsChecked = prefs?.[channel.requestsField] ?? false;
+          const toggleDisabled = !linked || savingToggle !== null;
 
-              return (
-                <tr key={channel.provider} className="align-top">
-                  <td className="py-3 pl-1 pr-3">
-                    <div className="flex items-center gap-2 font-medium text-gray-800">
-                      <Icon className={`w-4 h-4 shrink-0 ${channel.iconClass}`} />
-                      {channel.label}
-                    </div>
-                  </td>
-                  <td className="py-3 pr-3">
+          return (
+            <li key={channel.provider} className="p-3 sm:p-4">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="flex min-w-0 items-start gap-3">
+                  <Icon className={`mt-0.5 h-5 w-5 shrink-0 ${channel.iconClass}`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900">{channel.label}</p>
                     {linked ? (
-                      <div className="min-w-0">
-                        <p className="font-medium text-gray-900 truncate">
+                      <>
+                        <p className="break-all text-sm text-gray-700">
                           {formatMessengerContactLabel(connected)}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -412,7 +413,7 @@ export default function MessengerContactsManager({
                         </p>
                         {channel.provider === "EMAIL" && (
                           <p
-                            className={`text-xs mt-1 ${
+                            className={`mt-1 break-words text-xs ${
                               connected.lastEmailStatus === "failed" ||
                               connected.lastEmailStatus === "bounced"
                                 ? "text-red-600"
@@ -422,112 +423,126 @@ export default function MessengerContactsManager({
                             {formatLastEmailStatus(connected)}
                           </p>
                         )}
-                      </div>
+                      </>
                     ) : isLinking ? (
                       <div className="flex items-center gap-2 text-indigo-600">
-                        <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
+                        <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                         <span className="text-xs">Ожидаем подтверждения…</span>
                       </div>
                     ) : (
-                      <span className="text-xs text-gray-400">Не подключён</span>
+                      <p className="text-xs text-gray-400">Не подключён</p>
                     )}
-                  </td>
-                  <td className="py-3 pr-3 text-center">
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2 pl-8 sm:shrink-0 sm:justify-end sm:pl-0">
+                  {linked ? (
+                    <>
+                      {channel.provider === "EMAIL" && hasProject && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="min-h-10"
+                          onClick={() => handleTestEmail(connected.id)}
+                          disabled={emailTestBusy}
+                        >
+                          {emailTestBusy ? (
+                            <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
+                          ) : (
+                            <Mail className="mr-1 h-3.5 w-3.5" />
+                          )}
+                          Проверить
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleDelete(connected.id)}
+                        className="min-h-10 text-red-600"
+                      >
+                        <Trash2 className="mr-1 h-3.5 w-3.5" />
+                        Отключить
+                      </Button>
+                    </>
+                  ) : channel.provider === "EMAIL" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={() => setShowEmailForm((v) => !v)}
+                    >
+                      Подключить
+                    </Button>
+                  ) : channel.provider === "TELEGRAM" ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={handleLinkTelegram}
+                      disabled={!userId || !telegramBotUsername || isLinking}
+                    >
+                      <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                      Подключить
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="min-h-10"
+                      onClick={handleLinkMax}
+                      disabled={!userId || !maxBotUrl || isLinking}
+                    >
+                      <ExternalLink className="mr-1 h-3.5 w-3.5" />
+                      Подключить
+                    </Button>
+                  )}
+                </div>
+              </div>
+
+              {hasProject && (
+                <div className="mt-2 flex flex-wrap gap-x-5 gap-y-1 pl-8">
+                  <label
+                    className={`flex min-h-10 items-center gap-2 text-sm ${
+                      linked ? "cursor-pointer text-gray-700" : "text-gray-400"
+                    }`}
+                    title={linked ? "Жалобы 1–3★ и негативные отзывы" : "Сначала подключите канал"}
+                  >
                     <input
                       type="checkbox"
                       checked={reviewsChecked}
                       disabled={toggleDisabled}
                       onChange={(e) => saveToggle(channel.reviewsField, e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 disabled:opacity-40"
-                      title={
-                        linked
-                          ? "Жалобы 1–3★ и негативные отзывы"
-                          : "Сначала подключите канал"
-                      }
+                      className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-40"
                     />
-                  </td>
-                  <td className="py-3 pr-3 text-center">
+                    Отзывы
+                  </label>
+                  <label
+                    className={`flex min-h-10 items-center gap-2 text-sm ${
+                      linked ? "cursor-pointer text-gray-700" : "text-gray-400"
+                    }`}
+                    title={linked ? "Заявки из форм и заказы из меню" : "Сначала подключите канал"}
+                  >
                     <input
                       type="checkbox"
                       checked={requestsChecked}
                       disabled={toggleDisabled}
                       onChange={(e) => saveToggle(channel.requestsField, e.target.checked)}
-                      className="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 disabled:opacity-40"
-                      title={
-                        linked
-                          ? "Заявки из форм и заказы из меню"
-                          : "Сначала подключите канал"
-                      }
+                      className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 disabled:opacity-40"
                     />
-                  </td>
-                  <td className="py-3 pr-1 text-right whitespace-nowrap">
-                    {linked ? (
-                      <div className="flex justify-end gap-1">
-                        {channel.provider === "EMAIL" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleTestEmail(connected.id)}
-                            disabled={emailTestBusy}
-                          >
-                            {emailTestBusy ? (
-                              <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <Mail className="mr-1 h-3.5 w-3.5" />
-                            )}
-                            Проверить
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(connected.id)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 mr-1" />
-                          Отключить
-                        </Button>
-                      </div>
-                    ) : channel.provider === "EMAIL" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => setShowEmailForm((v) => !v)}
-                      >
-                        Подключить
-                      </Button>
-                    ) : channel.provider === "TELEGRAM" ? (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleLinkTelegram}
-                        disabled={!userId || !telegramBotUsername || isLinking}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                        Подключить
-                      </Button>
-                    ) : (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={handleLinkMax}
-                        disabled={!userId || !maxBotUrl || isLinking}
-                      >
-                        <ExternalLink className="w-3.5 h-3.5 mr-1" />
-                        Подключить
-                      </Button>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+                    Заявки
+                  </label>
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
-      <p className="text-xs text-gray-400 mt-3">
-        Отзывы — жалобы 1–3★. Заявки — формы на странице и заказы из меню.
-      </p>
+      {hasProject && (
+        <p className="text-xs text-gray-400 mt-3">
+          Отзывы — жалобы 1–3★. Заявки — формы на странице и заказы из меню.
+        </p>
+      )}
       {emailTestStatus && (
         <p
           className={`mt-2 text-xs ${
@@ -554,11 +569,11 @@ export default function MessengerContactsManager({
             placeholder="Отдел продаж"
           />
           {emailError && <p className="text-xs text-red-600">{emailError}</p>}
-          <div className="flex gap-2">
-            <Button size="sm" onClick={handleAddEmail} disabled={emailSaving}>
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" className="min-h-10" onClick={handleAddEmail} disabled={emailSaving}>
               {emailSaving ? "Добавляем…" : "Сохранить"}
             </Button>
-            <Button size="sm" variant="ghost" onClick={() => setShowEmailForm(false)}>
+            <Button size="sm" variant="ghost" className="min-h-10" onClick={() => setShowEmailForm(false)}>
               Отмена
             </Button>
           </div>

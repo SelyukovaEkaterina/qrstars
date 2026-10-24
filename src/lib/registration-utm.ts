@@ -59,21 +59,38 @@ function safeDecode(value: string): string | null {
   }
 }
 
-/** Браузер: запомнить UTM текущего адреса до перехода в OAuth. Пустой адрес cookie не трогает. */
-export function rememberRegistrationUtm(search: string): void {
-  if (typeof document === "undefined") return;
-  const utm = parseRegistrationUtmFromSearchParams(new URLSearchParams(search));
-  if (!utm) return;
-  const secure = window.location.protocol === "https:" ? "; Secure" : "";
-  document.cookie =
-    `${REGISTRATION_UTM_COOKIE}=${encodeURIComponent(JSON.stringify(utm))}` +
-    `; Path=/; Max-Age=${REGISTRATION_UTM_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+/** Реферальный код (`/register?ref=`) — переживает уход в OAuth так же, как UTM. */
+export const REGISTRATION_REF_COOKIE = "qrstars_reg_ref";
+
+export function normalizeReferralCode(raw: string | null | undefined): string | null {
+  const value = raw?.trim();
+  return value && /^[A-Za-z0-9_-]{2,64}$/.test(value) ? value : null;
 }
 
-/** Атрибуция нового OAuth-пользователя: UTM из cookie и Metrika ClientID из `_ym_uid`. */
+/** Браузер: запомнить UTM и ref текущего адреса до перехода в OAuth. Пустой адрес cookie не трогает. */
+export function rememberRegistrationUtm(search: string): void {
+  if (typeof document === "undefined") return;
+  const params = new URLSearchParams(search);
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  const utm = parseRegistrationUtmFromSearchParams(params);
+  if (utm) {
+    document.cookie =
+      `${REGISTRATION_UTM_COOKIE}=${encodeURIComponent(JSON.stringify(utm))}` +
+      `; Path=/; Max-Age=${REGISTRATION_UTM_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+  }
+  const ref = normalizeReferralCode(params.get("ref"));
+  if (ref) {
+    document.cookie =
+      `${REGISTRATION_REF_COOKIE}=${ref}` +
+      `; Path=/; Max-Age=${REGISTRATION_UTM_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+  }
+}
+
+/** Атрибуция нового OAuth-пользователя: UTM и ref из cookie, Metrika ClientID из `_ym_uid`. */
 export type OAuthRegistrationAttribution = {
   registrationUtm: RegistrationUtm | null;
   metrikaClientId: string | null;
+  referralCode: string | null;
 };
 
 export function readOAuthRegistrationAttribution(
@@ -82,6 +99,7 @@ export function readOAuthRegistrationAttribution(
   return {
     registrationUtm: parseRegistrationUtmCookie(getCookie(REGISTRATION_UTM_COOKIE)),
     metrikaClientId: normalizeMetrikaClientId(getCookie("_ym_uid")),
+    referralCode: normalizeReferralCode(getCookie(REGISTRATION_REF_COOKIE)),
   };
 }
 
@@ -100,11 +118,21 @@ export function registrationUtmToSearchParams(utm: RegistrationUtm): URLSearchPa
   return params;
 }
 
+/** Тариф, выбранный на лендинге (`?plan=pro|network`). */
+export function parseRequestedPlanParam(value: string | null | undefined): "PRO" | "NETWORK" | null {
+  const plan = (value ?? "").trim().toLowerCase();
+  if (plan === "pro") return "PRO";
+  if (plan === "network") return "NETWORK";
+  return null;
+}
+
 export function buildDashboardStartUrl(searchParams: URLSearchParams): string {
   const utm = parseRegistrationUtmFromSearchParams(searchParams);
   const params = utm ? registrationUtmToSearchParams(utm) : new URLSearchParams();
   const intent = searchParams.get("intent")?.trim();
   if (intent) params.set("intent", intent);
+  const plan = parseRequestedPlanParam(searchParams.get("plan"));
+  if (plan) params.set("plan", plan.toLowerCase());
   const qs = params.toString();
   return qs ? `/dashboard/start?${qs}` : "/dashboard/start";
 }
@@ -126,6 +154,9 @@ export function resolveRegistrationSubtitle(searchParams: URLSearchParams): stri
   }
   if (intent === "landing") {
     return "Соберите микросайт заведения на одном QR";
+  }
+  if (intent === "card" || intent === "business_card" || intent === "vizitka") {
+    return "Создайте QR-визитку за минуту — бесплатно";
   }
   const campaign = (searchParams.get("utm_campaign") ?? "").trim().toLowerCase();
   if (campaign.includes("menu") || campaign === "menu_search") {

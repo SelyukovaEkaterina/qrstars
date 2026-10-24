@@ -6,7 +6,7 @@ badge: "🏢 Для малого бизнеса"
 intro: "<strong>QR-код для бизнеса</strong> — это не одна задача, а экосистема: отзывы, меню, контакты, файлы и оплата. QrStars объединяет инструменты для кафе, салонов, клиник и магазинов."
 fullTitle: true
 ctaText: "QR для моего бизнеса"
-ctaHref: "/#features"
+ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=qr-kod-dlya-biznesa"
 faq:
   - q: "Какие QR-коды нужны бизнесу?"
     a: "Минимум: отзывы на картах, WiFi для гостей, меню или прайс, визитка сотрудника. QrStars покрывает все сценарии."
@@ -63,4 +63,4 @@ related:
 - Аналитика сканирований по точкам и столам.
 - В отличие от QRCoder — фокус на отзывы и удержание, не только картинка.
 
-[Создайте QR для бизнеса](/#features) — одна платформа вместо пяти сервисов.
+[Создайте QR для бизнеса](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=qr-kod-dlya-biznesa-bottom) — одна платформа вместо пяти сервисов.

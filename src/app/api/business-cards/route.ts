@@ -3,6 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
+import {
+  cardTextFieldsFromBody,
+  normalizeCardServices,
+  sanitizeSocialLinksInput,
+} from "@/lib/business-card";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -43,27 +48,17 @@ export async function POST(request: Request) {
   }
 
   const userId = (session.user as Record<string, unknown>).id as string;
-  const body = await request.json();
-  const {
-    fullName,
-    title,
-    company,
-    phone,
-    email,
-    website,
-    address,
-    about,
-    avatarUrl,
-    socialLinks,
-    theme,
-    accentColor,
-    contactEnabled,
-    contactMessengerId,
-    establishmentId,
-    linkAsPrimary,
-    tipsUrl,
-    tipsLabel,
-  } = body;
+  const body = (await request.json()) as Record<string, unknown>;
+  const { fullName, theme, accentColor, contactEnabled, contactMessengerId, establishmentId, linkAsPrimary } =
+    body as {
+      fullName?: string;
+      theme?: string;
+      accentColor?: string;
+      contactEnabled?: boolean;
+      contactMessengerId?: string | null;
+      establishmentId?: string | null;
+      linkAsPrimary?: boolean;
+    };
 
   if (contactMessengerId) {
     const messenger = await prisma.messengerContact.findFirst({
@@ -74,29 +69,21 @@ export async function POST(request: Request) {
     }
   }
 
-  if (!fullName?.trim()) {
+  if (typeof fullName !== "string" || !fullName.trim()) {
     return NextResponse.json({ error: "Имя обязательно" }, { status: 400 });
   }
 
   const businessCard = await prisma.businessCard.create({
     data: {
       user: { connect: { id: userId } },
-      fullName: fullName.trim(),
-      title: title?.trim() || null,
-      company: company?.trim() || null,
-      phone: phone?.trim() || null,
-      email: email?.trim() || null,
-      website: website?.trim() || null,
-      address: address?.trim() || null,
-      about: about?.trim() || null,
-      avatarUrl: avatarUrl?.trim() || null,
-      socialLinks: socialLinks || [],
+      fullName: fullName.trim().slice(0, 200),
+      ...cardTextFieldsFromBody(body),
+      socialLinks: sanitizeSocialLinksInput(body.socialLinks),
+      services: normalizeCardServices(body.services),
       theme: theme || "minimal",
       accentColor: accentColor || "#4f46e5",
       contactEnabled: contactEnabled ?? false,
       ...(contactMessengerId ? { contactMessenger: { connect: { id: contactMessengerId } } } : {}),
-      tipsUrl: tipsUrl?.trim() || null,
-      tipsLabel: tipsLabel?.trim() || null,
       estId: establishmentId || null,
     },
     include: { contactMessenger: true },
@@ -124,29 +111,21 @@ export async function PUT(request: Request) {
   }
 
   const userId = (session.user as Record<string, unknown>).id as string;
-  const body = await request.json();
-  const {
-    id,
-    fullName,
-    title,
-    company,
-    phone,
-    email,
-    website,
-    address,
-    about,
-    avatarUrl,
-    socialLinks,
-    theme,
-    accentColor,
-    contactEnabled,
-    contactMessengerId,
-    tipsUrl,
-    tipsLabel,
-  } = body;
+  const body = (await request.json()) as Record<string, unknown>;
+  const { id, fullName, theme, accentColor, contactEnabled, contactMessengerId } = body as {
+    id?: string;
+    fullName?: string;
+    theme?: string;
+    accentColor?: string;
+    contactEnabled?: boolean;
+    contactMessengerId?: string | null;
+  };
 
   if (!id) {
     return NextResponse.json({ error: "ID required" }, { status: 400 });
+  }
+  if (fullName !== undefined && (typeof fullName !== "string" || !fullName.trim())) {
+    return NextResponse.json({ error: "Имя обязательно" }, { status: 400 });
   }
 
   const existing = await prisma.businessCard.findFirst({
@@ -185,16 +164,10 @@ export async function PUT(request: Request) {
   const businessCard = await prisma.businessCard.update({
     where: { id },
     data: {
-      ...(fullName !== undefined && { fullName: fullName.trim() }),
-      ...(title !== undefined && { title: title?.trim() || null }),
-      ...(company !== undefined && { company: company?.trim() || null }),
-      ...(phone !== undefined && { phone: phone?.trim() || null }),
-      ...(email !== undefined && { email: email?.trim() || null }),
-      ...(website !== undefined && { website: website?.trim() || null }),
-      ...(address !== undefined && { address: address?.trim() || null }),
-      ...(about !== undefined && { about: about?.trim() || null }),
-      ...(avatarUrl !== undefined && { avatarUrl: avatarUrl?.trim() || null }),
-      ...(socialLinks !== undefined && { socialLinks }),
+      ...(fullName !== undefined && { fullName: fullName.trim().slice(0, 200) }),
+      ...cardTextFieldsFromBody(body),
+      ...(body.socialLinks !== undefined && { socialLinks: sanitizeSocialLinksInput(body.socialLinks) }),
+      ...(body.services !== undefined && { services: normalizeCardServices(body.services) }),
       ...(theme !== undefined && { theme }),
       ...(accentColor !== undefined && { accentColor }),
       ...(contactEnabled !== undefined && { contactEnabled }),
@@ -203,8 +176,6 @@ export async function PUT(request: Request) {
           ? { connect: { id: contactMessengerId } }
           : { disconnect: true },
       }),
-      ...(tipsUrl !== undefined && { tipsUrl: tipsUrl?.trim() || null }),
-      ...(tipsLabel !== undefined && { tipsLabel: tipsLabel?.trim() || null }),
     },
     include: { contactMessenger: true },
   });

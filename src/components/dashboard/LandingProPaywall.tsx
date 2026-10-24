@@ -97,7 +97,7 @@ export default function LandingProPaywall({
           type="button"
           onClick={onClose}
           aria-label="Закрыть"
-          className="absolute right-3 top-3 z-10 rounded-full p-1.5 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
+          className="absolute right-2 top-2 z-10 rounded-full p-2.5 text-white/80 transition-colors hover:bg-white/15 hover:text-white"
         >
           <X className="w-5 h-5" />
         </button>
@@ -185,26 +185,23 @@ export default function LandingProPaywall({
           </p>
 
           <div className="mt-3 flex flex-col sm:flex-row gap-2">
-              <>
-                <Link href="/dashboard/subscription" className="sm:flex-1">
-                  <Button type="button" className="w-full">
-                    Подключить PRO
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </Link>
-                <Link
-                  href="/q/demo-landing"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="sm:flex-1"
-                >
-                  <Button type="button" variant="outline" className="w-full">
-                    <ExternalLink className="w-4 h-4 mr-2" />
-                    Посмотреть демо
-                  </Button>
-                </Link>
-              </>
-            <Button type="button" variant="ghost" onClick={onClose}>
+            <Link
+              href="/dashboard/subscription"
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-indigo-600 px-4 text-sm font-medium text-white transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 sm:flex-1"
+            >
+              Подключить PRO
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Link>
+            <Link
+              href="/q/demo-landing"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 items-center justify-center rounded-lg border-2 border-gray-300 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 sm:flex-1"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              Посмотреть демо
+            </Link>
+            <Button type="button" variant="ghost" className="h-10" onClick={onClose}>
               Позже
             </Button>
           </div>

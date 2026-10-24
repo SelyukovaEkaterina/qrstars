@@ -58,14 +58,20 @@ export async function GET(request: Request) {
   if (establishmentId) {
     const establishment = await prisma.establishment.findFirst({
       where: { id: establishmentId, ...establishmentAccessWhere(userId) },
-      select: establishmentSelect,
+      select: { ...establishmentSelect, userId: true },
     });
 
     if (!establishment) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ establishment });
+    const { userId: ownerId, ...rest } = establishment;
+    const hasPaid = await establishmentHasPaidFeatures(establishmentId);
+    return NextResponse.json({
+      establishment: rest,
+      // Для UI настроек: PRO-функции считаются по тарифу владельца проекта.
+      access: { isOwner: ownerId === userId, hasPaidFeatures: hasPaid },
+    });
   }
 
   const establishments = await prisma.establishment.findMany({
@@ -139,7 +145,17 @@ export async function PUT(request: Request) {
   }
   if (body.twoGisUrl !== undefined) data.twoGisUrl = body.twoGisUrl || null;
   if (body.avitoUrl !== undefined) data.avitoUrl = body.avitoUrl || null;
-  if (body.platformRotation !== undefined) data.platformRotation = body.platformRotation;
+  if (body.platformRotation !== undefined) {
+    const rotation = body.platformRotation === true;
+    // Умная ротация — PRO-функция: включить её на FREE нельзя, выключить можно всегда.
+    if (rotation && !isPro && !establishment.platformRotation) {
+      return NextResponse.json(
+        { error: "Умная ротация площадок доступна на PRO-тарифе" },
+        { status: 403 }
+      );
+    }
+    data.platformRotation = rotation;
+  }
   if (body.watermarkEnabled !== undefined) data.watermarkEnabled = body.watermarkEnabled;
   if (body.tipsEnabled !== undefined) data.tipsEnabled = body.tipsEnabled;
   if (body.notificationEmail !== undefined) data.notificationEmail = body.notificationEmail || null;

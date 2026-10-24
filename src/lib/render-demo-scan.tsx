@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import {
   type DemoQrSlug,
   demoBusinessCard,
+  demoMasterCard,
   demoCustomPages,
   demoFileAsset,
   demoMenu,
@@ -92,6 +93,19 @@ export async function renderDemoScan(code: string) {
     case "demo-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
       return <BusinessCardView card={demoBusinessCard} brandColor="#4f46e5" pageAppearance="light" />;
+    }
+
+    case "demo-master": {
+      const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
+      return (
+        <BusinessCardView
+          card={demoMasterCard}
+          qrCode="demo-master"
+          shareUrl="https://app.qrstars.ru/q/demo-master"
+          brandColor="#0369a1"
+          pageAppearance="light"
+        />
+      );
     }
 
     case "demo-wifi": {

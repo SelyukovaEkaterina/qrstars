@@ -1,4 +1,4 @@
-export type SetupUtmHint = "reviews" | "menu" | "generator" | null;
+export type SetupUtmHint = "reviews" | "menu" | "generator" | "card" | null;
 
 const REVIEWS_CAMPAIGNS = new Set([
   "reviews_search",
@@ -38,6 +38,10 @@ export function parseSetupUtmContext(
     return { hint: "reviews", hideRedirect: campaign.includes("reviews") };
   }
 
+  if (/(master|vizitk|business_card|card)/.test(campaign) || /(master|vizitk|business_card)/.test(content)) {
+    return { hint: "card", hideRedirect: false };
+  }
+
   if (campaign === "generator_search" || campaign.includes("generator")) {
     return { hint: "generator", hideRedirect: false };
   }
@@ -45,13 +49,21 @@ export function parseSetupUtmContext(
   return { hint: null, hideRedirect: false };
 }
 
-export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu";
+export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu" | "card";
 
 export function parseSetupIntentParam(raw: string | null | undefined): SetupIntentId | null {
   const value = (raw ?? "").trim().toLowerCase();
-  if (value === "reviews" || value === "landing" || value === "redirect" || value === "menu") {
+  if (
+    value === "reviews" ||
+    value === "landing" ||
+    value === "redirect" ||
+    value === "menu" ||
+    value === "card"
+  ) {
     return value;
   }
+  // Синонимы из рекламных ссылок
+  if (value === "business_card" || value === "vizitka") return "card";
   return null;
 }
 
@@ -75,11 +87,13 @@ export function orderSetupIntents(
 ): SetupIntentId[] {
   const preferred: SetupIntentId[] =
     hint === "menu"
-      ? ["menu", "reviews", "landing", "redirect"]
+      ? ["menu", "reviews", "landing", "card", "redirect"]
       : hint === "reviews"
-        ? ["reviews", "landing", "menu", "redirect"]
+        ? ["reviews", "landing", "menu", "card", "redirect"]
         : hint === "generator"
-          ? ["redirect", "landing", "reviews", "menu"]
-          : intents;
+          ? ["redirect", "landing", "card", "reviews", "menu"]
+          : hint === "card"
+            ? ["card", "reviews", "redirect", "landing", "menu"]
+            : intents;
   return preferred.filter((id) => intents.includes(id));
 }
