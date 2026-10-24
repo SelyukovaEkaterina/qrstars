@@ -58,6 +58,8 @@ export default async function ProjectHomePage({
         shortSlug: true,
         yandexMapsUrl: true,
         twoGisUrl: true,
+        menu: { select: { cartEnabled: true } },
+        businessCard: { select: { contactEnabled: true } },
         reviews: {
           orderBy: { createdAt: "desc" },
           take: 5,
@@ -72,6 +74,8 @@ export default async function ProjectHomePage({
             isActive: true,
             mode: true,
             scansCount: true,
+            menu: { select: { cartEnabled: true } },
+            businessCard: { select: { contactEnabled: true } },
           },
         },
         _count: { select: { reviews: true } },
@@ -85,17 +89,27 @@ export default async function ProjectHomePage({
   ]);
   if (!establishment) notFound();
 
+  const totalScans = establishment.qrcodes.reduce((sum, qr) => sum + qr.scansCount, 0);
+  const reviewQrs = establishment.qrcodes.filter((qr) => isReviewCapableQrMode(qr.mode));
+  const hasReviewQr = reviewQrs.length > 0;
+  // Заявки приходят с формы визитки и из корзины меню (контент проекта, fallback — FK на QR).
+  const hasLeadQr = establishment.qrcodes.some(
+    (qr) =>
+      (qr.mode === "BUSINESS_CARD" &&
+        (establishment.businessCard ?? qr.businessCard)?.contactEnabled) ||
+      (qr.mode === "MENU" && (establishment.menu ?? qr.menu)?.cartEnabled),
+  );
+  // Уведомлять не о чем (Wi‑Fi, редирект, файл, визитка без формы) — мессенджер не предлагаем.
+  const hasInboundQr = hasReviewQr || hasLeadQr;
+
   const isOwner = access.role === "owner";
   // Мессенджеры подключает владелец в настройках аккаунта — участнику подсказку не показываем.
-  const messengerCount = isOwner
+  const messengerCount = isOwner && hasInboundQr
     ? await prisma.messengerContact.count({
         where: { userId: establishment.userId, provider: { in: ["TELEGRAM", "MAX"] } },
       })
     : 1;
 
-  const totalScans = establishment.qrcodes.reduce((sum, qr) => sum + qr.scansCount, 0);
-  const reviewQrs = establishment.qrcodes.filter((qr) => isReviewCapableQrMode(qr.mode));
-  const hasReviewQr = reviewQrs.length > 0;
   const guestTestQr = reviewQrs.find((qr) => qr.isActive) ?? reviewQrs[0] ?? null;
   const avgValue = ratingAgg._avg.rating;
   const avgRating = avgValue != null ? avgValue.toFixed(1) : "—";
@@ -164,7 +178,13 @@ export default async function ProjectHomePage({
                     <Link href="/dashboard/settings" className="underline">
                       Подключите Telegram или MAX
                     </Link>
-                    , чтобы узнавать о жалобах и заявках сразу.
+                    , чтобы узнавать{" "}
+                    {hasReviewQr && hasLeadQr
+                      ? "о жалобах и заявках"
+                      : hasReviewQr
+                        ? "о жалобах"
+                        : "о заявках"}{" "}
+                    сразу.
                   </li>
                 )}
               </ul>

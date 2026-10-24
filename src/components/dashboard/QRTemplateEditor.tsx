@@ -27,6 +27,7 @@ import {
   Maximize2,
   Info,
   Ban,
+  Sparkles,
 } from "lucide-react";
 import { scanUrlForCode } from "@/lib/utils";
 import {
@@ -48,6 +49,7 @@ import {
   downloadSvgString,
   randomizeQRConfig,
   normalizeQRTemplateConfig,
+  QR_CODE_TEMPLATES,
 } from "@/lib/qr-code-templates";
 import { QR_EXPORT_SIZE, QR_EXPORT_SIZES } from "@/lib/qr-download";
 import {
@@ -69,6 +71,8 @@ import {
   renderSilhouettePreview,
   QR_BASE_SIZE,
   SCAN_LEVEL_TEXT,
+  ART_PRESET_CATEGORIES,
+  type ArtPresetCategory,
   type QrLayout,
   type QrScanLevel,
 } from "@/lib/qr-engine";
@@ -281,6 +285,48 @@ function EyeThumb({ eye, active, onClick }: { eye: QREyeStyle; active: boolean; 
 }
 
 /** Копия готового кадра в видимый canvas (превью на десктопе и миниатюра в нижней панели). */
+const ART_STYLES = QR_CODE_TEMPLATES.filter((p) => p.art);
+/** Во «Все» сначала два ряда: 33 карточки выталкивали настройки за экран. */
+const ART_COLLAPSED = 12;
+
+/** Миниатюры рисуются по одной в свободное время: 30+ отрисовок разом подвешивали страницу. */
+let artThumbQueue: Promise<void> = Promise.resolve();
+const idle = () =>
+  new Promise<void>((resolve) => {
+    if (typeof window.requestIdleCallback === "function") window.requestIdleCallback(() => resolve(), { timeout: 500 });
+    else setTimeout(resolve, 16);
+  });
+
+function ArtThumb({ preset, active, onClick }: { preset: QRTemplatePreset; active: boolean; onClick: () => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    let cancelled = false;
+    artThumbQueue = artThumbQueue.then(async () => {
+      const c = ref.current;
+      if (cancelled || !c) return;
+      const cfg = normalizeQRTemplateConfig({ ...preset.config });
+      const [logo, photo] = await Promise.all([resolveLogoImage(cfg), resolvePhotoImage(cfg)]);
+      await renderQRTemplate(c, cfg, "https://qrstars.ru", 200, photo, logo).catch(() => {});
+      await idle();
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [preset]);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={preset.description}
+      aria-pressed={active}
+      className={`flex flex-col items-center gap-1.5 rounded-xl border-2 p-2 transition-all ${active ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"}`}
+    >
+      <canvas ref={ref} className="aspect-square h-auto w-full object-contain" />
+      <span className="text-center text-xs font-medium leading-tight text-gray-700">{preset.name}</span>
+    </button>
+  );
+}
+
 function copyCanvas(source: HTMLCanvasElement, target: HTMLCanvasElement | null) {
   if (!target) return;
   target.width = source.width;
@@ -361,6 +407,12 @@ export default function QRTemplateEditor({
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
   const [randomizing, setRandomizing] = useState(false);
   const [logosExpanded, setLogosExpanded] = useState(false);
+  const [artCategory, setArtCategory] = useState<ArtPresetCategory | "all">("all");
+  const [artExpanded, setArtExpanded] = useState(false);
+  /** Выбранный арт-стиль подсвечивается, пока оформление не правили вручную. */
+  const [artApplied, setArtApplied] = useState<{ id: string; key: string } | null>(() =>
+    preset.art ? { id: preset.id, key: JSON.stringify(normalizeQRTemplateConfig({ ...preset.config })) } : null,
+  );
   const logoFileRef = useRef<HTMLInputElement>(null);
   const photoFileRef = useRef<HTMLInputElement>(null);
   const silhouetteFileRef = useRef<HTMLInputElement>(null);
@@ -654,6 +706,35 @@ export default function QRTemplateEditor({
     onClose();
     router.push("/dashboard/qrcodes/new");
   };
+
+  // ── Арт-стиль в один клик ─────────────────────────────────────────────────
+  const applyArtStyle = async (art: QRTemplatePreset) => {
+    // Свой загруженный логотип и фото не трогаем — человек их уже выбрал.
+    const ownLogo = cfg.centerMode === "image" && cfg.logoDataUrl ? cfg.logoDataUrl : null;
+    const ownPhoto = cfg.photoDataUrl ?? null;
+    const next = normalizeQRTemplateConfig({
+      ...art.config,
+      centerTextColor: art.config.fg,
+      ...(ownLogo ? { logoPreset: null, logoSrc: null, logoDataUrl: ownLogo, ecc: eccWithLogo(art.config.ecc) } : {}),
+      ...(ownPhoto ? { photoSrc: null, photoDataUrl: ownPhoto } : {}),
+    });
+    const [logo, photo] = await Promise.all([
+      ownLogo ? Promise.resolve(logoImage) : resolveLogoImage(next),
+      ownPhoto ? Promise.resolve(photoImage) : resolvePhotoImage(next),
+    ]);
+    setLogoImage(logo);
+    setPhotoImage(photo);
+    setSilhouetteImage(null);
+    if (silhouetteFileRef.current) silhouetteFileRef.current.value = "";
+    setCfg(next);
+    setArtApplied({ id: art.id, key: JSON.stringify(next) });
+  };
+  const activeArtId = artApplied && artApplied.key === JSON.stringify(cfg) ? artApplied.id : null;
+  const artInCategory = ART_STYLES.filter((p) => artCategory === "all" || p.art?.category === artCategory);
+  const artCollapsed = artCategory === "all" && !artExpanded;
+  const artVisible = artCollapsed
+    ? artInCategory.filter((p, i) => i < ART_COLLAPSED || p.id === activeArtId)
+    : artInCategory;
 
   // ── Случайное оформление: перебираем, пока декодер уверенно читает ────────
   const handleRandomize = async () => {
@@ -1068,6 +1149,44 @@ export default function QRTemplateEditor({
                   )}
                 </div>
               )}
+            </Section>
+
+            <Section
+              title="Арт-стили"
+              icon={<Sparkles size={16} />}
+              value={ART_STYLES.find((p) => p.id === activeArtId)?.name ?? `${ART_STYLES.length} стиля`}
+              defaultOpen
+            >
+              <div className="-mx-1 mb-3 flex gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+                {[{ id: "all" as const, label: "Все" }, ...ART_PRESET_CATEGORIES].map((c) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => setArtCategory(c.id)}
+                    aria-pressed={artCategory === c.id}
+                    className={`h-9 shrink-0 rounded-full border px-3.5 text-sm font-medium ${artCategory === c.id ? "border-indigo-600 bg-indigo-600 text-white" : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"}`}
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 xl:grid-cols-6">
+                {artVisible.map((p) => (
+                  <ArtThumb key={p.id} preset={p} active={p.id === activeArtId} onClick={() => applyArtStyle(p)} />
+                ))}
+              </div>
+              {artCollapsed && artInCategory.length > artVisible.length && (
+                <button
+                  type="button"
+                  onClick={() => setArtExpanded(true)}
+                  className="mt-3 text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+                >
+                  Показать все стили ({ART_STYLES.length})
+                </button>
+              )}
+              <p className="mt-2 text-xs text-gray-500">
+                Стиль меняет форму и цвет, данные кода остаются. Свой логотип и фото сохраняются.
+              </p>
             </Section>
 
             <button
