@@ -444,6 +444,36 @@ export async function notifyNewUserRegistration(user: {
     }
   }
 
+  let attributionLine = "";
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { registrationUtm: true, vkId: true, yandexId: true },
+    });
+    const utm =
+      row?.registrationUtm && typeof row.registrationUtm === "object" && !Array.isArray(row.registrationUtm)
+        ? (row.registrationUtm as Record<string, unknown>)
+        : {};
+    const labels: [string, string][] = [
+      ["utm_source", "Источник"],
+      ["utm_medium", "Канал"],
+      ["utm_campaign", "Кампания"],
+      ["utm_content", "Объявление"],
+      ["utm_term", "Ключ"],
+      ["yclid", "yclid"],
+      ["ymclid", "ymclid"],
+    ];
+    const lines = labels
+      .filter(([k]) => typeof utm[k] === "string" && utm[k])
+      .map(([k, label]) => `<b>${label}:</b> ${escapeHtml(String(utm[k]))}`);
+    const method = row?.vkId ? "VK ID" : row?.yandexId ? "Яндекс ID" : "email";
+    attributionLine =
+      `\n<b>Вход:</b> ${method}\n` +
+      (lines.length ? lines.join("\n") : "<b>Источник:</b> прямой / без UTM");
+  } catch (err) {
+    console.error("notifyNewUserRegistration attribution:", err);
+  }
+
   const dashboardUrl = process.env.NEXT_PUBLIC_BASE_URL
     ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/users`
     : "";
@@ -458,6 +488,7 @@ export async function notifyNewUserRegistration(user: {
       (user.phone ? `<b>Телефон:</b> ${escapeHtml(user.phone)}\n` : "") +
       `<b>User ID:</b> <code>${escapeHtml(user.id)}</code>` +
       referrerLine +
+      attributionLine +
       (dashboardUrl ? `\n\n<a href="${escapeHtml(dashboardUrl)}">Пользователи в админке</a>` : ""),
   });
 }
