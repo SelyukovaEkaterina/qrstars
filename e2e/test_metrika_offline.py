@@ -72,5 +72,8 @@ def test_metrika_offline_cron_skips_without_token(admin_session, base_url):
     assert r.status_code == 200, r.text
     data = r.json()
     assert data.get("ok") is True
+    assert "payments" in data, data
+    assert isinstance(data["payments"].get("uploaded"), int)
     if not os.environ.get("YANDEX_METRIKA_OAUTH_TOKEN"):
         assert data.get("skipped") is True
+        assert data["payments"].get("skipped") is True

@@ -397,6 +397,8 @@ model PaymentOrder {
   status       PaymentOrderStatus @default(PENDING)
   paidAt       DateTime?
   consentLogId String?
+  /// Когда оплата ушла в Метрику офлайн-конверсией payment_success
+  metrikaOfflineSentAt DateTime?
   createdAt    DateTime           @default(now())
 
   @@index([userId, status])

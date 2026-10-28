@@ -12,10 +12,23 @@ export default function MetrikaUserLinker() {
 
   useEffect(() => {
     if (isAnalyticsDisabledClient()) return;
-    if (!session?.user || typeof window === "undefined" || !window.ym) return;
+    if (!session?.user || typeof window === "undefined") return;
     const userId = (session.user as Record<string, unknown>).id;
     if (typeof userId !== "string" || !userId) return;
-    window.ym(METRIKA_ID, "setUserID", userId);
+
+    // tag.js грузится async: сессия часто приходит раньше, чем появляется window.ym.
+    // Без UserID офлайн-конверсии (establishment_created, payment_success) не привязываются.
+    let attempts = 0;
+    let timer: number | undefined;
+    const link = () => {
+      if (window.ym) {
+        window.ym(METRIKA_ID, "setUserID", userId);
+        return;
+      }
+      if (++attempts < 50) timer = window.setTimeout(link, 200);
+    };
+    link();
+    return () => window.clearTimeout(timer);
   }, [session]);
 
   return null;

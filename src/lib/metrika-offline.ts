@@ -6,14 +6,25 @@ export interface OfflineConversionRow {
   dateTime: number;
   clientId?: string | null;
   userId?: string | null;
+  /** Доход конверсии; если есть хотя бы у одной строки — в CSV добавляются Price и Currency. */
+  price?: number | null;
+  currency?: string | null;
 }
 
 export function buildOfflineConversionsCsv(rows: OfflineConversionRow[]): string {
-  const lines = ["ClientId,UserId,Target,DateTime"];
+  const withPrice = rows.some((row) => row.price != null);
+  const lines = [withPrice ? "ClientId,UserId,Target,DateTime,Price,Currency" : "ClientId,UserId,Target,DateTime"];
   for (const row of rows) {
     const clientId = row.clientId ?? "";
     const userId = row.userId ?? "";
-    lines.push(`${clientId},${userId},${row.target},${row.dateTime}`);
+    const base = `${clientId},${userId},${row.target},${row.dateTime}`;
+    if (!withPrice) {
+      lines.push(base);
+      continue;
+    }
+    const price = row.price != null ? row.price.toFixed(2) : "";
+    const currency = row.price != null ? row.currency || "RUB" : "";
+    lines.push(`${base},${price},${currency}`);
   }
   return `${lines.join("\n")}\n`;
 }
@@ -29,6 +40,13 @@ function metrikaCounterId(): string {
 function establishmentOfflineGoal(): string {
   return process.env.METRIKA_OFFLINE_GOAL_ESTABLISHMENT?.trim() || "establishment_created";
 }
+
+function paymentOfflineGoal(): string {
+  return process.env.METRIKA_OFFLINE_GOAL_PAYMENT?.trim() || "payment_success";
+}
+
+/** Метрика привязывает офлайн-конверсию к визиту не дальше 21 дня — старше не грузим. */
+export const METRIKA_ATTRIBUTION_WINDOW_MS = 21 * 24 * 60 * 60 * 1000;
 
 export async function uploadOfflineConversionsCsv(
   csv: string
@@ -86,11 +104,12 @@ export async function loadPendingEstablishmentConversions(options?: {
   const limit = options?.limit ?? 500;
   const graceMs = options?.graceMs ?? 2 * 60 * 60 * 1000;
   const graceCutoff = new Date(Date.now() - graceMs);
+  const windowStart = new Date(Date.now() - METRIKA_ATTRIBUTION_WINDOW_MS);
 
   const rows = await prisma.establishment.findMany({
     where: {
       metrikaOfflineSentAt: null,
-      createdAt: { lte: graceCutoff },
+      createdAt: { gte: windowStart, lte: graceCutoff },
       user: {
         role: { not: "ADMIN" },
         NOT: { registrationSource: INTERNAL_TEST_REGISTRATION_SOURCE },
@@ -166,4 +185,105 @@ export async function uploadPendingEstablishmentConversions(): Promise<{
   });
 
   return { ok: true, uploaded: rows.length, uploadId: upload.uploadId };
+}
+
+export interface PendingPaymentConversion {
+  orderId: string;
+  userId: string;
+  metrikaClientId: string | null;
+  paidAt: Date;
+  amount: number;
+}
+
+/**
+ * Первые оплаты подписки (PRO / Сеть), ещё не отправленные в Метрику.
+ * Автопродления не грузим: цель payment_success — про конверсию в покупку,
+ * а через год визита для привязки обычно уже нет.
+ */
+export async function loadPendingPaymentConversions(options?: {
+  limit?: number;
+  now?: Date;
+}): Promise<PendingPaymentConversion[]> {
+  const limit = options?.limit ?? 500;
+  const now = options?.now ?? new Date();
+  const windowStart = new Date(now.getTime() - METRIKA_ATTRIBUTION_WINDOW_MS);
+
+  const rows = await prisma.paymentOrder.findMany({
+    where: {
+      kind: "INITIAL",
+      status: "PAID",
+      metrikaOfflineSentAt: null,
+      // DateTime в CSV должен быть строго в прошлом.
+      paidAt: { gte: windowStart, lt: now },
+      user: {
+        role: { not: "ADMIN" },
+        NOT: { registrationSource: INTERNAL_TEST_REGISTRATION_SOURCE },
+      },
+    },
+    orderBy: { paidAt: "asc" },
+    take: limit,
+    select: {
+      id: true,
+      userId: true,
+      paidAt: true,
+      amount: true,
+      user: { select: { metrikaClientId: true } },
+    },
+  });
+
+  return rows.flatMap((row) =>
+    row.paidAt
+      ? [
+          {
+            orderId: row.id,
+            userId: row.userId,
+            metrikaClientId: row.user.metrikaClientId,
+            paidAt: row.paidAt,
+            amount: Number(row.amount),
+          },
+        ]
+      : []
+  );
+}
+
+export function paymentsToOfflineRows(pending: PendingPaymentConversion[]): OfflineConversionRow[] {
+  const goal = paymentOfflineGoal();
+  return pending.map((row) => ({
+    target: goal,
+    dateTime: Math.floor(row.paidAt.getTime() / 1000),
+    clientId: row.metrikaClientId?.trim() || null,
+    userId: row.userId,
+    price: row.amount,
+    currency: "RUB",
+  }));
+}
+
+export async function uploadPendingPaymentConversions(): Promise<{
+  ok: boolean;
+  skipped?: boolean;
+  uploaded?: number;
+  uploadId?: number;
+  error?: string;
+}> {
+  const pending = await loadPendingPaymentConversions();
+  if (pending.length === 0) {
+    return { ok: true, uploaded: 0 };
+  }
+
+  const csv = buildOfflineConversionsCsv(paymentsToOfflineRows(pending));
+  const upload = await uploadOfflineConversionsCsv(csv);
+  if (!upload.ok) {
+    return {
+      ok: upload.skipped === true,
+      skipped: upload.skipped,
+      error: upload.error,
+    };
+  }
+
+  await prisma.paymentOrder.updateMany({
+    where: { id: { in: pending.map((p) => p.orderId) } },
+    data: { metrikaOfflineSentAt: new Date() },
+  });
+
+  return { ok: true, uploaded: pending.length, uploadId: upload.uploadId };
 }
