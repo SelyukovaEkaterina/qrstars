@@ -9,7 +9,7 @@ import {
   type StarRating,
   type OrderedPlatformEntry,
   STANDARD_PLATFORM_LABELS,
-  DEFAULT_REVIEW_ROUTING,
+  defaultReviewRoutingFor,
   DEFAULT_STAR_EMOJIS,
   reviewRoutingToJson,
   isComplaintAction,
@@ -25,6 +25,8 @@ interface ReviewRoutingEditorProps {
   establishmentName?: string;
   initialRouting: ReviewRoutingConfig;
   isPro: boolean;
+  /** Ссылки площадок проекта: на FREE показываем ту, куда реально уйдёт гость (Яндекс или 2GIS). */
+  platformUrls?: { yandexMapsUrl: string | null; twoGisUrl: string | null };
   onSaved?: () => void;
 }
 
@@ -48,6 +50,7 @@ export default function ReviewRoutingEditor({
   establishmentName,
   initialRouting,
   isPro,
+  platformUrls,
   onSaved,
 }: ReviewRoutingEditorProps) {
   const [routing, setRouting] = useState<ReviewRoutingConfig>(initialRouting);
@@ -90,7 +93,9 @@ export default function ReviewRoutingEditor({
     }
   };
 
-  const displayRouting = isPro ? routing : DEFAULT_REVIEW_ROUTING;
+  const displayRouting = isPro
+    ? routing
+    : defaultReviewRoutingFor(platformUrls ?? { yandexMapsUrl: null, twoGisUrl: null });
 
   return (
     <Card>

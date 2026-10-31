@@ -16,7 +16,21 @@ export function parseRegistrationUtm(input: unknown): RegistrationUtm | null {
       utm[key] = raw.trim().slice(0, 200);
     }
   }
-  return Object.keys(utm).length > 0 ? utm : null;
+  return Object.keys(utm).length > 0 ? normalizeAdClickUtm(utm) : null;
+}
+
+/** Внутренняя метка кнопок лендинга (`utm_source=qrstars`), не рекламный источник. */
+const LANDING_CTA_SOURCE = "qrstars";
+
+/**
+ * В объявлениях Директа обычно только `yclid` без UTM, и до регистрации доезжают
+ * внутренние метки CTA лендинга (`qrstars / seo`). Клик по рекламе важнее: такой визит
+ * записываем как `yandex / cpc`, campaign и content (страница и кнопка) не трогаем.
+ */
+function normalizeAdClickUtm(utm: RegistrationUtm): RegistrationUtm {
+  if (!utm.yclid && !utm.ymclid) return utm;
+  if (utm.utm_source && utm.utm_source !== LANDING_CTA_SOURCE) return utm;
+  return { ...utm, utm_source: "yandex", utm_medium: "cpc" };
 }
 
 export function parseRegistrationUtmFromSearchParams(

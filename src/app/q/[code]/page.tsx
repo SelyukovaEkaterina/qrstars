@@ -12,7 +12,7 @@ import {
   demo2ReviewScan,
   demo3ReviewScan,
 } from "@/lib/demo-qrcodes";
-import { DEFAULT_REVIEW_ROUTING, parseReviewRouting } from "@/lib/review-routing";
+import { effectiveReviewRouting } from "@/lib/review-routing";
 import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons, parseModuleTypes } from "@/lib/page-modules";
 import {
   resolveMenu,
@@ -434,9 +434,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
   if (isPro && est.promocodes.length > 0) {
     promoCode = est.promocodes[0].code;
   }
-  const reviewRouting = isPro
-    ? parseReviewRouting(est.reviewRouting)
-    : DEFAULT_REVIEW_ROUTING;
+  const reviewRouting = effectiveReviewRouting(isPro, est.reviewRouting, est);
   const platformUrls = {
     yandexMapsUrl: est.yandexMapsUrl,
     twoGisUrl: est.twoGisUrl,

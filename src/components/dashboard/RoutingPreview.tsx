@@ -14,7 +14,7 @@ import type {
   ModuleTypes,
 } from "@/lib/page-modules";
 import type { ReviewRoutingConfig } from "@/lib/review-routing";
-import { DEFAULT_REVIEW_ROUTING } from "@/lib/review-routing";
+import { defaultReviewRoutingFor } from "@/lib/review-routing";
 import type { RoutingGroup, SectionTarget } from "@/lib/qr-routing";
 import { isBuiltinSection } from "@/lib/qr-routing";
 import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
@@ -174,7 +174,13 @@ export default function RoutingPreview({
                     }
                   : null
               }
-              reviewRouting={landing?.reviewRouting ?? DEFAULT_REVIEW_ROUTING}
+              reviewRouting={
+                landing?.reviewRouting ??
+                defaultReviewRoutingFor({
+                  yandexMapsUrl: landing?.yandexMapsUrl ?? null,
+                  twoGisUrl: landing?.twoGisUrl ?? null,
+                })
+              }
               customPages={(landing?.customPages ?? []).filter((p) => p.enabled)}
               extraMenus={landing?.extraMenus}
               extraBusinessCards={landing?.extraBusinessCards

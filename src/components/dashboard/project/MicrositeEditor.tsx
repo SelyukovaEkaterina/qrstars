@@ -323,6 +323,23 @@ function MyPageDashboardContent() {
     }
   }, []);
 
+  const brandSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingBrandSaveRef = useRef<{ url: string; body: string } | null>(null);
+  useEffect(() => {
+    return () => {
+      if (brandSaveTimerRef.current) clearTimeout(brandSaveTimerRef.current);
+      const pending = pendingBrandSaveRef.current;
+      if (pending) {
+        void fetch(pending.url, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: pending.body,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    };
+  }, []);
+
   const [appearanceOpen, setAppearanceOpen] = useState(false);
   const [addMenuOpen, setAddMenuOpen] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
@@ -686,17 +703,36 @@ function MyPageDashboardContent() {
     saveModuleOrder(newOrder);
   };
 
-  const saveBrandSettings = async (color: string, appearance: PageAppearance) => {
+  const saveBrandSettings = async (
+    color: string,
+    appearance: PageAppearance,
+    opts?: { debounce?: boolean }
+  ) => {
     const normalized = normalizeBrandColor(color) ?? DEFAULT_BRAND_COLOR;
     setBrandColor(normalized);
     setPageAppearance(appearance);
     setBusinessCardData((prev) =>
       prev ? { ...prev, accentColor: normalized } : prev
     );
-    await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
+    if (brandSaveTimerRef.current) clearTimeout(brandSaveTimerRef.current);
+    const url = `/api/establishments/${establishmentId}/page`;
+    const body = JSON.stringify({ brandColor: normalized, pageAppearance: appearance });
+    // Нативная палитра шлёт input на каждое движение курсора: без задержки
+    // это ~10 PUT/с, упор в rate limit (429) и гонка ответов.
+    if (opts?.debounce) {
+      pendingBrandSaveRef.current = { url, body };
+      brandSaveTimerRef.current = setTimeout(() => {
+        brandSaveTimerRef.current = null;
+        pendingBrandSaveRef.current = null;
+        void trackSave(fetch(url, { method: "PUT", headers: { "Content-Type": "application/json" }, body }));
+      }, 500);
+      return;
+    }
+    pendingBrandSaveRef.current = null;
+    await trackSave(fetch(url, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ brandColor: normalized, pageAppearance: appearance }),
+      body,
     }));
   };
 
@@ -1711,7 +1747,7 @@ function MyPageDashboardContent() {
                     value={brandColor}
                     onChange={(e) => {
                       setCustomColorOpen(true);
-                      saveBrandSettings(e.target.value, pageAppearance);
+                      saveBrandSettings(e.target.value, pageAppearance, { debounce: true });
                     }}
                   />
                 </label>
@@ -2158,6 +2194,7 @@ function MyPageDashboardContent() {
                       establishmentName={establishmentName}
                       initialRouting={reviewRouting}
                       isPro={isPro}
+                      platformUrls={{ yandexMapsUrl, twoGisUrl }}
                       onSaved={() => loadPage(establishmentId)}
                     />
                   )}

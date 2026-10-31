@@ -33,6 +33,7 @@ import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
 import { findRedirectUrlProblem } from "@/lib/redirect-url";
 import { cardTextFieldsFromBody, phoneDigits } from "@/lib/business-card";
 import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
+import { normalizeTwoGisUrl, twoGisUrlError } from "@/lib/two-gis-url";
 
 function resolveYandexMapsUrl(raw: string | undefined): {
   normalized: string | null;
@@ -146,6 +147,9 @@ export async function POST(request: Request) {
   const trimmedName = name?.trim();
   const yandexResolved = resolveYandexMapsUrl(yandexMapsUrl);
   const trimmedYandex = yandexResolved.normalized;
+  // Для отзывов на FREE достаточно одной площадки: Яндекс.Карты или 2GIS.
+  const rawTwoGis = twoGisUrl?.trim() || "";
+  const normalizedTwoGis = rawTwoGis ? normalizeTwoGisUrl(rawTwoGis) : null;
   const trimmedRedirect = redirectUrl?.trim();
   const trimmedQrLabel = rawQrLabel?.trim();
   const trimmedLegalName = legalName?.trim() || null;
@@ -194,20 +198,16 @@ export async function POST(request: Request) {
     );
   }
 
+  if (rawTwoGis && !normalizedTwoGis && intent !== "landing") {
+    return NextResponse.json({ error: twoGisUrlError(rawTwoGis) }, { status: 400 });
+  }
+
   if (intent === "reviews" && !establishmentId) {
-    if (!trimmedYandex) {
+    if (!trimmedYandex && !normalizedTwoGis) {
       const error =
         yandexResolved.error ||
-        "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв";
+        "Укажите ссылку на Яндекс.Карты или 2GIS — по ней гости с оценкой 4–5★ перейдут оставить отзыв";
       return NextResponse.json({ error }, { status: 400 });
-    }
-
-    if (twoGisUrl?.trim()) {
-      try {
-        new URL(twoGisUrl.trim());
-      } catch {
-        return NextResponse.json({ error: "Некорректная ссылка на 2GIS" }, { status: 400 });
-      }
     }
   } else if (yandexMapsUrl?.trim()) {
     if (!trimmedYandex) {
@@ -314,6 +314,7 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         yandexMapsUrl: true,
+        twoGisUrl: true,
         businessCardId: true,
       },
     });
@@ -325,11 +326,12 @@ export async function POST(request: Request) {
       trimmedYandex ||
       normalizeYandexMapsUrl(establishment.yandexMapsUrl?.trim() || "") ||
       null;
+    const effectiveTwoGis = normalizedTwoGis || establishment.twoGisUrl?.trim() || null;
     if (intent === "reviews") {
-      if (!effectiveYandex) {
+      if (!effectiveYandex && !effectiveTwoGis) {
         const error =
           yandexResolved.error ||
-          "Укажите ссылку на Яндекс.Карты — по ней гости с оценкой 5★ перейдут оставить отзыв";
+          "Укажите ссылку на Яндекс.Карты или 2GIS — по ней гости с оценкой 4–5★ перейдут оставить отзыв";
         return NextResponse.json({ error }, { status: 400 });
       }
     }
@@ -337,12 +339,16 @@ export async function POST(request: Request) {
     const qrcode = await prisma.$transaction(async (tx) => {
       const establishmentUpdate: {
         yandexMapsUrl?: string;
+        twoGisUrl?: string;
         legalName?: string;
         inn?: string;
         industry?: string;
       } = {};
       if (trimmedYandex && trimmedYandex !== establishment.yandexMapsUrl) {
         establishmentUpdate.yandexMapsUrl = trimmedYandex;
+      }
+      if (normalizedTwoGis && normalizedTwoGis !== establishment.twoGisUrl) {
+        establishmentUpdate.twoGisUrl = normalizedTwoGis;
       }
       if (trimmedLegalName) establishmentUpdate.legalName = trimmedLegalName;
       if (trimmedInn) establishmentUpdate.inn = trimmedInn;
@@ -432,7 +438,7 @@ export async function POST(request: Request) {
         industry,
         phone: phone?.trim() || null,
         yandexMapsUrl: trimmedYandex || null,
-        twoGisUrl: twoGisUrl?.trim() || null,
+        twoGisUrl: normalizedTwoGis || (intent === "landing" ? rawTwoGis || null : null),
         legalName: trimmedLegalName,
         inn: trimmedInn,
         pageModules: pageModulesToJson(pageModules),

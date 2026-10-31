@@ -132,6 +132,32 @@ export const DEFAULT_REVIEW_ROUTING: ReviewRoutingConfig = {
   5: defaultStep(5),
 };
 
+/**
+ * Маршрутизация без своих сценариев (FREE или PRO без настроек): одна площадка для 4–5★ —
+ * Яндекс.Карты, а если их нет, но есть 2GIS — 2GIS.
+ */
+export function defaultReviewRoutingFor(
+  urls: Pick<PlatformUrls, "yandexMapsUrl" | "twoGisUrl">
+): ReviewRoutingConfig {
+  if (urls.yandexMapsUrl?.trim() || !urls.twoGisUrl?.trim()) return DEFAULT_REVIEW_ROUTING;
+  const twoGisStep = (star: StarRating): ReviewStarStep => ({
+    ...DEFAULT_REVIEW_ROUTING[star],
+    action: "TWO_GIS",
+    platformList: [{ type: "TWO_GIS" }],
+    ctaLabel: PLATFORM_CTA_LABELS.TWO_GIS,
+  });
+  return { ...DEFAULT_REVIEW_ROUTING, 4: twoGisStep(4), 5: twoGisStep(5) };
+}
+
+/** Что увидит гость: свои сценарии — только на PRO/«Сети», иначе площадка по умолчанию. */
+export function effectiveReviewRouting(
+  isPro: boolean,
+  raw: unknown,
+  urls: Pick<PlatformUrls, "yandexMapsUrl" | "twoGisUrl">
+): ReviewRoutingConfig {
+  return isPro && raw ? parseReviewRouting(raw) : defaultReviewRoutingFor(urls);
+}
+
 function isStarRating(n: number): n is StarRating {
   return n >= 1 && n <= 5;
 }

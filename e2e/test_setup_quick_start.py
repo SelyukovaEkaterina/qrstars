@@ -481,3 +481,90 @@ def test_quick_start_redirect_rejects_invalid_protocol(base_url):
     )
     assert r.status_code == 400, r.text
     assert "ссылка" in r.json().get("error", "").lower()
+
+
+def _new_session(base_url, prefix):
+    email = unique_email(prefix)
+    password = "secure123"
+    reg = req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    )
+    assert reg.status_code == 200, reg.text
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+    return session
+
+
+def test_quick_start_reviews_with_2gis_only_routes_free_guests_to_2gis(base_url):
+    session = _new_session(base_url, "qs-2gis")
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "2GIS Coffee",
+            "twoGisUrl": "https://2gis.ru/moscow/firm/70000001012345678/37.6,55.7?m=1",
+        },
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
+    assert data["qrcode"]["mode"] == "REVIEW"
+
+    est = session.get(f"{base_url}/api/establishments").json()["establishments"][0]
+    assert est["twoGisUrl"] == "https://2gis.ru/moscow/firm/70000001012345678"
+    assert not est.get("yandexMapsUrl")
+
+    scan = req_lib.get(f"{base_url}/api/scan/{data['qrcode']['code']}")
+    assert scan.status_code == 200, scan.text
+    routing = scan.json()["reviewRouting"]
+    assert routing["5"]["action"] == "TWO_GIS"
+    assert routing["4"]["action"] == "TWO_GIS"
+    assert routing["2"]["action"] == "COMPLAINT"
+
+    page = req_lib.get(f"{base_url}/q/{data['qrcode']['code']}")
+    assert page.status_code == 200
+
+
+def test_quick_start_reviews_yandex_still_wins_on_free(base_url):
+    session = _new_session(base_url, "qs-both")
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Both Maps",
+            "yandexMapsUrl": "https://yandex.ru/maps/org/test/123/",
+            "twoGisUrl": "https://2gis.ru/moscow/firm/123",
+        },
+    )
+    assert r.status_code == 200, r.text
+    scan = req_lib.get(f"{base_url}/api/scan/{r.json()['qrcode']['code']}")
+    assert scan.json()["reviewRouting"]["5"]["action"] == "YANDEX"
+
+
+def test_quick_start_reviews_rejects_2gis_search_url(base_url):
+    session = _new_session(base_url, "qs-2gis-bad")
+    for bad in ["https://2gis.ru/moscow/search/кафе", "https://2gis.ru/", "https://example.com/firm/1"]:
+        r = session.post(
+            f"{base_url}/api/setup/quick-start",
+            json={"intent": "reviews", "name": "Bad 2GIS", "twoGisUrl": bad},
+        )
+        assert r.status_code == 400, (bad, r.text)
+        assert "2GIS" in r.json()["error"]
+    assert session.get(f"{base_url}/api/establishments").json()["establishments"] == []
+
+
+def test_quick_start_existing_establishment_reviews_uses_saved_2gis(base_url):
+    session = _new_session(base_url, "qs-2gis-existing")
+    first = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "reviews", "name": "Saved 2GIS", "twoGisUrl": "https://2gis.ru/spb/firm/555"},
+    )
+    assert first.status_code == 200, first.text
+    est_id = first.json()["establishment"]["id"]
+
+    second = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "reviews", "establishmentId": est_id},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["qrcode"]["mode"] == "REVIEW"

@@ -37,7 +37,7 @@ import {
   type QRMode,
 } from "@/lib/qr-routing";
 import { parsePageModules, type PageModules } from "@/lib/page-modules";
-import { parseReviewRouting } from "@/lib/review-routing";
+import { defaultReviewRoutingFor, parseReviewRouting } from "@/lib/review-routing";
 
 function landingPreviewFromEstablishment(est: Record<string, unknown>): LandingPreviewPayload {
   const bc = est.businessCard as LandingPreviewPayload["businessCard"] | null | undefined;
@@ -68,7 +68,12 @@ function landingPreviewFromEstablishment(est: Record<string, unknown>): LandingP
       enabled: !!p.enabled,
       fileAsset: p.fileAsset,
     })),
-    reviewRouting: parseReviewRouting(est.reviewRouting),
+    reviewRouting: est.reviewRouting
+      ? parseReviewRouting(est.reviewRouting)
+      : defaultReviewRoutingFor({
+          yandexMapsUrl: (est.yandexMapsUrl as string | null) ?? null,
+          twoGisUrl: (est.twoGisUrl as string | null) ?? null,
+        }),
     brandColor: (est.brandColor as string | null) ?? null,
     pageAppearance: (est.pageAppearance as string | null) ?? null,
     logoUrl: (est.logoUrl as string | null) ?? null,

@@ -155,9 +155,45 @@ const websiteSchema = {
           } catch (_) {}
           return '';
         }
+        // Клик по рекламе (yclid/ymclid) запоминаем: человек уходит с посадочной на другие страницы,
+        // а в ссылках там остались бы только внутренние метки CTA (qrstars / seo).
+        var AD_KEY = 'qrstars_ad';
+        var AD_PARAMS = ['yclid', 'ymclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
+        function resolveAdParams(qs) {
+          try {
+            if (qs.get('yclid') || qs.get('ymclid')) {
+              var fresh = {};
+              AD_PARAMS.forEach(function (k) {
+                var v = qs.get(k);
+                if (v) fresh[k] = v;
+              });
+              // В объявлениях Директа часто только yclid — источник проставляем сами.
+              if (!fresh.utm_source) {
+                fresh.utm_source = 'yandex';
+                fresh.utm_medium = 'cpc';
+              }
+              localStorage.setItem(AD_KEY, JSON.stringify({ params: fresh, at: Date.now() }));
+              return fresh;
+            }
+            var saved = JSON.parse(localStorage.getItem(AD_KEY) || 'null');
+            if (saved && saved.params && Date.now() - saved.at < REF_TTL_MS) return saved.params;
+          } catch (_) {}
+          return null;
+        }
         function run() {
           var qs = new URLSearchParams(location.search);
           var ref = resolveRef(qs);
+          var hasOwnUtm = false;
+          qs.forEach(function (_v, k) {
+            if (k.indexOf('utm_') === 0) hasOwnUtm = true;
+          });
+          var ad = resolveAdParams(qs);
+          // Рекламный клик важнее CTA-дефолтов; свежие utm_* в адресе (не реклама) — важнее сохранённого клика.
+          if (ad && (!hasOwnUtm || qs.get('yclid') || qs.get('ymclid'))) {
+            Object.keys(ad).forEach(function (k) {
+              qs.set(k, ad[k]);
+            });
+          }
           var has = !!ref;
           qs.forEach(function (_v, k) {
             if (k.indexOf('utm_') === 0 || k === 'yclid' || k === 'ymclid' || k === 'intent') has = true;

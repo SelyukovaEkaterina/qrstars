@@ -27,7 +27,7 @@ import {
   demo3RedirectUrl,
   demoTipsConfig,
 } from "@/lib/demo-qrcodes";
-import { DEFAULT_REVIEW_ROUTING, parseReviewRouting, reviewRoutingToJson } from "@/lib/review-routing";
+import { effectiveReviewRouting, reviewRoutingToJson } from "@/lib/review-routing";
 import { canViewLandingPage } from "@/lib/qr-mode-access";
 
 export async function GET(
@@ -353,9 +353,7 @@ export async function GET(
     promoCode = est.promocodes[0].code;
   }
 
-  const reviewRouting = isPro
-    ? parseReviewRouting(est.reviewRouting)
-    : DEFAULT_REVIEW_ROUTING;
+  const reviewRouting = effectiveReviewRouting(isPro, est.reviewRouting, est);
 
   if (
     qrCode.mode === "LANDING" &&

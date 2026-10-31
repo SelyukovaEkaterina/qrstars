@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
 import prisma from "@/lib/prisma";
-import { DEFAULT_REVIEW_ROUTING, parseReviewRouting } from "@/lib/review-routing";
+import { effectiveReviewRouting } from "@/lib/review-routing";
 import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons, parseModuleTypes } from "@/lib/page-modules";
 import { resolveMenu, resolveBusinessCard, resolveWifiConfig } from "@/lib/establishment-content";
 import { resolveBrandSettings } from "@/lib/brand-theme";
@@ -64,7 +64,7 @@ async function buildSlugLandingProps(slug: string): Promise<SlugLandingProps | n
     promoCode = est.promocodes[0].code;
   }
 
-  const reviewRouting = isPro ? parseReviewRouting(est.reviewRouting) : DEFAULT_REVIEW_ROUTING;
+  const reviewRouting = effectiveReviewRouting(isPro, est.reviewRouting, est);
   const platformUrls = {
     yandexMapsUrl: est.yandexMapsUrl,
     twoGisUrl: est.twoGisUrl,

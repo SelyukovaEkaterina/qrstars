@@ -21,7 +21,7 @@ export const STARTER_MENU_ITEMS = [
     category: "Основное",
     price: "650 ₽",
     weight: "320 г",
-    description: "Фирменное блюдо заведения — замените на своё в редакторе меню.",
+    description: "Фирменное блюдо заведения.",
     order: 2,
   },
   {
@@ -29,7 +29,7 @@ export const STARTER_MENU_ITEMS = [
     category: "Десерты",
     price: "290 ₽",
     weight: "150 г",
-    description: "Сладкое завершение — добавьте фото и описание в личном кабинете.",
+    description: "Сладкое завершение ужина.",
     order: 3,
   },
 ] as const;
@@ -37,7 +37,8 @@ export const STARTER_MENU_ITEMS = [
 export function starterMenuCreateInput(establishmentId: string, establishmentName: string) {
   return {
     title: `Меню «${establishmentName}»`,
-    description: "Отредактируйте позиции и цены в разделе «Микросайт».",
+    // Описание видит гость: подсказки владельцу сюда не писать.
+    description: null,
     estId: establishmentId,
     items: {
       create: STARTER_MENU_ITEMS.map((item) => ({

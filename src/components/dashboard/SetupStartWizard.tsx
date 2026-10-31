@@ -14,6 +14,7 @@ import {
 } from "@/lib/qr-code-templates";
 import { scanUrlForCode, quotedEstablishmentName } from "@/lib/utils";
 import { trackEvent } from "@/lib/track-event";
+import { normalizeTwoGisUrl, twoGisUrlError, utmPointsToTwoGis } from "@/lib/two-gis-url";
 import { parseRequestedPlanParam, type RegistrationUtm } from "@/lib/registration-utm";
 import { PLAN_PRICING, formatRub } from "@/lib/plans";
 import {
@@ -110,11 +111,11 @@ const INTENT_OPTIONS: {
     iconWrap: "bg-gradient-to-br from-amber-100 to-orange-50 text-amber-700 ring-amber-200/60",
     features: [
       "Гость ставит оценку 1–5★ сразу после сканирования",
-      "4–5★ — предлагаем оставить отзыв на Яндекс.Картах",
+      "4–5★ — предлагаем оставить отзыв на Яндекс.Картах или в 2GIS",
       "1–3★ — жалоба отправляется вам, а не в открытый доступ",
       "Все оценки и отзывы сохраняются в личном кабинете",
       "Уведомления о новых отзывах в Telegram, MAX или на email",
-      "На тарифе PRO: свои сценарии и другие площадки (2GIS, Авито)",
+      "На тарифе PRO: свои сценарии, несколько площадок сразу и Авито",
     ],
   },
   {
@@ -307,7 +308,7 @@ function IntentOptionCard({
           <p className="mt-0.5 text-sm font-medium text-slate-500 sm:text-xs">{option.tagline}</p>
           {option.id === "reviews" && (
             <p className="mt-2 rounded-lg bg-amber-50 px-2.5 py-1.5 text-sm sm:text-xs font-medium leading-snug text-amber-900">
-              Нужна ссылка на карточку в Яндекс.Картах
+              Нужна ссылка на карточку в Яндекс.Картах или 2GIS
             </p>
           )}
         </div>
@@ -335,6 +336,7 @@ export type SetupEstablishmentOption = {
   id: string;
   name: string;
   yandexMapsUrl: string | null;
+  twoGisUrl?: string | null;
   phone: string | null;
   legalName: string | null;
   inn: string | null;
@@ -437,6 +439,11 @@ export default function SetupStartWizard({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [yandexUrlFieldError, setYandexUrlFieldError] = useState("");
+  // Площадка для 4–5★ на FREE: одна, Яндекс или 2GIS. Со статей/рекламы про 2GIS — сразу 2GIS.
+  const [reviewPlatform, setReviewPlatform] = useState<"yandex" | "2gis">(() =>
+    utmPointsToTwoGis(utmCampaign, utmContent, utmTerm) ? "2gis" : "yandex"
+  );
+  const [twoGisFieldError, setTwoGisFieldError] = useState("");
   const [yandexConfirmedUrl, setYandexConfirmedUrl] = useState<string | null>(null);
   const [yandexPreviewReady, setYandexPreviewReady] = useState(false);
   const [requisitesOpen, setRequisitesOpen] = useState(false);
@@ -450,6 +457,7 @@ export default function SetupStartWizard({
     name: "",
     qrLabel: "",
     yandexMapsUrl: "",
+    twoGisUrl: "",
     phone: "",
     redirectUrl: "",
     legalName: "",
@@ -486,6 +494,9 @@ export default function SetupStartWizard({
     ? existingEstablishments.find((e) => e.id === selectedEstablishmentId) ?? null
     : null;
   const usingExistingOrg = orgMode === "existing" && !!selectedEstablishment;
+  const existingHasReviewPlatform = Boolean(
+    selectedEstablishment?.yandexMapsUrl || selectedEstablishment?.twoGisUrl
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -496,8 +507,17 @@ export default function SetupStartWizard({
     if (!intent || loading || creatingRef.current) return;
 
     const confirmed = confirmedYandex ?? yandexConfirmedUrl;
-    const yandexRequired =
-      intent === "reviews" && (!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl);
+    const reviewsNeedLink =
+      intent === "reviews" && (!usingExistingOrg || !existingHasReviewPlatform);
+    const yandexRequired = reviewsNeedLink && reviewPlatform === "yandex";
+    if (reviewsNeedLink && reviewPlatform === "2gis") {
+      const twoGisError = twoGisUrlError(form.twoGisUrl);
+      if (twoGisError) {
+        setTwoGisFieldError(twoGisError);
+        setError("");
+        return;
+      }
+    }
     if (yandexRequired) {
       const rawYandex = (confirmed || form.yandexMapsUrl).trim();
       if (!rawYandex) {
@@ -542,6 +562,7 @@ export default function SetupStartWizard({
     setLoading(true);
     setError("");
     setYandexUrlFieldError("");
+    setTwoGisFieldError("");
 
     try {
       if (rerun) {
@@ -594,6 +615,13 @@ export default function SetupStartWizard({
       } else if (form.yandexMapsUrl.trim()) {
         const normalized = normalizeYandexMapsUrl(form.yandexMapsUrl);
         if (normalized) payload.yandexMapsUrl = normalized;
+      }
+      delete payload.twoGisUrl;
+      if (intent === "reviews" && reviewPlatform === "2gis") {
+        // Выбрана 2GIS — Яндекс из прошлого ввода не отправляем, иначе гость уйдёт туда.
+        delete payload.yandexMapsUrl;
+        const twoGis = normalizeTwoGisUrl(form.twoGisUrl);
+        if (twoGis) payload.twoGisUrl = twoGis;
       }
 
       const res = await fetch("/api/setup/quick-start", {
@@ -702,7 +730,8 @@ export default function SetupStartWizard({
       if (
         value === "landing" ||
         value === "menu" ||
-        (value === "reviews" && selectedEstablishment.yandexMapsUrl) ||
+        (value === "reviews" &&
+          (selectedEstablishment.yandexMapsUrl || selectedEstablishment.twoGisUrl)) ||
         (value === "card" && selectedEstablishment.businessCardId)
       ) {
         void submitForExistingEstablishment(value, selectedIndustry);
@@ -976,7 +1005,7 @@ export default function SetupStartWizard({
                 <>
                   QR-код ведёт на электронное меню проекта{" "}
                   <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
-                  Отредактируйте позиции и цены в разделе «Микросайт» и разместите QR на столах.
+                  Замените блюда-примеры на свои — и QR можно ставить на столы.
                 </>
               ) : (
                 <>
@@ -999,7 +1028,7 @@ export default function SetupStartWizard({
                     {guestPreviewOpened && <CheckCircle2 className="w-4 h-4 text-green-600" />}
                   </p>
                   <p className="mt-1 text-xs text-indigo-900/80 leading-relaxed">
-                    Откройте QR-код в новой вкладке и попробуйте поставить 5★ и 2★. Вы увидите, как работает переход на Яндекс.Карты и форма для приватной жалобы.
+                    Откройте QR-код в новой вкладке и попробуйте поставить 5★ и 2★. Вы увидите, как работает переход к отзыву на карте и форма для приватной жалобы.
                   </p>
                 </div>
               </div>
@@ -1013,6 +1042,20 @@ export default function SetupStartWizard({
                 Открыть как гость
               </Button>
             </Card>
+          )}
+
+          {isMenu && !rerun && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 leading-relaxed">
+              <p className="font-semibold">Сейчас в меню 4 блюда-примера</p>
+              <p className="mt-1 text-xs">
+                «Суп дня», «Салат свежий» и другие с выдуманными ценами. Гости увидят их, пока вы не
+                замените позиции. Заполните меню до печати QR.
+              </p>
+              <p className="mt-2 text-xs text-amber-900/80">
+                Нужен QR не на меню, а на текст, инструкцию или документ? В «Микросайте» добавьте свою
+                страницу (текст или файл) и выберите её в карточке QR — это бесплатно.
+              </p>
+            </div>
           )}
 
           <Card className="p-6 space-y-6">
@@ -1211,8 +1254,19 @@ export default function SetupStartWizard({
                   </Button>
                 </div>
               )}
+              {isMenu && projectId && (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => goNextStep("my-page-menu", `${projectPagePath(projectId)}?section=menu`)}
+                >
+                  Заполнить меню
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
               <Button
                 size="lg"
+                variant={isMenu && projectId ? "outline" : undefined}
                 className="w-full"
                 onClick={() =>
                   goNextStep(
@@ -1239,21 +1293,14 @@ export default function SetupStartWizard({
                   Оформить дизайн QR-кода
                 </Button>
               )}
-              {!isRedirect && !isReviews && projectId && (
+              {!isRedirect && !isReviews && !isMenu && projectId && (
                 <Button
                   size="lg"
                   variant="outline"
                   className="w-full"
-                  onClick={() =>
-                    goNextStep(
-                      isMenu ? "my-page-menu" : "my-page",
-                      isMenu
-                        ? `${projectPagePath(projectId)}?section=menu`
-                        : projectPagePath(projectId),
-                    )
-                  }
+                  onClick={() => goNextStep("my-page", projectPagePath(projectId))}
                 >
-                  {isMenu ? "Редактировать меню" : "Оформить и наполнить микросайт"}
+                  Оформить и наполнить микросайт
                 </Button>
               )}
               <p className="text-center text-sm text-gray-500">
@@ -1359,8 +1406,10 @@ export default function SetupStartWizard({
                       />
                       <span className="min-w-0">
                         <span className="block font-medium text-slate-900">{est.name}</span>
-                        {est.yandexMapsUrl && (
-                          <span className="block truncate text-xs text-slate-500">Яндекс.Карты подключены</span>
+                        {(est.yandexMapsUrl || est.twoGisUrl) && (
+                          <span className="block truncate text-xs text-slate-500">
+                            {est.yandexMapsUrl ? "Яндекс.Карты подключены" : "2GIS подключён"}
+                          </span>
                         )}
                       </span>
                     </label>
@@ -1484,7 +1533,7 @@ export default function SetupStartWizard({
 
           {utmContext.hint === "reviews" && (
             <div className="mx-auto max-w-2xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-950 leading-relaxed">
-              Вы перешли по ссылке про сбор отзывов — начните с «Умного сбора отзывов», чтобы гости оставляли оценки на Яндекс.Картах, а жалобы приходили вам напрямую.
+              Вы перешли по ссылке про сбор отзывов — начните с «Умного сбора отзывов», чтобы гости оставляли оценки на Яндекс.Картах или в 2GIS, а жалобы приходили вам напрямую.
             </div>
           )}
 
@@ -1553,7 +1602,7 @@ export default function SetupStartWizard({
               ? "«Микросайт» (PRO) и «QR-меню» тоже подойдут — к ним можно добавить сбор отзывов."
               : utmContext.hint === "menu"
                 ? "Нужны отзывы на картах? Выберите «Умный сбор отзывов» — или добавьте их позже в личном кабинете."
-                : "Нет карточки на картах? Выберите прямую ссылку или QR-меню. «Умный сбор отзывов» работает только со ссылкой на организацию в Яндекс.Картах."}
+                : "Нет карточки на картах? Выберите прямую ссылку — она ведёт куда угодно: сайт, соцсеть, документ в облаке. «Умный сбор отзывов» работает со ссылкой на организацию в Яндекс.Картах или 2GIS."}
           </p>
 
           {!rerun && (
@@ -1576,6 +1625,24 @@ export default function SetupStartWizard({
               setLandingPaywallOpen(false);
               setIntent(null);
             }}
+            freeAlternatives={[
+              {
+                title: "QR-визитка",
+                text: "Имя, чем занимаетесь, телефон, мессенджеры и ссылки на одной странице",
+                onSelect: () => {
+                  setLandingPaywallOpen(false);
+                  chooseIntent("card");
+                },
+              },
+              {
+                title: "Прямая ссылка",
+                text: "QR ведёт на сайт, соцсеть, видео, презентацию или документ в облаке",
+                onSelect: () => {
+                  setLandingPaywallOpen(false);
+                  chooseIntent("redirect");
+                },
+              },
+            ]}
           />
         </div>
       </SetupWizardShell>
@@ -1586,15 +1653,15 @@ export default function SetupStartWizard({
   const isRedirect = intent === "redirect";
   const isMenu = intent === "menu";
   const isCard = intent === "card";
-  const yandexRequired =
-    isReviews && (!usingExistingOrg || !selectedEstablishment?.yandexMapsUrl);
+  const reviewsNeedLink = isReviews && (!usingExistingOrg || !existingHasReviewPlatform);
+  const yandexRequired = reviewsNeedLink && reviewPlatform === "yandex";
   const yandexNeedsCheck = Boolean(yandexRequired && !yandexConfirmedUrl);
 
   const autoSubmitExisting =
     usingExistingOrg &&
     (intent === "landing" ||
       intent === "menu" ||
-      (intent === "reviews" && !!selectedEstablishment?.yandexMapsUrl) ||
+      (intent === "reviews" && existingHasReviewPlatform) ||
       (intent === "card" && !!selectedEstablishment?.businessCardId));
 
   if (loading && autoSubmitExisting) {
@@ -1638,7 +1705,7 @@ export default function SetupStartWizard({
                 Создаём QR-код для проекта{" "}
                 <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(selectedEstablishment?.name)}</strong>.
                 {isReviews
-                  ? " Укажите ссылку на вашу карточку в Яндекс.Картах."
+                  ? " Укажите ссылку на вашу карточку в Яндекс.Картах или 2GIS."
                   : isRedirect
                     ? " Введите ссылку, по которой будут переходить гости."
                     : isMenu
@@ -1646,7 +1713,7 @@ export default function SetupStartWizard({
                       : " Подтвердите создание QR-кода для микросайта."}
               </>
             ) : isReviews ? (
-              "Укажите название проекта и ссылку на Яндекс.Карты. Мы сгенерируем QR-код, который сразу начнёт собирать отзывы."
+              "Укажите название проекта и ссылку на карточку в Яндекс.Картах или 2GIS. Мы сгенерируем QR-код, который сразу начнёт собирать отзывы."
             ) : isRedirect ? (
               "Укажите название проекта и ссылку. QR можно печатать сразу — ссылку потом меняете в кабинете без перепечатки."
             ) : isMenu ? (
@@ -1770,7 +1837,67 @@ export default function SetupStartWizard({
               </>
             )}
 
-            {isReviews && (
+            {isReviews && reviewsNeedLink && (
+              <div>
+                <p className="mb-2 text-sm font-medium text-gray-700">Куда отправлять гостей с оценкой 4–5★</p>
+                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Площадка для отзывов">
+                  {(
+                    [
+                      { id: "yandex", label: "Яндекс.Карты" },
+                      { id: "2gis", label: "2GIS" },
+                    ] as const
+                  ).map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={reviewPlatform === option.id}
+                      onClick={() => {
+                        setReviewPlatform(option.id);
+                        setError("");
+                        setYandexUrlFieldError("");
+                        setTwoGisFieldError("");
+                      }}
+                      className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+                        reviewPlatform === option.id
+                          ? "border-indigo-500 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500"
+                          : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  На бесплатном тарифе — одна площадка. Обе сразу и Авито — в PRO.
+                </p>
+              </div>
+            )}
+
+            {isReviews && reviewsNeedLink && reviewPlatform === "2gis" && (
+              <div>
+                <Input
+                  label="Ссылка на карточку в 2GIS *"
+                  className="max-sm:text-base"
+                  type="url"
+                  inputMode="url"
+                  value={form.twoGisUrl}
+                  onChange={(e) => {
+                    setTwoGisFieldError("");
+                    setForm({ ...form, twoGisUrl: e.target.value });
+                  }}
+                  placeholder="https://2gis.ru/moscow/firm/…"
+                  error={twoGisFieldError || undefined}
+                />
+                <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
+                  <MapPin className="w-3.5 h-3.5 shrink-0 mt-0.5 text-indigo-500" />
+                  Откройте свою организацию в 2GIS, нажмите «Поделиться» и скопируйте ссылку. Гости с
+                  оценкой 4–5★ сразу попадут в форму отзыва.
+                </p>
+              </div>
+            )}
+
+            {isReviews && reviewsNeedLink && reviewPlatform === "yandex" && (
               <div>
                 <YandexMapsOrgConfirm
                   ref={yandexCheckRef}
@@ -1801,7 +1928,7 @@ export default function SetupStartWizard({
                     }}
                     className="mt-1 text-sm font-medium text-indigo-600 hover:text-indigo-800"
                   >
-                    Назад к выбору сценария — прямая ссылка или QR-меню, если карточки нет
+                    Назад к выбору сценария — прямая ссылка или визитка, если карточки нет
                   </button>
                 )}
                 <p className="text-xs text-gray-500 mt-1.5 flex items-start gap-1 leading-relaxed">
@@ -1814,9 +1941,30 @@ export default function SetupStartWizard({
                   searchName={form.name || selectedEstablishment?.name || ""}
                 />
                 <p className="text-xs text-gray-500 mt-2 leading-relaxed">
-                  Дополнительные площадки (2GIS, Авито) можно добавить позже в настройках
-                  проекта в личном кабинете.
+                  Другие площадки (2GIS, Авито) можно добавить позже в настройках проекта.
                 </p>
+              </div>
+            )}
+
+            {isReviews && reviewsNeedLink && (
+              <div className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2.5 text-xs text-gray-600 leading-relaxed">
+                Карточки на картах пока нет? Начните с{" "}
+                <button
+                  type="button"
+                  onClick={() => chooseIntent("card")}
+                  className="font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  QR-визитки
+                </button>{" "}
+                или{" "}
+                <button
+                  type="button"
+                  onClick={() => chooseIntent("redirect")}
+                  className="font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  прямой ссылки
+                </button>
+                . Сбор отзывов можно включить на этом же QR позже.
               </div>
             )}
 
@@ -1951,7 +2099,7 @@ export default function SetupStartWizard({
           {isReviews ? (
             <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
               <li>Готовый QR-код, открывающий форму оценки 1–5★</li>
-              <li>Умную маршрутизацию: хорошие отзывы идут на Яндекс, плохие — вам на почту или в Telegram</li>
+              <li>Умную маршрутизацию: хорошие отзывы идут на {reviewPlatform === "2gis" ? "2GIS" : "Яндекс.Карты"}, плохие — вам на почту или в Telegram</li>
               <li>Возможность в любой момент добавить на страницу меню или пароль от Wi-Fi</li>
             </ul>
           ) : isRedirect ? (

@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { invalidateEstablishmentCache } from "@/lib/cache";
 import { pageModulesToJson, parsePageModules, parseModuleOrder, parseModuleLabels, moduleLabelsToJson, parseModuleIcons, moduleIconsToJson, parseModuleTypes, moduleTypesToJson } from "@/lib/page-modules";
-import { parseReviewRouting } from "@/lib/review-routing";
+import { defaultReviewRoutingFor, parseReviewRouting } from "@/lib/review-routing";
 import {
   DEFAULT_LANDING_SUBTITLE,
   DEFAULT_BRAND_COLOR,
@@ -120,7 +120,9 @@ export async function GET(_request: Request, context: RouteContext) {
       yandexMapsUrl: establishment.yandexMapsUrl,
       twoGisUrl: establishment.twoGisUrl,
       avitoUrl: establishment.avitoUrl,
-      reviewRouting: parseReviewRouting(establishment.reviewRouting),
+      reviewRouting: establishment.reviewRouting
+        ? parseReviewRouting(establishment.reviewRouting)
+        : defaultReviewRoutingFor(establishment),
       pageModules: parsePageModules(establishment.pageModules),
       moduleOrder: parseModuleOrder(establishment.moduleOrder),
       moduleLabels: parseModuleLabels(establishment.moduleLabels),

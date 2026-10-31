@@ -48,10 +48,16 @@ function paymentOfflineGoal(): string {
 /** Метрика привязывает офлайн-конверсию к визиту не дальше 21 дня — старше не грузим. */
 export const METRIKA_ATTRIBUTION_WINDOW_MS = 21 * 24 * 60 * 60 * 1000;
 
+function metrikaOAuthToken(): string | null {
+  return process.env.YANDEX_METRIKA_OAUTH_TOKEN?.trim() || null;
+}
+
+const NO_TOKEN = { ok: true, skipped: true, error: "YANDEX_METRIKA_OAUTH_TOKEN not set" } as const;
+
 export async function uploadOfflineConversionsCsv(
   csv: string
 ): Promise<{ ok: true; uploadId: number } | { ok: false; error: string; skipped?: boolean }> {
-  const token = process.env.YANDEX_METRIKA_OAUTH_TOKEN?.trim();
+  const token = metrikaOAuthToken();
   if (!token) {
     return { ok: false, error: "YANDEX_METRIKA_OAUTH_TOKEN not set", skipped: true };
   }
@@ -158,6 +164,8 @@ export async function uploadPendingEstablishmentConversions(): Promise<{
   uploadId?: number;
   error?: string;
 }> {
+  // Без токена — сразу skipped, даже если отправлять нечего.
+  if (!metrikaOAuthToken()) return { ...NO_TOKEN };
   const pending = await loadPendingEstablishmentConversions();
   if (pending.length === 0) {
     return { ok: true, uploaded: 0 };
@@ -265,6 +273,8 @@ export async function uploadPendingPaymentConversions(): Promise<{
   uploadId?: number;
   error?: string;
 }> {
+  // Без токена — сразу skipped, даже если отправлять нечего.
+  if (!metrikaOAuthToken()) return { ...NO_TOKEN };
   const pending = await loadPendingPaymentConversions();
   if (pending.length === 0) {
     return { ok: true, uploaded: 0 };

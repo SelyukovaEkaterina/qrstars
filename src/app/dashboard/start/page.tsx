@@ -34,6 +34,7 @@ export default async function SetupStartPage({
         name: true,
         industry: true,
         yandexMapsUrl: true,
+        twoGisUrl: true,
         phone: true,
         legalName: true,
         inn: true,

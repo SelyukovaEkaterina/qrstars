@@ -52,14 +52,23 @@ const LANDING_BENEFITS: { icon: typeof QrCode; title: string; text: string }[] =
 /** Иконки идут по порядку PLANS.PRO.features (без микросайта), лишние падают на Check. */
 const EXTRA_PRO_ICONS = [Star, Bell, Palette, Banknote, BarChart3, QrCode, Crown];
 
+export interface LandingFreeAlternative {
+  title: string;
+  text: string;
+  onSelect: () => void;
+}
+
 interface LandingProPaywallProps {
   open: boolean;
   onClose: () => void;
+  /** Бесплатные сценарии, которыми можно закрыть задачу без PRO (мастер первого запуска). */
+  freeAlternatives?: LandingFreeAlternative[];
 }
 
 export default function LandingProPaywall({
   open,
   onClose,
+  freeAlternatives,
 }: LandingProPaywallProps) {
   useEffect(() => {
     if (!open) return;
@@ -177,6 +186,30 @@ export default function LandingProPaywall({
         </div>
 
         <div className="sticky bottom-0 border-t border-gray-100 bg-white/95 px-6 py-4 backdrop-blur">
+          {freeAlternatives && freeAlternatives.length > 0 && (
+            <div className="mb-3 rounded-xl border border-emerald-200 bg-emerald-50/70 px-3 py-2.5">
+              <p className="text-xs text-emerald-950">
+                <span className="font-semibold">Без PRO, бесплатно:</span> нужна одна страница или ссылка — подойдут эти QR
+              </p>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                {freeAlternatives.map((alt) => (
+                  <button
+                    key={alt.title}
+                    type="button"
+                    onClick={alt.onSelect}
+                    title={alt.text}
+                    className="text-left rounded-lg border border-emerald-300 bg-white px-3 py-2 transition-colors hover:border-emerald-500"
+                  >
+                    <span className="flex items-center justify-between gap-2 text-sm font-semibold text-emerald-950">
+                      {alt.title}
+                      <ArrowRight className="w-4 h-4 flex-shrink-0" />
+                    </span>
+                    <span className="mt-0.5 hidden sm:block text-xs text-gray-600 leading-snug">{alt.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <p className="text-sm text-gray-600">
             <span className="font-semibold text-gray-900">
               {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год

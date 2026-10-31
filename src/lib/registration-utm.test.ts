@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  parseRegistrationUtm,
   parseRegistrationUtmCookie,
   readOAuthRegistrationAttribution,
   REGISTRATION_REF_COOKIE,
@@ -46,5 +47,32 @@ describe("readOAuthRegistrationAttribution", () => {
       metrikaClientId: null,
       referralCode: null,
     });
+  });
+});
+
+describe("parseRegistrationUtm: клик по рекламе Директа", () => {
+  it("yclid с внутренними метками CTA → yandex / cpc", () => {
+    assert.deepEqual(
+      parseRegistrationUtm({
+        yclid: "123",
+        utm_source: "qrstars",
+        utm_medium: "seo",
+        utm_campaign: "main_landing",
+        utm_content: "home",
+      }),
+      { yclid: "123", utm_source: "yandex", utm_medium: "cpc", utm_campaign: "main_landing", utm_content: "home" }
+    );
+    assert.deepEqual(parseRegistrationUtm({ ymclid: "9" }), {
+      ymclid: "9",
+      utm_source: "yandex",
+      utm_medium: "cpc",
+    });
+  });
+
+  it("явный внешний источник и визит без клика не меняет", () => {
+    const direct = { yclid: "1", utm_source: "yandex", utm_medium: "cpc", utm_campaign: "715570892" };
+    assert.deepEqual(parseRegistrationUtm(direct), direct);
+    const seo = { utm_source: "qrstars", utm_medium: "seo" };
+    assert.deepEqual(parseRegistrationUtm(seo), seo);
   });
 });
