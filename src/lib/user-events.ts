@@ -8,6 +8,11 @@ export const SETUP_USER_EVENTS = [
   "setup.qr_downloaded",
   "setup.preview_opened",
   "setup.next_step_clicked",
+  "setup.wizard_dismissed",
+  /** Ответ quick-start с ошибкой: props.error — текст, который увидел пользователь. */
+  "setup.form_failed",
+  /** Клик по бесплатной альтернативе: props.from (landing_paywall | reviews_no_card), props.to. */
+  "setup.alternative_clicked",
 ] as const;
 
 export type SetupUserEvent = (typeof SETUP_USER_EVENTS)[number];

@@ -52,3 +52,10 @@ export function starterMenuCreateInput(establishmentId: string, establishmentNam
     },
   };
 }
+
+const STARTER_ITEM_NAMES = new Set<string>(STARTER_MENU_ITEMS.map((item) => item.name));
+
+/** Сколько позиций меню всё ещё совпадают с демо-блюдами мастера (по названию). */
+export function countStarterMenuItems(items: ReadonlyArray<{ name: string }>): number {
+  return items.filter((item) => STARTER_ITEM_NAMES.has(item.name.trim())).length;
+}

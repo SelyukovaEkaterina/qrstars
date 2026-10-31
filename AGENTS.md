@@ -207,6 +207,13 @@ QR-кодов внутри заведения — **без лимита** на �
 - **Код**: `src/lib/error-alerts.ts` (`notifyException(error, ctx?)`), `src/instrumentation.ts`.
 - **Env** (в `/opt/qrstars/.env`): `ADMIN_ALERTS_TELEGRAM_CHAT_ID` (опц.), `ALERTS_COOLDOWN_SEC` (опц., default 300), `ALERTS_MAX_PER_MIN` (опц., default 10). Без `TELEGRAM_SUPPORT_BOT_TOKEN`/`TELEGRAM_SUPPORT_GROUP_ID` алерты молча отключены.
 
+## Логи действий пользователей (UserEvent)
+
+- **Мастер** (клиент, `trackEvent` → `POST /api/events`, allowlist `SETUP_USER_EVENTS` в `src/lib/user-events.ts`): `setup.intent_viewed/intent_selected/form_submitted/completed/qr_downloaded/preview_opened/next_step_clicked/wizard_dismissed`, `setup.form_failed` (`stage`: client/server/network, `error` — текст, который увидел пользователь, `status`), `setup.alternative_clicked` (`from`: landing_paywall | reviews_no_card, `to`). Событие не из allowlist сервер молча отбрасывает — новое событие сначала добавить туда.
+- **Кабинет** (сервер, `logUserEvent` в `src/lib/user-events-server.ts`, без allowlist, префикс `dash.`): `dash.menu_saved` (`items`, `starterItemsLeft` — сколько демо-блюд мастера осталось), `dash.card_saved` (`services`, `avatar`, `telegram`, `whatsapp`, `contactForm`), `dash.qr_updated` (`mode`, `fromMode` при смене, `fields`), `dash.custom_page_created` (`type`), `dash.microsite_updated` (`fields`). Запись fire-and-forget, сбой не роняет запрос.
+- **Сеть до Telegram**: в контейнере нет IPv6, IPv4 до `api.telegram.org` подключается 2–8 с; Happy Eyeballs Node (250 мс на адрес) падал с `ETIMEDOUT` на каждом запросе. `register()` в `src/instrumentation.ts` выключает `autoSelectFamily` и ставит `ipv4first`.
+- **Чего нет**: логи контейнера пропадают при пересоздании слота (blue/green), nginx — 14 дней и без userId; Вебвизор Метрики (`webvisor:true` в `src/components/YandexMetrika.tsx`) пишет и кабинет.
+
 ## Производительность сканирования (batched stats + GeoIP)
 
 Оптимизации hot path при сканировании QR (`/q/[code]`):

@@ -1,3 +1,4 @@
+import { logUserEvent } from "@/lib/user-events-server";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -178,6 +179,15 @@ export async function PUT(request: Request) {
       }),
     },
     include: { contactMessenger: true },
+  });
+
+  logUserEvent(userId, "dash.card_saved", {
+    cardId: businessCard.id,
+    services: Array.isArray(businessCard.services) ? businessCard.services.length : 0,
+    avatar: Boolean(businessCard.avatarUrl),
+    telegram: Boolean(businessCard.telegram),
+    whatsapp: Boolean(businessCard.whatsapp),
+    contactForm: businessCard.contactEnabled,
   });
 
   return NextResponse.json({ businessCard });

@@ -1,3 +1,4 @@
+import { logUserEvent } from "@/lib/user-events-server";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -310,6 +311,11 @@ export async function PUT(request: Request, context: RouteContext) {
       ? prisma.wifiConfig.findMany({ where: { id: { in: extraWifiIds } } })
       : [],
   ]);
+
+  logUserEvent(userId, "dash.microsite_updated", {
+    establishmentId: id,
+    fields: Object.keys(body).slice(0, 20),
+  });
 
   return NextResponse.json({
     establishment: {

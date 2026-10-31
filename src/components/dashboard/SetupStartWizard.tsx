@@ -503,6 +503,20 @@ export default function SetupStartWizard({
     await createFromForm();
   };
 
+  const reportFormFailure = (
+    failedIntent: SetupIntent | null,
+    stage: "client" | "server" | "network",
+    message: string,
+    status?: number,
+  ) => {
+    trackEvent("setup.form_failed", {
+      intent: failedIntent,
+      stage,
+      error: message.slice(0, 200),
+      status,
+    });
+  };
+
   const createFromForm = async (confirmedYandex?: string | null) => {
     if (!intent || loading || creatingRef.current) return;
 
@@ -515,21 +529,24 @@ export default function SetupStartWizard({
       if (twoGisError) {
         setTwoGisFieldError(twoGisError);
         setError("");
+        reportFormFailure(intent, "client", twoGisError);
         return;
       }
     }
     if (yandexRequired) {
       const rawYandex = (confirmed || form.yandexMapsUrl).trim();
       if (!rawYandex) {
-        setYandexUrlFieldError(
-          "Укажите ссылку на карточку в Яндекс.Картах. Если карточки нет — вернитесь и выберите прямую ссылку или QR-меню."
-        );
+        const msg =
+          "Укажите ссылку на карточку в Яндекс.Картах. Если карточки нет — вернитесь и выберите прямую ссылку или визитку.";
+        setYandexUrlFieldError(msg);
         setError("");
+        reportFormFailure(intent, "client", msg);
         return;
       }
       if (!confirmed) {
         setYandexUrlFieldError("Нажмите «Проверить ссылку», затем подтвердите организацию.");
         setError("");
+        reportFormFailure(intent, "client", "yandex_not_confirmed");
         return;
       }
     }
@@ -537,19 +554,23 @@ export default function SetupStartWizard({
     if (intent === "card") {
       if (!form.name.trim() && !(usingExistingOrg && selectedEstablishment?.businessCardId)) {
         setError("Укажите ваше имя");
+        reportFormFailure(intent, "client", "Укажите ваше имя");
         return;
       }
       if (form.phone.replace(/\D/g, "").length < 10) {
         setError("Укажите телефон — по нему клиенты будут звонить");
+        reportFormFailure(intent, "client", "Укажите телефон — по нему клиенты будут звонить");
         return;
       }
     } else if (!usingExistingOrg && !form.name.trim()) {
       setError("Укажите название проекта");
+      reportFormFailure(intent, "client", "Укажите название проекта");
       return;
     }
 
     if (intent === "redirect" && !form.redirectUrl.trim()) {
       setError("Укажите ссылку для перенаправления");
+      reportFormFailure(intent, "client", "Укажите ссылку для перенаправления");
       return;
     }
 
@@ -631,11 +652,12 @@ export default function SetupStartWizard({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(
+        const msg =
           res.status === 401
             ? data.error || "Сессия устарела. Выйдите и войдите снова."
-            : data.error || "Не удалось создать проект",
-        );
+            : data.error || "Не удалось создать проект";
+        setError(msg);
+        reportFormFailure(intent, "server", msg, res.status);
         return;
       }
 
@@ -652,8 +674,9 @@ export default function SetupStartWizard({
       });
       setQrImageUrl(img);
       changeStep("success");
-    } catch {
+    } catch (err) {
       setError("Ошибка соединения");
+      reportFormFailure(intent, "network", err instanceof Error ? err.message : "unknown");
     } finally {
       creatingRef.current = false;
       setLoading(false);
@@ -681,11 +704,12 @@ export default function SetupStartWizard({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(
+        const msg =
           res.status === 401
             ? data.error || "Сессия устарела. Выйдите и войдите снова."
-            : data.error || "Не удалось создать QR-код",
-        );
+            : data.error || "Не удалось создать QR-код";
+        setError(msg);
+        reportFormFailure(value, "server", msg, res.status);
         changeStep("form");
         return;
       }
@@ -703,8 +727,9 @@ export default function SetupStartWizard({
       });
       setQrImageUrl(img);
       changeStep("success");
-    } catch {
+    } catch (err) {
       setError("Ошибка соединения");
+      reportFormFailure(value, "network", err instanceof Error ? err.message : "unknown");
       changeStep("form");
     } finally {
       setLoading(false);
@@ -1631,6 +1656,7 @@ export default function SetupStartWizard({
                 text: "Имя, чем занимаетесь, телефон, мессенджеры и ссылки на одной странице",
                 onSelect: () => {
                   setLandingPaywallOpen(false);
+                  trackEvent("setup.alternative_clicked", { from: "landing_paywall", to: "card" });
                   chooseIntent("card");
                 },
               },
@@ -1639,6 +1665,7 @@ export default function SetupStartWizard({
                 text: "QR ведёт на сайт, соцсеть, видео, презентацию или документ в облаке",
                 onSelect: () => {
                   setLandingPaywallOpen(false);
+                  trackEvent("setup.alternative_clicked", { from: "landing_paywall", to: "redirect" });
                   chooseIntent("redirect");
                 },
               },
@@ -1951,7 +1978,10 @@ export default function SetupStartWizard({
                 Карточки на картах пока нет? Начните с{" "}
                 <button
                   type="button"
-                  onClick={() => chooseIntent("card")}
+                  onClick={() => {
+                    trackEvent("setup.alternative_clicked", { from: "reviews_no_card", to: "card" });
+                    chooseIntent("card");
+                  }}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
                   QR-визитки
@@ -1959,7 +1989,10 @@ export default function SetupStartWizard({
                 или{" "}
                 <button
                   type="button"
-                  onClick={() => chooseIntent("redirect")}
+                  onClick={() => {
+                    trackEvent("setup.alternative_clicked", { from: "reviews_no_card", to: "redirect" });
+                    chooseIntent("redirect");
+                  }}
                   className="font-medium text-indigo-600 hover:text-indigo-800"
                 >
                   прямой ссылки
@@ -2058,7 +2091,7 @@ export default function SetupStartWizard({
                     ? () => {
                         if (!form.yandexMapsUrl.trim()) {
                           setYandexUrlFieldError(
-                            "Укажите ссылку на карточку в Яндекс.Картах. Если карточки нет — вернитесь и выберите прямую ссылку или QR-меню."
+                            "Укажите ссылку на карточку в Яндекс.Картах. Если карточки нет — вернитесь и выберите прямую ссылку или визитку."
                           );
                           return;
                         }

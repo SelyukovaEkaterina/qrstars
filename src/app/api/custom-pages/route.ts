@@ -1,3 +1,4 @@
+import { logUserEvent } from "@/lib/user-events-server";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -111,6 +112,12 @@ export async function POST(request: Request) {
         : {}),
     },
     include: { fileAsset: true },
+  });
+
+  logUserEvent(userId, "dash.custom_page_created", {
+    customPageId: page.id,
+    establishmentId,
+    type: page.type,
   });
 
   return NextResponse.json({ customPage: page }, { status: 201 });

@@ -1,3 +1,4 @@
+import { logUserEvent } from "@/lib/user-events-server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
@@ -362,6 +363,13 @@ export async function PUT(request: Request) {
     });
 
     invalidateScanCache(qrcode.code).catch(() => {});
+
+    logUserEvent(userId, "dash.qr_updated", {
+      qrCodeId: updated.id,
+      mode: updated.mode,
+      ...(updated.mode !== qrcode.mode ? { fromMode: qrcode.mode } : {}),
+      fields: Object.keys(body).filter((k) => k !== "id").slice(0, 20),
+    });
 
     return withCorsHeaders(NextResponse.json({ qrcode: updated }));
   } catch (e) {

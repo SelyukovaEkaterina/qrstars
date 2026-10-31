@@ -40,6 +40,13 @@ export const onRequestError: Instrumentation.onRequestError = async (
 
 export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME === "edge") return; // Edge — без process.on
+  // В контейнере нет IPv6, а IPv4 до api.telegram.org подключается 2–8 с.
+  // Happy Eyeballs в Node ждёт адрес 250 мс и падал с ETIMEDOUT на каждом
+  // запросе к Telegram (уведомления, support, алерты). Только IPv4, без перебора.
+  const net = await import("node:net");
+  const dns = await import("node:dns");
+  net.setDefaultAutoSelectFamily(false);
+  dns.setDefaultResultOrder("ipv4first");
   const { registerProcessHandlers } = await import("@/lib/error-alerts.node");
   registerProcessHandlers();
 }

@@ -1,3 +1,5 @@
+import { logUserEvent } from "@/lib/user-events-server";
+import { countStarterMenuItems } from "@/lib/setup-starter-menu";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -278,6 +280,13 @@ export async function PUT(request: Request) {
   if (nextSource === "IIKO") {
     await invalidateIikoMenuCache(id);
   }
+
+  logUserEvent(userId, "dash.menu_saved", {
+    menuId: menu.id,
+    source: menu.source,
+    items: menu.items.length,
+    starterItemsLeft: countStarterMenuItems(menu.items),
+  });
 
   return NextResponse.json({ menu: sanitizeMenuForClient(menu) });
 }
