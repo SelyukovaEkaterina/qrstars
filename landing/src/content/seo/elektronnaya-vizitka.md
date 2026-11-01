@@ -135,3 +135,5 @@ related:
 ## Создайте вашу цифровую визитку прямо сейчас
 
 Перейдите на современный формат делового общения. Соберите свою персональную страницу в [конструкторе QrStars](https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=main_landing&utm_content=elektronnaya-vizitka) бесплатно за пару кликов.
+
+Нужна ещё и бумажная визитка? Соберите её в [конструкторе визиток](/konstruktor-vizitok.html) и поставьте на неё QR, который ведёт на онлайн-визитку.

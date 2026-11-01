@@ -36,6 +36,14 @@ export const METRIKA_GOALS = {
   qrStyleTransfer: 'qr_style_transfer',
   qrDynamicCta: 'qr_dynamic_cta',
   tableOrderAttempt: 'table_order_attempt',
+  /** Конструктор визиток: визит страницы. */
+  cardMakerVisit: 'card_maker_visit',
+  /** Конструктор визиток: выбор шаблона (`template`). */
+  cardTemplate: 'card_template',
+  /** Конструктор визиток: скачивание (`format`: pdf | a4 | png, `template`, `qr`, `qrType`). */
+  cardDownload: 'card_download',
+  /** Конструктор визиток: переход к онлайн-визитке в кабинете (`source`). */
+  cardOnlineCta: 'card_online_cta',
 } as const;
 
 /** Page pathname → goal fired once on load */

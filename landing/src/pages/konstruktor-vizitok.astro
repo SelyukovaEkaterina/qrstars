@@ -1,0 +1,977 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { cardRegisterUrl } from '../lib/utm';
+import { TEMPLATES, ACCENTS } from '../lib/card-maker/render';
+
+const ONLINE_CARD_URL = cardRegisterUrl('card_maker', Astro.url.searchParams);
+const ONLINE_CARD_AFTER_URL = cardRegisterUrl('card_maker_after_download', Astro.url.searchParams);
+
+const faqItems = [
+  {
+    q: 'Это правда бесплатно и без регистрации?',
+    a: 'Да. Визитка собирается прямо в браузере и скачивается в PDF для типографии, PNG или листом A4 для печати дома. Без аккаунта, без водяных знаков и без оплаты.',
+  },
+  {
+    q: 'Какой размер у визитки?',
+    a: 'Стандартный российский — 90×50 мм. В PDF для типографии добавлены вылеты по 2 мм с каждой стороны (итого 94×54 мм) и отмечен обрезной формат, поэтому после резки не останется белых полос по краям.',
+  },
+  {
+    q: 'Примет ли типография мой файл?',
+    a: 'PDF собирается в 600 dpi с вылетами и отмеченным обрезным форматом — это стандартные требования большинства типографий и онлайн-сервисов печати. Важный текст держится в 4 мм от края. Если типография просит CMYK, она переведёт цвета сама; яркие оттенки после печати могут стать чуть спокойнее.',
+  },
+  {
+    q: 'Можно ли напечатать визитки дома?',
+    a: 'Да. Скачайте «Лист A4»: 10 визиток на листе с метками реза. Если включён оборот, второй страницей идут оборотные стороны, расставленные зеркально для двусторонней печати. Печатайте в масштабе 100% на плотной бумаге 250–300 г/м².',
+  },
+  {
+    q: 'Что зашить в QR-код на визитке?',
+    a: 'Чаще всего — контакт: человек сканирует код, и ваш номер сохраняется в телефонную книгу. Ещё можно поставить ссылку на сайт, Telegram или WhatsApp. Такой QR статический и работает без нашего сервиса. Если хотите, чтобы QR вёл на онлайн-визитку с услугами и ценами, а номер можно было менять после печати, — сделайте бесплатную QR-визитку в QrStars.',
+  },
+  {
+    q: 'Можно ли сделать визитку без QR-кода?',
+    a: 'Да. В блоке «QR-код» выберите «Без QR» — шаблоны перестроятся под обычную визитку. Оборотную сторону тоже можно выключить.',
+  },
+];
+
+const faqPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+---
+
+<Layout
+  title="Конструктор визиток онлайн — сделать визитку бесплатно"
+  description="Сделайте визитку онлайн за 2 минуты: 8 стильных шаблонов, QR-код с контактом, PDF для типографии с вылетами и лист A4 для печати дома. Бесплатно и без регистрации."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(faqPageSchema)} />
+
+  <section class="pt-20 pb-3 lg:pt-[5.5rem] lg:pb-5 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-xs sm:text-sm mb-3 lg:mb-4 border border-primary/20">
+        Бесплатно &middot; Без регистрации &middot; PDF для типографии
+      </div>
+      <h1 class="text-[1.65rem] leading-[1.15] md:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight lg:leading-tight mb-2 lg:mb-3 max-w-4xl mx-auto">
+        Конструктор <span class="bg-gradient-to-r from-primary to-purple-500 gradient-text">визиток</span> онлайн
+      </h1>
+      <p class="text-base lg:text-lg text-slate-600 mb-0 max-w-2xl mx-auto">
+        Выберите шаблон, впишите контакты — и скачайте визитку для типографии или лист A4 для печати дома. С QR-кодом или без.
+      </p>
+    </div>
+  </section>
+
+  <section class="pb-16 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-slate-50 rounded-3xl border border-slate-200 shadow-sm">
+        <div class="p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)] gap-6 lg:gap-10">
+
+          <!-- Превью -->
+          <div class="lg:col-start-2 lg:row-start-1 min-w-0">
+            <div class="lg:sticky lg:top-24">
+              <div class="cm-stage rounded-2xl p-5 sm:p-8">
+                <div class="cm-flip" id="cm-flip">
+                  <div class="cm-flip-inner">
+                    <canvas id="cm-front" class="cm-face" aria-label="Лицевая сторона визитки"></canvas>
+                    <canvas id="cm-back" class="cm-face cm-face-back" aria-label="Оборотная сторона визитки"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="inline-flex rounded-xl bg-white border border-slate-200 p-1" role="tablist" aria-label="Сторона визитки">
+                  <button type="button" class="cm-side active" data-side="front">Лицевая</button>
+                  <button type="button" class="cm-side" data-side="back" id="cm-side-back">Оборот</button>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span id="cm-qr-status" class="hidden text-xs font-semibold px-2.5 py-1 rounded-full"></span>
+                  <button type="button" id="cm-random" class="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-xl px-3 py-2 transition">
+                    <i class="fa-solid fa-dice"></i> Случайный стиль
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button type="button" data-dl="pdf" class="cm-dl sm:col-span-2 inline-flex items-center justify-center gap-2 bg-primary text-white px-5 py-3.5 rounded-xl font-bold text-base hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/25">
+                  <i class="fa-solid fa-file-pdf"></i> Скачать PDF для типографии
+                </button>
+                <button type="button" data-dl="a4" class="cm-dl inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-800 px-4 py-3 rounded-xl font-semibold hover:border-primary hover:text-primary transition">
+                  <i class="fa-solid fa-print"></i> Лист A4 (10 шт.)
+                </button>
+                <button type="button" data-dl="png" class="cm-dl inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-800 px-4 py-3 rounded-xl font-semibold hover:border-primary hover:text-primary transition">
+                  <i class="fa-solid fa-image"></i> <span id="cm-png-label">PNG лицевой</span>
+                </button>
+              </div>
+              <p class="mt-2.5 text-xs text-slate-500 leading-relaxed">
+                PDF: 90×50 мм + вылеты 2 мм, 600 dpi<span id="cm-pdf-pages">, лицевая и оборот</span>. Лист A4 — с метками реза для печати дома.
+              </p>
+
+              <div id="cm-after" class="hidden mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:p-5">
+                <div class="font-bold text-emerald-900 mb-1"><i class="fa-solid fa-circle-check mr-1.5"></i>Визитка готова</div>
+                <p class="text-sm text-emerald-900/80 leading-relaxed mb-3">
+                  Хотите, чтобы QR вёл на онлайн-визитку с услугами, ценами и кнопками WhatsApp и Telegram? Номер и цены можно менять, не перепечатывая визитки.
+                </p>
+                <a href={ONLINE_CARD_AFTER_URL} data-goal="card_online_cta" data-goal-params='{"source":"after_download"}' class="inline-flex items-center gap-2 bg-emerald-600 text-white font-bold px-4 py-2.5 rounded-xl hover:bg-emerald-700 transition text-sm">
+                  Сделать онлайн-визитку бесплатно <i class="fa-solid fa-arrow-right"></i>
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <!-- Настройки -->
+          <div class="lg:col-start-1 lg:row-start-1 min-w-0 space-y-6">
+            <div>
+              <div class="cm-label">Шаблон</div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5" id="cm-templates">
+                {TEMPLATES.map((t) => (
+                  <button type="button" class="cm-tpl" data-template={t.id} aria-label={`Шаблон «${t.label}»`}>
+                    <canvas class="cm-tpl-canvas"></canvas>
+                    <span class="cm-tpl-name">{t.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div class="cm-label">Цвет</div>
+              <div class="flex flex-wrap items-center gap-2" id="cm-colors">
+                {ACCENTS.map((c) => (
+                  <button type="button" class="cm-swatch" data-color={c} style={`background:${c}`} aria-label={`Цвет ${c}`}></button>
+                ))}
+                <label class="cm-swatch cm-swatch-custom" title="Свой цвет">
+                  <input type="color" id="cm-color-custom" value="#4F46E5" aria-label="Свой цвет" />
+                  <i class="fa-solid fa-eye-dropper text-xs"></i>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <div class="cm-label">Текст на визитке</div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="sm:col-span-2">
+                  <label for="cm-name" class="cm-field-label">Имя и фамилия или название</label>
+                  <input id="cm-name" class="qr-input" maxlength="60" autocomplete="name" />
+                </div>
+                <div>
+                  <label for="cm-title" class="cm-field-label">Профессия или должность</label>
+                  <input id="cm-title" class="qr-input" maxlength="60" />
+                </div>
+                <div>
+                  <label for="cm-phone" class="cm-field-label">Телефон</label>
+                  <input id="cm-phone" class="qr-input" type="tel" inputmode="tel" maxlength="30" autocomplete="tel" />
+                </div>
+                <div>
+                  <label for="cm-line2" class="cm-field-label">Ещё строка</label>
+                  <input id="cm-line2" class="qr-input" maxlength="60" placeholder="email, сайт, @telegram или адрес" />
+                </div>
+                <div>
+                  <label for="cm-line3" class="cm-field-label">Ещё строка</label>
+                  <input id="cm-line3" class="qr-input" maxlength="60" placeholder="email, сайт, @telegram или адрес" />
+                </div>
+                <div class="sm:col-span-2">
+                  <label for="cm-tagline" class="cm-field-label">Слоган или услуги</label>
+                  <input id="cm-tagline" class="qr-input" maxlength="80" placeholder="Например: Ремонт под ключ · гарантия 2 года" />
+                </div>
+              </div>
+              <p class="mt-2 text-xs text-slate-500">Иконка у строки подбирается сама: телефон, email, сайт, Telegram или адрес.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <div class="cm-label">Шрифт имени</div>
+                <div class="inline-flex rounded-xl bg-white border border-slate-200 p-1" id="cm-fonts">
+                  <button type="button" class="cm-seg" data-font="sans">Современный</button>
+                  <button type="button" class="cm-seg" data-font="serif" style="font-family: Georgia, serif">Классика</button>
+                </div>
+              </div>
+              <div>
+                <div class="cm-label">Логотип или фото</div>
+                <div class="flex items-center gap-2">
+                  <label class="inline-flex items-center gap-2 cursor-pointer text-sm font-semibold text-slate-700 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-xl px-3 py-2 transition">
+                    <i class="fa-solid fa-upload"></i> <span id="cm-logo-label">Загрузить</span>
+                    <input type="file" id="cm-logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" class="sr-only" />
+                  </label>
+                  <button type="button" id="cm-logo-clear" class="hidden text-sm text-slate-500 hover:text-red-600">Убрать</button>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="cm-label">QR-код</div>
+              <div class="flex flex-wrap gap-2 mb-3" id="cm-qr-place">
+                <button type="button" class="cm-chip" data-place="none">Без QR</button>
+                <button type="button" class="cm-chip" data-place="front">На лицевой</button>
+                <button type="button" class="cm-chip" data-place="back">На обороте</button>
+              </div>
+              <div id="cm-qr-settings" class="space-y-3">
+                <div class="flex flex-wrap gap-2" id="cm-qr-type">
+                  <button type="button" class="cm-chip cm-chip-sm" data-qr="vcard"><i class="fa-solid fa-address-book mr-1"></i>Контакт</button>
+                  <button type="button" class="cm-chip cm-chip-sm" data-qr="url"><i class="fa-solid fa-link mr-1"></i>Сайт</button>
+                  <button type="button" class="cm-chip cm-chip-sm" data-qr="telegram"><i class="fa-brands fa-telegram mr-1"></i>Telegram</button>
+                  <button type="button" class="cm-chip cm-chip-sm" data-qr="whatsapp"><i class="fa-brands fa-whatsapp mr-1"></i>WhatsApp</button>
+                </div>
+                <p id="cm-qr-hint-vcard" class="cm-qr-form text-xs text-slate-500">Код соберётся из полей визитки: человек сканирует — и ваш номер сохраняется в телефонную книгу.</p>
+                <div id="cm-qr-form-url" class="cm-qr-form hidden">
+                  <input id="cm-qr-url" class="qr-input" type="url" inputmode="url" placeholder="https://ваш-сайт.ru" />
+                </div>
+                <div id="cm-qr-form-telegram" class="cm-qr-form hidden">
+                  <input id="cm-qr-tg" class="qr-input" autocapitalize="off" spellcheck="false" placeholder="@username или t.me/…" />
+                </div>
+                <div id="cm-qr-form-whatsapp" class="cm-qr-form hidden">
+                  <input id="cm-qr-wa" class="qr-input" type="tel" inputmode="tel" placeholder="Номер WhatsApp (по умолчанию — телефон с визитки)" />
+                </div>
+                <p id="cm-qr-error" class="hidden text-xs font-semibold text-red-600"></p>
+              </div>
+
+              <div class="mt-4 rounded-2xl border border-indigo-100 bg-white p-4 flex gap-3 items-start">
+                <div class="w-9 h-9 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center"><i class="fa-solid fa-wand-magic-sparkles"></i></div>
+                <div class="text-sm text-slate-600 leading-relaxed">
+                  <span class="font-semibold text-slate-800">QR, который не устареет.</span>
+                  Поставьте на визитку код онлайн-визитки: услуги, цены, кнопки WhatsApp и Telegram, заявки в мессенджер. Номер и цены меняются без перепечатки.
+                  <a href={ONLINE_CARD_URL} data-goal="card_online_cta" data-goal-params='{"source":"qr_block"}' class="text-primary font-semibold hover:underline whitespace-nowrap">Сделать бесплатно →</a>
+                </div>
+              </div>
+            </div>
+
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+              <input type="checkbox" id="cm-back-on" class="w-5 h-5 accent-indigo-600" checked />
+              <span class="text-sm font-semibold text-slate-700">Оборотная сторона</span>
+              <span class="text-xs text-slate-500">логотип или QR на цветном фоне</span>
+            </label>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-slate-50 border-t border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-6">Как сделать визитку за 2 минуты</h2>
+      <ol class="space-y-4 text-slate-700">
+        <li class="flex gap-4"><span class="cm-step">1</span><div><b>Выберите шаблон и цвет.</b> «Мастер» с крупным телефоном — для электриков, сантехников и мастеров на час, «Нежная» и «Монограмма» — для салонов и частных специалистов, «Минимал» и «Тёмная» — для деловых визиток.</div></li>
+        <li class="flex gap-4"><span class="cm-step">2</span><div><b>Впишите имя, профессию и контакты.</b> Длинный текст уменьшится сам, чтобы поместиться в безопасную зону. Логотип или фото добавьте кнопкой «Загрузить».</div></li>
+        <li class="flex gap-4"><span class="cm-step">3</span><div><b>Решите, нужен ли QR-код.</b> Код с контактом сохраняет ваш номер в телефон клиента за одно сканирование — визитку можно потерять, а контакт останется.</div></li>
+        <li class="flex gap-4"><span class="cm-step">4</span><div><b>Скачайте файл.</b> PDF — для типографии или онлайн-печати, лист A4 — чтобы напечатать 10 визиток дома и разрезать по меткам.</div></li>
+      </ol>
+
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-14 mb-6">Требования типографии — уже учтены</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm bg-white rounded-2xl overflow-hidden border border-slate-200">
+          <tbody class="divide-y divide-slate-100">
+            <tr><td class="p-3 font-semibold w-1/3">Формат</td><td class="p-3 text-slate-600">90×50 мм — стандарт для России</td></tr>
+            <tr><td class="p-3 font-semibold">Вылеты</td><td class="p-3 text-slate-600">по 2 мм с каждой стороны: фон заходит за линию реза, белых полос не будет</td></tr>
+            <tr><td class="p-3 font-semibold">Безопасная зона</td><td class="p-3 text-slate-600">текст и QR — не ближе 4 мм к краю</td></tr>
+            <tr><td class="p-3 font-semibold">Разрешение</td><td class="p-3 text-slate-600">600 dpi — текст и QR печатаются резко</td></tr>
+            <tr><td class="p-3 font-semibold">Размер QR</td><td class="p-3 text-slate-600">от 22 мм на лицевой и 29 мм на обороте — уверенно сканируется с расстояния 20–40 см</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-14 mb-4">Бумажная визитка или онлайн?</h2>
+      <p class="text-slate-700 leading-relaxed mb-4">
+        Бумажная визитка остаётся в кошельке и на холодильнике — но номер на ней не поменяешь, а услуги и цены не поместятся.
+        Лучше всего работают обе: на бумажной визитке стоит QR, а он ведёт на онлайн-визитку, где есть всё — услуги с ценами, район работы, кнопки звонка, WhatsApp и Telegram, отзывы.
+      </p>
+      <a href={ONLINE_CARD_URL} data-goal="card_online_cta" data-goal-params='{"source":"seo_block"}' class="inline-flex items-center gap-2 bg-primary text-white font-bold px-5 py-3 rounded-xl hover:bg-indigo-700 transition">
+        Сделать онлайн-визитку бесплатно <i class="fa-solid fa-arrow-right"></i>
+      </a>
+      <p class="mt-3 text-sm text-slate-500">
+        Вы мастер на выезде? Посмотрите <a href="/qr-vizitka-mastera.html" class="text-primary font-semibold hover:underline">QR-визитку для электриков, сантехников и мастеров на час</a>.
+        Нужен просто QR-код? <a href="/free-qr-generator.html" class="text-primary font-semibold hover:underline">Бесплатный генератор QR</a>.
+      </p>
+
+      <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-14 mb-6">Вопросы и ответы</h2>
+      <div class="space-y-3">
+        {faqItems.map((item) => (
+          <details class="group bg-white rounded-2xl border border-slate-200 p-5">
+            <summary class="font-semibold cursor-pointer list-none flex justify-between gap-4">
+              {item.q}
+              <i class="fa-solid fa-chevron-down text-slate-400 group-open:rotate-180 transition mt-1"></i>
+            </summary>
+            <p class="mt-3 text-slate-600 leading-relaxed">{item.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .qr-input {
+    width: 100%;
+    padding: 0.7rem 0.95rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 0.75rem;
+    outline: none;
+    transition: all 0.15s;
+    font-size: 1rem;
+    background: white;
+  }
+  .qr-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+  .cm-label {
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: #334155;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 0.6rem;
+  }
+  .cm-field-label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: #475569;
+    margin-bottom: 0.35rem;
+  }
+  .cm-stage {
+    background:
+      radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.9), transparent 55%),
+      radial-gradient(circle at 85% 90%, rgba(99, 102, 241, 0.12), transparent 50%),
+      linear-gradient(135deg, #e2e8f0, #f1f5f9 45%, #e0e7ff);
+  }
+  .cm-flip {
+    perspective: 1600px;
+  }
+  .cm-flip-inner {
+    position: relative;
+    aspect-ratio: 9 / 5;
+    transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+    transform-style: preserve-3d;
+  }
+  .cm-flip.flipped .cm-flip-inner {
+    transform: rotateY(180deg);
+  }
+  .cm-face {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 10px;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    box-shadow:
+      0 1px 2px rgba(15, 23, 42, 0.08),
+      0 18px 40px -12px rgba(15, 23, 42, 0.35);
+    background: #fff;
+  }
+  .cm-face-back {
+    transform: rotateY(180deg);
+  }
+  .cm-side,
+  .cm-seg {
+    padding: 0.45rem 0.9rem;
+    border-radius: 0.6rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #475569;
+    transition: all 0.15s;
+  }
+  .cm-side.active,
+  .cm-seg.active {
+    background: #4f46e5;
+    color: #fff;
+  }
+  .cm-side:disabled {
+    opacity: 0.4;
+  }
+  .cm-tpl {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.4rem;
+    border-radius: 0.9rem;
+    border: 2px solid transparent;
+    background: #fff;
+    transition: all 0.15s;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+  }
+  .cm-tpl:hover {
+    border-color: #c7d2fe;
+    transform: translateY(-1px);
+  }
+  .cm-tpl.active {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+  }
+  .cm-tpl-canvas {
+    width: 100%;
+    aspect-ratio: 9 / 5;
+    border-radius: 5px;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18);
+  }
+  .cm-tpl-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #475569;
+  }
+  .cm-swatch {
+    width: 2.1rem;
+    height: 2.1rem;
+    border-radius: 999px;
+    border: 3px solid #fff;
+    box-shadow: 0 0 0 1px #cbd5e1;
+    transition: transform 0.15s;
+    position: relative;
+  }
+  .cm-swatch:hover {
+    transform: scale(1.08);
+  }
+  .cm-swatch.active {
+    box-shadow: 0 0 0 2px #4f46e5;
+  }
+  .cm-swatch-custom {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: conic-gradient(#ef4444, #f59e0b, #22c55e, #06b6d4, #6366f1, #d946ef, #ef4444);
+    color: #fff;
+    overflow: hidden;
+  }
+  .cm-swatch-custom input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .cm-chip {
+    padding: 0.5rem 0.95rem;
+    border-radius: 0.75rem;
+    border: 1px solid #cbd5e1;
+    background: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    transition: all 0.15s;
+  }
+  .cm-chip-sm {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+  .cm-chip.active {
+    border-color: #4f46e5;
+    background: #eef2ff;
+    color: #4338ca;
+  }
+  .cm-step {
+    width: 2rem;
+    height: 2rem;
+    flex-shrink: 0;
+    border-radius: 999px;
+    background: #4f46e5;
+    color: #fff;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cm-dl:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+</style>
+
+<script>
+  import QRCode from 'qrcode';
+  import jsQR from 'jsqr';
+  import { buildPayload, type QrType } from '../../../src/lib/qr-engine';
+  import {
+    ACCENTS,
+    BLEED,
+    CARD_H,
+    CARD_W,
+    TEMPLATES,
+    pxPerUAt,
+    renderSide,
+    type CardData,
+    type FontId,
+    type QrMatrix,
+    type QrPlace,
+    type RenderInput,
+    type Side,
+    type TemplateId,
+  } from '../lib/card-maker/render';
+  import { buildPdf, canvasToJpeg, type PdfPage } from '../lib/card-maker/pdf';
+  import { canvasToBlob, deliverFile } from '../lib/qr-generator/deliver';
+
+  type CardQrType = 'vcard' | 'url' | 'telegram' | 'whatsapp';
+
+  interface State {
+    template: TemplateId;
+    accent: string;
+    font: FontId;
+    qrPlace: QrPlace;
+    qrType: CardQrType;
+    qrUrl: string;
+    qrTg: string;
+    qrWa: string;
+    back: boolean;
+    data: CardData;
+  }
+
+  const STORAGE_KEY = 'qrstars_card_maker_v1';
+  const DEFAULT_STATE: State = {
+    template: 'master',
+    accent: '#EA580C',
+    font: 'sans',
+    qrPlace: 'back',
+    qrType: 'vcard',
+    qrUrl: '',
+    qrTg: '',
+    qrWa: '',
+    back: true,
+    data: {
+      name: 'Сергей Иванов',
+      title: 'Электрик · 12 лет опыта',
+      phone: '+7 999 123-45-67',
+      line2: 'Пермь и пригород',
+      line3: '@sergey_electric',
+      tagline: 'Проводка · щиты · освещение · без выходных',
+    },
+  };
+
+  const QR_CAPTIONS: Record<CardQrType, string> = {
+    vcard: 'Сканируйте — контакт сохранится в телефон',
+    url: 'Сканируйте — откроется сайт',
+    telegram: 'Сканируйте — напишите в Telegram',
+    whatsapp: 'Сканируйте — напишите в WhatsApp',
+  };
+
+  const TEMPLATE_IDS = TEMPLATES.map((t) => t.id);
+
+  function loadState(): State {
+    try {
+      const raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null');
+      if (raw && typeof raw === 'object') {
+        const s = { ...DEFAULT_STATE, ...raw, data: { ...DEFAULT_STATE.data, ...(raw.data || {}) } } as State;
+        if (!TEMPLATE_IDS.includes(s.template)) s.template = DEFAULT_STATE.template;
+        if (!/^#[0-9a-fA-F]{6}$/.test(s.accent)) s.accent = DEFAULT_STATE.accent;
+        return s;
+      }
+    } catch {}
+    return structuredClone(DEFAULT_STATE);
+  }
+
+  const state = loadState();
+  let logo: HTMLImageElement | null = null;
+  let side: Side = 'front';
+  let qr: QrMatrix | null = null;
+  let qrError = '';
+
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  const goal = (name: string, params?: Record<string, unknown>) => (window as any).ymGoal?.(name, params);
+
+  // ───── QR ─────
+
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const SITE_RE = /^(https?:\/\/)?(www\.)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i;
+
+  function qrPayload(): { payload: string | null; error: string } {
+    const d = state.data;
+    const lines = [d.line2, d.line3].map((l) => l.trim());
+    const fields: Record<string, string> = {};
+    let type: QrType = 'vcard';
+    if (state.qrType === 'vcard') {
+      const parts = d.name.trim().split(/\s+/);
+      fields['input-vcard-fname'] = parts[0] || '';
+      fields['input-vcard-lname'] = parts.slice(1).join(' ');
+      fields['input-vcard-phone'] = d.phone;
+      fields['input-vcard-email'] = lines.find((l) => EMAIL_RE.test(l)) || '';
+      fields['input-vcard-org'] = d.title;
+      fields['input-vcard-url'] = lines.find((l) => !EMAIL_RE.test(l) && SITE_RE.test(l) && !l.startsWith('@')) || '';
+    } else if (state.qrType === 'url') {
+      type = 'url';
+      fields['input-url'] = state.qrUrl;
+    } else if (state.qrType === 'telegram') {
+      type = 'telegram';
+      fields['input-tg'] = state.qrTg || lines.find((l) => l.startsWith('@') || /t\.me/.test(l)) || '';
+    } else {
+      type = 'whatsapp';
+      fields['input-wa-phone'] = state.qrWa || d.phone;
+      fields['input-wa-text'] = '';
+    }
+    const res = buildPayload(type, (id) => fields[id] ?? '');
+    if (res.kind === 'ok') return { payload: res.payload, error: '' };
+    if (res.kind === 'error') return { payload: null, error: res.message };
+    const empty: Record<CardQrType, string> = {
+      vcard: 'Впишите имя — из него соберётся контакт.',
+      url: 'Укажите адрес сайта.',
+      telegram: 'Укажите @username или ссылку t.me.',
+      whatsapp: 'Укажите номер WhatsApp.',
+    };
+    return { payload: null, error: empty[state.qrType] };
+  }
+
+  function updateQr() {
+    qr = null;
+    qrError = '';
+    if (state.qrPlace === 'none') return;
+    const { payload, error } = qrPayload();
+    if (!payload) {
+      qrError = error;
+      return;
+    }
+    try {
+      qr = QRCode.create(payload, { errorCorrectionLevel: 'M' }).modules as unknown as QrMatrix;
+    } catch {
+      qrError = 'Слишком много данных для QR — сократите текст.';
+    }
+  }
+
+  function input(): RenderInput {
+    return {
+      template: state.template,
+      data: state.data,
+      accent: state.accent,
+      font: state.font,
+      qr,
+      qrPlace: qr ? state.qrPlace : 'none',
+      qrCaption: QR_CAPTIONS[state.qrType],
+      logo,
+    };
+  }
+
+  // ───── отрисовка ─────
+
+  const frontCanvas = $<HTMLCanvasElement>('cm-front');
+  const backCanvas = $<HTMLCanvasElement>('cm-back');
+  const dpr = () => Math.min(window.devicePixelRatio || 1, 3);
+
+  function renderPreview() {
+    const w = frontCanvas.clientWidth || 480;
+    const k = (w * dpr()) / CARD_W;
+    const inp = input();
+    renderSide(frontCanvas, inp, 'front', k, false);
+    if (state.back) renderSide(backCanvas, inp, 'back', k, false);
+  }
+
+  function renderThumbs() {
+    const inp = input();
+    document.querySelectorAll<HTMLButtonElement>('.cm-tpl').forEach((btn) => {
+      const c = btn.querySelector('canvas')!;
+      const id = btn.dataset.template as TemplateId;
+      const tpl = TEMPLATES.find((t) => t.id === id)!;
+      const w = c.clientWidth || 160;
+      renderSide(c, { ...inp, template: id, font: state.font === 'serif' ? 'serif' : tpl.font }, 'front', (w * dpr()) / CARD_W, false);
+      btn.classList.toggle('active', id === state.template);
+    });
+  }
+
+  let previewQueued = false;
+  let thumbsTimer = 0;
+  let scanTimer = 0;
+  let saveTimer = 0;
+
+  function refresh(opts: { qr?: boolean; thumbs?: boolean } = {}) {
+    if (opts.qr !== false) updateQr();
+    syncControls();
+    if (!previewQueued) {
+      previewQueued = true;
+      requestAnimationFrame(() => {
+        previewQueued = false;
+        renderPreview();
+      });
+    }
+    if (opts.thumbs !== false) {
+      clearTimeout(thumbsTimer);
+      thumbsTimer = window.setTimeout(renderThumbs, 120);
+    }
+    clearTimeout(scanTimer);
+    scanTimer = window.setTimeout(checkScan, 450);
+    clearTimeout(saveTimer);
+    saveTimer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {}
+    }, 300);
+  }
+
+  /** Проверяем, что QR на визитке читается декодером. */
+  function checkScan() {
+    const badge = $('cm-qr-status');
+    if (!qr || state.qrPlace === 'none') {
+      badge.classList.add('hidden');
+      return;
+    }
+    const c = document.createElement('canvas');
+    const sideWithQr: Side = state.qrPlace === 'front' ? 'front' : 'back';
+    renderSide(c, input(), sideWithQr, pxPerUAt(220), false);
+    const ctx = c.getContext('2d')!;
+    const img = ctx.getImageData(0, 0, c.width, c.height);
+    const ok = !!jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+    badge.classList.remove('hidden');
+    badge.className = ok
+      ? 'text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-800'
+      : 'text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800';
+    badge.innerHTML = ok
+      ? '<i class="fa-solid fa-circle-check mr-1"></i>QR читается'
+      : '<i class="fa-solid fa-triangle-exclamation mr-1"></i>QR может плохо читаться';
+  }
+
+  // ───── контролы ─────
+
+  const fieldIds: [keyof CardData, string][] = [
+    ['name', 'cm-name'],
+    ['title', 'cm-title'],
+    ['phone', 'cm-phone'],
+    ['line2', 'cm-line2'],
+    ['line3', 'cm-line3'],
+    ['tagline', 'cm-tagline'],
+  ];
+
+  function syncControls() {
+    document.querySelectorAll<HTMLElement>('.cm-swatch[data-color]').forEach((el) => {
+      el.classList.toggle('active', el.dataset.color!.toLowerCase() === state.accent.toLowerCase());
+    });
+    const custom = $<HTMLInputElement>('cm-color-custom');
+    const isPreset = ACCENTS.some((c) => c.toLowerCase() === state.accent.toLowerCase());
+    custom.parentElement!.classList.toggle('active', !isPreset);
+    if (!isPreset) custom.value = state.accent;
+    document.querySelectorAll<HTMLElement>('#cm-fonts .cm-seg').forEach((el) => el.classList.toggle('active', el.dataset.font === state.font));
+    document.querySelectorAll<HTMLElement>('#cm-qr-place .cm-chip').forEach((el) => el.classList.toggle('active', el.dataset.place === state.qrPlace));
+    document.querySelectorAll<HTMLElement>('#cm-qr-type .cm-chip').forEach((el) => el.classList.toggle('active', el.dataset.qr === state.qrType));
+    $('cm-qr-settings').classList.toggle('hidden', state.qrPlace === 'none');
+    document.querySelectorAll<HTMLElement>('.cm-qr-form').forEach((el) => el.classList.add('hidden'));
+    $(state.qrType === 'vcard' ? 'cm-qr-hint-vcard' : `cm-qr-form-${state.qrType}`).classList.remove('hidden');
+    const err = $('cm-qr-error');
+    err.textContent = qrError;
+    err.classList.toggle('hidden', !qrError);
+    $<HTMLInputElement>('cm-back-on').checked = state.back;
+    $<HTMLButtonElement>('cm-side-back').disabled = !state.back;
+    $('cm-pdf-pages').classList.toggle('hidden', !state.back);
+    $('cm-png-label').textContent = side === 'back' && state.back ? 'PNG оборота' : 'PNG лицевой';
+    $('cm-logo-clear').classList.toggle('hidden', !logo);
+    $('cm-logo-label').textContent = logo ? 'Заменить' : 'Загрузить';
+  }
+
+  function setSide(s: Side) {
+    side = s === 'back' && state.back ? 'back' : 'front';
+    $('cm-flip').classList.toggle('flipped', side === 'back');
+    document.querySelectorAll<HTMLElement>('.cm-side').forEach((el) => el.classList.toggle('active', el.dataset.side === side));
+    syncControls();
+  }
+
+  for (const [key, id] of fieldIds) {
+    const el = $<HTMLInputElement>(id);
+    el.value = state.data[key];
+    el.addEventListener('input', () => {
+      state.data[key] = el.value;
+      refresh();
+    });
+  }
+  $<HTMLInputElement>('cm-qr-url').value = state.qrUrl;
+  $<HTMLInputElement>('cm-qr-tg').value = state.qrTg;
+  $<HTMLInputElement>('cm-qr-wa').value = state.qrWa;
+  ([
+    ['cm-qr-url', 'qrUrl'],
+    ['cm-qr-tg', 'qrTg'],
+    ['cm-qr-wa', 'qrWa'],
+  ] as const).forEach(([id, key]) => {
+    $<HTMLInputElement>(id).addEventListener('input', (e) => {
+      state[key] = (e.target as HTMLInputElement).value;
+      refresh({ thumbs: false });
+    });
+  });
+
+  $('cm-templates').addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLElement>('.cm-tpl');
+    if (!btn) return;
+    state.template = btn.dataset.template as TemplateId;
+    const tpl = TEMPLATES.find((t) => t.id === state.template)!;
+    state.font = tpl.font;
+    goal('card_template', { template: state.template });
+    setSide('front');
+    refresh({ qr: false });
+  });
+
+  $('cm-colors').addEventListener('click', (e) => {
+    const sw = (e.target as HTMLElement).closest<HTMLElement>('.cm-swatch[data-color]');
+    if (!sw) return;
+    state.accent = sw.dataset.color!;
+    refresh({ qr: false });
+  });
+  $<HTMLInputElement>('cm-color-custom').addEventListener('input', (e) => {
+    state.accent = (e.target as HTMLInputElement).value;
+    refresh({ qr: false });
+  });
+
+  $('cm-fonts').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-font]');
+    if (!b) return;
+    state.font = b.dataset.font as FontId;
+    refresh({ qr: false });
+  });
+
+  $('cm-qr-place').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-place]');
+    if (!b) return;
+    state.qrPlace = b.dataset.place as QrPlace;
+    if (state.qrPlace === 'back') state.back = true;
+    setSide(state.qrPlace === 'back' ? 'back' : 'front');
+    refresh();
+  });
+
+  $('cm-qr-type').addEventListener('click', (e) => {
+    const b = (e.target as HTMLElement).closest<HTMLElement>('[data-qr]');
+    if (!b) return;
+    state.qrType = b.dataset.qr as CardQrType;
+    refresh({ thumbs: false });
+  });
+
+  $<HTMLInputElement>('cm-back-on').addEventListener('change', (e) => {
+    state.back = (e.target as HTMLInputElement).checked;
+    if (!state.back && state.qrPlace === 'back') state.qrPlace = 'front';
+    setSide(state.back ? side : 'front');
+    refresh();
+  });
+
+  document.querySelectorAll<HTMLElement>('.cm-side').forEach((b) =>
+    b.addEventListener('click', () => setSide(b.dataset.side as Side)),
+  );
+  $('cm-flip').addEventListener('click', () => {
+    if (state.back) setSide(side === 'front' ? 'back' : 'front');
+  });
+
+  $<HTMLInputElement>('cm-logo').addEventListener('change', (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const img = new Image();
+    img.onload = () => {
+      logo = img;
+      goal('card_logo_upload');
+      refresh({ qr: false });
+    };
+    img.src = URL.createObjectURL(file);
+    (e.target as HTMLInputElement).value = '';
+  });
+  $('cm-logo-clear').addEventListener('click', () => {
+    logo = null;
+    refresh({ qr: false });
+  });
+
+  $('cm-random').addEventListener('click', () => {
+    const others = TEMPLATES.filter((t) => t.id !== state.template);
+    const t = others[Math.floor(Math.random() * others.length)];
+    state.template = t.id;
+    state.font = t.font;
+    state.accent = ACCENTS[Math.floor(Math.random() * ACCENTS.length)];
+    goal('card_random');
+    setSide('front');
+    refresh({ qr: false });
+  });
+
+  // ───── скачивание ─────
+
+  const PRINT_DPI = 600;
+
+  function sideCanvas(s: Side, dpi: number, withBleed: boolean): HTMLCanvasElement {
+    const c = document.createElement('canvas');
+    renderSide(c, input(), s, pxPerUAt(dpi), withBleed);
+    return c;
+  }
+
+  async function downloadPdf() {
+    const sides: Side[] = state.back ? ['front', 'back'] : ['front'];
+    const pages: PdfPage[] = [];
+    for (const s of sides) {
+      const c = sideCanvas(s, PRINT_DPI, true);
+      pages.push({
+        jpeg: await canvasToJpeg(c, 0.95),
+        pxW: c.width,
+        pxH: c.height,
+        wMm: (CARD_W + BLEED * 2) / 10,
+        hMm: (CARD_H + BLEED * 2) / 10,
+        bleedMm: BLEED / 10,
+      });
+    }
+    await deliverFile(buildPdf(pages), 'vizitka-90x50.pdf', false);
+  }
+
+  /** Лист A4: 2×5 визиток с метками реза; оборот — зеркально для двусторонней печати. */
+  async function downloadA4() {
+    const dpi = 300;
+    const pxPerMm = dpi / 25.4;
+    const A4W = 210;
+    const A4H = 297;
+    const cw = CARD_W / 10;
+    const ch = CARD_H / 10;
+    const x0 = (A4W - cw * 2) / 2;
+    const y0 = (A4H - ch * 5) / 2;
+    const sides: Side[] = state.back ? ['front', 'back'] : ['front'];
+    const lines: [number, number, number, number][] = [];
+    const mark = 6;
+    for (const x of [x0, x0 + cw, x0 + cw * 2]) {
+      lines.push([x, y0 - 2 - mark, x, y0 - 2]);
+      lines.push([x, y0 + ch * 5 + 2, x, y0 + ch * 5 + 2 + mark]);
+    }
+    for (let r = 0; r <= 5; r++) {
+      const y = y0 + ch * r;
+      lines.push([x0 - 2 - mark, y, x0 - 2, y]);
+      lines.push([x0 + cw * 2 + 2, y, x0 + cw * 2 + 2 + mark, y]);
+    }
+    const pages: PdfPage[] = [];
+    for (const s of sides) {
+      const card = sideCanvas(s, dpi, false);
+      const sheet = document.createElement('canvas');
+      sheet.width = Math.round(A4W * pxPerMm);
+      sheet.height = Math.round(A4H * pxPerMm);
+      const ctx = sheet.getContext('2d')!;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, sheet.width, sheet.height);
+      for (let r = 0; r < 5; r++) {
+        for (let col = 0; col < 2; col++) {
+          const c = s === 'back' ? 1 - col : col;
+          ctx.drawImage(card, Math.round((x0 + c * cw) * pxPerMm), Math.round((y0 + r * ch) * pxPerMm), Math.round(cw * pxPerMm), Math.round(ch * pxPerMm));
+        }
+      }
+      pages.push({ jpeg: await canvasToJpeg(sheet, 0.92), pxW: sheet.width, pxH: sheet.height, wMm: A4W, hMm: A4H, lines });
+    }
+    await deliverFile(buildPdf(pages), 'vizitki-list-a4.pdf', false);
+  }
+
+  async function downloadPng() {
+    const s: Side = side === 'back' && state.back ? 'back' : 'front';
+    const c = sideCanvas(s, PRINT_DPI, false);
+    await deliverFile(await canvasToBlob(c, 'image/png'), s === 'back' ? 'vizitka-oborot.png' : 'vizitka.png');
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.cm-dl').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const kind = btn.dataset.dl!;
+      btn.disabled = true;
+      try {
+        await document.fonts?.ready;
+        if (kind === 'pdf') await downloadPdf();
+        else if (kind === 'a4') await downloadA4();
+        else await downloadPng();
+        goal('card_download', { format: kind, template: state.template, qr: qr ? state.qrPlace : 'none', qrType: state.qrType });
+        $('cm-after').classList.remove('hidden');
+      } catch (err) {
+        console.error(err);
+        alert('Не получилось собрать файл. Попробуйте ещё раз или другой браузер.');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // ───── старт ─────
+
+  window.addEventListener('resize', () => refresh({ qr: false }));
+  goal('card_maker_visit');
+  setSide('front');
+  refresh();
+  // Inter подгружается асинхронно — перерисуем, когда шрифт готов.
+  document.fonts?.ready.then(() => refresh({ qr: false }));
+  Promise.all([
+    document.fonts?.load('800 40px Inter'),
+    document.fonts?.load('600 40px Inter'),
+    document.fonts?.load('500 40px Inter'),
+  ]).then(() => refresh({ qr: false }));
+</script>
