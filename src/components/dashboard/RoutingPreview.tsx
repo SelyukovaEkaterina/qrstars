@@ -5,6 +5,7 @@ import MicroLandingView, {
   type CustomPageItem,
 } from "@/components/scan/MicroLandingView";
 import MenuView from "@/components/scan/MenuView";
+import BusinessCardView from "@/components/scan/BusinessCardView";
 import type { MenuData } from "@/components/dashboard/MenuEditor";
 import type {
   PageModules,
@@ -236,10 +237,17 @@ export default function RoutingPreview({
               </div>
             </div>
           )}
+          {routingGroup === "SECTION" && section === "BUSINESS_CARD" && landing?.businessCard?.id && (
+            <BusinessCardView
+              card={previewBusinessCard({ ...landing.businessCard, id: landing.businessCard.id })}
+              brandColor={landing.brandColor}
+              pageAppearance={landing.pageAppearance}
+            />
+          )}
           {routingGroup === "SECTION" &&
-            (section === "BUSINESS_CARD" || section === "WIFI" || section === "TIPS") && (
-              <SectionPlaceholder section={section} />
-            )}
+            ((section === "BUSINESS_CARD" && !landing?.businessCard?.id) ||
+              section === "WIFI" ||
+              section === "TIPS") && <SectionPlaceholder section={section} />}
           {routingGroup === "SECTION" && section && !isBuiltinSection(section) && (
             <div className="p-6 text-center space-y-2">
               <p className="text-4xl">📄</p>
@@ -306,7 +314,9 @@ function SectionPlaceholder({
   return (
     <div className="p-6 text-center space-y-2">
       <p className="font-medium text-gray-900">{labels[section]}</p>
-      <p className="text-xs text-gray-400">Контент — в разделе «Микросайт»</p>
+      <p className="text-xs text-gray-400">
+        Контент — в разделе «{section === "BUSINESS_CARD" ? "Визитка" : "Микросайт"}»
+      </p>
     </div>
   );
 }

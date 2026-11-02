@@ -141,7 +141,7 @@ export default function DashboardChrome({
   const drawerHidden = !isDesktop && !open;
 
   return (
-    <div className="dash-shell flex min-h-screen bg-gray-50 overflow-x-hidden">
+    <div className="dash-shell flex min-h-screen bg-gray-50 overflow-x-clip">
       <header className="dash-header lg:hidden fixed inset-x-0 z-40 bg-white border-b border-gray-200 flex items-center gap-2 px-2">
         <button
           ref={toggleRef}

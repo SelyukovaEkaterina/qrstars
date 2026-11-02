@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { collectClientInfo } from "@/lib/client-info";
 import { sendBusinessCardContactNotification } from "@/lib/messenger-contact-notify";
 import prisma from "@/lib/prisma";
+import { saveBusinessCardLead } from "@/lib/business-card-leads";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: Request) {
@@ -16,11 +17,12 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { qrCode, guestName, guestPhone, message } = body as {
+  const { qrCode, guestName, guestPhone, message, pdConsentGiven } = body as {
     qrCode?: string;
     guestName?: string;
     guestPhone?: string;
     message?: string;
+    pdConsentGiven?: boolean;
   };
 
   if (!qrCode?.trim()) {
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
         include: { contactMessenger: true },
       },
       establishment: {
-        select: { businessCard: { include: { contactMessenger: true } } },
+        select: { id: true, businessCard: { include: { contactMessenger: true } } },
       },
     },
   });
@@ -73,6 +75,26 @@ export async function POST(request: Request) {
   const client = await collectClientInfo(request);
   const qrLabel = qr.label?.trim() || qr.code;
 
+  // Сначала сохраняем в кабинет: если Telegram/MAX/SMTP недоступны, заявка не теряется.
+  let savedLeadId: string | null = null;
+  if (qr.establishment?.id) {
+    try {
+      const xff = request.headers.get("x-forwarded-for") ?? "";
+      savedLeadId = await saveBusinessCardLead({
+        establishmentId: qr.establishment.id,
+        qrCodeId: qr.id,
+        guestName: name.slice(0, 100),
+        guestPhone: phone || null,
+        message: text,
+        guestIp: xff.split(",")[0]?.trim().slice(0, 60) || null,
+        userAgent: request.headers.get("user-agent")?.slice(0, 300) ?? null,
+        pdConsentGiven: pdConsentGiven === true,
+      });
+    } catch (err) {
+      console.error("Business card lead save failed", err);
+    }
+  }
+
   const sent = await sendBusinessCardContactNotification(card.contactMessenger, {
     qrLabel,
     guestName: name,
@@ -82,7 +104,11 @@ export async function POST(request: Request) {
   });
 
   if (!sent) {
-    return NextResponse.json({ error: "Не удалось отправить сообщение" }, { status: 502 });
+    if (savedLeadId) {
+      console.error("Business card lead notification failed", { leadId: savedLeadId, qr: qr.code });
+    } else {
+      return NextResponse.json({ error: "Не удалось отправить сообщение" }, { status: 502 });
+    }
   }
 
   return NextResponse.json({ success: true });

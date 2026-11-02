@@ -6,7 +6,7 @@ import uuid
 
 import requests as req_lib
 
-from conftest import login, unique_code
+from conftest import login, reset_user_to_free, set_user_plan, unique_code
 
 
 def unique_email(prefix="card"):
@@ -232,6 +232,98 @@ def test_business_card_contact_sends_with_guest_phone(base_url):
     assert r.json()["success"] is True
 
 
+def test_business_card_contact_is_saved_to_inbox(base_url):
+    """Заявка с визитки сохраняется в «Заявки и вопросы» и не теряется при сбое канала."""
+    session, _ = new_user_session(base_url)
+    created = quick_start_card(session, base_url).json()
+    est_id = created["establishment"]["id"]
+    r = req_lib.post(
+        f"{base_url}/api/business-cards/contact",
+        headers=guest_headers(),
+        json={
+            "qrCode": created["qrcode"]["code"],
+            "guestName": "Анна",
+            "guestPhone": "+7 925 111-22-33",
+            "message": "Выбило автомат на кухне",
+            "pdConsentGiven": True,
+        },
+    )
+    assert r.status_code == 200, r.text
+
+    inbox = session.get(f"{base_url}/api/establishments/{est_id}/form-submissions")
+    assert inbox.status_code == 200, inbox.text
+    data = inbox.json()
+    assert data["total"] == 1
+    assert data["unreadCount"] == 1
+    sub = data["submissions"][0]
+    assert sub["form"]["title"] == "Заявки с визитки"
+    assert sub["qrCode"]["code"] == created["qrcode"]["code"]
+    assert sub["pdConsentAt"]
+    labels = {f["id"]: f["label"] for f in sub["form"]["fields"]}
+    values = {labels[k]: v for k, v in sub["values"].items()}
+    assert values == {
+        "Имя": "Анна",
+        "Телефон": "+7 925 111-22-33",
+        "Сообщение": "Выбило автомат на кухне",
+    }
+
+    # Системная форма не попадает в список форм редактора микросайта.
+    forms = session.get(f"{base_url}/api/forms", params={"establishmentId": est_id}).json()["forms"]
+    assert all(f["title"] != "Заявки с визитки" for f in forms)
+
+    # Вторая заявка идёт в ту же форму, а не создаёт новую.
+    req_lib.post(
+        f"{base_url}/api/business-cards/contact",
+        headers=guest_headers(),
+        json={"qrCode": created["qrcode"]["code"], "guestName": "Олег", "message": "Нужна розетка"},
+    )
+    data = session.get(f"{base_url}/api/establishments/{est_id}/form-submissions").json()
+    assert data["total"] == 2
+    assert len([f for f in data["forms"] if f["title"] == "Заявки с визитки"]) == 1
+
+
+def test_business_card_leads_hidden_from_other_users(base_url):
+    session, _ = new_user_session(base_url)
+    created = quick_start_card(session, base_url).json()
+    est_id = created["establishment"]["id"]
+    req_lib.post(
+        f"{base_url}/api/business-cards/contact",
+        headers=guest_headers(),
+        json={"qrCode": created["qrcode"]["code"], "guestName": "Анна", "message": "Тест"},
+    )
+    other, _ = new_user_session(base_url, prefix="card-other")
+    r = other.get(f"{base_url}/api/establishments/{est_id}/form-submissions")
+    assert r.status_code == 404
+
+
+def test_quick_start_card_saves_max_link(base_url):
+    session, _ = new_user_session(base_url)
+    r = quick_start_card(session, base_url, maxUrl="max.ru/sergey_electric")
+    assert r.status_code == 200, r.text
+    code = r.json()["qrcode"]["code"]
+    page = req_lib.get(f"{base_url}/q/{code}")
+    assert "https://max.ru/sergey_electric" in page.text
+
+
+def test_quick_start_card_rejects_bad_max_link(base_url):
+    session, _ = new_user_session(base_url)
+    r = quick_start_card(session, base_url, maxUrl="javascript:alert(1)")
+    assert r.status_code == 400
+    assert "MAX" in r.json()["error"]
+
+
+def test_quick_start_card_picks_qr_style_by_profession(base_url):
+    session, _ = new_user_session(base_url)
+    r = quick_start_card(session, base_url, profession="Электрик")
+    assert r.status_code == 200, r.text
+    assert r.json()["qrcode"]["qrStyleTemplateId"] == "qr-preset-master-electric"
+
+    session2, _ = new_user_session(base_url)
+    r2 = quick_start_card(session2, base_url, profession="Репетитор", industry="OTHER")
+    assert r2.status_code == 200, r2.text
+    assert r2.json()["qrcode"]["qrStyleTemplateId"] == "qr-preset-classic"
+
+
 def test_business_card_contact_uses_project_card_for_qr_without_own_card(base_url):
     """QR переключили в «Визитку» из карточки QR: своей FK нет, визитка берётся с проекта."""
     session, _ = new_user_session(base_url)
@@ -314,3 +406,39 @@ def test_vk_signup_keeps_referral_code_from_cookie(base_url):
 
     referred = [u["email"] for u in partner.get(f"{base_url}/api/partner").json()["referredUsers"]]
     assert email in referred
+
+
+# --- Короткий адрес визитки ({slug}.qrstars.ru → /a/{slug}) ---
+
+
+def test_short_address_opens_business_card_on_pro(base_url, admin_session):
+    session, email = new_user_session(base_url, prefix="card-slug")
+    created = quick_start_card(session, base_url).json()
+    est_id = created["establishment"]["id"]
+    set_user_plan(admin_session, base_url, "PRO", email=email)
+    slug = f"master-{uuid.uuid4().hex[:8]}"
+    r = session.put(f"{base_url}/api/establishments/{est_id}/page", json={"shortSlug": slug})
+    assert r.status_code == 200, r.text
+    page = req_lib.get(f"{base_url}/a/{slug}")
+    assert page.status_code == 200
+    assert "Сергей Петров" in page.text
+    assert "Позвонить" in page.text
+    # Кабинет показывает поле адреса, а не промо
+    editor = session.get(f"{base_url}/dashboard/projects/{est_id}/card")
+    assert "Свой адрес визитки" in editor.text
+    assert "Подключить PRO" not in editor.text
+
+
+def test_short_address_locked_on_free(base_url, admin_session):
+    session, email = new_user_session(base_url, prefix="card-slug-free")
+    created = quick_start_card(session, base_url).json()
+    est_id = created["establishment"]["id"]
+    slug = f"free-{uuid.uuid4().hex[:8]}"
+    r = session.put(f"{base_url}/api/establishments/{est_id}/page", json={"shortSlug": slug})
+    assert r.status_code == 200, r.text
+    reset_user_to_free(admin_session, base_url, email=email)
+    page = req_lib.get(f"{base_url}/a/{slug}")
+    assert "Позвонить" not in page.text
+    editor = session.get(f"{base_url}/dashboard/projects/{est_id}/card")
+    assert "Свой адрес визитки" in editor.text
+    assert "Подключить PRO" in editor.text

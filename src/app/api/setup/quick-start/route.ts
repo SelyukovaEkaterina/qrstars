@@ -25,13 +25,14 @@ import {
 } from "@/lib/yandex-maps-url";
 import {
   industryQrStylePreset,
+  professionQrStylePreset,
   parseEstablishmentIndustry,
 } from "@/lib/establishment-industry";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { isGeneratorStyleLayout } from "@/lib/generator-style";
 import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
 import { findRedirectUrlProblem } from "@/lib/redirect-url";
-import { cardTextFieldsFromBody, phoneDigits } from "@/lib/business-card";
+import { cardTextFieldsFromBody, maxHref, phoneDigits } from "@/lib/business-card";
 import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
 import { normalizeTwoGisUrl, twoGisUrlError } from "@/lib/two-gis-url";
 
@@ -129,6 +130,7 @@ export async function POST(request: Request) {
     profession?: string;
     whatsapp?: string;
     telegram?: string;
+    maxUrl?: string;
     serviceArea?: string;
   };
 
@@ -158,9 +160,11 @@ export async function POST(request: Request) {
   if (rawIndustry !== undefined && !industry) {
     return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
   }
+  const professionPreset =
+    rawIntent === "card" ? professionQrStylePreset(body.profession) : null;
   const qrStyleTemplateId =
     (await findFirstQrGeneratorStyleId(userId)) ??
-    qrStylePresetTemplateId(industryQrStylePreset(industry));
+    qrStylePresetTemplateId(professionPreset ?? industryQrStylePreset(industry));
   const qualifiedOnboarding = true;
 
   if (intent === "redirect") {
@@ -189,8 +193,15 @@ export async function POST(request: Request) {
     phone,
     whatsapp: body.whatsapp,
     telegram: body.telegram,
+    maxUrl: body.maxUrl?.trim() ? maxHref(body.maxUrl) ?? body.maxUrl : body.maxUrl,
     serviceArea: body.serviceArea,
   });
+  if (intent === "card" && body.maxUrl?.trim() && !maxHref(body.maxUrl)) {
+    return NextResponse.json(
+      { error: "Ссылка на MAX должна вести на профиль, например https://max.ru/…" },
+      { status: 400 }
+    );
+  }
   if (intent === "card" && phoneDigits(cardFields.phone).length < 10) {
     return NextResponse.json(
       { error: "Укажите телефон — по нему клиенты будут звонить" },

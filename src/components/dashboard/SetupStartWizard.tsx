@@ -352,6 +352,9 @@ interface SetupStartWizardProps {
   hasPaidFeatures?: boolean;
   /** UTM из User.registrationUtm, если в URL нет меток. */
   initialRegistrationUtm?: RegistrationUtm | null;
+  /** Имя и телефон с регистрации — подставляются в форму QR-визитки, чтобы не спрашивать дважды. */
+  ownerName?: string;
+  ownerPhone?: string;
 }
 
 export default function SetupStartWizard({
@@ -360,6 +363,8 @@ export default function SetupStartWizard({
   canAddNewEstablishment = true,
   hasPaidFeatures = false,
   initialRegistrationUtm = null,
+  ownerName = "",
+  ownerPhone = "",
 }: SetupStartWizardProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -467,9 +472,20 @@ export default function SetupStartWizard({
     profession: "",
     whatsappSame: true,
     telegram: "",
+    maxUrl: "",
     serviceArea: "",
   });
   const [cardLinkShared, setCardLinkShared] = useState(false);
+  const cardOwnerPrefilled = useRef(false);
+  useEffect(() => {
+    if (intent !== "card" || cardOwnerPrefilled.current) return;
+    cardOwnerPrefilled.current = true;
+    setForm((prev) => ({
+      ...prev,
+      name: prev.name || ownerName.trim(),
+      phone: prev.phone || ownerPhone.trim(),
+    }));
+  }, [intent, ownerName, ownerPhone]);
 
   const [result, setResult] = useState<{
     establishment?: { id: string; name: string };
@@ -623,6 +639,7 @@ export default function SetupStartWizard({
       if (intent === "card") {
         payload.profession = cardForm.profession;
         payload.telegram = cardForm.telegram;
+        payload.maxUrl = cardForm.maxUrl;
         payload.serviceArea = cardForm.serviceArea;
         if (cardForm.whatsappSame) payload.whatsapp = form.phone;
       }
@@ -1814,6 +1831,14 @@ export default function SetupStartWizard({
                   placeholder="@username"
                 />
                 <Input
+                  label="MAX (необязательно)"
+                  className="max-sm:text-base"
+                  value={cardForm.maxUrl}
+                  onChange={(e) => setCardForm({ ...cardForm, maxUrl: e.target.value })}
+                  placeholder="Ссылка на профиль: max.ru/…"
+                  inputMode="url"
+                />
+                <Input
                   label="Город или район работы (необязательно)"
                   className="max-sm:text-base"
                   value={cardForm.serviceArea}
@@ -2147,7 +2172,7 @@ export default function SetupStartWizard({
             </ul>
           ) : isCard ? (
             <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
-              <li>Страницу-визитку с кнопками «Позвонить», WhatsApp и Telegram</li>
+              <li>Страницу-визитку с кнопками «Позвонить», WhatsApp, Telegram и MAX</li>
               <li>QR-код для наклейки, магнита или бумажной визитки</li>
               <li>Ссылку на визитку, которую можно отправить клиенту в мессенджер</li>
             </ul>

@@ -46,7 +46,7 @@ export default async function SetupStartPage({
     findActiveSubscription(userId),
     prisma.user.findUnique({
       where: { id: userId },
-      select: { registrationUtm: true },
+      select: { registrationUtm: true, name: true, phone: true },
     }),
   ]);
 
@@ -62,6 +62,8 @@ export default async function SetupStartPage({
       canAddNewEstablishment={canAddNewEstablishment}
       hasPaidFeatures={paid}
       initialRegistrationUtm={initialRegistrationUtm}
+      ownerName={userRow?.name ?? ""}
+      ownerPhone={userRow?.phone ?? ""}
     />
   );
 }

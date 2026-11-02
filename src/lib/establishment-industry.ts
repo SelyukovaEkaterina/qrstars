@@ -36,7 +36,8 @@ export function inferIndustryFromUtm(
   ...values: Array<string | null | undefined>
 ): EstablishmentIndustry | null {
   const haystack = values.filter(Boolean).join(" ").toLowerCase();
-  if (/(авто|auto|avto|car|шиномонтаж|tire|автосервис)/i.test(haystack)) {
+  // «car» — только отдельным словом/префиксом: иначе «master_card» и «card_maker» становятся AUTO.
+  if (/(авто|auto|avto|(?<![a-z])car(?![dt])|шиномонтаж|tire|автосервис)/i.test(haystack)) {
     return "AUTO";
   }
   if (/(beauty|бьюти|салон|парикмах|barber|маникюр)/i.test(haystack)) return "BEAUTY";
@@ -74,6 +75,22 @@ export function industryQrStylePreset(
     default:
       return "classic";
   }
+}
+
+/**
+ * Арт-стиль QR по профессии мастера (мастер QR-визитки). `id` — из `qr-engine/art-presets.ts`.
+ * null — профессия не распознана, берётся стиль отрасли.
+ */
+export function professionQrStylePreset(profession: string | null | undefined): string | null {
+  const p = (profession ?? "").toLowerCase();
+  if (!p.trim()) return null;
+  if (/электр|elektr|electr/.test(p)) return "master-electric";
+  if (/сантех|santeh|plumb/.test(p)) return "master-plumber";
+  if (/клининг|уборк|химчист|clean/.test(p)) return "master-cleaning";
+  if (/(бытов|техник|компьют|телефон|холодильн|стиральн)/.test(p)) return "master-repair";
+  if (/(ремонт кварт|отдел|плиточ|маляр|штукат|строит|бригад|кровел)/.test(p)) return "master-build";
+  if (/(на час|мебел|плотник|столяр)/.test(p)) return "master-handyman";
+  return null;
 }
 
 export type IndustryReviewCopy = {

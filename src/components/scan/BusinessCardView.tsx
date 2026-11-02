@@ -153,6 +153,7 @@ export default function BusinessCardView({
           guestName: guestName.trim(),
           guestPhone: guestPhone.trim() || undefined,
           message: message.trim(),
+          pdConsentGiven: consentChecked,
         }),
       });
 
@@ -291,7 +292,11 @@ export default function BusinessCardView({
               </h2>
               <ul className="rounded-xl border divide-y" style={rowSurfaceStyle(isBg)}>
                 {services.map((s, i) => (
-                  <li key={i} className="flex items-baseline justify-between gap-3 px-3 py-2.5 text-sm">
+                  <li
+                    key={i}
+                    className="flex items-baseline justify-between gap-3 px-3 py-2.5 text-sm"
+                    style={{ borderColor: rowSurfaceStyle(isBg).borderColor }}
+                  >
                     <span style={{ color: headingColor(isBg) }}>{s.name}</span>
                     {s.price && (
                       <span className="shrink-0 font-semibold" style={{ color: headingColor(isBg) }}>
@@ -427,7 +432,8 @@ export default function BusinessCardView({
                   style={rowSurfaceStyle(isBg)}
                 >
                   <p className="text-sm font-medium text-center" style={{ color: headingColor(isBg) }}>
-                    Написать {card.fullName}
+                    {/* Имя не склоняем: «Написать Сергей Петров» читается с ошибкой. */}
+                    Заявка · {card.fullName}
                   </p>
                   <Input
                     label="Ваше имя"
@@ -537,11 +543,22 @@ export default function BusinessCardView({
         </div>
 
         {watermarkEnabled && (
-          <p className="text-center text-xs mt-6 relative z-10" style={{ color: submutedColor(isBg) }}>
-            <a href="https://qrstars.ru/qr-business-cards.html?utm_source=qrstars&utm_medium=watermark&utm_campaign=business_card" target="_blank" rel="noopener noreferrer">
-              QrStars.ru — сделать такую визитку бесплатно
-            </a>
-          </p>
+          <a
+            href="https://qrstars.ru/qr-business-cards.html?utm_source=qrstars&utm_medium=watermark&utm_campaign=business_card"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="relative z-10 mx-auto mt-6 flex w-fit items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm"
+            style={{
+              ...rowSurfaceStyle(isBg),
+              color: headingColor(isBg),
+            }}
+          >
+            <img src="/logo-mark.svg" alt="" className="h-5 w-5" />
+            <span className="whitespace-nowrap">
+              Сделано в QrStars ·{" "}
+              <span className="underline underline-offset-2">создать бесплатно</span>
+            </span>
+          </a>
         )}
       </div>
     </div>

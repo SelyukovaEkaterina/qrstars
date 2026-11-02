@@ -86,7 +86,7 @@ export default function SubmissionsPage({ hideHeader = false }: { hideHeader?: b
     <div className="max-w-4xl mx-auto space-y-6">
       {hideHeader ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-gray-500">Ответы с форм на микросайте</p>
+          <p className="text-sm text-gray-500">Заявки с визитки и форм на микросайте</p>
           {projectSelect}
         </div>
       ) : (
@@ -96,7 +96,7 @@ export default function SubmissionsPage({ hideHeader = false }: { hideHeader?: b
               <Inbox className="w-7 h-7 text-indigo-600" />
               Заявки
             </h1>
-            <p className="text-gray-500 mt-1">Ответы с форм на микросайте</p>
+            <p className="text-gray-500 mt-1">Заявки с визитки и форм на микросайте</p>
           </div>
           {projectSelect}
         </div>

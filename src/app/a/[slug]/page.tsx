@@ -12,6 +12,7 @@ import type { ComponentProps } from "react";
 import type MicroLandingView from "@/components/scan/MicroLandingView";
 import LandingLockedState from "@/components/scan/LandingLockedState";
 import { establishmentCanShowPublicLanding } from "@/lib/qr-mode-access";
+import { MICROSITE_HOST_SUFFIX } from "@/lib/microsite-host";
 
 interface SlugPageProps {
   params: Promise<{ slug: string }>;
@@ -166,6 +167,10 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
     return <LandingLockedState />;
   }
 
+  // Проект-визитка (визитка есть, микросайта нет): короткий адрес открывает саму визитку.
+  const cardPage = await renderBusinessCardForSlug(slug, isPro);
+  if (cardPage) return cardPage;
+
   let landingProps = await getSlugPageCache<SlugLandingProps>(slug);
   if (!landingProps) {
     landingProps = await buildSlugLandingProps(slug);
@@ -178,4 +183,38 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
   const MicroLandingView = (await import("@/components/scan/MicroLandingView")).default;
 
   return <MicroLandingView {...landingProps} />;
+}
+
+async function renderBusinessCardForSlug(slug: string, isPro: boolean) {
+  const est = await prisma.establishment.findUnique({
+    where: { shortSlug: slug },
+    include: {
+      businessCard: true,
+      qrcodes: {
+        where: { isActive: true, mode: { in: ["LANDING", "BUSINESS_CARD"] } },
+        select: { code: true, mode: true },
+        orderBy: { createdAt: "asc" },
+      },
+    },
+  });
+  if (!est?.businessCard) return null;
+  if (est.qrcodes.some((q) => q.mode === "LANDING")) return null;
+  const cardQr = est.qrcodes.find((q) => q.mode === "BUSINESS_CARD");
+  if (!cardQr) return null;
+
+  const bc = est.businessCard;
+  const brand = resolveBrandSettings(est);
+  const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
+  return (
+    <BusinessCardView
+      card={toPublicBusinessCard(bc)}
+      shareUrl={`https://${slug}${MICROSITE_HOST_SUFFIX}`}
+      qrCode={cardQr.code}
+      showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
+      pdConsent={{ ready: !!(est.legalName && est.inn), policyUrl: `/privacy/${est.id}` }}
+      watermarkEnabled={isPro ? !est.watermarkEnabled : true}
+      brandColor={brand.brandColor}
+      pageAppearance={brand.pageAppearance}
+    />
+  );
 }

@@ -10,6 +10,7 @@ import BusinessCardConstructor, {
   type BusinessCardFormData,
 } from "@/components/dashboard/BusinessCardConstructor";
 import BusinessCardView from "@/components/scan/BusinessCardView";
+import CardShortAddress from "@/components/dashboard/project/CardShortAddress";
 import { scanUrlForCode } from "@/lib/utils";
 import { projectQrNewPath, projectQrPath } from "@/lib/project-routes";
 import type { PageAppearance } from "@/lib/brand-theme";
@@ -21,6 +22,7 @@ interface ProjectCardEditorProps {
   pageAppearance: PageAppearance;
   cardQrcodes: Array<{ id: string; code: string; label: string | null }>;
   welcome?: boolean;
+  shortAddress?: { hasPaidFeatures: boolean; slug: string | null; suggestion: string } | null;
 }
 
 export default function ProjectCardEditor({
@@ -30,6 +32,7 @@ export default function ProjectCardEditor({
   pageAppearance,
   cardQrcodes,
   welcome = false,
+  shortAddress = null,
 }: ProjectCardEditorProps) {
   const router = useRouter();
   const [preview, setPreview] = useState<BusinessCardFormData | null>(initialCard);
@@ -56,6 +59,7 @@ export default function ProjectCardEditor({
         return;
       }
       setSavedAt(Date.now());
+      setTimeout(() => setSavedAt(null), 3000);
       if (!data.id) window.dispatchEvent(new Event("qrstars:projects-changed"));
       router.refresh();
     } catch {
@@ -142,14 +146,26 @@ export default function ProjectCardEditor({
         )}
       </Card>
 
+      {shortAddress && initialCard && primaryQr && (
+        <CardShortAddress
+          projectId={projectId}
+          hasPaidFeatures={shortAddress.hasPaidFeatures}
+          initialSlug={shortAddress.slug}
+          suggestion={shortAddress.suggestion}
+        />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="min-w-0 space-y-3">
-          {error && (
-            <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
-          )}
-          {savedAt && !error && (
-            <div className="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
-              Визитка сохранена
+          {/* Кнопка «Сохранить» внизу длинной формы — статус показываем у нижнего края экрана, иначе его не видно. */}
+          {(error || savedAt) && (
+            <div
+              role="status"
+              className={`fixed bottom-6 left-1/2 z-50 -translate-x-1/2 rounded-xl px-5 py-3 text-sm font-medium shadow-lg ${
+                error ? "bg-red-600 text-white" : "bg-gray-900 text-white"
+              }`}
+            >
+              {error || "Визитка сохранена"}
             </div>
           )}
           <BusinessCardConstructor

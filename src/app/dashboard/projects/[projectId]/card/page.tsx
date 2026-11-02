@@ -4,6 +4,8 @@ import { resolveBrandSettings } from "@/lib/brand-theme";
 import { isUnassignedProjectId, projectQrcodesPath } from "@/lib/project-routes";
 import { normalizeCardServices, parseCardSocialLinks } from "@/lib/business-card";
 import ProjectCardEditor from "@/components/dashboard/project/ProjectCardEditor";
+import { establishmentHasPaidFeatures } from "@/lib/establishment-access";
+import { suggestMicrositeSlug } from "@/lib/microsite-host";
 
 /** Доступ к проекту проверяет layout `projects/[projectId]`. */
 export default async function ProjectCardPage({
@@ -26,6 +28,8 @@ export default async function ProjectCardPage({
       brandColor: true,
       pageAppearance: true,
       landingTheme: true,
+      shortSlug: true,
+      _count: { select: { qrcodes: { where: { mode: "LANDING" } } } },
       businessCard: { include: { contactMessenger: true } },
       qrcodes: {
         where: { mode: "BUSINESS_CARD" },
@@ -37,6 +41,7 @@ export default async function ProjectCardPage({
   if (!est) redirect("/dashboard");
 
   const brand = resolveBrandSettings(est);
+  const hasPaidFeatures = await establishmentHasPaidFeatures(est.id);
   const card = est.businessCard
     ? JSON.parse(
         JSON.stringify({
@@ -57,6 +62,16 @@ export default async function ProjectCardPage({
           pageAppearance={brand.pageAppearance}
           cardQrcodes={est.qrcodes}
           welcome={welcome === "1"}
+          shortAddress={
+            // С микросайтом короткий адрес открывает его, а не визитку — тогда блок не показываем.
+            est._count.qrcodes === 0
+              ? {
+                  hasPaidFeatures,
+                  slug: est.shortSlug,
+                  suggestion: suggestMicrositeSlug(est.businessCard?.fullName),
+                }
+              : null
+          }
         />
       </main>
     </div>

@@ -14,6 +14,7 @@ import {
   establishmentRelationWhere,
   establishmentHasPaidFeatures,
 } from "@/lib/establishment-access";
+import { BUSINESS_CARD_LEAD_FORM_PRESET } from "@/lib/business-card-leads";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -25,7 +26,11 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const establishmentId = searchParams.get("establishmentId");
 
-  const where: Record<string, unknown> = establishmentRelationWhere(userId);
+  const where: Record<string, unknown> = {
+    ...establishmentRelationWhere(userId),
+    // Системная форма заявок с визитки — не для редактора микросайта.
+    OR: [{ preset: null }, { preset: { not: BUSINESS_CARD_LEAD_FORM_PRESET } }],
+  };
   if (establishmentId) where.establishmentId = establishmentId;
 
   const forms = await prisma.form.findMany({
