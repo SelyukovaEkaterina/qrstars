@@ -6,6 +6,7 @@ import Card from "@/components/ui/Card";
 import MessengerContactsManager from "@/components/dashboard/MessengerContactsManager";
 import MonthlyReportSettings from "@/components/dashboard/MonthlyReportSettings";
 import AccountSettings from "@/components/dashboard/AccountSettings";
+import ApiKeysSettings from "@/components/dashboard/ApiKeysSettings";
 import { Loader2, Wand2 } from "lucide-react";
 
 interface Establishment {
@@ -122,6 +123,8 @@ export default function SettingsPage() {
               </Link>
             </div>
           </Card>
+
+          <ApiKeysSettings />
 
           <AccountSettings />
         </div>

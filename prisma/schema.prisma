@@ -66,6 +66,7 @@ model User {
   paymentOrders      PaymentOrder[]
   recurringConsents  RecurringConsentLog[]
   subscriptionIntroOffers SubscriptionIntroOffer[]
+  apiKeys           ApiKey[]
 }
 
 model UserLifecycleEmail {
@@ -905,4 +906,20 @@ model EstablishmentMember {
   acceptedAt      DateTime?
 
   @@unique([establishmentId, email])
+}
+
+/// Ключ открытого API (`/api/v1/*`). В БД — только SHA-256 ключа, сам ключ показывается один раз.
+model ApiKey {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  /// Начало ключа для отображения в кабинете (`qrs_ab12cd…`).
+  prefix     String
+  keyHash    String    @unique
+  lastUsedAt DateTime?
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
 }

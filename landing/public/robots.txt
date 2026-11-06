@@ -5,4 +5,21 @@ Allow: /
 Disallow: /politika-konfidencialnosti.html
 Disallow: /soglasie-pd.html
 
+# ИИ-ассистенты и поисковые ИИ-боты: сайт открыт, краткое описание — /llms.txt, полное — /llms-full.txt, API — /openapi.json
+User-agent: GPTBot
+User-agent: OAI-SearchBot
+User-agent: ChatGPT-User
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: YandexAdditional
+User-agent: YandexAdditionalBot
+Allow: /
+Disallow: /politika-konfidencialnosti.html
+Disallow: /soglasie-pd.html
+
 Sitemap: https://qrstars.ru/sitemap-index.xml

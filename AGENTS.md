@@ -155,6 +155,15 @@ QR-кодов внутри заведения — **без лимита** на �
 - Env: `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET`, `YANDEX_REDIRECT_URI`. Секрет хранится только в env приложения.
 - E2E: `e2e/test_yandex_auth.py`, mock Яндекс ID API — `e2e/yandex_id_mock.py`.
 
+## Открытый API v1 и описание для ИИ-агентов (с 2026-11-05)
+
+- **Ключи**: модель `ApiKey` (в БД только SHA-256, ключ `qrs_` + 40 base62 показывается один раз, `prefix` — для списка). Создание/отзыв — только из кабинета по cookie-сессии: блок «API-ключи» в `/dashboard/settings` (`ApiKeysSettings`, якорь `#api-keys`), `GET/POST /api/account/api-keys`, `DELETE /api/account/api-keys/[id]` (мягкий `revokedAt`). До 10 активных ключей. API доступен **на всех тарифах**, ограничения тарифа те же, что в UI (лимит проектов, `LANDING` — PRO).
+- **Эндпоинты** `/api/v1/*` (`Authorization: Bearer qrs_…`, cookie-сессия не принимается): `me`, `projects` (GET/POST), `projects/[id]` (GET/PATCH: название, адрес, отрасль, ссылки Яндекс/2GIS/Авито с теми же валидаторами, что в настройках), `qrcodes` (GET с `cursor`/`limit`, POST — `projectId` обязателен), `qrcodes/[id]` (GET/PATCH/DELETE), `qrcodes/[id]/image` (простой ч/б PNG/SVG через `qrcode`, без стилей `qr-engine`), `reviews` (фильтры `projectId`, `qrCodeId`, `negative`, `since`), `stats` (`collectScanPeriodStats` + оценки, дни МСК, ≤366 дней). Через API пишутся только режимы `REVIEW`, `REDIRECT`, `MENU`, `BUSINESS_CARD`, `WIFI`, `LANDING` (`src/lib/public-api/qr-input.ts`). Ошибки — `{error: {code, message}}`.
+- **Код**: `src/lib/public-api/` (`auth.ts` — `withApiAuth`, лимит 120 запросов/мин на ключ, `lastUsedAt` раз в минуту; `serialize.ts` — публичный контракт полей, только добавлять; `openapi.ts` — спецификация без `@/`-импортов). Лимит создания — 200 QR/час на аккаунт. События `dash.api_*`.
+- **OpenAPI**: `GET /api/v1/openapi.json` (публично) и `https://qrstars.ru/openapi.json` (лендинг собирает из того же `openapi.ts`). Добавили метод или поле — обновить `openapi.ts`, `landing/src/lib/ai-docs.ts` (`API_MD`) и страницу `landing/src/pages/api.astro`.
+- **Для ИИ / SEO**: `https://qrstars.ru/api.html` (документация, JSON-LD `WebAPI` + `FAQPage`), `/llms.txt` (карта сайта по llmstxt.org, SEO-страницы и блог подтягиваются из content collections), `/llms-full.txt` (продукт, тарифы из `src/lib/plans.ts`, API, подсказки агенту). Тексты — `landing/src/lib/ai-docs.ts`. `robots.txt` явно открывает сайт ИИ-ботам (GPTBot, ClaudeBot, PerplexityBot, YandexAdditional…).
+- **E2E**: `e2e/test_public_api.py`; юнит: `src/lib/public-api/keys.test.ts`.
+
 ## Партнёрская программа
 
 - **Страница**: `/dashboard/partner` — партнёрская ссылка, статистика, рефералы, история начислений, заявки на вывод
@@ -396,7 +405,7 @@ public/               # Статика (изображения, стандарт
 
 ## Полный список моделей Prisma
 
-`User` · `Establishment` · `EstablishmentMember` · `QRCode` · `Review` · `BusinessCard` · `CustomPage` · `FileAsset` · `QRMenu` · `QRMenuItem` · `WifiConfig` · `Template` · `MessengerContact` · `Subscription` · `PromoCode` · `PartnerEarning` · `PartnerWithdrawal` · `PasswordResetToken` · `DailyScanStat`
+`User` · `Establishment` · `EstablishmentMember` · `QRCode` · `Review` · `BusinessCard` · `CustomPage` · `FileAsset` · `QRMenu` · `QRMenuItem` · `WifiConfig` · `Template` · `MessengerContact` · `Subscription` · `PromoCode` · `PartnerEarning` · `PartnerWithdrawal` · `PasswordResetToken` · `DailyScanStat` · `ApiKey`
 
 > Центральная сущность — `Establishment` (не `Business`, как в старых комментариях). Весь контент (меню, визитка, Wi-Fi, сценарии отзывов, брендинг) принадлежит заведению.
 

@@ -1,0 +1,318 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Faq from '../components/seo/Faq.astro';
+import { registerUrl } from '../lib/utm';
+import { API_DOCS_URL, APP, OPENAPI_URL, SITE } from '../lib/ai-docs';
+import { PUBLIC_API_SERVER } from '../../../src/lib/public-api/openapi';
+
+const REGISTER_URL = registerUrl('api_docs', Astro.url.searchParams, { campaign: 'api', intent: 'redirect' });
+const KEYS_URL = `${APP}/dashboard/settings#api-keys`;
+
+const endpoints = [
+  { method: 'GET', path: '/me', text: 'Аккаунт, тариф и лимиты' },
+  { method: 'GET', path: '/projects', text: 'Проекты (заведения): свои и те, куда вас пригласили' },
+  { method: 'POST', path: '/projects', text: 'Создать проект в пределах тарифа' },
+  { method: 'PATCH', path: '/projects/{id}', text: 'Название, адрес, ссылки на Яндекс Карты, 2GIS, Авито' },
+  { method: 'GET', path: '/qrcodes', text: 'QR-коды, фильтр projectId, пагинация cursor' },
+  { method: 'POST', path: '/qrcodes', text: 'Создать динамический QR: отзывы, редирект, меню, визитка, Wi‑Fi, микросайт' },
+  { method: 'PATCH', path: '/qrcodes/{id}', text: 'Сменить ссылку или режим без перепечатки' },
+  { method: 'DELETE', path: '/qrcodes/{id}', text: 'Удалить QR-код' },
+  { method: 'GET', path: '/qrcodes/{id}/image', text: 'Картинка QR в PNG или SVG, 128–2048 px' },
+  { method: 'GET', path: '/reviews', text: 'Отзывы и жалобы гостей, фильтры negative и since' },
+  { method: 'GET', path: '/stats', text: 'Сканы по дням, топ QR-кодов, распределение оценок' },
+];
+
+const methodColor: Record<string, string> = {
+  GET: 'bg-emerald-100 text-emerald-700',
+  POST: 'bg-indigo-100 text-indigo-700',
+  PATCH: 'bg-amber-100 text-amber-700',
+  DELETE: 'bg-rose-100 text-rose-700',
+};
+
+const curlCreate = `curl -X POST ${PUBLIC_API_SERVER}/qrcodes \\
+  -H "Authorization: Bearer $QRSTARS_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "projectId": "<id из GET /projects>",
+    "label": "Баннер у входа",
+    "redirectUrl": "https://example.ru/sale"
+  }'`;
+
+const responseCreate = `{
+  "qrcode": {
+    "id": "cm…",
+    "code": "k7m2xq",
+    "label": "Баннер у входа",
+    "mode": "REDIRECT",
+    "redirectUrl": "https://example.ru/sale",
+    "scanUrl": "https://app.qrstars.ru/q/k7m2xq",
+    "imageUrl": "https://app.qrstars.ru/api/v1/qrcodes/cm…/image",
+    "scansCount": 0
+  }
+}`;
+
+const curlPatch = `curl -X PATCH ${PUBLIC_API_SERVER}/qrcodes/<id> \\
+  -H "Authorization: Bearer $QRSTARS_API_KEY" \\
+  -H "Content-Type: application/json" \\
+  -d '{"redirectUrl": "https://example.ru/new-sale"}'
+
+curl -H "Authorization: Bearer $QRSTARS_API_KEY" \\
+  "${PUBLIC_API_SERVER}/qrcodes/<id>/image?format=svg" -o qr.svg`;
+
+const curlReviews = `curl -H "Authorization: Bearer $QRSTARS_API_KEY" \\
+  "${PUBLIC_API_SERVER}/reviews?negative=true&since=2026-11-01"`;
+
+const errorSample = `{
+  "error": {
+    "code": "upgrade_required",
+    "message": "Микросайт доступен на тарифах PRO и «Сеть»",
+    "requiredPlan": "PRO"
+  }
+}`;
+
+const agentPrompt = `Ты управляешь QR-кодами в QrStars через REST API.
+Спецификация: ${OPENAPI_URL}
+Базовый URL: ${PUBLIC_API_SERVER}
+Ключ передавай в заголовке Authorization: Bearer <ключ>.
+Перед созданием QR получи projectId через GET /projects.
+Чтобы сменить ссылку на напечатанном QR, используй PATCH /qrcodes/{id}.`;
+
+const useCases = [
+  {
+    icon: 'fa-robot',
+    title: 'ИИ-агенты и ассистенты',
+    text: 'Подключите OpenAPI-спецификацию к GPT, Claude, YandexGPT или GigaChat: агент сам создаст QR, поменяет ссылку и пришлёт свежие жалобы.',
+  },
+  {
+    icon: 'fa-address-book',
+    title: 'CRM и учётные системы',
+    text: 'Жалобы гостей из GET /reviews — в amoCRM или Битрикс24 как задачи менеджеру. QR под каждую сделку, точку или сотрудника.',
+  },
+  {
+    icon: 'fa-diagram-project',
+    title: 'No-code: n8n, Make, Albato',
+    text: 'HTTP-запрос с Bearer-ключом — и сценарии вроде «новая акция на сайте → обновить ссылку во всех QR на баннерах».',
+  },
+  {
+    icon: 'fa-print',
+    title: 'Типографии и агентства',
+    text: 'Генерируйте сотни уникальных QR для тиража и макетов в SVG, а ссылки клиенты меняют уже после печати.',
+  },
+];
+
+const faqList = [
+  {
+    q: 'Сколько стоит API QrStars?',
+    a: 'API входит во все тарифы, включая бесплатный FREE. Действуют те же ограничения, что в личном кабинете: число проектов зависит от тарифа, микросайт — на PRO и «Сеть». QR-кодов внутри проекта — без лимита.',
+  },
+  {
+    q: 'Где взять API-ключ?',
+    a: 'В личном кабинете: Настройки → API-ключи → «Создать ключ». Ключ начинается с qrs_ и показывается один раз: скопируйте его в менеджер секретов. Можно создать до 10 ключей и отозвать любой в один клик.',
+  },
+  {
+    q: 'Можно ли через API поменять ссылку в уже напечатанном QR-коде?',
+    a: 'Да. Картинка кодирует постоянный адрес app.qrstars.ru/q/{code}, а целевую ссылку меняет запрос PATCH /qrcodes/{id} с новым redirectUrl. Напечатанный код перепечатывать не нужно.',
+  },
+  {
+    q: 'Как подключить API к ИИ-агенту?',
+    a: `Дайте агенту ссылку на OpenAPI-спецификацию ${OPENAPI_URL} и API-ключ. Агенты с поддержкой OpenAPI-инструментов (Custom GPT Actions, Claude, n8n AI Agent, LangChain) сами строят вызовы по описанию методов. Краткое описание сервиса для ИИ лежит в ${SITE}/llms.txt.`,
+  },
+  {
+    q: 'Какие лимиты у API?',
+    a: '120 запросов в минуту на ключ и 200 новых QR-кодов в час на аккаунт. При превышении API отвечает 429 с заголовком Retry-After.',
+  },
+  {
+    q: 'Можно ли получить оформленный QR с логотипом через API?',
+    a: 'API отдаёт чёрно-белый QR в PNG или SVG — его удобно вставлять в макеты. Цветные стили, логотип и арт-формы настраиваются в редакторе кабинета и скачиваются оттуда; ссылка в QR при этом та же.',
+  },
+];
+
+const faqSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqList.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+
+const apiSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebAPI',
+  name: 'QrStars API',
+  description:
+    'REST API для динамических QR-кодов: создание QR, смена ссылки после печати, отзывы и жалобы гостей, статистика сканирований.',
+  url: API_DOCS_URL,
+  documentation: API_DOCS_URL,
+  termsOfService: `${SITE}/polzovatelskoe-soglashenie.html`,
+  provider: { '@type': 'Organization', name: 'QrStars', url: SITE },
+  potentialAction: { '@type': 'ConsumeAction', target: PUBLIC_API_SERVER },
+  offers: { '@type': 'Offer', price: '0', priceCurrency: 'RUB', description: 'Доступно на бесплатном тарифе' },
+};
+---
+
+<Layout
+  title="API для QR-кодов — REST API и OpenAPI для интеграций и ИИ-агентов | QrStars"
+  fullTitle
+  description="Открытый REST API QrStars: создавайте динамические QR-коды, меняйте ссылку после печати, забирайте отзывы, жалобы и статистику сканов. OpenAPI 3.1, ключ на бесплатном тарифе."
+>
+  <section class="pt-24 sm:pt-32 pb-14 lg:pt-40 lg:pb-20 bg-white overflow-hidden relative">
+    <div class="absolute top-20 left-1/2 -translate-x-1/2 w-[620px] h-[620px] bg-primary/5 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div class="min-w-0">
+          <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20">
+            <i class="fa-solid fa-code"></i>
+            REST API · OpenAPI 3.1
+          </div>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
+            API для QR-кодов,
+            <span class="bg-gradient-to-r from-primary to-purple-500 gradient-text"> отзывов и статистики</span>
+          </h1>
+          <p class="text-lg md:text-xl text-slate-600 mb-8 max-w-xl leading-relaxed">
+            Создавайте динамические QR-коды из своей CRM, скрипта или ИИ-агента, меняйте
+            ссылку после печати и забирайте жалобы гостей раньше, чем они попадут на
+            Яндекс Карты. Ключ — бесплатно, на любом тарифе.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-3">
+            <a href={REGISTER_URL} data-goal="api_docs_register" class="inline-flex items-center justify-center gap-2 bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
+              Получить API-ключ
+              <i class="fa-solid fa-arrow-right text-sm"></i>
+            </a>
+            <a href="/openapi.json" data-goal="api_openapi_open" class="inline-flex items-center justify-center bg-white text-slate-700 border border-slate-200 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-50 transition shadow-sm">
+              openapi.json
+            </a>
+          </div>
+          <p class="mt-4 text-sm text-slate-500">
+            Уже есть аккаунт? Ключ — в <a href={KEYS_URL} class="text-primary font-semibold hover:underline">Настройки → API-ключи</a>.
+          </p>
+        </div>
+
+        <div class="min-w-0 bg-slate-900 text-slate-100 rounded-3xl p-5 md:p-7 shadow-2xl shadow-slate-900/20">
+          <div class="text-xs font-bold text-indigo-300 uppercase tracking-wide mb-3">Создать QR с редиректом</div>
+          <pre class="text-xs sm:text-sm leading-relaxed overflow-x-auto whitespace-pre"><code set:text={curlCreate} /></pre>
+          <div class="text-xs font-bold text-emerald-300 uppercase tracking-wide mt-5 mb-3">201 Created</div>
+          <pre class="text-xs sm:text-sm leading-relaxed overflow-x-auto whitespace-pre text-slate-300"><code set:text={responseCreate} /></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-3">Быстрый старт</h2>
+      <ol class="space-y-6 text-slate-700">
+        <li>
+          <p class="font-semibold text-slate-900">1. Создайте ключ</p>
+          <p class="text-sm leading-relaxed">
+            <a href={REGISTER_URL} class="text-primary font-semibold hover:underline">Зарегистрируйтесь бесплатно</a>,
+            затем в кабинете откройте <a href={KEYS_URL} class="text-primary font-semibold hover:underline">Настройки → API-ключи</a>.
+            Ключ вида <code class="bg-white border border-slate-200 rounded px-1.5">qrs_…</code> показывается один раз.
+          </p>
+        </li>
+        <li>
+          <p class="font-semibold text-slate-900">2. Передавайте его в заголовке</p>
+          <p class="text-sm leading-relaxed">
+            <code class="bg-white border border-slate-200 rounded px-1.5">Authorization: Bearer qrs_…</code>.
+            Базовый URL — <code class="bg-white border border-slate-200 rounded px-1.5 break-all">{PUBLIC_API_SERVER}</code>.
+            Ответы в JSON, даты — ISO 8601, тексты ошибок — на русском.
+          </p>
+        </li>
+        <li>
+          <p class="font-semibold text-slate-900">3. Меняйте ссылку и скачивайте QR</p>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-2xl p-4 text-xs sm:text-sm overflow-x-auto whitespace-pre"><code set:text={curlPatch} /></pre>
+        </li>
+        <li>
+          <p class="font-semibold text-slate-900">4. Забирайте жалобы гостей</p>
+          <pre class="mt-2 bg-slate-900 text-slate-100 rounded-2xl p-4 text-xs sm:text-sm overflow-x-auto whitespace-pre"><code set:text={curlReviews} /></pre>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="methods" class="py-16 lg:py-20 bg-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-3">Методы API</h2>
+      <p class="text-slate-600 mb-8">
+        Полное описание полей и ответов — в <a href="/openapi.json" class="text-primary font-semibold hover:underline">OpenAPI-спецификации</a>:
+        её можно открыть в Swagger UI, Postman или Insomnia.
+      </p>
+      <div class="overflow-x-auto bg-white rounded-2xl border border-slate-200 shadow-sm">
+        <table class="w-full text-left text-sm border-collapse">
+          <tbody class="divide-y divide-slate-100">
+            {endpoints.map((e) => (
+              <tr>
+                <td class="p-4 w-24"><span class={`inline-block font-mono font-bold text-xs px-2 py-1 rounded ${methodColor[e.method]}`}>{e.method}</span></td>
+                <td class="p-4 font-mono text-slate-900 whitespace-nowrap">{e.path}</td>
+                <td class="p-4 text-slate-600">{e.text}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid md:grid-cols-2 gap-6 mt-10">
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+          <h3 class="font-bold text-lg mb-3">Режимы QR-кода</h3>
+          <ul class="space-y-2 text-sm text-slate-600">
+            <li><b class="text-slate-900">REVIEW</b> — сбор отзывов: 4–5★ на Яндекс Карты или 2GIS, 1–3★ — жалоба владельцу</li>
+            <li><b class="text-slate-900">REDIRECT</b> — переход на любую ссылку, нужен <code>redirectUrl</code></li>
+            <li><b class="text-slate-900">MENU</b>, <b class="text-slate-900">BUSINESS_CARD</b>, <b class="text-slate-900">WIFI</b> — раздел проекта, контент заполняется в кабинете</li>
+            <li><b class="text-slate-900">LANDING</b> — микросайт со всеми разделами, PRO и «Сеть»</li>
+          </ul>
+        </div>
+        <div class="bg-slate-50 border border-slate-200 rounded-2xl p-6">
+          <h3 class="font-bold text-lg mb-3">Ошибки и лимиты</h3>
+          <p class="text-sm text-slate-600 mb-3">
+            401 — нет или неверный ключ, 400 — некорректные поля, 403 <code>upgrade_required</code> — нужен тариф выше,
+            404 — объект не найден или чужой, 429 — лимит (120 запросов/мин на ключ, 200 новых QR/час).
+          </p>
+          <pre class="bg-slate-900 text-slate-100 rounded-xl p-3 text-xs overflow-x-auto whitespace-pre"><code set:text={errorSample} /></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-900 text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="text-center max-w-2xl mx-auto mb-12">
+        <h2 class="text-3xl font-bold mb-4">Что строят на API QrStars</h2>
+        <p class="text-slate-300">Офлайн-реклама и отзывы гостей — в тех же системах, где вы уже работаете.</p>
+      </div>
+      <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {useCases.map((item) => (
+          <div class="bg-white/5 border border-white/10 rounded-2xl p-6">
+            <div class="w-12 h-12 bg-white/10 text-indigo-300 rounded-xl flex items-center justify-center text-xl mb-5">
+              <i class={`fa-solid ${item.icon}`}></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2">{item.title}</h3>
+            <p class="text-slate-300 text-sm leading-relaxed">{item.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section id="ai-agents" class="py-16 lg:py-20 bg-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-3">Для ИИ-агентов и ассистентов</h2>
+      <p class="text-slate-600 mb-6 leading-relaxed">
+        Описание сервиса для языковых моделей лежит в
+        <a href="/llms.txt" class="text-primary font-semibold hover:underline">/llms.txt</a> (кратко) и
+        <a href="/llms-full.txt" class="text-primary font-semibold hover:underline">/llms-full.txt</a> (тарифы, возможности, API одним файлом).
+        Чтобы агент работал с вашим аккаунтом, подключите
+        <a href="/openapi.json" class="text-primary font-semibold hover:underline">openapi.json</a> как набор инструментов и добавьте в системный промпт:
+      </p>
+      <pre class="bg-slate-900 text-slate-100 rounded-2xl p-4 text-xs sm:text-sm overflow-x-auto whitespace-pre-wrap"><code set:text={agentPrompt} /></pre>
+      <p class="text-sm text-slate-500 mt-4">
+        Храните ключ в секретах агента, а не в промпте. Для каждой интеграции заведите отдельный ключ — так его можно отозвать, не ломая остальные.
+      </p>
+    </div>
+  </section>
+
+  <script type="application/ld+json" set:html={JSON.stringify(apiSchema)} />
+  <script type="application/ld+json" set:html={JSON.stringify(faqSchema)} />
+
+  <Faq items={faqList} title="Частые вопросы об API" />
+</Layout>
