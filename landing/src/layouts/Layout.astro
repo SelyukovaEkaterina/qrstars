@@ -180,46 +180,57 @@ const websiteSchema = {
           } catch (_) {}
           return null;
         }
-        function run() {
-          var qs = new URLSearchParams(location.search);
-          var ref = resolveRef(qs);
-          var hasOwnUtm = false;
-          qs.forEach(function (_v, k) {
-            if (k.indexOf('utm_') === 0) hasOwnUtm = true;
+        var qs = new URLSearchParams(location.search);
+        var ref = resolveRef(qs);
+        var hasOwnUtm = false;
+        qs.forEach(function (_v, k) {
+          if (k.indexOf('utm_') === 0) hasOwnUtm = true;
+        });
+        var ad = resolveAdParams(qs);
+        // Рекламный клик важнее CTA-дефолтов; свежие utm_* в адресе (не реклама) — важнее сохранённого клика.
+        if (ad && (!hasOwnUtm || qs.get('yclid') || qs.get('ymclid'))) {
+          Object.keys(ad).forEach(function (k) {
+            qs.set(k, ad[k]);
           });
-          var ad = resolveAdParams(qs);
-          // Рекламный клик важнее CTA-дефолтов; свежие utm_* в адресе (не реклама) — важнее сохранённого клика.
-          if (ad && (!hasOwnUtm || qs.get('yclid') || qs.get('ymclid'))) {
-            Object.keys(ad).forEach(function (k) {
-              qs.set(k, ad[k]);
-            });
-          }
-          var has = !!ref;
-          qs.forEach(function (_v, k) {
-            if (k.indexOf('utm_') === 0 || k === 'yclid' || k === 'ymclid' || k === 'intent') has = true;
-          });
-          if (!has) return;
-          // Как в src/lib/utm.ts: source/medium/campaign/term с лендинга важнее дефолтов CTA, остальное не перезаписываем.
-          var override = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term'];
-          var links = document.querySelectorAll('a[href*="app.qrstars.ru"]');
-          for (var i = 0; i < links.length; i++) {
-            try {
-              var url = new URL(links[i].href);
-              var isRegister = url.pathname.indexOf('/register') === 0;
-              qs.forEach(function (value, key) {
-                if (key.indexOf('utm_') === 0) {
-                  if (override.indexOf(key) !== -1 || !url.searchParams.has(key)) url.searchParams.set(key, value);
-                } else if (key === 'yclid' || key === 'ymclid') {
-                  if (!url.searchParams.has(key)) url.searchParams.set(key, value);
-                } else if (key === 'intent') {
-                  if (isRegister && !url.searchParams.has(key)) url.searchParams.set(key, value);
-                }
-              });
-              if (ref && isRegister && !url.searchParams.has('ref')) url.searchParams.set('ref', ref);
-              links[i].href = url.toString();
-            } catch (_) {}
-          }
         }
+        var has = !!ref;
+        qs.forEach(function (_v, k) {
+          if (k.indexOf('utm_') === 0 || k === 'yclid' || k === 'ymclid' || k === 'intent') has = true;
+        });
+        if (!has) return;
+        // Как в src/lib/utm.ts: source/medium/campaign/term с лендинга важнее дефолтов CTA, остальное не перезаписываем.
+        var override = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term'];
+        function decorate(a) {
+          try {
+            var url = new URL(a.href);
+            if (url.hostname !== 'app.qrstars.ru') return;
+            var isRegister = url.pathname.indexOf('/register') === 0;
+            qs.forEach(function (value, key) {
+              if (key.indexOf('utm_') === 0) {
+                if (override.indexOf(key) !== -1 || !url.searchParams.has(key)) url.searchParams.set(key, value);
+              } else if (key === 'yclid' || key === 'ymclid') {
+                if (!url.searchParams.has(key)) url.searchParams.set(key, value);
+              } else if (key === 'intent') {
+                if (isRegister && !url.searchParams.has(key)) url.searchParams.set(key, value);
+              }
+            });
+            if (ref && isRegister && !url.searchParams.has('ref')) url.searchParams.set('ref', ref);
+            var next = url.toString();
+            if (next !== a.href) a.href = next;
+          } catch (_) {}
+        }
+        function run() {
+          var links = document.querySelectorAll('a[href*="app.qrstars.ru"]');
+          for (var i = 0; i < links.length; i++) decorate(links[i]);
+        }
+        // Ссылки, которые скрипты страницы подменяют или добавляют позже (карточка после
+        // скачивания в генераторе, CTA в диалогах), дополняем в момент клика.
+        function onClick(e) {
+          var a = e.target && e.target.closest && e.target.closest('a[href*="app.qrstars.ru"]');
+          if (a) decorate(a);
+        }
+        document.addEventListener('click', onClick, true);
+        document.addEventListener('auxclick', onClick, true);
         if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
         else run();
       })();
