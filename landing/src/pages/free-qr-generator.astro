@@ -10,6 +10,8 @@ const REVIEWS_PIVOT_URL = reviewsRegisterUrl('free-qr-generator-pivot', Astro.ur
 const REVIEWS_MAPS_URL = reviewsRegisterUrl('free-qr-generator-maps', Astro.url.searchParams);
 const ANIM_PRO_URL = withPlan(generatorRegisterUrl('free-qr-generator-animation', Astro.url.searchParams), 'pro');
 const PRO_FROM = `${PLAN_PRICING.PRO.halfYearRub.toLocaleString('ru-RU')} ₽`;
+// Пробного периода нет: кнопка ведёт на регистрацию с выбранным PRO
+const PRO_COMPARE_URL = withPlan(generatorRegisterUrl('free-qr-generator-compare-pro', Astro.url.searchParams), 'pro');
 
 const faqItems = [
   {
@@ -802,7 +804,7 @@ const QR_TABS = [
                         <div class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-full mb-3">
                             <i class="fa-solid fa-crown"></i> Динамический &middot; PRO
                         </div>
-                        <p class="text-sm text-slate-400">от 990 ₽ за полгода</p>
+                        <p class="text-sm text-slate-400">{PRO_FROM} за полгода</p>
                     </div>
                     <ul class="space-y-2.5 text-sm text-slate-300 mb-6 flex-1">
                         <li class="flex items-start gap-2"><i class="fa-solid fa-check text-amber-300 mt-0.5 shrink-0"></i> Всё из тарифа FREE</li>
@@ -814,8 +816,8 @@ const QR_TABS = [
                         <li class="flex items-start gap-2"><i class="fa-solid fa-check text-amber-300 mt-0.5 shrink-0"></i> Промокоды и электронные чаевые</li>
                         <li class="flex items-start gap-2"><i class="fa-solid fa-check text-amber-300 mt-0.5 shrink-0"></i> Расширенная аналитика: конверсия, дни, устройства</li>
                     </ul>
-                    <a href={APP_URL_REGISTER} data-goal="qr_dynamic_cta" data-goal-params='{"source":"comparison_pro"}' class="block text-center bg-white text-slate-900 px-5 py-3 rounded-xl font-bold text-sm hover:bg-slate-100 transition">
-                        Попробовать PRO
+                    <a href={PRO_COMPARE_URL} data-goal="qr_dynamic_cta" data-goal-params='{"source":"comparison_pro"}' class="block text-center bg-white text-slate-900 px-5 py-3 rounded-xl font-bold text-sm hover:bg-slate-100 transition">
+                        Подключить PRO
                     </a>
                 </div>
             </div>

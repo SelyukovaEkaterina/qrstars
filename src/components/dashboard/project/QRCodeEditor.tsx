@@ -11,6 +11,7 @@ import {
   projectCardPath,
   projectQrPath,
   projectQrcodesPath,
+  projectSettingsPath,
 } from "@/lib/project-routes";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -37,7 +38,7 @@ import {
   type QRMode,
 } from "@/lib/qr-routing";
 import { parsePageModules, type PageModules } from "@/lib/page-modules";
-import { defaultReviewRoutingFor, parseReviewRouting } from "@/lib/review-routing";
+import { defaultReviewRoutingFor, parseReviewRouting, starsMissingPlatformLinks } from "@/lib/review-routing";
 
 function landingPreviewFromEstablishment(est: Record<string, unknown>): LandingPreviewPayload {
   const bc = est.businessCard as LandingPreviewPayload["businessCard"] | null | undefined;
@@ -1274,6 +1275,30 @@ export default function QRCodeSettingsPage() {
                         <p className="text-xs text-indigo-600 mt-1">
                           Раздел скрыт в микросайте, но откроется по этому QR-коду.
                         </p>
+                      );
+                    })()}
+                    {sectionTarget === "REVIEW" && !customSectionId && landingPreview && (lockedEstId || establishmentId) && (() => {
+                      const urls = {
+                        yandexMapsUrl: landingPreview.yandexMapsUrl ?? null,
+                        twoGisUrl: landingPreview.twoGisUrl ?? null,
+                        avitoUrl: landingPreview.avitoUrl ?? null,
+                      };
+                      const routing = isPro && landingPreview.reviewRouting
+                        ? landingPreview.reviewRouting
+                        : defaultReviewRoutingFor(urls);
+                      const missing = starsMissingPlatformLinks(routing, urls);
+                      if (missing.length === 0) return null;
+                      return (
+                        <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                          Нет ссылки на площадку отзывов: гость с оценкой {missing.join(", ")}★ не сможет оставить
+                          отзыв на картах.{" "}
+                          <Link
+                            href={projectSettingsPath(lockedEstId || establishmentId)}
+                            className="font-semibold text-amber-900 underline"
+                          >
+                            Добавить ссылку на Яндекс или 2ГИС
+                          </Link>
+                        </div>
                       );
                     })()}
                     <p className="text-xs text-gray-400 mt-2">

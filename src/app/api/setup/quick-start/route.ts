@@ -152,7 +152,10 @@ export async function POST(request: Request) {
   // Для отзывов на FREE достаточно одной площадки: Яндекс.Карты или 2GIS.
   const rawTwoGis = twoGisUrl?.trim() || "";
   const normalizedTwoGis = rawTwoGis ? normalizeTwoGisUrl(rawTwoGis) : null;
-  const trimmedRedirect = redirectUrl?.trim();
+  // Как в карточке QR: «example.com» без схемы дополняем до https://
+  const rawRedirect = typeof redirectUrl === "string" ? redirectUrl.trim() : "";
+  const trimmedRedirect =
+    rawRedirect && !/^[a-z][a-z0-9+.-]*:/i.test(rawRedirect) ? `https://${rawRedirect}` : rawRedirect;
   const trimmedQrLabel = rawQrLabel?.trim();
   const trimmedLegalName = legalName?.trim() || null;
   const trimmedInn = inn?.trim() || null;

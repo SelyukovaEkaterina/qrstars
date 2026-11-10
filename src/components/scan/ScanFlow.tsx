@@ -160,10 +160,22 @@ export default function ScanFlow({
       leaveToPlatform(nextPlatforms[0], r);
       return;
     }
+    const nextStep = getStarStep(reviewRouting, r);
+    if (
+      nextPlatforms.length === 0 &&
+      nextStep &&
+      !isComplaintAction(nextStep.action) &&
+      nextStep.action !== "THANKS"
+    ) {
+      // Ссылок на площадки нет: кнопка «Оставить отзыв на Яндекс.Картах» никуда бы не вела.
+      // Сохраняем оценку и сразу благодарим.
+      void submitReview(false, undefined, r);
+      return;
+    }
     setStep("action");
   };
 
-  const submitReview = async (isNegative: boolean, reviewComment?: string) => {
+  const submitReview = async (isNegative: boolean, reviewComment?: string, ratingValue?: number) => {
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -177,7 +189,7 @@ export default function ScanFlow({
         body: JSON.stringify({
           establishmentId,
           qrCodeId,
-          rating,
+          rating: ratingValue ?? rating,
           comment: reviewComment ?? "",
           guestName: guestName || undefined,
           guestPhone: guestPhone || undefined,
@@ -467,7 +479,11 @@ export default function ScanFlow({
           <div className="text-center space-y-4 mt-8">
             <div className="text-5xl">{isComplaint ? "🙏" : "🎉"}</div>
             <p className={`text-xl font-semibold ${isBg ? "text-white" : dark ? "text-white" : "text-gray-900"}`}>{starStep.thanksTitle}</p>
-            <p className={isBg ? "text-white/70" : dark ? "text-slate-400" : "text-gray-500"}>{starStep.thanksSubtitle}</p>
+            <p className={isBg ? "text-white/70" : dark ? "text-slate-400" : "text-gray-500"}>
+              {!isComplaint && starStep.action !== "THANKS" && platforms.length === 0
+                ? "Нам очень приятно, что вам понравилось!"
+                : starStep.thanksSubtitle}
+            </p>
             {!isComplaint && !skippedAction && platforms.length > 0 && (
               hasMultiplePlatforms ? (
                 <div className="space-y-3 mt-2">

@@ -41,7 +41,7 @@ faq:
     a: "Да. Для каждого стола или зоны можно создать отдельный код и видеть статистику сканирований."
 related:
   - { href: "/otraslevye-resheniya.html", label: "Все отраслевые решения" }
-  - { href: "/qr-menu.html", label: "QR-меню PRO" }
+  - { href: "/qr-menu.html", label: "QR-меню" }
   - { slug: "qr-kod-dlya-otzyvov", label: "QR для отзывов" }
   - { slug: "qr-kod-dlya-yandeks-kart", label: "QR для Яндекс Карт" }
   - { slug: "dinamicheskiy-qr-kod", label: "Динамический QR-код" }

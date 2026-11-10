@@ -415,3 +415,20 @@ export function platformButtonLabel(platform: ResolvedPlatform, step: ReviewStar
   }
   return PLATFORM_CTA_LABELS[platform.action];
 }
+
+/**
+ * Оценки, на которые гость должен уйти на площадку, а ссылки нет (не задана в
+ * настройках проекта). Такой гость не может оставить отзыв — предупреждаем владельца.
+ */
+export function starsMissingPlatformLinks(
+  config: ReviewRoutingConfig,
+  urls: PlatformUrls
+): StarRating[] {
+  const missing: StarRating[] = [];
+  for (const star of [1, 2, 3, 4, 5] as StarRating[]) {
+    const step = config[star];
+    if (!step || isComplaintAction(step.action) || step.action === "THANKS") continue;
+    if (!resolvePlatformUrls(step, urls).some((p) => p.url)) missing.push(star);
+  }
+  return missing;
+}

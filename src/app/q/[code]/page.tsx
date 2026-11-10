@@ -385,7 +385,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
   if (qrCode.mode === "REDIRECT" && qrCode.redirectUrl) {
     const target = toHeaderSafeUrl(qrCode.redirectUrl);
     if (!target) {
-      return <ScanEmptyState emoji="🔗" title="Ссылка указана неверно" desc="Проверьте адрес перехода в настройках QR-кода." />;
+      return <ScanEmptyState emoji="🔗" title="Ссылка пока не работает" desc="Владелец QR-кода скоро это исправит." ownerHint="Проверьте адрес перехода в настройках QR-кода." />;
     }
     incrementScan();
     if (await needsRedirectInterstitial(qrCode)) {
@@ -423,7 +423,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
 
   if (!est) {
     if (qrCode.source === "DASHBOARD") {
-      return <ScanEmptyState emoji="⚙️" title="QR-код настроен" desc="Привяжите заведение в настройках QR-кода для отображения контента." />;
+      return <ScanEmptyState emoji="⚙️" title="QR-код пока не настроен" desc="Скоро здесь появится информация." ownerHint="Привяжите проект в настройках QR-кода." />;
     }
     redirect(`/activate/${code}`);
   }
@@ -583,11 +583,11 @@ export default async function ScanPage({ params }: ScanPageProps) {
 
   if (qrCode.mode === "MENU") {
     if (!rawMenu) {
-      return <ScanEmptyState emoji="☕" title="Меню не заполнено" desc="Добавьте позиции в разделе «Моя страница»." />;
+      return <ScanEmptyState emoji="☕" title="Меню скоро появится" desc="Спросите меню у персонала." ownerHint="Добавьте позиции в разделе «Микросайт» → «Меню»." />;
     }
     const menuStub = JSON.parse(JSON.stringify(sanitizeMenuForClient(rawMenu))) as import("@/components/dashboard/MenuEditor").MenuData;
     if (!menuHasLandingContent(menuStub)) {
-      return <ScanEmptyState emoji="☕" title="Меню не заполнено" desc="Добавьте позиции в разделе «Моя страница»." />;
+      return <ScanEmptyState emoji="☕" title="Меню скоро появится" desc="Спросите меню у персонала." ownerHint="Добавьте позиции в разделе «Микросайт» → «Меню»." />;
     }
     incrementScan();
     const menuProps = {
@@ -609,7 +609,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
 
   if (qrCode.mode === "WIFI") {
     if (!wifiConfig) {
-      return <ScanEmptyState emoji="📶" title="Wi-Fi не настроен" desc="Настройте Wi-Fi в разделе «Моя страница»." />;
+      return <ScanEmptyState emoji="📶" title="Wi‑Fi пока не настроен" desc="Спросите пароль у персонала." ownerHint="Настройте Wi‑Fi в разделе «Микросайт»." />;
     }
     incrementScan();
     const WifiConnect = (await import("@/components/scan/WifiConnect")).default;
@@ -629,8 +629,9 @@ export default async function ScanPage({ params }: ScanPageProps) {
       return (
         <ScanEmptyState
           emoji="💰"
-          title="Чаевые не настроены"
-          desc="Настройте чаевые в разделе «Моя страница» → блок «Чаевые»."
+          title="Чаевые пока не настроены"
+          desc="Владелец QR-кода скоро это исправит."
+          ownerHint="Настройте чаевые в разделе «Микросайт» → «Чаевые»."
         />
       );
     }
@@ -641,8 +642,9 @@ export default async function ScanPage({ params }: ScanPageProps) {
         return (
           <ScanEmptyState
             emoji="👥"
-            title="Список сотрудников пуст"
-            desc="Добавьте сотрудников в разделе «Моя страница» → «Чаевые»."
+            title="Список сотрудников пока пуст"
+            desc="Владелец QR-кода скоро это исправит."
+            ownerHint="Добавьте сотрудников в разделе «Микросайт» → «Чаевые»."
           />
         );
       }
@@ -694,7 +696,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     if (cp.type === "LINK" && cp.url) {
       const target = toHeaderSafeUrl(cp.url);
       if (!target) {
-        return <ScanEmptyState emoji="🔗" title="Ссылка указана неверно" desc="Проверьте адрес раздела в настройках «Моя страница»." />;
+        return <ScanEmptyState emoji="🔗" title="Ссылка пока не работает" desc="Владелец QR-кода скоро это исправит." ownerHint="Проверьте адрес раздела в редакторе «Микросайт»." />;
       }
       redirect(target);
     }
@@ -765,21 +767,25 @@ async function needsRedirectInterstitial(qrCode: {
   });
 }
 
+/** Пустой экран скана: `desc` — для гостя, `ownerHint` — мелко, для владельца. */
 function ScanEmptyState({
   emoji,
   title,
   desc,
+  ownerHint,
 }: {
   emoji: string;
   title: string;
   desc: string;
+  ownerHint?: string;
 }) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-center space-y-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+      <div className="text-center space-y-4 max-w-sm">
         <div className="text-5xl">{emoji}</div>
         <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         <p className="text-gray-500">{desc}</p>
+        {ownerHint && <p className="text-xs text-gray-400">Для владельца: {ownerHint}</p>}
       </div>
     </div>
   );
@@ -830,7 +836,7 @@ function QrTemporarilyUnavailable({ code, restorable }: { code: string; restorab
               href={restorable ? `/restore?code=${encodeURIComponent(code)}` : "/dashboard"}
               className="block w-full text-center py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-colors shadow-sm"
             >
-              {restorable ? "Восстановить QR в личном кабинете" : "Открыть личный кабинет"}
+              {restorable ? "Восстановить QR в личном кабинете" : "Я владелец — открыть кабинет"}
             </a>
           </div>
         </div>

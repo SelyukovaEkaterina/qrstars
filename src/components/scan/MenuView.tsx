@@ -596,7 +596,7 @@ export default function MenuView({
             <div className="text-4xl mb-4">🔍</div>
             <p style={{ color: mutedColor(isBg) }}>
               {menu.items.length === 0
-                ? "Добавьте позиции в меню"
+                ? "Меню скоро появится"
                 : visibleItems.length === 0
                   ? "Все позиции сейчас скрыты"
                   : "По вашему запросу ничего не найдено"}

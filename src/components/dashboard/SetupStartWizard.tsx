@@ -1132,9 +1132,9 @@ export default function SetupStartWizard({
                   </div>
                 </div>
               ) : (
-                <label className="block text-sm font-bold text-gray-800 text-center mb-3">
-                  Как вы планируете разместить QR-код?
-                </label>
+                <p className="block text-sm font-bold text-gray-800 text-center mb-3">
+                  Ваш QR-код готов — скачайте его
+                </p>
               )}
             </div>
 
@@ -1894,7 +1894,11 @@ export default function SetupStartWizard({
                   <Input
                     label="Ссылка для перенаправления *"
                   className="max-sm:text-base"
-                    type="url"
+                    type="text"
+                    inputMode="url"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                    spellCheck={false}
                     value={form.redirectUrl}
                     onChange={(e) => setForm({ ...form, redirectUrl: e.target.value })}
                     placeholder="https://example.com"

@@ -612,3 +612,21 @@ def test_quick_start_menu_reuses_existing_project_menu(base_url):
 
     qr = session.get(f"{base_url}/api/qrcodes", params={"id": second.json()["qrcode"]["id"]}).json()["qrcode"]
     assert qr["menuId"] == menu["id"]
+
+
+def test_quick_start_redirect_accepts_bare_domain(base_url):
+    """Как в карточке QR: ссылку без схемы дополняем до https://."""
+    email = unique_email("qsbare")
+    req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": "secure123", "name": "Bare Domain", "consentPd": True},
+    )
+    session = req_lib.Session()
+    login(session, base_url, email, "secure123")
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "redirect", "name": "Сайт", "redirectUrl": "example.com/promo"},
+    )
+    assert r.status_code == 200, r.text
+    qr = session.get(f"{base_url}/api/qrcodes", params={"id": r.json()["qrcode"]["id"]}).json()["qrcode"]
+    assert qr["redirectUrl"] == "https://example.com/promo"
