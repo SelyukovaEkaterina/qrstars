@@ -116,7 +116,12 @@ export function isInternalRegistration(input: {
 export function analyticsCohortUserWhere() {
   return {
     role: { not: "ADMIN" as const },
-    NOT: { registrationSource: INTERNAL_TEST_REGISTRATION_SOURCE },
+    // `NOT { registrationSource: X }` в SQL отбрасывает и NULL — пользователи без
+    // источника (seed, ручные скрипты) пропадали из статистики.
+    OR: [
+      { registrationSource: null },
+      { registrationSource: { not: INTERNAL_TEST_REGISTRATION_SOURCE } },
+    ],
   };
 }
 

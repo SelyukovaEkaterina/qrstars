@@ -19,18 +19,32 @@ def test_get_subscription(owner_session, base_url):
         assert sub["status"] in ("ACTIVE", "PAST_DUE", "CANCELED")
 
 
-def test_subscribe_mock(owner_session, admin_session, base_url):
+def _pay(base_url, checkout):
+    """Оплата заказа через ResultURL Robokassa (в mock-режиме подписка уже активна)."""
+    if checkout.get("mode") == "mock":
+        return
+    inv_id = checkout["paymentId"]
+    r = req_lib.get(robokassa_result_url(base_url, inv_id, f"{checkout['amount']:.2f}"))
+    assert r.status_code == 200 and r.text == f"OK{inv_id}", r.text
+
+
+def test_subscribe_checkout(owner_session, admin_session, base_url):
     reset_user_to_free(admin_session, base_url)
     r = owner_session.post(
         f"{base_url}/api/subscription",
         json={"action": "subscribe", "plan": "PRO", "recurringConsent": True},
     )
-    if r.status_code == 400 and "уже есть" in r.json().get("error", ""):
-        pytest.skip("Subscription already PRO from prior test run (multiple subscription records)")
-    assert r.status_code == 200
+    assert r.status_code == 200, r.text
     data = r.json()
-    assert data["success"] is True
-    assert data["mode"] == "mock"
+    if data.get("mode") == "mock":
+        assert data["success"] is True
+        return
+    # Robokassa настроена: заказ создан, оплата — на стороне кассы
+    assert data["paymentId"]
+    assert data["amount"] > 0
+    assert data.get("paymentRedirectUrl") or data.get("paymentPost")
+    # До оплаты тариф не меняется
+    assert owner_session.get(f"{base_url}/api/subscription").json()["plan"] == "FREE"
 
 
 def test_subscribe_already_pro(owner_session, admin_session, base_url):
@@ -40,6 +54,8 @@ def test_subscribe_already_pro(owner_session, admin_session, base_url):
         json={"action": "subscribe", "plan": "PRO", "recurringConsent": True},
     )
     assert first.status_code == 200, first.text
+    _pay(base_url, first.json())
+    assert owner_session.get(f"{base_url}/api/subscription").json()["plan"] == "PRO"
     r = owner_session.post(
         f"{base_url}/api/subscription",
         json={"action": "subscribe", "plan": "PRO", "recurringConsent": True},

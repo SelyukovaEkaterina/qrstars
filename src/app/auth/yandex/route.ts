@@ -20,7 +20,8 @@ export async function GET() {
       value: state,
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      // NODE_ENV в сборке всегда production — смотрим на схему адреса приложения
+    secure: process.env.NEXTAUTH_URL?.startsWith("https://") ?? process.env.NODE_ENV === "production",
       path: "/auth/yandex/callback",
       maxAge: 10 * 60,
     });

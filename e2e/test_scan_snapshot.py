@@ -104,7 +104,8 @@ def test_daily_scan_snapshot_counts_free_scans(
     assert updated["date"] == baseline["date"], "Same day → same date key"
 
 
-def test_scan_snapshots_admin_requires_admin(base_url, http):
+def test_scan_snapshots_admin_requires_admin(base_url):
     """Инспекта снапшотов требует ADMIN-сессию."""
-    r = http.get(f"{base_url}/api/admin/scan-snapshots")
+    # Свежая сессия: общая `http` к этому моменту может нести чужой логин (тогда 403)
+    r = requests.Session().get(f"{base_url}/api/admin/scan-snapshots")
     assert r.status_code == 401

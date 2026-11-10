@@ -14,7 +14,23 @@ class TestAdminStats:
         assert "activeSubscriptions" in data
         assert "negativeReviews" in data
         assert isinstance(data["totalUsers"], int)
-        assert data["totalUsers"] >= 2
+        # demo@smartreview.ru из seed (без registrationSource) — в когорте
+        assert data["totalUsers"] >= 1
+
+    def test_stats_counts_real_users_not_internal(self, admin_session, base_url):
+        import uuid
+
+        before = admin_session.get(f"{base_url}/api/admin/stats").json()["totalUsers"]
+        suffix = uuid.uuid4().hex[:10]
+        for email in (f"cohort-{suffix}@e2e-cohort.ru", f"internal-{suffix}@test.example.com"):
+            r = req_lib.post(
+                f"{base_url}/api/auth/register",
+                json={"email": email, "password": "secure123", "name": "Когорта", "consentPd": True},
+            )
+            assert r.status_code == 200, r.text
+        after = admin_session.get(f"{base_url}/api/admin/stats").json()["totalUsers"]
+        # Обычный пользователь считается, внутренний тестовый (example.com) — нет
+        assert after == before + 1
 
     def test_stats_forbidden_for_owner(self, owner_session, base_url):
         r = owner_session.get(f"{base_url}/api/admin/stats")

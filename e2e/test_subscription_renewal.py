@@ -3,6 +3,7 @@ import os
 import pytest
 import requests as req_lib
 
+from conftest import reset_user_to_free
 from robokassa_helpers import robokassa_result_url
 
 
@@ -14,7 +15,8 @@ def test_renewal_cron_requires_auth(base_url):
     assert r.status_code == 401
 
 
-def test_renewal_cron_runs(owner_session, base_url):
+def test_renewal_cron_runs(owner_session, admin_session, base_url):
+    reset_user_to_free(admin_session, base_url)
     sub_r = owner_session.post(
         f"{base_url}/api/subscription",
         json={

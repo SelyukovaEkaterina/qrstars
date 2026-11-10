@@ -1,10 +1,12 @@
 import pytest
 import requests as req_lib
 
+from conftest import reset_user_to_free
 from robokassa_helpers import robokassa_result_url
 
 
 def test_webhook_payment_succeeded(admin_session, owner_session, base_url):
+    reset_user_to_free(admin_session, base_url)
     reset_r = owner_session.post(
         f"{base_url}/api/subscription",
         json={
@@ -40,7 +42,9 @@ def test_webhook_missing_params(base_url):
     assert r.status_code == 400
 
 
-def test_webhook_idempotent(owner_session, base_url):
+def test_webhook_idempotent(owner_session, admin_session, base_url):
+    # Предыдущий тест оплатил PRO — новая покупка вернула бы 400 «уже есть подписка»
+    reset_user_to_free(admin_session, base_url)
     sub_r = owner_session.post(
         f"{base_url}/api/subscription",
         json={

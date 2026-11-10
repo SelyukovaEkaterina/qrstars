@@ -258,12 +258,20 @@ export function buildPaymentRequest(params: PaymentUrlParams): RobokassaPaymentR
 export async function resolvePaymentRedirectUrl(
   request: RobokassaPaymentRequest
 ): Promise<string | null> {
-  const res = await fetch(request.action, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams(request.fields).toString(),
-    redirect: "manual",
-  });
+  // Сбой сети или таймаут — не 500: клиент отправит форму `paymentPost` сам.
+  let res: Response;
+  try {
+    res = await fetch(request.action, {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(request.fields).toString(),
+      redirect: "manual",
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch (err) {
+    console.error("Robokassa redirect resolve failed:", err);
+    return null;
+  }
 
   const location = res.headers.get("location");
   if (!location) return null;
