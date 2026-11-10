@@ -101,3 +101,34 @@ def test_test_email_rejects_unknown_contact(
         },
     )
     assert response.status_code == 404
+
+
+@pytest.mark.parametrize("field", ["twoGisUrl", "avitoUrl"])
+def test_update_settings_rejects_non_http_platform_url(owner_session, base_url, owner_establishment_id, field):
+    """javascript: в ссылке площадки исполнялся бы у гостя на скане (stored XSS)."""
+    r = owner_session.put(
+        f"{base_url}/api/settings",
+        json={"id": owner_establishment_id, field: "javascript:alert(document.cookie)"},
+    )
+    assert r.status_code == 400
+
+
+def test_update_settings_adds_https_to_bare_platform_url(owner_session, base_url, owner_establishment_id):
+    r = owner_session.put(
+        f"{base_url}/api/settings",
+        json={"id": owner_establishment_id, "avitoUrl": "avito.ru/brands/e2e"},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["establishment"]["avitoUrl"] == "https://avito.ru/brands/e2e"
+    owner_session.put(f"{base_url}/api/settings", json={"id": owner_establishment_id, "avitoUrl": ""})
+
+
+def test_create_establishment_rejects_non_http_platform_url(owner_session, base_url):
+    r = owner_session.post(
+        f"{base_url}/api/establishments",
+        json={"name": "XSS project", "avitoUrl": "javascript:alert(1)"},
+    )
+    # 403 — если тариф упёрся в лимит проектов раньше проверки ссылок.
+    assert r.status_code in (400, 403)
+    if r.status_code == 403:
+        pytest.skip("Project limit reached before URL validation")

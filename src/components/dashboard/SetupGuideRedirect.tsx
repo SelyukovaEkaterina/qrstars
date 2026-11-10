@@ -6,6 +6,9 @@ import {
   SETUP_GUIDE_DISMISS_KEY,
   isSetupRedirectExemptPath,
 } from "@/lib/setup-wizard-path";
+import { PENDING_RESTORE_CODE_KEY } from "@/lib/incident";
+
+const RESTORE_PATH = "/dashboard/restore";
 
 /** Клиентский редирект на мастер «первый запуск» — статус всегда с API, без устаревшего RSC-кэша layout. */
 export default function SetupGuideRedirect() {
@@ -13,6 +16,12 @@ export default function SetupGuideRedirect() {
   const router = useRouter();
 
   useEffect(() => {
+    // Владелец начал восстановление QR со страницы скана до входа — доводим до формы с кодом.
+    const pendingRestore = localStorage.getItem(PENDING_RESTORE_CODE_KEY);
+    if (pendingRestore && pathname !== RESTORE_PATH) {
+      router.replace(`${RESTORE_PATH}?code=${encodeURIComponent(pendingRestore)}`);
+      return;
+    }
     if (isSetupRedirectExemptPath(pathname)) return;
     if (sessionStorage.getItem(SETUP_GUIDE_DISMISS_KEY) === "1") return;
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { requireAdmin } from "@/lib/admin-auth";
+import { calcSubscriptionAmount } from "@/lib/plans";
 
 export async function GET(request: Request) {
   const { error } = await requireAdmin();
@@ -11,7 +12,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get("limit") || "20");
   const skip = (page - 1) * limit;
 
-  const [subscriptions, total, totalActivePro] = await Promise.all([
+  const [subscriptions, total, activeProByBilling] = await Promise.all([
     prisma.subscription.findMany({
       skip,
       take: limit,
@@ -21,8 +22,19 @@ export async function GET(request: Request) {
       },
     }),
     prisma.subscription.count(),
-    prisma.subscription.count({ where: { plan: "PRO", status: "ACTIVE" } }),
+    prisma.subscription.groupBy({
+      by: ["billing"],
+      where: { plan: "PRO", status: "ACTIVE" },
+      _count: { _all: true },
+    }),
   ]);
+
+  const totalActivePro = activeProByBilling.reduce((sum, g) => sum + g._count._all, 0);
+  const totalRevenue = activeProByBilling.reduce(
+    (sum, g) =>
+      sum + g._count._all * calcSubscriptionAmount("PRO", g.billing === "halfyear" ? "halfyear" : "yearly", 1),
+    0
+  );
 
   return NextResponse.json({
     subscriptions,
@@ -30,6 +42,6 @@ export async function GET(request: Request) {
     page,
     pages: Math.ceil(total / limit),
     totalActivePro,
-    totalRevenue: totalActivePro * 990,
+    totalRevenue,
   });
 }

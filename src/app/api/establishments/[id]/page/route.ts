@@ -22,6 +22,7 @@ import {
 import { MICROSITE_FROZEN_ERROR, isMicrositeFrozen } from "@/lib/qr-mode-access";
 import { isMicrositeSlug, isReservedMicrositeSlug } from "@/lib/microsite-host";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
+import { canLinkContent, LINKED_CONTENT_NOT_FOUND } from "@/lib/linked-content-access";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -177,6 +178,19 @@ export async function PUT(request: Request, context: RouteContext) {
         { error: MICROSITE_FROZEN_ERROR, upgradeRequired: "PRO", micrositeFrozen: true },
         { status: 403 }
       );
+    }
+  }
+
+  // Подключаем только своё: меню / визитку / Wi‑Fi этого проекта или его владельца.
+  const linkChecks = [
+    ["menu", body.menuId],
+    ["businessCard", body.businessCardId],
+    ["wifiConfig", body.wifiConfigId],
+  ] as const;
+  for (const [kind, linkId] of linkChecks) {
+    if (!linkId) continue;
+    if (!(await canLinkContent(kind, linkId, { userId, ownerUserIds: [establishment.userId] }))) {
+      return NextResponse.json({ error: LINKED_CONTENT_NOT_FOUND[kind] }, { status: 404 });
     }
   }
 

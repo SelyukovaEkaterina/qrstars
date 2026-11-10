@@ -7,6 +7,9 @@ import { sendMaxMessage } from "@/lib/max";
 import prisma from "@/lib/prisma";
 import { getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 import { reviewRoutingToJson, parseReviewRouting } from "@/lib/review-routing";
+import { isPlatformUrlError, parsePlatformUrlField } from "@/lib/platform-url-input";
+import { normalizeTwoGisUrl } from "@/lib/two-gis-url";
+import { invalidateEstablishmentScans } from "@/lib/content-cache";
 import { parseWorkingHours } from "@/lib/working-hours";
 import { normalizeYandexMapsUrl, yandexMapsUrlError } from "@/lib/yandex-maps-url";
 import {
@@ -44,6 +47,19 @@ const establishmentSelect = {
   inn: true,
   workingHours: true,
 } as const;
+
+async function isOwnMessengerContact(
+  userId: string,
+  provider: "TELEGRAM" | "MAX",
+  externalId: string,
+): Promise<boolean> {
+  if (typeof externalId !== "string" || !externalId.trim()) return false;
+  const contact = await prisma.messengerContact.findFirst({
+    where: { userId, provider, externalId: externalId.trim() },
+    select: { id: true },
+  });
+  return !!contact;
+}
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -143,8 +159,15 @@ export async function PUT(request: Request) {
       data.yandexMapsUrl = normalizeYandexMapsUrl(trimmed);
     }
   }
-  if (body.twoGisUrl !== undefined) data.twoGisUrl = body.twoGisUrl || null;
-  if (body.avitoUrl !== undefined) data.avitoUrl = body.avitoUrl || null;
+  for (const field of ["twoGisUrl", "avitoUrl"] as const) {
+    const parsed = parsePlatformUrlField(body[field]);
+    if (isPlatformUrlError(parsed)) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    if (parsed === undefined) continue;
+    data[field] =
+      field === "twoGisUrl" && parsed ? normalizeTwoGisUrl(parsed) ?? parsed : parsed;
+  }
   if (body.platformRotation !== undefined) {
     const rotation = body.platformRotation === true;
     // Умная ротация — PRO-функция: включить её на FREE нельзя, выключить можно всегда.
@@ -202,6 +225,9 @@ export async function PUT(request: Request) {
     data,
   });
 
+  // Ссылки на площадки, название, водяной знак видны на скане сразу, а не через 60 с.
+  void invalidateEstablishmentScans(updated.id);
+
   return NextResponse.json({ establishment: updated });
 }
 
@@ -248,6 +274,11 @@ export async function POST(request: Request) {
 
     if (!chatId) {
       return NextResponse.json({ error: "Telegram не подключён в настройках аккаунта" }, { status: 400 });
+    }
+    // chatId из тела — только свой привязанный контакт, иначе бот слал бы
+    // сообщения от имени QrStars в любой чат.
+    if (!body.establishmentId && !(await isOwnMessengerContact(userId, "TELEGRAM", chatId))) {
+      return NextResponse.json({ error: "Telegram-контакт не найден" }, { status: 404 });
     }
 
     try {
@@ -373,6 +404,9 @@ export async function POST(request: Request) {
 
     if (!maxUserId) {
       return NextResponse.json({ error: "MAX не подключён в настройках аккаунта" }, { status: 400 });
+    }
+    if (!body.establishmentId && !(await isOwnMessengerContact(userId, "MAX", maxUserId))) {
+      return NextResponse.json({ error: "MAX-контакт не найден" }, { status: 404 });
     }
 
     const sent = await sendMaxMessage(

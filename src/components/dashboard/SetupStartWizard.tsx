@@ -491,6 +491,8 @@ export default function SetupStartWizard({
     establishment?: { id: string; name: string };
     qrcode: { id: string; code: string; qrStyleTemplateId?: string | null };
     intent: SetupIntent;
+    /** QR привязан к уже существующему меню проекта — демо-блюд нет. */
+    menuReused?: boolean;
   } | null>(null);
 
   const intentViewedSent = useRef(false);
@@ -704,7 +706,9 @@ export default function SetupStartWizard({
     value: SetupIntent,
     selectedIndustry: EstablishmentIndustry | null = industry
   ) {
-    if (!selectedEstablishmentId) return;
+    // Двойной клик по карточке сценария создавал два QR.
+    if (!selectedEstablishmentId || creatingRef.current) return;
+    creatingRef.current = true;
     trackEvent("setup.form_submitted", { intent: value, orgMode: "existing" });
     setLoading(true);
     setError("");
@@ -749,6 +753,7 @@ export default function SetupStartWizard({
       reportFormFailure(value, "network", err instanceof Error ? err.message : "unknown");
       changeStep("form");
     } finally {
+      creatingRef.current = false;
       setLoading(false);
     }
   }
@@ -1047,7 +1052,9 @@ export default function SetupStartWizard({
                 <>
                   QR-код ведёт на электронное меню проекта{" "}
                   <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
-                  Замените блюда-примеры на свои — и QR можно ставить на столы.
+                  {result.menuReused
+                    ? "Это ваше текущее меню — QR можно ставить на столы."
+                    : "Замените блюда-примеры на свои — и QR можно ставить на столы."}
                 </>
               ) : (
                 <>
@@ -1086,7 +1093,7 @@ export default function SetupStartWizard({
             </Card>
           )}
 
-          {isMenu && !rerun && (
+          {isMenu && !rerun && !result.menuReused && (
             <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950 leading-relaxed">
               <p className="font-semibold">Сейчас в меню 4 блюда-примера</p>
               <p className="mt-1 text-xs">
@@ -1283,7 +1290,11 @@ export default function SetupStartWizard({
                 <div className="rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-left">
                   <p className="text-sm text-indigo-900">
                     Вы выбрали тариф {requestedPlan === "NETWORK" ? "«Сеть»" : "PRO"} на сайте —{" "}
-                    {formatRub(PLAN_PRICING[requestedPlan].yearlyRub)} в год.
+                    {formatRub(PLAN_PRICING[requestedPlan].yearlyRub)} в год
+                    {requestedPlan === "PRO"
+                      ? ` или ${formatRub(PLAN_PRICING.PRO.halfYearRub)} за полгода`
+                      : ""}
+                    .
                   </p>
                   <Button
                     size="lg"

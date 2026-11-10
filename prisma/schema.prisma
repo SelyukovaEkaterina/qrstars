@@ -684,8 +684,14 @@ model PartnerEarning {
   referralUserId String
   referralUser   User    @relation("EarningReferral", fields: [referralUserId], references: [id], onDelete: Cascade)
 
+  /// Заявка, в которую ушло начисление (при REJECTED возвращается в AVAILABLE).
+  withdrawalId String?
+  withdrawal   PartnerWithdrawal? @relation(fields: [withdrawalId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([withdrawalId])
 }
 
 model PartnerWithdrawal {
@@ -704,6 +710,8 @@ model PartnerWithdrawal {
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  earnings PartnerEarning[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

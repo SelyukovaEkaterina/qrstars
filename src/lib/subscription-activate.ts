@@ -2,12 +2,14 @@ import prisma from "@/lib/prisma";
 import type { BillingPeriod, PlanId } from "@/lib/plans";
 import { markProIntroOfferUsed } from "@/lib/subscription-intro-offer";
 import { notifyPaymentSuccess } from "@/lib/telegram-support";
+import { invalidateEstablishmentScans } from "@/lib/content-cache";
 
 const PARTNER_COMMISSION_RATE = 0.15;
 const HOLD_DAYS = 30;
 
 export function subscriptionPeriodMs(billing: BillingPeriod | string | undefined): number {
   if (billing === "yearly") return 365 * 24 * 60 * 60 * 1000;
+  if (billing === "halfyear") return 183 * 24 * 60 * 60 * 1000;
   return 30 * 24 * 60 * 60 * 1000;
 }
 
@@ -88,6 +90,16 @@ export async function activateSubscription(params: {
     paymentAmount: params.amount,
     paymentId: String(params.invoiceId),
   });
+
+  // PRO меняет вид скана (без вотермарки, мгновенный редирект) — не ждём 60 с кэша.
+  void invalidateUserScans(params.userId);
+}
+
+async function invalidateUserScans(userId: string) {
+  try {
+    const ests = await prisma.establishment.findMany({ where: { userId }, select: { id: true } });
+    await Promise.all(ests.map((e) => invalidateEstablishmentScans(e.id)));
+  } catch {}
 }
 
 export async function renewSubscription(params: {
@@ -163,7 +175,7 @@ export async function handlePaidPaymentOrder(invId: number) {
       invoiceId: invId,
       amount,
     });
-    if (plan === "PRO") {
+    if (plan === "PRO" && billing === "yearly") {
       await markProIntroOfferUsed(order.userId, amount, order.id);
     }
   } else {

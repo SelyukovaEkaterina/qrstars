@@ -327,6 +327,7 @@ export async function POST(request: Request) {
         yandexMapsUrl: true,
         twoGisUrl: true,
         businessCardId: true,
+        menuId: true,
       },
     });
     if (!establishment) {
@@ -347,6 +348,7 @@ export async function POST(request: Request) {
       }
     }
 
+    let menuReused = false;
     const qrcode = await prisma.$transaction(async (tx) => {
       const establishmentUpdate: {
         yandexMapsUrl?: string;
@@ -371,16 +373,34 @@ export async function POST(request: Request) {
         });
       }
 
+      // У проекта уже есть меню — новый QR ведёт на него. Раньше мастер создавал
+      // стартовое меню и подменял им меню проекта: напечатанные MENU-QR начинали
+      // показывать «Суп дня» с выдуманными ценами.
       let menuId: string | undefined;
       if (intent === "menu") {
-        const menu = await tx.qRMenu.create({
-          data: starterMenuCreateInput(establishmentId, establishment.name),
-        });
-        menuId = menu.id;
-        await tx.establishment.update({
-          where: { id: establishmentId },
-          data: { menu: { connect: { id: menu.id } } },
-        });
+        menuId =
+          establishment.menuId ??
+          (
+            await tx.qRMenu.findFirst({
+              where: { estId: establishmentId },
+              orderBy: { createdAt: "asc" },
+              select: { id: true },
+            })
+          )?.id;
+        if (menuId) {
+          menuReused = true;
+        } else {
+          const menu = await tx.qRMenu.create({
+            data: starterMenuCreateInput(establishmentId, establishment.name),
+          });
+          menuId = menu.id;
+        }
+        if (menuId !== establishment.menuId) {
+          await tx.establishment.update({
+            where: { id: establishmentId },
+            data: { menu: { connect: { id: menuId } } },
+          });
+        }
       }
 
       // У проекта уже есть визитка — новый QR ведёт на неё, данные из формы не трогаем.
@@ -425,6 +445,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       intent,
+      ...(intent === "menu" ? { menuReused } : {}),
       establishment: {
         id: establishment.id,
         name: establishment.name,

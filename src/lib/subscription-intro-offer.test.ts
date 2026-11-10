@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { PLAN_PRICING, PRO_INTRO_OFFER, offerYearlyRub } from "@/lib/plans";
+import {
+  PLAN_PRICING,
+  PRO_INTRO_OFFER,
+  PRO_YEARLY_SAVINGS_PERCENT,
+  calcSubscriptionAmount,
+} from "@/lib/plans";
 import {
   isProIntroOfferEligible,
   isProIntroOfferReminderDue,
@@ -49,11 +54,14 @@ function state(patch: Partial<LifecycleUserState>): LifecycleUserState {
 const NOW = new Date("2026-10-18T09:00:00.000Z");
 
 describe("PRO intro offer price", () => {
-  it("rounds 30% off the yearly PRO price to 10 rubles", () => {
-    assert.equal(PLAN_PRICING.PRO.yearlyRub, 990);
-    assert.equal(offerYearlyRub(990, 30), 690);
-    assert.equal(PRO_INTRO_OFFER.yearlyRub, 690);
-    assert.equal(PRO_INTRO_OFFER.discountPercent, 30);
+  it("sells the first PRO year at the half-year price", () => {
+    assert.equal(PLAN_PRICING.PRO.halfYearRub, 990);
+    assert.equal(PLAN_PRICING.PRO.yearlyRub, 1490);
+    assert.equal(PRO_YEARLY_SAVINGS_PERCENT, 25);
+    assert.equal(PRO_INTRO_OFFER.yearlyRub, 990);
+    assert.equal(PRO_INTRO_OFFER.discountPercent, 34);
+    assert.equal(calcSubscriptionAmount("PRO", "halfyear", 1), 990);
+    assert.equal(calcSubscriptionAmount("PRO", "yearly", 1), 1490);
     assert.equal(PRO_INTRO_OFFER.validDays, 7);
     assert.equal(PRO_INTRO_OFFER.maxPerDay, 5);
     assert.equal(proIntroOfferDailyCapReached(4), false);
@@ -105,9 +113,9 @@ describe("PRO intro offer eligibility", () => {
 
   it("reminds only while the unused code has at most two days left", () => {
     const offer = {
-      code: "START30-ABC234",
-      amountRub: 690,
-      listAmountRub: 990,
+      code: "YEAR990-ABC234",
+      amountRub: 990,
+      listAmountRub: 1490,
       expiresAt: new Date(NOW.getTime() + 36 * 60 * 60 * 1000),
       usedAt: null,
     };
@@ -140,9 +148,9 @@ describe("PRO intro offer eligibility", () => {
 
 describe("PRO intro offer email", () => {
   const sampleOffer = {
-    code: "START30-ABC234",
-    amountRub: 690,
-    listAmountRub: 990,
+    code: "YEAR990-ABC234",
+    amountRub: 990,
+    listAmountRub: 1490,
     expiresAt: new Date("2026-10-25T10:00:00.000Z"),
     usedAt: null,
   };
@@ -150,9 +158,9 @@ describe("PRO intro offer email", () => {
   it("prints the personal code, both prices, and the deadline", () => {
     process.env.NEXTAUTH_SECRET ??= "test-secret";
     const html = renderProOfferD14Email(state({ proIntroOffer: sampleOffer }));
-    assert.match(html, /START30-ABC234/);
-    assert.match(html, /690/);
+    assert.match(html, /YEAR990-ABC234/);
     assert.match(html, /990/);
+    assert.match(html, /1\s490/);
     assert.match(html, /25 октября/);
     assert.match(html, /следующего года/);
   });

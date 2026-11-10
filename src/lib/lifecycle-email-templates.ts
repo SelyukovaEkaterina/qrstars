@@ -292,7 +292,7 @@ export function renderProHintD14Email(state: LifecycleUserState): string {
         "Собственный бренд (White Label) — ваш логотип на странице вместо вотермарки QrStars",
         "Расширенную аналитику сканирований и возможность дарить промокоды за отзывы",
       ])}
-      <p style="font-size:16px;color:#374151;">Стоимость тарифа PRO — ${formatRub(PLAN_PRICING.PRO.yearlyRub)} в год. Подключите его, если вам нужны эти возможности.</p>
+      <p style="font-size:16px;color:#374151;">Стоимость тарифа PRO — ${formatRub(PLAN_PRICING.PRO.yearlyRub)} в год или ${formatRub(PLAN_PRICING.PRO.halfYearRub)} за полгода. Подключите его, если вам нужны эти возможности.</p>
     `,
     cta: { label: "Подключить тариф PRO", href: `${base}/dashboard/subscription` },
   });
@@ -318,7 +318,7 @@ function proOfferPromoCard(params: {
   until: string;
 }): string {
   return `<div style="margin:20px 0;padding:18px 20px;background:#eef2ff;border:1px solid #c7d2fe;border-radius:14px;">
-    <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#4338ca;text-transform:uppercase;letter-spacing:0.04em;">Персональное предложение · скидка 30%</p>
+    <p style="margin:0 0 6px;font-size:13px;font-weight:600;color:#4338ca;text-transform:uppercase;letter-spacing:0.04em;">Персональное предложение · год по цене полугода</p>
     <p style="margin:0 0 10px;font-size:20px;font-weight:700;color:#111827;">
       ${params.price} за первый год
       <span style="font-size:15px;font-weight:400;color:#6b7280;text-decoration:line-through;margin-left:6px;">${params.list}</span>
@@ -332,7 +332,7 @@ function proOfferPromoCard(params: {
 
 function proOfferTermsFooter(code: string, price: string, list: string): string {
   return `<p style="margin:18px 0 0;font-size:13px;color:#6b7280;">
-    Прозрачные условия: первый год по коду <strong>${code}</strong> стоит ${price}. Со следующего года списание идёт по обычной цене (${list} в год). Отключить автопродление можно в кабинете в любой момент до даты списания.
+    Прозрачные условия: первый год по коду <strong>${code}</strong> стоит ${price} — столько же, сколько обычно полгода PRO. Со следующего года списание идёт по обычной цене (${list} в год). Отключить автопродление можно в кабинете в любой момент до даты списания.
   </p>`;
 }
 
@@ -420,7 +420,7 @@ export function renderProOfferD14Email(state: LifecycleUserState): string {
   return renderEmailLayout({
     userId: state.userId,
     preheader: `Жалобы в Telegram за секунду, микросайт в одном QR и ротация площадок. Код ${code} до ${until}`,
-    title: `Годовой PRO за ${price} вместо ${list}`,
+    title: `Год PRO по цене полугода: ${price} вместо ${list}`,
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">
@@ -490,7 +490,7 @@ export function renderProOfferReminderEmail(state: LifecycleUserState): string {
   return renderEmailLayout({
     userId: state.userId,
     preheader: `Персональный код ${code} действует до ${until}. Годовой PRO за ${price} вместо ${list}`,
-    title: `Через 2 дня скидка 30% на PRO закроется`,
+    title: `Через 2 дня закроется год PRO по цене полугода`,
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
       <p style="font-size:16px;color:#374151;">
@@ -557,7 +557,7 @@ export const LIFECYCLE_EMAIL_SUBJECTS: Record<
     if (profile === "content") {
       return `Микросайт и ваш бренд без вотермарки: PRO за ${price} вместо ${list} до ${until}`;
     }
-    return `Годовой PRO за ${price} вместо ${list}: жалобы в Telegram и скидка 30% до ${until}`;
+    return `Год PRO по цене полугода — ${price} вместо ${list}: жалобы в Telegram, до ${until}`;
   },
   pro_offer_reminder: (state) => {
     const offer = state.proIntroOffer;

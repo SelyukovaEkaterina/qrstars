@@ -10,8 +10,11 @@ npx prisma migrate resolve --rolled-back 20260525130000_add_pd_consent_fields 2>
 
 npx prisma migrate deploy
 
-echo "Seeding database..."
-if ! npx prisma db seed; then
+# Seed создаёт демо-аккаунты с известными паролями (в т.ч. ADMIN) — на чистой прод-базе
+# это открытая админка. На проде SKIP_SEED=1 в /opt/qrstars/.env.
+if [ "${SKIP_SEED:-}" = "1" ]; then
+  echo "Seed skipped (SKIP_SEED=1)."
+elif ! npx prisma db seed; then
   if [ "${NODE_ENV:-}" = "production" ]; then
     echo "Seed skipped (already applied or non-fatal in production)."
   else

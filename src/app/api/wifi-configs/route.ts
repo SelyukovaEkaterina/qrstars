@@ -6,6 +6,7 @@ import {
   establishmentAccessWhere,
   getEstablishmentAccess,
 } from "@/lib/establishment-access";
+import { collectContentCacheTargets, invalidateCacheTargets, invalidateContentCache } from "@/lib/content-cache";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -60,6 +61,7 @@ export async function POST(request: Request) {
     }
   }
 
+  invalidateContentCache("wifiConfig", wifiConfig.id);
   return NextResponse.json({ wifiConfig });
 }
 
@@ -111,6 +113,7 @@ export async function PUT(request: Request) {
     },
   });
 
+  invalidateContentCache("wifiConfig", wifiConfig.id);
   return NextResponse.json({ wifiConfig });
 }
 
@@ -144,7 +147,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const cacheTargets = await collectContentCacheTargets("wifiConfig", id);
   await prisma.wifiConfig.delete({ where: { id } });
+  void invalidateCacheTargets(cacheTargets);
 
   return NextResponse.json({ ok: true });
 }

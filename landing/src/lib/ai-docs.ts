@@ -21,9 +21,9 @@ export const PRODUCT_SUMMARY =
 export function plansMarkdown(): string {
   const lines = [
     `- **FREE** — 0 ₽ навсегда, ${PLANS.FREE.establishmentLimitNote}. ${PLANS.FREE.features.join('; ')}.`,
-    `- **PRO** — ${rub(PLAN_PRICING.PRO.yearlyRub)} в год (${PLAN_PRICING.PRO.yearlyNote}), ${PLANS.PRO.establishmentLimitNote}. ${PLANS.PRO.features.join('; ')}.`,
+    `- **PRO** — ${rub(PLAN_PRICING.PRO.halfYearRub)} за полгода или ${rub(PLAN_PRICING.PRO.yearlyRub)} в год (${PLAN_PRICING.PRO.yearlyNote}), ${PLANS.PRO.establishmentLimitNote}. ${PLANS.PRO.features.join('; ')}.`,
     `- **Сеть** — ${rub(PLAN_PRICING.NETWORK.yearlyRub)} в год, до ${PLAN_PRICING.NETWORK.includedEstablishments} проектов. ${PLANS.NETWORK.features.join('; ')}. ${CUSTOM_PLAN_HINT}`,
-    '- QR-кодов внутри проекта — без лимита на всех тарифах. Оплата — Robokassa, только годовая.',
+    '- QR-кодов внутри проекта — без лимита на всех тарифах. Оплата — Robokassa: PRO на полгода или год, «Сеть» на год.',
   ];
   return lines.join('\n');
 }
@@ -37,7 +37,7 @@ export const FEATURES_MD = `- **Сбор отзывов (REVIEW)**: гость �
 - **Микросайт (LANDING, PRO)**: страница бизнеса со всеми разделами в одном QR и адрес \`{имя}.qrstars.ru\`.
 - **Оформление QR**: цвета, логотип в центре, 33 арт-стиля, фигуры (сердце, зуб, машина…), экспорт PNG/JPG/SVG.
 - **Аналитика**: сканы по дням, топ QR, рейтинг; на PRO — устройства, браузеры, города, часы.
-- **Таблички**: акриловые тейбл-тенты с QR продаются на Wildberries и Ozon и активируются сканированием.
+- **Печать**: готовых табличек QrStars не продаёт — QR скачивается в PNG/JPG/SVG и печатается где угодно (стикер, тейбл-тент, меню, чек) или показывается на экране.
 - **Бесплатные инструменты без регистрации**: генератор статических QR (ссылка, Wi‑Fi, Telegram, WhatsApp, оплата по реквизитам, vCard, SMS…) и конструктор бумажных визиток с PDF для печати.`;
 
 export const API_MD = `QrStars даёт открытый REST API (JSON, OpenAPI 3.1) — для CRM, no-code сервисов, скриптов и ИИ-агентов.

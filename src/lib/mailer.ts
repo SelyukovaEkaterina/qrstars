@@ -10,14 +10,24 @@ const smtpPort = Number(process.env.SMTP_PORT) || 587;
 const smtpSecure =
   process.env.SMTP_SECURE === "true" || process.env.SMTP_SECURE === "1" || smtpPort === 465;
 
+const smtpAuth =
+  process.env.SMTP_USER && process.env.SMTP_PASS
+    ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS }
+    : undefined;
+
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: smtpPort,
   secure: smtpSecure,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
+  // Свой Postfix на хосте (host.docker.internal:25) пускает Docker-сеть без логина.
+  auth: smtpAuth,
+  // Внутри сервера TLS не нужен; с внешним SMTP на 587 STARTTLS включится сам.
+  ignoreTLS: process.env.SMTP_IGNORE_TLS === "true",
+  // Без таймаутов nodemailer ждёт недоступный SMTP ~2 мин на адрес — запросы,
+  // которые ждут письмо (сброс пароля, активация), висели дольше таймаута nginx.
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 30_000,
 });
 
 export async function sendMail(

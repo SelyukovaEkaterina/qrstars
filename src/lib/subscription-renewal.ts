@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import {
   PLAN_PRICING,
+  billingPeriodLabel,
   calcSubscriptionAmount,
   formatPlanLabel,
   type BillingPeriod,
@@ -201,7 +202,7 @@ export async function runSubscriptionRenewalBatch(): Promise<RenewalBatchResult>
     const estCount = await countUserEstablishments(sub.userId);
     const amount = calcSubscriptionAmount(plan, billing, estCount);
     const planLabel = formatPlanLabel(plan);
-    const periodLabel = billing === "yearly" ? "1 год" : "1 месяц";
+    const periodLabel = billingPeriodLabel(billing);
 
     const order = await prisma.paymentOrder.create({
       data: {

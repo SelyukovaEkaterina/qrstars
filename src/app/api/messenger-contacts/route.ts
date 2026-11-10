@@ -61,7 +61,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Некорректный провайдер" }, { status: 400 });
   }
 
-  if (!externalId?.trim()) {
+  // Telegram и MAX привязываются только через бота (webhook проверяет, что
+  // чат реально принадлежит владельцу). Ручной POST с чужим chat_id превращал
+  // бота в рассыльщик спама. В e2e — исключение, там нет живого бота.
+  if (provider !== "EMAIL" && process.env.E2E_TESTING !== "true") {
+    return NextResponse.json(
+      { error: "Telegram и MAX подключаются через бота: откройте ссылку в настройках уведомлений" },
+      { status: 403 }
+    );
+  }
+
+  if (typeof externalId !== "string" || !externalId.trim()) {
     return NextResponse.json({ error: "externalId обязателен" }, { status: 400 });
   }
 

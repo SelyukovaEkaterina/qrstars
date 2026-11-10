@@ -29,20 +29,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   }
 
-  await prisma.passwordResetToken.updateMany({
-    where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() } },
-    data: { usedAt: new Date() },
-  });
-
   const token = crypto.randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
 
-  await prisma.passwordResetToken.create({
+  const created = await prisma.passwordResetToken.create({
     data: { token, user: { connect: { id: user.id } }, expiresAt },
   });
 
   const resetUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/reset-password?token=${token}`;
-  await sendPasswordResetEmail(email, resetUrl);
+  const sent = await sendPasswordResetEmail(email, resetUrl);
+  if (!sent) {
+    // Прежние ссылки не трогаем: письмо не ушло, а у человека может быть рабочая
+    // ссылка, выданная вручную (восстановление после аварии Beget).
+    await prisma.passwordResetToken.delete({ where: { id: created.id } }).catch(() => {});
+    return NextResponse.json(
+      { error: "Не удалось отправить письмо: почта временно не работает. Напишите в поддержку — поможем войти." },
+      { status: 503 }
+    );
+  }
+
+  // Гасим прежние ссылки только после того, как новая действительно отправлена.
+  await prisma.passwordResetToken.updateMany({
+    where: { userId: user.id, usedAt: null, expiresAt: { gt: new Date() }, id: { not: created.id } },
+    data: { usedAt: new Date() },
+  });
 
   return NextResponse.json({ success: true });
 }

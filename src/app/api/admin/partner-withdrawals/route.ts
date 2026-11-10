@@ -47,10 +47,36 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
-  const withdrawal = await prisma.partnerWithdrawal.update({
-    where: { id },
-    data: { status, adminComment: adminComment || null },
+  // REJECTED и PAID — финальные: после отказа начисления уже вернулись
+  // партнёру, повторное «одобрение» вывело бы их дважды.
+  const NEXT: Record<string, string[]> = {
+    PENDING: ["APPROVED", "REJECTED", "PAID"],
+    APPROVED: ["REJECTED", "PAID"],
+  };
+
+  const result = await prisma.$transaction(async (tx) => {
+    const current = await tx.partnerWithdrawal.findUnique({ where: { id }, select: { status: true } });
+    if (!current) return { error: "Заявка не найдена", status: 404 } as const;
+    if (!(NEXT[current.status] ?? []).includes(status)) {
+      return { error: `Нельзя перевести заявку из ${current.status} в ${status}`, status: 409 } as const;
+    }
+    const updated = await tx.partnerWithdrawal.updateMany({
+      where: { id, status: current.status },
+      data: { status, adminComment: adminComment || null },
+    });
+    if (updated.count !== 1) return { error: "Заявка уже изменена — обновите страницу", status: 409 } as const;
+    if (status === "REJECTED") {
+      // Отказ — деньги снова доступны партнёру.
+      await tx.partnerEarning.updateMany({
+        where: { withdrawalId: id },
+        data: { status: "AVAILABLE", withdrawalId: null },
+      });
+    }
+    return { withdrawal: await tx.partnerWithdrawal.findUnique({ where: { id } }) } as const;
   });
 
-  return NextResponse.json({ withdrawal });
+  if ("error" in result) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
+  }
+  return NextResponse.json({ withdrawal: result.withdrawal });
 }

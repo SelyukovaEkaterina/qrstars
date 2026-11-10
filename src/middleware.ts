@@ -6,7 +6,7 @@ import {
   NO_ANALYTICS_QUERY_PARAM,
   buildNoAnalyticsCookieOptions,
 } from "@/lib/analytics-exclusion";
-import { micrositeSlugFromHost } from "@/lib/microsite-host";
+import { demoScanCodeFromHost, micrositeSlugFromHost } from "@/lib/microsite-host";
 
 function withNoAnalyticsCookie(request: NextRequest, response: NextResponse) {
   response.cookies.set(
@@ -20,11 +20,13 @@ function withNoAnalyticsCookie(request: NextRequest, response: NextResponse) {
 export function middleware(request: NextRequest) {
   const dropAnalytics =
     request.nextUrl.searchParams.get(NO_ANALYTICS_QUERY_PARAM) === "1";
-  const slug = micrositeSlugFromHost(request.headers.get("host"));
+  const host = request.headers.get("host");
+  const slug = micrositeSlugFromHost(host);
+  const demoCode = slug ? null : demoScanCodeFromHost(host);
 
-  if (slug && request.nextUrl.pathname === "/") {
+  if ((slug || demoCode) && request.nextUrl.pathname === "/") {
     const url = request.nextUrl.clone();
-    url.pathname = `/a/${slug}`;
+    url.pathname = slug ? `/a/${slug}` : `/q/${demoCode}`;
     if (dropAnalytics) url.searchParams.delete(NO_ANALYTICS_QUERY_PARAM);
     const response = NextResponse.rewrite(url);
     return dropAnalytics ? withNoAnalyticsCookie(request, response) : response;

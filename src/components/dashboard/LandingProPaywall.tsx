@@ -15,6 +15,7 @@ import {
   FileText,
   Palette,
   QrCode,
+  Sparkles,
   Star,
   Wifi,
   X,
@@ -50,7 +51,7 @@ const LANDING_BENEFITS: { icon: typeof QrCode; title: string; text: string }[] =
 ];
 
 /** Иконки идут по порядку PLANS.PRO.features (без микросайта), лишние падают на Check. */
-const EXTRA_PRO_ICONS = [Star, Bell, Palette, Banknote, BarChart3, QrCode, Crown];
+const EXTRA_PRO_ICONS = [Star, Bell, Palette, Banknote, BarChart3, QrCode, Sparkles, Crown];
 
 export interface LandingFreeAlternative {
   title: string;
@@ -214,7 +215,7 @@ export default function LandingProPaywall({
             <span className="font-semibold text-gray-900">
               {formatRub(PLAN_PRICING.PRO.yearlyRub)}/год
             </span>{" "}
-            — {PLAN_PRICING.PRO.yearlyNote}
+            — {PLAN_PRICING.PRO.yearlyNote} · или {formatRub(PLAN_PRICING.PRO.halfYearRub)} за полгода
           </p>
 
           <div className="mt-3 flex flex-col sm:flex-row gap-2">

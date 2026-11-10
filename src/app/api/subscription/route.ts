@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { buildPaymentRequest, isRobokassaConfigured, resolvePaymentRedirectUrl } from "@/lib/robokassa";
 import {
+  billingPeriodLabel,
   calcSubscriptionAmount,
   hasPaidFeatures,
   PLANS,
@@ -16,7 +17,7 @@ import {
   findActiveSubscription,
 } from "@/lib/subscription-utils";
 import { buildRenewalPriceChangeNotice } from "@/lib/subscription-billing-utils";
-import { markFirstPaidAccess } from "@/lib/subscription-activate";
+import { markFirstPaidAccess, subscriptionPeriodMs } from "@/lib/subscription-activate";
 import { getPlatformTariffChangeBanner } from "@/lib/tariff-change-notice";
 import { notifyPaymentAttempt } from "@/lib/telegram-support";
 import { LEGAL_OFFER_URL, LEGAL_OFFER_VERSION } from "@/lib/legal-urls";
@@ -81,11 +82,13 @@ export async function POST(request: Request) {
   const body = await request.json();
   const { action, plan: targetPlan, billing: billingRaw, recurringConsent } = body;
   const requestedPlan = body.plan as string | undefined;
-  // PRO и «Сеть» продаются только на год (PLAN_PRICING.*.yearlyOnly).
+  // PRO — на год (по умолчанию) или на полгода; «Сеть» — только на год.
   const billing: BillingPeriod =
-    billingRaw === "yearly" || requestedPlan === "PRO" || requestedPlan === "NETWORK"
-      ? "yearly"
-      : "monthly";
+    requestedPlan === "PRO" && billingRaw === "halfyear"
+      ? "halfyear"
+      : billingRaw === "yearly" || requestedPlan === "PRO" || requestedPlan === "NETWORK"
+        ? "yearly"
+        : "monthly";
 
   if (action === "subscribe") {
     const plan = targetPlan as "PRO" | "NETWORK";
@@ -109,14 +112,9 @@ export async function POST(request: Request) {
           { status: 400 }
         );
       }
-      // Пробный период гасит сама оплата (handlePaidPaymentOrder), иначе
-      // брошенный чекаут отнимал бы у владельца остаток триала.
-      if (!existing.isTrial) {
-        await prisma.subscription.update({
-          where: { id: existing.id },
-          data: { status: "CANCELED", cancelAtPeriodEnd: false },
-        });
-      }
+      // Текущую подписку (PRO при апгрейде до «Сети», триал) гасит сама оплата —
+      // handlePaidPaymentOrder. Отменять её здесь нельзя: брошенный чекаут
+      // оставлял владельца на FREE с уже оплаченным периодом PRO.
     }
 
     const establishmentCount = await countUserEstablishments(userId);
@@ -127,6 +125,7 @@ export async function POST(request: Request) {
       const resolved = await resolveProIntroOfferAmount({
         userId,
         plan,
+        billing,
         catalogAmount,
         requestedCode: body.promoCode,
       });
@@ -139,11 +138,20 @@ export async function POST(request: Request) {
       throw err;
     }
     const planLabel = plan === "PRO" ? "PRO" : "Сеть";
-    const periodLabel = billing === "yearly" ? "1 год" : "1 месяц";
+    const periodLabel = billingPeriodLabel(billing);
 
     if (!isRobokassaConfigured()) {
-      const periodMs =
-        billing === "yearly" ? 365 * 24 * 60 * 60 * 1000 : 30 * 24 * 60 * 60 * 1000;
+      const periodMs = subscriptionPeriodMs(billing);
+      // Mock-оплата «прошла» сразу — гасим прежнюю подписку, как handlePaidPaymentOrder.
+      await prisma.subscription.updateMany({
+        where: {
+          userId,
+          status: "ACTIVE",
+          plan: { not: "FREE" },
+          id: { not: `mock-${userId}` },
+        },
+        data: { status: "CANCELED", cancelAtPeriodEnd: false },
+      });
       await prisma.subscription.upsert({
         where: { id: `mock-${userId}` },
         update: {

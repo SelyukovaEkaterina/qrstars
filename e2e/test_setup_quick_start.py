@@ -568,3 +568,47 @@ def test_quick_start_existing_establishment_reviews_uses_saved_2gis(base_url):
     )
     assert second.status_code == 200, second.text
     assert second.json()["qrcode"]["mode"] == "REVIEW"
+
+
+def test_quick_start_menu_reuses_existing_project_menu(base_url):
+    """Повторный мастер «QR-меню» не подменяет меню проекта демо-блюдами."""
+    email = unique_email("qs-menu-reuse")
+    password = "secure123"
+    assert req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": password, "consentPd": True},
+    ).status_code == 200
+    session = req_lib.Session()
+    login(session, base_url, email, password)
+
+    first = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "menu", "name": "Кафе Повтор"},
+    )
+    assert first.status_code == 200, first.text
+    # Новый проект — меню стартовое (поле есть только в ветке существующего проекта).
+    assert not first.json().get("menuReused")
+    est_id = first.json()["establishment"]["id"]
+
+    page = session.get(f"{base_url}/api/establishments/{est_id}/page").json()["establishment"]
+    menu = page["menu"]
+    own_items = [{"name": "Борщ владельца", "price": "350"}]
+    upd = session.put(
+        f"{base_url}/api/menus",
+        json={"id": menu["id"], "title": menu.get("title") or "Меню", "items": own_items},
+    )
+    assert upd.status_code == 200, upd.text
+
+    second = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "menu", "establishmentId": est_id},
+    )
+    assert second.status_code == 200, second.text
+    assert second.json()["menuReused"] is True
+
+    page2 = session.get(f"{base_url}/api/establishments/{est_id}/page").json()["establishment"]
+    assert page2["menu"]["id"] == menu["id"]
+    assert [i["name"] for i in page2["menu"]["items"]] == ["Борщ владельца"]
+
+    qr = session.get(f"{base_url}/api/qrcodes", params={"id": second.json()["qrcode"]["id"]}).json()["qrcode"]
+    assert qr["menuId"] == menu["id"]

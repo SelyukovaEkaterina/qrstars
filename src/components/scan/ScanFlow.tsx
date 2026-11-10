@@ -27,6 +27,7 @@ import {
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
 import { openExternalUrl } from "@/lib/open-external";
+import { REVIEW_COMMENT_MAX, REVIEW_GUEST_CONTACT_MAX, REVIEW_GUEST_NAME_MAX } from "@/lib/review-input";
 import {
   industryReviewCopy,
   parseEstablishmentIndustry,
@@ -75,6 +76,7 @@ export default function ScanFlow({
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [skippedAction, setSkippedAction] = useState(false);
   const [chosenPlatform, setChosenPlatform] = useState<string | null>(null);
   const [leavingTo, setLeavingTo] = useState<string | null>(null);
@@ -163,12 +165,13 @@ export default function ScanFlow({
 
   const submitReview = async (isNegative: boolean, reviewComment?: string) => {
     setSubmitting(true);
+    setSubmitError("");
     try {
       if (isDemo) {
         setStep("thanks");
         return;
       }
-      await fetch("/api/reviews", {
+      const res = await fetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -182,8 +185,22 @@ export default function ScanFlow({
           ...(consentChecked && guestPhone.trim() ? { pdConsentGiven: true } : {}),
         }),
       });
+      // Жалоба не сохранилась (429 за NAT в кафе, 5xx) — не показываем «Спасибо»,
+      // иначе гость уходит, а владелец жалобу так и не увидит.
+      if (!res.ok && isNegative) {
+        const data = await res.json().catch(() => null);
+        setSubmitError(
+          (data && typeof data.error === "string" && data.error) ||
+            "Не удалось отправить. Попробуйте ещё раз."
+        );
+        return;
+      }
       setStep("thanks");
     } catch {
+      if (isNegative) {
+        setSubmitError("Нет связи. Проверьте интернет и попробуйте ещё раз.");
+        return;
+      }
       setStep("thanks");
     } finally {
       setSubmitting(false);
@@ -299,12 +316,14 @@ export default function ScanFlow({
               label="Ваше имя (необязательно)"
               value={guestName}
               onChange={(e) => setGuestName(e.target.value)}
+              maxLength={REVIEW_GUEST_NAME_MAX}
               placeholder="Как к вам обращаться?"
             />
             <Input
               label="Телефон или Telegram"
               value={guestPhone}
               onChange={(e) => setGuestPhone(e.target.value)}
+              maxLength={REVIEW_GUEST_CONTACT_MAX}
               placeholder="+7… или @username"
             />
             <p className={`text-xs ${isBg ? "text-white/60" : dark ? "text-slate-400" : "text-gray-500"}`}>
@@ -315,6 +334,7 @@ export default function ScanFlow({
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
+                maxLength={REVIEW_COMMENT_MAX}
                 rows={4}
                 className={`w-full px-3 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:border-transparent ${
                   isBg
@@ -337,6 +357,16 @@ export default function ScanFlow({
                 highlight={consentHighlight}
               />
             )}
+            {submitError && (
+              <p
+                role="alert"
+                className={`rounded-lg px-3 py-2 text-sm ${
+                  isBg ? "bg-red-500/20 text-white" : dark ? "bg-red-950/60 text-red-200" : "bg-red-50 text-red-700"
+                }`}
+              >
+                {submitError}
+              </p>
+            )}
             <Button
               size="lg"
               className="w-full"
@@ -344,7 +374,7 @@ export default function ScanFlow({
               onClick={handlePrimaryAction}
               disabled={submitting || !comment}
             >
-              {submitting ? "Отправляем..." : starStep.ctaLabel}
+              {submitting ? "Отправляем..." : submitError ? "Отправить ещё раз" : starStep.ctaLabel}
             </Button>
             <Button
               variant="ghost"

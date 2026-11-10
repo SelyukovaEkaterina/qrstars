@@ -379,7 +379,7 @@ export async function collectWeeklyReportMetrics(
   const monthlyRevenue = paidSubscriptions.reduce(
     (sum, s) =>
       sum +
-      estimateSubscriptionMonthlyRevenue(s.plan, s.user._count.establishments),
+      estimateSubscriptionMonthlyRevenue(s.plan, s.user._count.establishments, s.billing),
     0
   );
 

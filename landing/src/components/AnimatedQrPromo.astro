@@ -1,0 +1,140 @@
+---
+/**
+ * Витрина анимированных QR (PRO): все эффекты сразу, живые canvas на том же движке,
+ * что кабинет (`src/lib/qr-engine/animate.ts`). Все коды ведут на qrstars.ru.
+ * Сочетания стиль + анимация проверены jsQR на каждом кадре — новые проверяйте так же.
+ */
+import { QR_ANIMATIONS } from '../../../src/lib/qr-engine/animate';
+import { PLAN_PRICING } from '../../../src/lib/plans';
+import { generatorRegisterUrl, withPlan } from '../lib/utm';
+
+interface Props {
+  /** utm_content для регистрации, например `qr-kod-dlya-video`. */
+  content: string;
+  title?: string;
+  subtitle?: string;
+}
+
+const {
+  content,
+  title = 'Анимированный QR-код — заметнее на экране',
+  subtitle = 'В ролике, на экране в зале, в сторис и на сайте живой код ловит взгляд лучше статичного. Каждый кадр читается камерой — наведите телефон на любой пример.',
+} = Astro.props;
+
+const proUrl = withPlan(generatorRegisterUrl(`${content}-animation`, Astro.url.searchParams), 'pro');
+const proFrom = `${PLAN_PRICING.PRO.halfYearRub.toLocaleString('ru-RU')} ₽`;
+---
+
+<section class="py-12 lg:py-16 bg-slate-950 text-white" id="animated-qr" data-anim-promo>
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="max-w-2xl">
+      <span class="inline-flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-bold tracking-wide">
+        <i class="fa-solid fa-film"></i> НОВОЕ · PRO
+      </span>
+      <h2 class="mt-3 text-2xl sm:text-3xl font-extrabold">{title}</h2>
+      <p class="mt-3 text-slate-300">{subtitle}</p>
+    </div>
+
+    <div class="mt-8 grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 items-start">
+      {QR_ANIMATIONS.map(a => (
+        <figure class="rounded-2xl bg-white p-2 sm:p-3">
+          <canvas data-anim={a.id} width="320" height="320" class="block w-full h-auto" aria-label={`Анимированный QR-код: ${a.label}`}></canvas>
+          <figcaption class="mt-2 text-center">
+            <b class="block text-sm text-slate-900">{a.label}</b>
+            <span class="block text-xs text-slate-500 leading-snug">{a.hint}</span>
+          </figcaption>
+        </figure>
+      ))}
+    </div>
+
+    <div class="mt-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+      <a href={proUrl} data-goal="qr_animation_pro_cta" data-goal-params={JSON.stringify({ source: content })} class="inline-flex items-center justify-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/30">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> Сделать анимированный QR
+      </a>
+      <a href="/free-qr-generator.html?anim=1" data-goal="qr_animation_try" data-goal-params={JSON.stringify({ source: content })} class="text-sm font-semibold text-indigo-300 hover:text-white">
+        Примерить на своём оформлении →
+      </a>
+    </div>
+    <p class="mt-3 text-xs text-slate-400">GIF со своей ссылкой — в кабинете на тарифе PRO, {proFrom} за полгода. Ссылку внутри кода можно менять, не перевыпуская GIF. Для печати — обычный PNG или SVG.</p>
+  </div>
+</section>
+
+<script>
+  import QRCode from 'qrcode';
+  import {
+    ART_PRESETS,
+    artPresetDesign,
+    computeLayout,
+    createQrAnimation,
+    qrCenterBox,
+    renderToCanvas,
+    type QrAnimationId,
+    type QrDesign,
+    type QrModules,
+  } from '../../../src/lib/qr-engine';
+
+  const BASE: QrDesign = {
+    dotStyle: 'rounded', eyeStyle: 'rounded', fg: '#1e293b', bg: '#ffffff', bgTransparent: false,
+    gradient: false, grad1: '#000000', grad2: '#000000', gradType: 'linear-diag', eyeCustom: false,
+    eyeColor: '#000000', logoSize: 20, logoFill: false, frame: false, frameText: '', frameStyle: 'bottom',
+    ecc: 'H', margin: 4, scatter: false, scatterDensity: 50, scatterShape: 'circle',
+  };
+
+  /** Стиль под каждый эффект — проверенные декодером сочетания. */
+  const DESIGNS: Record<QrAnimationId, QrDesign> = {
+    shine: { ...BASE, dotStyle: 'dots', eyeStyle: 'circle', gradient: true, grad1: '#7c3aed', grad2: '#db2777' },
+    flow: { ...BASE, dotStyle: 'liquid', fg: '#be123c', centerMode: 'text', centerText: '▶' },
+    scan: { ...BASE, dotStyle: 'classic', fg: '#0f766e', frame: true, frameText: 'Смотреть видео', frameStyle: 'bottom' },
+    // Пульс — на арт-стиле «Сердце» (без эмодзи-логотипа: ему нужна загрузка картинки).
+    pulse: { ...BASE, ...artPresetDesign(ART_PRESETS.find(p => p.id === 'art-heart')!), ecc: 'H' } as QrDesign,
+    swing: { ...BASE, dotStyle: 'diamond', fg: '#1d4ed8', centerMode: 'text', centerText: 'SALE' },
+    float: { ...BASE, dotStyle: 'dots', eyeStyle: 'circle', fg: '#fde68a', bg: '#111827' },
+    youtube: { ...BASE, dotStyle: 'classic', eyeStyle: 'rounded', fg: '#0f0f0f', margin: 3 },
+    telegram: { ...BASE, dotStyle: 'dots', eyeStyle: 'rounded', fg: '#0c4a6e', margin: 3 },
+  };
+
+  const URL_DEMO = 'https://qrstars.ru';
+
+  for (const root of document.querySelectorAll<HTMLElement>('[data-anim-promo]')) {
+    const items = [...root.querySelectorAll<HTMLCanvasElement>('canvas[data-anim]')].map(canvas => {
+      const id = canvas.dataset.anim as QrAnimationId;
+      const d = DESIGNS[id];
+      const modules = QRCode.create(URL_DEMO, { errorCorrectionLevel: d.ecc }).modules as unknown as QrModules;
+      const layout = computeLayout(modules, d);
+      const base = document.createElement('canvas');
+      renderToCanvas(base, layout, d, {}, 320);
+      const anim = createQrAnimation(base, {
+        id,
+        design: d,
+        layout,
+        centerBox: d.centerMode === 'text' ? qrCenterBox(layout, d.logoSize) : null,
+        handle: 'qrstars',
+      });
+      canvas.width = anim.width;
+      canvas.height = anim.height;
+      const ctx = canvas.getContext('2d')!;
+      anim.draw(ctx, 0);
+      return { anim, ctx };
+    });
+
+    // Крутим, только пока блок на экране.
+    let raf = 0;
+    let start = 0;
+    const loop = (now: number) => {
+      if (!start) start = now;
+      for (const { anim, ctx } of items) anim.draw(ctx, Math.floor((now - start) / anim.delayMs) % anim.frames);
+      raf = requestAnimationFrame(loop);
+    };
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduceMotion) {
+      new IntersectionObserver(entries => {
+        const visible = entries.some(e => e.isIntersecting);
+        if (visible && !raf) raf = requestAnimationFrame(loop);
+        if (!visible && raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+      }).observe(root);
+    }
+  }
+</script>

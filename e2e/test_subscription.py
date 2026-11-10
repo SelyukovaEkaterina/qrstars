@@ -106,3 +106,34 @@ def test_payment_history(owner_session, admin_session, base_url):
     assert paid["amount"] == amount
     assert paid["plan"] == "PRO"
     assert paid["kind"] == "INITIAL"
+
+
+def test_upgrade_checkout_keeps_pro_until_paid(admin_session, base_url):
+    """Брошенный чекаут PRO → «Сеть» не должен отнимать оплаченный PRO."""
+    import time as _time
+    from conftest import login, set_user_plan
+
+    email = f"e2e-upgrade-{int(_time.time() * 1000)}@test.com"
+    reg = req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": "secure123", "name": "Upgrade", "consentPd": True},
+    )
+    assert reg.status_code == 200, reg.text
+    set_user_plan(admin_session, base_url, "PRO", email=email)
+
+    s = req_lib.Session()
+    login(s, base_url, email, "secure123")
+    assert s.get(f"{base_url}/api/subscription").json()["plan"] == "PRO"
+
+    r = s.post(
+        f"{base_url}/api/subscription",
+        json={"action": "subscribe", "plan": "NETWORK", "billing": "yearly", "recurringConsent": True},
+    )
+    assert r.status_code == 200, r.text
+    after = s.get(f"{base_url}/api/subscription").json()
+    if r.json().get("mode") == "mock":
+        # Mock-оплата проходит сразу: «Сеть» активна, PRO погашен.
+        assert after["plan"] == "NETWORK"
+    else:
+        # Оплата ещё не пришла — PRO на месте.
+        assert after["plan"] == "PRO"

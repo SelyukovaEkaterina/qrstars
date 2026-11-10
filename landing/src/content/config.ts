@@ -60,6 +60,8 @@ const seoCollection = defineCollection({
     ctaSecondaryHref: z.string().optional(),
     ctaSecondaryGoal: z.string().optional(),
     stickyCta: z.boolean().optional(),
+    /** Блок «Анимированный QR» (PRO) после первого экрана. */
+    animatedQrPromo: z.boolean().optional(),
     howItWorks: z.array(stepSchema).optional(),
     forWhom: z.array(industrySchema).optional(),
     faq: z.array(faqSchema),

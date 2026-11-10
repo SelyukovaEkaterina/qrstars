@@ -2,7 +2,7 @@
 # Sync nginx config to VPS and reload (no Docker rebuild).
 set -euo pipefail
 
-HOST="${DEPLOY_HOST:-root@109.69.17.233}"
+HOST="${DEPLOY_HOST:-root@138.16.170.220}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 rsync -az "$ROOT/deploy/nginx/" "$HOST:/opt/qrstars/deploy/nginx/"

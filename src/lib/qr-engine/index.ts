@@ -6,3 +6,4 @@ export * from "./payload";
 export { QR_SILHOUETTES, HALFTONE_RES, renderSilhouettePreview } from "./art";
 export * from "./art-presets";
 export { SvgContext } from "./svg-context";
+export * from "./animate";

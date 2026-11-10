@@ -113,9 +113,9 @@ class TestProIntroOffer:
         sub = session.get(f"{base_url}/api/subscription")
         assert sub.status_code == 200, sub.text
         offer = sub.json().get("introOffer")
-        assert offer["amountRub"] == 690
-        assert offer["listAmountRub"] == 990
-        assert offer["code"].startswith("START30-")
+        assert offer["amountRub"] == 990
+        assert offer["listAmountRub"] == 1490
+        assert offer["code"].startswith("YEAR990-")
 
         again = run_cron(base_url)
         assert "pro_offer_d14" not in sent_keys_for(again, user["id"])
@@ -195,15 +195,28 @@ class TestProIntroOffer:
 
         wrong = session.post(
             f"{base_url}/api/subscription",
-            json={"action": "subscribe", "plan": "PRO", "recurringConsent": True, "promoCode": "START30-NOPE00"},
+            json={"action": "subscribe", "plan": "PRO", "recurringConsent": True, "promoCode": "YEAR990-NOPE00"},
         )
         assert wrong.status_code == 400, wrong.text
+
+        # Код действует только на годовую оплату.
+        half_with_code = session.post(
+            f"{base_url}/api/subscription",
+            json={
+                "action": "subscribe",
+                "plan": "PRO",
+                "billing": "halfyear",
+                "recurringConsent": True,
+                "promoCode": offer["code"],
+            },
+        )
+        assert half_with_code.status_code == 400, half_with_code.text
 
         ok = session.post(
             f"{base_url}/api/subscription",
             json={"action": "subscribe", "plan": "PRO", "recurringConsent": True, "promoCode": offer["code"]},
         )
-        finish_subscribe(base_url, ok, 690)
+        finish_subscribe(base_url, ok, 990)
 
         after = session.get(f"{base_url}/api/subscription").json()
         assert after["plan"] == "PRO"
@@ -226,7 +239,7 @@ class TestProIntroOffer:
             json={"action": "subscribe", "plan": "PRO", "recurringConsent": True},
         )
         assert paid.status_code == 200, paid.text
-        assert paid.json()["amount"] == 990
+        assert paid.json()["amount"] == 1490
 
     def test_reminder_before_expiry_and_not_after_upgrade(self, base_url, admin_session):
         user, _, _ = prepare_qr_user(

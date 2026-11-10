@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import Link from "next/link";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
@@ -19,9 +19,12 @@ import {
   Clock,
 } from "lucide-react";
 import {
+  billingPeriodLabel,
   formatRub,
   formatPlanLabel,
   PLANS,
+  PLAN_PRICING,
+  PRO_YEARLY_SAVINGS_PERCENT,
   CUSTOM_PLAN_HINT,
   calcSubscriptionAmount,
   type PlanId,
@@ -83,6 +86,7 @@ export default function SubscriptionPage() {
   const [history, setHistory] = useState<HistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(true);
   const [recurringConsent, setRecurringConsent] = useState(false);
+  const [proBilling, setProBilling] = useState<"yearly" | "halfyear">("yearly");
   const [consentErrorPlan, setConsentErrorPlan] = useState<"PRO" | "NETWORK" | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
@@ -130,7 +134,12 @@ export default function SubscriptionPage() {
       const res = await fetch("/api/subscription", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "subscribe", plan, billing: "yearly", recurringConsent: true }),
+        body: JSON.stringify({
+          action: "subscribe",
+          plan,
+          billing: plan === "PRO" ? proBilling : "yearly",
+          recurringConsent: true,
+        }),
       });
 
       const json = await res.json();
@@ -216,6 +225,14 @@ export default function SubscriptionPage() {
   const introOffer = data.introOffer;
   const priceFor = (planId: "PRO" | "NETWORK") => {
     const p = PLANS[planId].pricing;
+    if (planId === "PRO" && proBilling === "halfyear") {
+      return {
+        main: PLAN_PRICING.PRO.halfYearRub,
+        suffix: "/ полгода",
+        note: PLAN_PRICING.PRO.halfYearNote,
+        compareAt: undefined as number | undefined,
+      };
+    }
     if (planId === "PRO" && introOffer) {
       return {
         main: introOffer.amountRub,
@@ -224,8 +241,63 @@ export default function SubscriptionPage() {
         compareAt: introOffer.listAmountRub,
       };
     }
+    if (planId === "PRO") {
+      return {
+        main: p.yearlyRub,
+        suffix: "/ год",
+        note: `${p.yearlyNote} · выгоднее на ${PRO_YEARLY_SAVINGS_PERCENT}%, чем по полгода`,
+        compareAt: undefined as number | undefined,
+      };
+    }
     return { main: p.yearlyRub, suffix: "/ год", note: p.yearlyNote, compareAt: undefined as number | undefined };
   };
+
+  const proChargeNote =
+    proBilling === "halfyear"
+      ? `Спишем ${formatRub(PLAN_PRICING.PRO.halfYearRub)} сейчас и далее раз в полгода.`
+      : introOffer
+        ? `Спишем ${formatRub(introOffer.amountRub)} сейчас, затем ${formatRub(introOffer.listAmountRub)} раз в год.`
+        : `Спишем ${formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} сейчас и далее раз в год.`;
+
+  const proPeriodSwitch = (
+    <div
+      role="radiogroup"
+      aria-label="Период оплаты PRO"
+      className="grid grid-cols-2 gap-1 rounded-lg bg-gray-100 p-1"
+    >
+      {(
+        [
+          {
+            id: "yearly",
+            label: "Год",
+            badge: introOffer ? `−${introOffer.discountPercent}%` : `−${PRO_YEARLY_SAVINGS_PERCENT}%`,
+          },
+          { id: "halfyear", label: "Полгода", badge: null },
+        ] as const
+      ).map((opt) => {
+        const active = proBilling === opt.id;
+        return (
+          <button
+            key={opt.id}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            onClick={() => setProBilling(opt.id)}
+            className={`flex min-h-9 items-center justify-center gap-1.5 rounded-md px-2 text-sm font-medium transition-colors ${
+              active ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            }`}
+          >
+            {opt.label}
+            {opt.badge && (
+              <span className="rounded bg-green-100 px-1.5 py-0.5 text-[11px] font-semibold text-green-700">
+                {opt.badge}
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div className="flex min-h-screen bg-gray-50">
@@ -358,6 +430,7 @@ export default function SubscriptionPage() {
               currentPlan={currentPlan}
               isPaidActive={isPaidActive}
               price={priceFor("PRO")}
+              periodSwitch={proPeriodSwitch}
               onSubscribe={() => handleSubscribe("PRO")}
               subscribing={subscribing}
               disabled={(currentPlan === "PRO" && isPaidActive) || networkActive}
@@ -372,11 +445,7 @@ export default function SubscriptionPage() {
                 if (v) setConsentErrorPlan(null);
               }}
               consentError={consentErrorPlan === "PRO"}
-              chargeNote={
-                introOffer
-                  ? `Спишем ${formatRub(introOffer.amountRub)} сейчас, затем ${formatRub(introOffer.listAmountRub)} раз в год.`
-                  : `Спишем ${formatRub(calcSubscriptionAmount("PRO", "yearly", estCount))} сейчас и далее раз в год.`
-              }
+              chargeNote={proChargeNote}
             />
             <PlanCard
               planId="NETWORK"
@@ -398,7 +467,7 @@ export default function SubscriptionPage() {
 
           <p className="text-xs text-gray-500 text-center">
             QR-кодов внутри проекта — без лимита на всех тарифах. Тарификация идёт по числу
-            проектов, не по QR. PRO и «Сеть» оплачиваются только на год.
+            проектов, не по QR. PRO оплачивается на год или полгода, «Сеть» — на год.
           </p>
           <p className="text-xs text-gray-500 text-center -mt-4">
             * {CUSTOM_PLAN_HINT}{" "}
@@ -431,7 +500,7 @@ export default function SubscriptionPage() {
                           </p>
                           <p className="mt-0.5 text-xs text-gray-500">
                             {formatPaymentDate(item.paidAt ?? item.createdAt)} ·{" "}
-                            {item.billing === "yearly" ? "1 год" : "1 месяц"}
+                            {billingPeriodLabel(item.billing)}
                           </p>
                         </div>
                         <span className="shrink-0 text-sm font-semibold tabular-nums text-gray-900">
@@ -498,7 +567,7 @@ export default function SubscriptionPage() {
                           </td>
                           <td className="px-4 py-3">
                             <span className="text-xs text-gray-600">
-                              {item.billing === "yearly" ? "1 год" : "1 месяц"}
+                              {billingPeriodLabel(item.billing)}
                             </span>
                           </td>
                           <td className="px-4 py-3 text-right">
@@ -551,6 +620,7 @@ function PlanCard({
   isPaidActive,
   price,
   priceHint,
+  periodSwitch,
   onSubscribe,
   subscribing,
   disabled,
@@ -565,6 +635,7 @@ function PlanCard({
   isPaidActive: boolean;
   price: { main: number; suffix: string; note: string; compareAt?: number };
   priceHint?: string;
+  periodSwitch?: ReactNode;
   onSubscribe: () => void;
   subscribing: string | null;
   disabled: boolean;
@@ -605,6 +676,8 @@ function PlanCard({
         </div>
 
         <p className="text-sm text-gray-500">{plan.tagline}</p>
+
+        {periodSwitch && !(isCurrent && isPaidActive) && periodSwitch}
 
         <div>
           {price.compareAt != null && price.compareAt !== price.main && (

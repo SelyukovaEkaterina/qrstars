@@ -32,7 +32,7 @@ export default function CardShortAddress({
   const [copied, setCopied] = useState(false);
 
   if (!hasPaidFeatures) {
-    const price = PLAN_PRICING.PRO.yearlyRub.toLocaleString("ru-RU");
+    const price = PLAN_PRICING.PRO.halfYearRub.toLocaleString("ru-RU");
     return (
       <Card className="border-indigo-200 bg-indigo-50/60 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -47,7 +47,7 @@ export default function CardShortAddress({
             </p>
             <p className="mt-1 text-sm text-gray-600">
               Легко продиктовать по телефону, написать на машине и кинуть в чат ЖК. Плюс без подписи QrStars внизу
-              визитки. PRO — {price} ₽ в год ({PLAN_PRICING.PRO.yearlyNote}).
+              визитки. PRO — от {price} ₽ за полгода.
             </p>
           </div>
           <Link

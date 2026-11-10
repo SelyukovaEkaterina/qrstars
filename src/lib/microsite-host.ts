@@ -44,7 +44,21 @@ const RESERVED_MICROSITE_SLUGS = new Set([
 const MICROSITE_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]{0,30}[a-z0-9])?$/;
 
 export function isReservedMicrositeSlug(slug: string): boolean {
-  return RESERVED_MICROSITE_SLUGS.has(slug);
+  // demo-* — как у кодов QR: под ними живут демо, клиенту не отдаём
+  return RESERVED_MICROSITE_SLUGS.has(slug) || slug.startsWith("demo-");
+}
+
+/** Служебные поддомены с демо: demo.qrstars.ru → /q/demo-landing (демо без БД). */
+const DEMO_MICROSITE_HOSTS: Record<string, string> = {
+  demo: "demo-landing",
+};
+
+/** Код демо-QR для служебного поддомена или null. */
+export function demoScanCodeFromHost(host: string | null | undefined): string | null {
+  if (!host) return null;
+  const hostname = host.split(":")[0].trim().toLowerCase().replace(/\.$/, "");
+  if (!hostname.endsWith(MICROSITE_HOST_SUFFIX)) return null;
+  return DEMO_MICROSITE_HOSTS[hostname.slice(0, -MICROSITE_HOST_SUFFIX.length)] ?? null;
 }
 
 export function isMicrositeSlug(slug: string): boolean {

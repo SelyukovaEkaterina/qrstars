@@ -100,3 +100,10 @@ export function trackEvent(event: string, props?: TrackEventProps) {
 
   reachMetrikaGoal(event, props);
 }
+
+/** Только цель Метрики, без записи в UserEvent (для действий вне мастера). */
+export function trackMetrikaGoal(goal: string, props?: TrackEventProps) {
+  if (isAnalyticsDisabledClient() || typeof window === "undefined") return;
+  pendingMetrikaGoals.push({ goal, props: sanitizeMetrikaProps(props) });
+  if (!flushPendingMetrikaGoals()) scheduleMetrikaFlush();
+}

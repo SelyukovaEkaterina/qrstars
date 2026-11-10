@@ -2,7 +2,7 @@
 # Build landing (Astro, landing/) and publish static files to the VPS (served by nginx from /var/www/qrstars).
 set -euo pipefail
 
-HOST="${DEPLOY_HOST:-root@109.69.17.233}"
+HOST="${DEPLOY_HOST:-root@138.16.170.220}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 cd "$ROOT/landing"

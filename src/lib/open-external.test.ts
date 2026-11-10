@@ -115,4 +115,33 @@ describe("openExternalUrl", () => {
     assert.deepEqual(openExternalUrl("https://yandex.ru/maps/"), { openedInNewTab: true });
     assert.deepEqual(opened, [["https://yandex.ru/maps/", "_blank", "noopener,noreferrer"]]);
   });
+
+  it("never navigates to javascript: or data: URLs", () => {
+    const navigated: string[] = [];
+    const top = {
+      location: {
+        assign: (url: string) => navigated.push(url),
+        replace: (url: string) => navigated.push(url),
+      },
+    };
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { self: top, top, location: top.location, open: (u: string) => navigated.push(u) },
+    });
+    for (const bad of ["javascript:alert(1)", " JavaScript:alert(1)", "data:text/html,<script>1</script>", "/q/abc"]) {
+      assert.deepEqual(openExternalUrl(bad), { openedInNewTab: false });
+    }
+    assert.deepEqual(navigated, []);
+  });
+
+  it("adds https to a bare domain", () => {
+    const assigned: string[] = [];
+    const top = { location: { assign: (url: string) => assigned.push(url) } };
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { self: top, top, location: top.location, open: () => null },
+    });
+    openExternalUrl("tbank.ru/cf/abc");
+    assert.deepEqual(assigned, ["https://tbank.ru/cf/abc"]);
+  });
 });

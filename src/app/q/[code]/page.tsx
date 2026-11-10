@@ -33,6 +33,7 @@ import RedirectInterstitial from "@/components/scan/RedirectInterstitial";
 import { canViewLandingPage } from "@/lib/qr-mode-access";
 import LandingLockedState from "@/components/scan/LandingLockedState";
 import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
+import { BEGET_INCIDENT } from "@/lib/incident";
 
 interface ScanPageProps {
   params: Promise<{ code: string }>;
@@ -328,7 +329,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
     });
 
     if (!qrCode) {
-      return <QrNotActivated code={code} variant="not-found" />;
+      return <QrUnknownCode code={code} />;
     }
 
     // For active non-REDIRECT modes, load relations matching the mode
@@ -342,7 +343,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
         include: buildScanInclude(qrCode.mode) as any,
       });
       if (!fullQr) {
-        return <QrNotActivated code={code} variant="not-found" />;
+        return <QrUnknownCode code={code} />;
       }
 
       // Pre-compute LANDING extra-module queries so they are cached too (#2)
@@ -358,7 +359,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
   }
 
   if (!qrCode) {
-    return <QrNotActivated code={code} variant="not-found" />;
+    return <QrUnknownCode code={code} />;
   }
 
   if (!qrCode.isActive) {
@@ -391,6 +392,11 @@ export default async function ScanPage({ params }: ScanPageProps) {
       return <RedirectInterstitial code={code} target={target} />;
     }
     redirect(target);
+  }
+
+  // Восстановленный после аварии QR без ссылки (или редирект, у которого ссылку стёрли).
+  if (qrCode.mode === "REDIRECT" && !qrCode.redirectUrl) {
+    return <QrTemporarilyUnavailable code={code} restorable={false} />;
   }
 
   const est = qrCode.establishment;
@@ -759,6 +765,60 @@ function ScanEmptyState({
         <div className="text-5xl">{emoji}</div>
         <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
         <p className="text-gray-500">{desc}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Кода нет в базе: во время аварии Beget это почти всегда утраченный QR, а не «пустая» табличка. */
+function QrUnknownCode({ code }: { code: string }) {
+  if (BEGET_INCIDENT.active) return <QrTemporarilyUnavailable code={code} restorable />;
+  return <QrNotActivated code={code} variant="not-found" />;
+}
+
+function QrTemporarilyUnavailable({ code, restorable }: { code: string; restorable: boolean }) {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-amber-50 via-white to-indigo-50 px-4 py-10">
+      <div className="w-full max-w-sm">
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-amber-400 to-orange-500" />
+          <div className="p-8 text-center">
+            <div className="mx-auto mb-5 w-16 h-16 rounded-full bg-amber-50 border-2 border-amber-100 flex items-center justify-center text-3xl" aria-hidden>
+              🔧
+            </div>
+            <h1 className="text-xl font-bold text-gray-900 mb-2">К сожалению, редирект временно недоступен</h1>
+            <p className="text-sm text-gray-500">
+              ID кода: <span className="font-mono text-base font-semibold text-gray-900 select-all">{code}</span>
+            </p>
+            <p className="mt-4 text-sm text-gray-600">Подробности — в личном кабинете владельца QR-кода.</p>
+          </div>
+
+          <div className="mx-6 mb-6 rounded-xl bg-amber-50 border border-amber-100 p-4 text-left text-sm text-amber-900">
+            {restorable ? (
+              <>
+                <p className="font-semibold mb-1">Вы владелец этого QR?</p>
+                <p>
+                  {BEGET_INCIDENT.dateLabel} у хостинг-провайдера Beget произошла авария (
+                  <a href={BEGET_INCIDENT.newsUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2">
+                    РБК
+                  </a>
+                  ). Восстановите код по ID в личном кабинете — табличку перепечатывать не нужно.
+                </p>
+              </>
+            ) : (
+              <p>Владелец ещё не указал, куда ведёт этот QR-код. Настроить его можно в личном кабинете.</p>
+            )}
+          </div>
+
+          <div className="px-6 pb-6">
+            <a
+              href={restorable ? `/restore?code=${encodeURIComponent(code)}` : "/dashboard"}
+              className="block w-full text-center py-3 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-colors shadow-sm"
+            >
+              {restorable ? "Восстановить QR в личном кабинете" : "Открыть личный кабинет"}
+            </a>
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -1,3 +1,5 @@
+import { truncateComment, type ComplaintMessageExtra } from "@/lib/complaint-message";
+
 const MAX_API_URL = "https://platform-api2.max.ru";
 
 export async function sendMaxNotification(
@@ -5,7 +7,8 @@ export async function sendMaxNotification(
   establishmentName: string,
   rating: number,
   comment: string,
-  guestName?: string
+  guestName?: string,
+  extra: ComplaintMessageExtra = {}
 ): Promise<boolean> {
   const accessToken = process.env.MAX_BOT_ACCESS_TOKEN;
   if (!accessToken) {
@@ -20,9 +23,15 @@ export async function sendMaxNotification(
     `<b>Заведение:</b> ${escapeHtml(establishmentName)}`,
     `<b>Оценка:</b> ${stars}`,
     guestName ? `<b>Гость:</b> ${escapeHtml(guestName)}` : null,
+    // Без контакта владельцу нечем ответить гостю — раньше он был только в письме.
+    extra.guestContact
+      ? `<b>Контакт:</b> ${escapeHtml(extra.guestContact)}`
+      : `<b>Контакт:</b> <i>гость не оставил</i>`,
+    extra.qrLabel ? `<b>QR:</b> ${escapeHtml(extra.qrLabel)}` : null,
     "",
     `<b>Комментарий:</b>`,
-    comment ? escapeHtml(comment) : "<i>Без комментария</i>",
+    comment ? escapeHtml(truncateComment(comment)) : "<i>Без комментария</i>",
+    extra.inboxUrl ? `\n<a href="${escapeHtml(extra.inboxUrl)}">Открыть в кабинете</a>` : null,
   ]
     .filter((line) => line !== null)
     .join("\n");

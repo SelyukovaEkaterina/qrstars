@@ -77,6 +77,7 @@ import {
   type QrScanLevel,
 } from "@/lib/qr-engine";
 import QRMockupDialog from "@/components/dashboard/QRMockupDialog";
+import QRAnimationPanel from "@/components/dashboard/QRAnimationPanel";
 import { TEMPLATES_CHANGED_EVENT } from "@/components/dashboard/GeneratorStyleImporter";
 
 type UserQR = {
@@ -404,6 +405,8 @@ export default function QRTemplateEditor({
   const [renderError, setRenderError] = useState<string | null>(null);
   const [scanLevel, setScanLevel] = useState<QrScanLevel>("ok");
   const [hasRender, setHasRender] = useState(false);
+  /** Растёт после каждой перерисовки — по нему перезапускается превью анимации. */
+  const [renderKey, setRenderKey] = useState(0);
   const [mockupUrl, setMockupUrl] = useState<string | null>(null);
   const [randomizing, setRandomizing] = useState(false);
   const [logosExpanded, setLogosExpanded] = useState(false);
@@ -532,6 +535,7 @@ export default function QRTemplateEditor({
       copyCanvas(off, thumbRef.current);
       setRenderError(null);
       setHasRender(true);
+      setRenderKey((k) => k + 1);
       // Декодер — до 10 попыток на кадр: ждём паузы во вводе и свободного времени.
       window.setTimeout(async () => {
         if (seq !== renderSeq.current) return;
@@ -1599,6 +1603,19 @@ export default function QRTemplateEditor({
                 <Toggle checked={!!cfg.rotate45} onChange={(v) => up("rotate45", v)} label="Повернуть ромбом (логотип остаётся ровным)" />
                 <Toggle checked={!!cfg.inkShift} onChange={(v) => up("inkShift", v)} label="Эффект печати CMYK — сдвиг голубой и жёлтой краски" />
               </div>
+            </Section>
+
+            <Section title="Анимация (GIF)" icon={<Sparkles size={16} />} value="PRO">
+              <QRAnimationPanel
+                getBase={() => lastRender.current}
+                renderKey={renderKey}
+                cfg={cfg}
+                payload={payload}
+                photoImage={photoImage}
+                logoImage={logoForRender}
+                silhouetteImage={silhouetteImage}
+                fileBase={downloadBaseName}
+              />
             </Section>
 
             <Section title="Дополнительно" icon={<ChevronDown size={16} />}>

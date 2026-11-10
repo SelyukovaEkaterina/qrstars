@@ -17,6 +17,7 @@ import { invalidateScanCache, redis } from "@/lib/cache";
 import { getAuthUserId, withCorsHeaders, corsOkResponse } from "@/lib/mobile-auth";
 import { findRedirectUrlProblem, toHeaderSafeUrl } from "@/lib/redirect-url";
 import { assertCanAssignLandingMode } from "@/lib/qr-mode-access";
+import { canLinkContent, LINKED_CONTENT_NOT_FOUND } from "@/lib/linked-content-access";
 
 export async function OPTIONS() {
   return corsOkResponse();
@@ -255,6 +256,22 @@ export async function PUT(request: Request) {
             { status: 403 }
           )
         );
+      }
+    }
+
+    // Подключаем только своё: объекты проектов с доступом, свои или владельца QR.
+    const linkOwners = [qrcode.userId];
+    const linkChecks = [
+      ["menu", menuId],
+      ["businessCard", businessCardId],
+      ["wifiConfig", wifiConfigId],
+      ["fileAsset", fileAssetId],
+      ["customPage", customSectionId],
+    ] as const;
+    for (const [kind, linkId] of linkChecks) {
+      if (!linkId) continue;
+      if (!(await canLinkContent(kind, linkId, { userId, ownerUserIds: linkOwners }))) {
+        return NextResponse.json({ error: LINKED_CONTENT_NOT_FOUND[kind] }, { status: 404 });
       }
     }
 

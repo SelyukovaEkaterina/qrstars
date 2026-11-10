@@ -72,3 +72,58 @@ def test_get_reviews_missing_establishment(base_url, owner_session):
     assert r.status_code == 200
     data = r.json()
     assert "reviews" in data
+
+
+def _post_review(base_url, payload, ip):
+    # Свой IP на тест — не упираемся в лимит 10 отзывов/мин с одного адреса.
+    return req_lib.post(f"{base_url}/api/reviews", json=payload, headers={"X-Forwarded-For": ip})
+
+
+@pytest.mark.parametrize(
+    "patch",
+    [
+        {"rating": 4.5},
+        {"rating": "5"},
+        {"rating": 0},
+        {"comment": "x" * 2001},
+        {"guestName": "n" * 101},
+        {"guestPhone": "p" * 121},
+        {"comment": {"nested": True}},
+    ],
+)
+def test_create_review_rejects_invalid_fields(base_url, owner_establishment_id, patch):
+    payload = {"establishmentId": owner_establishment_id, "rating": 2, "comment": "ok", "isNegative": True}
+    payload.update(patch)
+    r = _post_review(base_url, payload, "10.77.0.1")
+    assert r.status_code == 400, r.text
+
+
+def test_create_review_coerces_non_boolean_is_negative(base_url, owner_session, owner_establishment_id):
+    """Строковый isNegative раньше ронял Prisma с 500."""
+    r = _post_review(
+        base_url,
+        {"establishmentId": owner_establishment_id, "rating": 3, "comment": "e2e-coerce", "isNegative": "yes"},
+        "10.77.0.2",
+    )
+    assert r.status_code == 200, r.text
+
+
+def test_create_negative_review_responds_fast(base_url, owner_establishment_id):
+    """Уведомления уходят после ответа — гость не ждёт Telegram/SMTP."""
+    import time
+
+    started = time.monotonic()
+    r = _post_review(
+        base_url,
+        {
+            "establishmentId": owner_establishment_id,
+            "rating": 1,
+            "comment": "E2E fast complaint",
+            "guestPhone": "@e2e_guest",
+            "isNegative": True,
+            "pdConsentGiven": True,
+        },
+        "10.77.0.3",
+    )
+    assert r.status_code == 200, r.text
+    assert time.monotonic() - started < 3

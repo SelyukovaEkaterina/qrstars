@@ -260,6 +260,12 @@ export default function QRCodeSettingsPage() {
     [qrId, isCreateMode],
   );
 
+  // Ссылка `#qr-mode` (после восстановления QR) — сразу к выбору режима, он ниже первого экрана.
+  useEffect(() => {
+    if (loading || window.location.hash !== "#qr-mode") return;
+    document.getElementById("qr-mode")?.scrollIntoView({ block: "start" });
+  }, [loading]);
+
   useEffect(() => {
     const welcome = new URLSearchParams(window.location.search).get("welcome") === "1";
     if (welcome) queueMicrotask(() => setShowWelcome(true));
@@ -1125,7 +1131,7 @@ export default function QRCodeSettingsPage() {
               reorderForCreate ? "order-2 lg:order-none" : ""
             }`}
           >
-            <div className="xl:col-span-2 space-y-4">
+            <div id="qr-mode" className="xl:col-span-2 space-y-4 scroll-mt-20">
               <Card>
                 <h3 className="font-semibold text-gray-900 mb-2">Режим работы</h3>
                 <p className="text-sm text-gray-500 mb-4">
@@ -1323,7 +1329,7 @@ export default function QRCodeSettingsPage() {
                           href="/dashboard/subscription"
                           className="sm:col-span-2 inline-flex items-center justify-center rounded-lg bg-indigo-600 px-4 py-3 text-base font-semibold text-white hover:bg-indigo-700"
                         >
-                          Купить PRO за {formatRub(PLAN_PRICING.PRO.yearlyRub)} на год →
+                          Купить PRO от {formatRub(PLAN_PRICING.PRO.halfYearRub)} →
                         </Link>
                       </div>
                     )}

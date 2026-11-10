@@ -1,9 +1,12 @@
+import { truncateComment, type ComplaintMessageExtra } from "@/lib/complaint-message";
+
 export async function sendTelegramNotification(
   chatId: string,
   establishmentName: string,
   rating: number,
   comment: string,
-  guestName?: string
+  guestName?: string,
+  extra: ComplaintMessageExtra = {}
 ): Promise<boolean> {
   const botToken = process.env.TELEGRAM_BOT_TOKEN;
   if (!botToken) {
@@ -18,11 +21,17 @@ export async function sendTelegramNotification(
     `<b>Заведение:</b> ${escapeHtml(establishmentName)}`,
     `<b>Оценка:</b> ${stars}`,
     guestName ? `<b>Гость:</b> ${escapeHtml(guestName)}` : null,
+    // Без контакта владельцу нечем ответить гостю — раньше он был только в письме.
+    extra.guestContact
+      ? `<b>Контакт:</b> ${escapeHtml(extra.guestContact)}`
+      : `<b>Контакт:</b> <i>гость не оставил</i>`,
+    extra.qrLabel ? `<b>QR:</b> ${escapeHtml(extra.qrLabel)}` : null,
     "",
     `<b>Комментарий:</b>`,
     comment
-      ? `<i>${escapeHtml(comment)}</i>`
+      ? `<i>${escapeHtml(truncateComment(comment))}</i>`
       : "<i>Без комментария</i>",
+    extra.inboxUrl ? `\n<a href="${escapeHtml(extra.inboxUrl)}">Открыть в кабинете</a>` : null,
   ]
     .filter(Boolean)
     .join("\n");

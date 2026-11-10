@@ -1,13 +1,30 @@
 export type PlanId = "FREE" | "PRO" | "NETWORK";
 
-export type BillingPeriod = "monthly" | "yearly";
+/** `halfyear` — только PRO (с 2026-11-06), `monthly` — legacy «Сети». */
+export type BillingPeriod = "monthly" | "halfyear" | "yearly";
 
 export interface PlanPricing {
   monthlyRub: number;
   yearlyRub: number;
   yearlyNote: string;
+  /** Оплата на полгода (только PRO). */
+  halfYearRub?: number;
+  halfYearNote?: string;
   /** Тариф продаётся только на год: помесячной оплаты нет. */
   yearlyOnly?: boolean;
+}
+
+export function billingPeriodLabel(billing: string | null | undefined): string {
+  if (billing === "yearly") return "1 год";
+  if (billing === "halfyear") return "6 месяцев";
+  return "1 месяц";
+}
+
+/** «/ год», «/ полгода», «/ мес» — подпись к цене. */
+export function billingPeriodShort(billing: string | null | undefined): string {
+  if (billing === "yearly") return "год";
+  if (billing === "halfyear") return "полгода";
+  return "мес";
 }
 
 export interface PlanDefinition {
@@ -21,19 +38,17 @@ export interface PlanDefinition {
   highlighted?: boolean;
 }
 
-/** Скидка округляется до 10 ₽: 990 × 30% = 693 → 690. */
-export function offerYearlyRub(listRub: number, discountPercent: number): number {
-  const discounted = (listRub * (100 - discountPercent)) / 100;
-  return Math.round(discounted / 10) * 10;
-}
-
 export const PLAN_PRICING = {
-  /** PRO продаётся только на год (решение 2026-10-04). monthlyRub — лишь эквивалент для MRR и подписей. */
+  /**
+   * PRO с 2026-11-06: 990 ₽ за полгода или 1 490 ₽ за год (выгоднее на 25%, выбран по умолчанию).
+   * До этого — только год за 990 ₽. monthlyRub — эквивалент года для MRR и подписей.
+   */
   PRO: {
-    monthlyRub: 83,
-    yearlyRub: 990,
-    yearlyNote: "≈83 ₽/мес",
-    yearlyOnly: true,
+    monthlyRub: 124,
+    yearlyRub: 1490,
+    yearlyNote: "≈124 ₽/мес",
+    halfYearRub: 990,
+    halfYearNote: "≈165 ₽/мес",
   },
   /** «Сеть» с 2026-10-14: 5 заведений за 2 900 ₽/год, только годовая оплата. monthlyRub — эквивалент для MRR. */
   NETWORK: {
@@ -45,15 +60,22 @@ export const PLAN_PRICING = {
   },
 } as const;
 
+/** Годовой PRO дешевле двух полугодий: 1 − 1490 / (2 × 990) ≈ 25%. */
+export const PRO_YEARLY_SAVINGS_PERCENT = Math.round(
+  (1 - PLAN_PRICING.PRO.yearlyRub / (2 * PLAN_PRICING.PRO.halfYearRub)) * 100
+);
+
 /**
- * Персональная цена PRO на первый год.
+ * Персональная цена PRO: первый год по цене полугода (990 ₽ вместо 1 490 ₽).
  * Письмо уходит один раз, когда с первого скана своего QR прошло minDaysSinceFirstScan
  * и сканов уже minScans. Код живёт validDays с момента отправки, напоминание за reminderLeadDays.
- * Со следующего года списание по PLAN_PRICING.PRO.yearlyRub.
+ * Действует только на годовую оплату, со следующего года списание по PLAN_PRICING.PRO.yearlyRub.
  */
 export const PRO_INTRO_OFFER = {
-  discountPercent: 30,
-  yearlyRub: offerYearlyRub(PLAN_PRICING.PRO.yearlyRub, 30),
+  yearlyRub: PLAN_PRICING.PRO.halfYearRub,
+  discountPercent: Math.round(
+    (1 - PLAN_PRICING.PRO.halfYearRub / PLAN_PRICING.PRO.yearlyRub) * 100
+  ),
   validDays: 7,
   reminderLeadDays: 2,
   minScans: 3,
@@ -62,7 +84,7 @@ export const PRO_INTRO_OFFER = {
   maxPerDay: 5,
   campaignKey: "pro_offer_d14",
   reminderCampaignKey: "pro_offer_reminder",
-  codePrefix: "START30",
+  codePrefix: "YEAR990",
 } as const;
 
 /** Старая помесячная схема «Сети» (600 ₽/мес + 150 ₽ за точку сверх 2): только для уже оформленных месячных подписок. */
@@ -110,6 +132,7 @@ export const PLANS: Record<PlanId, PlanDefinition> = {
       "White Label — ваш логотип вместо вотермарки",
       "Промокод за отзыв 5★, интеграция чаевых",
       "Расширенная аналитика: конверсия, разрезы по дням и устройствам",
+      "Анимированные QR-коды (GIF) для экранов, сторис и сайта",
       "QR-кодов в проекте — без лимита",
       "Приоритетная поддержка",
     ],
@@ -171,7 +194,9 @@ export function calcSubscriptionAmount(
   billing: BillingPeriod,
   establishmentCount: number
 ): number {
-  if (plan === "PRO") return PLAN_PRICING.PRO.yearlyRub;
+  if (plan === "PRO") {
+    return billing === "halfyear" ? PLAN_PRICING.PRO.halfYearRub : PLAN_PRICING.PRO.yearlyRub;
+  }
   if (billing === "yearly") return PLAN_PRICING.NETWORK.yearlyRub;
   return calcLegacyNetworkMonthlyPrice(Math.max(establishmentCount, 2));
 }
@@ -215,9 +240,14 @@ export function getUpgradeHint(
 
 export function estimateSubscriptionMonthlyRevenue(
   plan: string,
-  establishmentCount: number
+  establishmentCount: number,
+  billing?: string | null
 ): number {
-  if (plan === "PRO") return PLAN_PRICING.PRO.monthlyRub;
+  if (plan === "PRO") {
+    return billing === "halfyear"
+      ? Math.round(PLAN_PRICING.PRO.halfYearRub / 6)
+      : PLAN_PRICING.PRO.monthlyRub;
+  }
   if (plan === "NETWORK") return PLAN_PRICING.NETWORK.monthlyRub;
   return 0;
 }

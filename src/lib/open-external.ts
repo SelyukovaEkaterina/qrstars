@@ -1,3 +1,5 @@
+import { toSafeHttpUrl } from "@/lib/platform-url-input";
+
 /** True when the scan page is shown inside another site (landing phone iframe). */
 export function isEmbeddedInIframe(): boolean {
   if (typeof window === "undefined") return false;
@@ -15,9 +17,14 @@ export function isEmbeddedInIframe(): boolean {
  * open a new tab instead.
  */
 export function openExternalUrl(
-  url: string,
+  rawUrl: string,
   options: { history?: "assign" | "replace" } = {},
 ): { openedInNewTab: boolean } {
+  // Только http(s): `javascript:` / `data:` из настроек владельца не исполняем,
+  // голое `tbank.ru/…` дополняем до https (раньше открывалось как относительный путь).
+  const safe = toSafeHttpUrl(rawUrl);
+  if (!safe) return { openedInNewTab: false };
+  const url = safe;
   if (isEmbeddedInIframe()) {
     window.open(url, "_blank", "noopener,noreferrer");
     return { openedInNewTab: true };

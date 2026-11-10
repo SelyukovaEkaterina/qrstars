@@ -1,11 +1,15 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import UxCheckPromo from '../components/UxCheckPromo.astro';
-import { generatorRegisterUrl, reviewsRegisterUrl } from '../lib/utm';
+import { generatorRegisterUrl, reviewsRegisterUrl, withPlan } from '../lib/utm';
+import { PLAN_PRICING } from '../../../src/lib/plans';
+import { QR_ANIMATIONS } from '../../../src/lib/qr-engine/animate';
 
 const APP_URL_REGISTER = generatorRegisterUrl('free-qr-generator', Astro.url.searchParams);
 const REVIEWS_PIVOT_URL = reviewsRegisterUrl('free-qr-generator-pivot', Astro.url.searchParams);
 const REVIEWS_MAPS_URL = reviewsRegisterUrl('free-qr-generator-maps', Astro.url.searchParams);
+const ANIM_PRO_URL = withPlan(generatorRegisterUrl('free-qr-generator-animation', Astro.url.searchParams), 'pro');
+const PRO_FROM = `${PLAN_PRICING.PRO.halfYearRub.toLocaleString('ru-RU')} ₽`;
 
 const faqItems = [
   {
@@ -445,6 +449,19 @@ const QR_TABS = [
                                     </div>
                                 </details>
 
+                                <details class="qr-acc" data-acc="animation">
+                                    <summary><i class="fa-solid fa-film text-primary"></i>Анимация<span class="qr-acc-value"><span class="qr-pro-badge">PRO</span></span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                    <div class="qr-acc-body">
+                                        <p class="text-sm text-slate-600 mb-3">Живой QR для экранов, сторис и сайта: блик, перелив, волна. Нажмите — покажем на вашем оформлении.</p>
+                                        <div class="flex flex-wrap gap-2" id="anim-chips">
+                                            {QR_ANIMATIONS.map(a => (
+                                                <button type="button" class="anim-chip" data-anim={a.id} title={a.hint}>{a.label}</button>
+                                            ))}
+                                        </div>
+                                        <p class="mt-2 text-xs text-slate-500">Пример ведёт на qrstars.ru. Анимированный GIF со своей ссылкой — в тарифе PRO.</p>
+                                    </div>
+                                </details>
+
                                 <details class="qr-acc" data-acc="logo">
                                     <summary><i class="fa-solid fa-image text-primary"></i>Логотип или текст в центре<span id="logo-summary" class="qr-acc-value">нет</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body">
@@ -696,6 +713,29 @@ const QR_TABS = [
         </div>
     </dialog>
 
+    <dialog id="anim-dialog" class="qr-dialog" aria-labelledby="anim-dialog-title">
+        <div class="qr-dialog-panel">
+            <div class="flex items-center justify-between gap-3 mb-3">
+                <h2 id="anim-dialog-title" class="text-lg font-bold text-slate-900">Анимированный QR <span class="qr-pro-badge align-middle">PRO</span></h2>
+                <button type="button" id="anim-dialog-close" class="w-10 h-10 rounded-xl hover:bg-slate-100 text-slate-500 flex items-center justify-center" aria-label="Закрыть"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="qr-tabs-row flex gap-2 overflow-x-auto mb-3 -mx-1 px-1" id="anim-dialog-chips">
+                {QR_ANIMATIONS.map(a => (
+                    <button type="button" class="mock-tab" data-anim={a.id}>{a.label}</button>
+                ))}
+            </div>
+            <div class="flex justify-center rounded-2xl bg-slate-50 p-4">
+                <canvas id="anim-canvas" class="w-full max-w-[20rem] h-auto" aria-label="Пример анимированного QR-кода"></canvas>
+            </div>
+            <p class="mt-2 text-xs text-slate-400 text-center">Пример: код ведёт на qrstars.ru — наведите камеру, он читается в каждом кадре.</p>
+            <div class="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
+                <p class="font-bold text-slate-900">Хотите такой со своей ссылкой?</p>
+                <p class="mt-1 text-sm text-slate-600">В кабинете на тарифе PRO ({PRO_FROM} за полгода) — GIF для экранов, сторис, сайта и писем. Ссылку внутри кода можно менять без перевыпуска.</p>
+                <a href={ANIM_PRO_URL} id="anim-pro-cta" class="mt-3 flex items-center justify-center gap-2 bg-primary text-white px-4 py-3 rounded-xl font-bold text-sm hover:bg-indigo-700 transition"><i class="fa-solid fa-wand-magic-sparkles"></i> Сделать анимированный QR</a>
+            </div>
+        </div>
+    </dialog>
+
     <div id="qr-after-download" class="hidden qr-after" role="status">
         <button type="button" id="qr-after-close" class="absolute top-2 right-2 w-8 h-8 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-600" aria-label="Закрыть"><i class="fa-solid fa-xmark"></i></button>
         <p class="font-bold text-slate-900 pr-8 flex items-center gap-2"><i class="fa-solid fa-circle-check text-green-500"></i>Готово! QR-код сохранён</p>
@@ -762,7 +802,7 @@ const QR_TABS = [
                         <div class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-400/10 px-2.5 py-1 rounded-full mb-3">
                             <i class="fa-solid fa-crown"></i> Динамический &middot; PRO
                         </div>
-                        <p class="text-sm text-slate-400">990 ₽/год (≈83 ₽/мес)</p>
+                        <p class="text-sm text-slate-400">от 990 ₽ за полгода</p>
                     </div>
                     <ul class="space-y-2.5 text-sm text-slate-300 mb-6 flex-1">
                         <li class="flex items-start gap-2"><i class="fa-solid fa-check text-amber-300 mt-0.5 shrink-0"></i> Всё из тарифа FREE</li>
@@ -1376,6 +1416,31 @@ const QR_TABS = [
     .qr-scan-badge.hidden { display: none; }
 
     /* ── Полноэкранный просмотр и макеты ── */
+    .anim-chip {
+        height: 2.25rem;
+        padding: 0 0.875rem;
+        border-radius: 0.75rem;
+        border: 1px solid rgb(226 232 240);
+        background: white;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: rgb(51 65 85);
+        transition: border-color 0.15s, background-color 0.15s;
+    }
+    .anim-chip:hover {
+        border-color: rgb(99 102 241);
+        background: rgb(238 242 255);
+    }
+    .qr-pro-badge {
+        display: inline-block;
+        padding: 0.05rem 0.45rem;
+        border-radius: 0.4rem;
+        background: linear-gradient(135deg, #6366f1, #a855f7);
+        color: white;
+        font-size: 0.7rem;
+        font-weight: 800;
+        letter-spacing: 0.02em;
+    }
     .qr-dialog {
         padding: 0;
         border: none;
@@ -1627,6 +1692,12 @@ const QR_TABS = [
         artPresetDesign,
         type ArtPreset,
         type ArtPresetCategory,
+        createQrAnimation,
+        isSocialAnimation,
+        playQrAnimation,
+        qrCenterBox,
+        parseCenterTextLines,
+        type QrAnimationId,
     } from '../../../src/lib/qr-engine';
     import { encodeTransferStyle, isAppRegisterLink, withTransferStyle, type TransferStyle } from '../lib/qr-generator/style-transfer';
     import { canvasToBlob, deliverFile, isTouchDevice } from '../lib/qr-generator/deliver';
@@ -2836,6 +2907,66 @@ const QR_TABS = [
     dialog.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
     dialog.addEventListener('close', () => { document.documentElement.style.overflow = ''; });
 
+    // ── Анимация (PRO): пример на qrstars.ru в текущем оформлении ─────────
+    const ANIM_DEMO_URL = 'https://qrstars.ru';
+    const animDialog = $('anim-dialog') as HTMLDialogElement;
+    const animCanvas = $('anim-canvas') as HTMLCanvasElement;
+    let stopAnim: (() => void) | null = null;
+
+    function playAnimDemo(id: QrAnimationId) {
+        stopAnim?.();
+        stopAnim = null;
+        document.querySelectorAll<HTMLButtonElement>('#anim-dialog-chips [data-anim]').forEach(b =>
+            b.classList.toggle('active-tab', b.dataset.anim === id),
+        );
+        // GIF всегда с фоном: прозрачный фон показываем на белом.
+        const bg = state.bgTransparent ? '#ffffff' : state.bg;
+        const social = isSocialAnimation(id);
+        // YouTube / Telegram: свой значок закрывает центр — коррекция H, без логотипа и надписи.
+        const design = social
+            ? { ...state, bgTransparent: false, bg, ecc: 'H' as const, centerMode: 'image' as const, centerText: '' }
+            : { ...state, bgTransparent: false, bg };
+        try {
+            const modules = QRCode.create(ANIM_DEMO_URL, { errorCorrectionLevel: design.ecc }).modules as unknown as QrModules;
+            const assets = social ? { ...qrAssets(), logo: null } : qrAssets();
+            const layout = computeLayout(modules, design, assets);
+            const base = document.createElement('canvas');
+            renderToCanvas(base, layout, design, assets, 480);
+            const hasCenter = !social && (state.centerMode === 'text' ? parseCenterTextLines(state.centerText).length > 0 : !!assets.logo);
+            const anim = createQrAnimation(base, {
+                id,
+                design,
+                layout,
+                centerBox: hasCenter ? qrCenterBox(layout, state.logoSize) : null,
+                handle: 'qrstars',
+            });
+            stopAnim = playQrAnimation(animCanvas, anim);
+        } catch {
+            /* оформление не влезло — диалог покажет пустой холст */
+        }
+    }
+
+    document.querySelectorAll<HTMLButtonElement>('#anim-chips [data-anim]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const id = btn.dataset.anim as QrAnimationId;
+            goal(METRIKA_GOALS.qrAnimationOpen, { animation: id });
+            document.documentElement.style.overflow = 'hidden';
+            animDialog.showModal();
+            playAnimDemo(id);
+        });
+    });
+    document.querySelectorAll<HTMLButtonElement>('#anim-dialog-chips [data-anim]').forEach(btn => {
+        btn.addEventListener('click', () => playAnimDemo(btn.dataset.anim as QrAnimationId));
+    });
+    $('anim-pro-cta').addEventListener('click', () => goal(METRIKA_GOALS.qrAnimationProCta));
+    $('anim-dialog-close').addEventListener('click', () => animDialog.close());
+    animDialog.addEventListener('click', e => { if (e.target === animDialog) animDialog.close(); });
+    animDialog.addEventListener('close', () => {
+        stopAnim?.();
+        stopAnim = null;
+        document.documentElement.style.overflow = '';
+    });
+
     document.querySelectorAll<HTMLButtonElement>('.mock-tab').forEach(tab => tab.addEventListener('click', () => {
         const mock = tab.dataset.mock!;
         $('mock-stage').dataset.mock = mock;
@@ -3140,6 +3271,14 @@ const QR_TABS = [
         document.querySelectorAll<HTMLDetailsElement>('.qr-acc').forEach(d => {
             d.open = d.dataset.acc === 'color' || d.dataset.acc === 'art';
         });
+        // Пришли из блока «Анимированный QR» (`?anim=1`): раскрываем раздел и показываем его.
+        if (new URLSearchParams(location.search).has('anim')) {
+            const acc = document.querySelector<HTMLDetailsElement>('details[data-acc="animation"]');
+            if (acc) {
+                acc.open = true;
+                setTimeout(() => acc.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+            }
+        }
     }
 
     renderColorPresets();

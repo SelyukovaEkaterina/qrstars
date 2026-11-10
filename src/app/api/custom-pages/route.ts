@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
+import { collectContentCacheTargets, invalidateCacheTargets, invalidateContentCache } from "@/lib/content-cache";
 
 function parsePageType(type: unknown): "HTML" | "LINK" | "FILE" {
   if (type === "LINK") return "LINK";
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
     type: page.type,
   });
 
+  invalidateContentCache("customPage", page.id);
   return NextResponse.json({ customPage: page }, { status: 201 });
 }
 
@@ -194,6 +196,7 @@ export async function PUT(request: Request) {
     include: { fileAsset: true },
   });
 
+  invalidateContentCache("customPage", updated.id);
   return NextResponse.json({ customPage: updated });
 }
 
@@ -223,7 +226,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const cacheTargets = await collectContentCacheTargets("customPage", id);
   await prisma.customPage.delete({ where: { id } });
+  void invalidateCacheTargets(cacheTargets);
 
   return NextResponse.json({ ok: true });
 }

@@ -17,6 +17,7 @@ export default function AccountSettings() {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteRequested, setDeleteRequested] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [qrCount, setQrCount] = useState<number | null>(null);
 
   useEffect(() => {
     fetch("/api/account/password")
@@ -26,6 +27,13 @@ export default function AccountSettings() {
         setHasPassword(Boolean(data.hasPassword));
       })
       .catch(() => setHasPassword(false));
+    fetch("/api/account/delete-request")
+      .then(async (res) => {
+        if (!res.ok) return;
+        const data = await res.json();
+        if (typeof data.qrCount === "number") setQrCount(data.qrCount);
+      })
+      .catch(() => {});
   }, []);
 
   const changePassword = async () => {
@@ -69,7 +77,10 @@ export default function AccountSettings() {
   const requestDeletion = async () => {
     if (
       !window.confirm(
-        "Отправить запрос на удаление аккаунта и связанных данных? Поддержка свяжется с вами для подтверждения."
+        (qrCount
+          ? `${qrStopsWorking(qrCount)}: напечатанные таблички, наклейки и визитки будут открывать заглушку вместо вашей страницы.\n\n`
+          : "") +
+          "Отправить запрос на удаление аккаунта и связанных данных? Поддержка свяжется с вами для подтверждения."
       )
     ) {
       return;
@@ -158,6 +169,13 @@ export default function AccountSettings() {
               Запрос включает удаление персональных данных. Поддержка подтвердит
               состав удаляемых данных и проверит активную подписку.
             </p>
+            {qrCount !== 0 && (
+              <p className="mt-2 text-sm text-red-700">
+                {qrCount ? qrStopsWorking(qrCount) : "Все ваши QR-коды перестанут работать"}.
+                Напечатанные таблички, наклейки и визитки будут открывать заглушку
+                вместо вашей страницы.
+              </p>
+            )}
           </div>
           <Button
             type="button"
@@ -184,4 +202,17 @@ export default function AccountSettings() {
       </Card>
     </div>
   );
+}
+
+function qrStopsWorking(n: number): string {
+  if (n === 1) return "Ваш QR-код перестанет работать";
+  const mod10 = n % 10;
+  const mod100 = n % 100;
+  const word =
+    mod10 === 1 && mod100 !== 11
+      ? "QR-код"
+      : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)
+        ? "QR-кода"
+        : "QR-кодов";
+  return `Ваши ${n} ${word} перестанут работать`;
 }

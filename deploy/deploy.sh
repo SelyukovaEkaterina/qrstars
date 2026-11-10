@@ -2,7 +2,7 @@
 # Zero-downtime deploy: blue-green app swap (nginx keeps serving old slot until new is healthy).
 set -euo pipefail
 
-HOST="${DEPLOY_HOST:-root@109.69.17.233}"
+HOST="${DEPLOY_HOST:-root@138.16.170.220}"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 rsync -az --delete \
@@ -54,7 +54,8 @@ echo "==> Active: $ACTIVE → deploying $TARGET (port $TARGET_PORT)"
 docker compose -f docker-compose.prod.yml build "app_${TARGET}"
 
 echo "==> Starting app_${TARGET} (old app_${OLD} still serving traffic)..."
-docker compose -f docker-compose.prod.yml up -d db valkey pgbouncer
+mkdir -p /var/lib/qrstars/minio && chown 1001:1001 /var/lib/qrstars/minio
+docker compose -f docker-compose.prod.yml up -d db valkey pgbouncer minio
 docker compose -f docker-compose.prod.yml up -d --no-deps "app_${TARGET}"
 
 echo "==> Waiting for health on 127.0.0.1:${TARGET_PORT}..."

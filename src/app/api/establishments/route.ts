@@ -13,6 +13,8 @@ import {
   requireEstablishmentAccess,
 } from "@/lib/establishment-access";
 import { parseEstablishmentIndustry } from "@/lib/establishment-industry";
+import { isPlatformUrlError, parsePlatformUrlField } from "@/lib/platform-url-input";
+import { invalidateEstablishmentScans } from "@/lib/content-cache";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -73,6 +75,23 @@ export async function POST(request: Request) {
     );
   }
 
+  const platformUrls: Record<"yandexMapsUrl" | "twoGisUrl" | "avitoUrl", string | null> = {
+    yandexMapsUrl: null,
+    twoGisUrl: null,
+    avitoUrl: null,
+  };
+  for (const [field, raw] of [
+    ["yandexMapsUrl", yandexMapsUrl],
+    ["twoGisUrl", twoGisUrl],
+    ["avitoUrl", avitoUrl],
+  ] as const) {
+    const parsed = parsePlatformUrlField(raw);
+    if (isPlatformUrlError(parsed)) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
+    platformUrls[field] = parsed ?? null;
+  }
+
   const existingCount = await prisma.establishment.count({ where: { userId } });
   const subscription = await findActiveSubscription(userId);
   const plan = effectivePlan(subscription);
@@ -94,9 +113,9 @@ export async function POST(request: Request) {
       industry,
       address: address || null,
       phone: phone || null,
-      yandexMapsUrl: yandexMapsUrl || null,
-      twoGisUrl: twoGisUrl || null,
-      avitoUrl: avitoUrl || null,
+      yandexMapsUrl: platformUrls.yandexMapsUrl,
+      twoGisUrl: platformUrls.twoGisUrl,
+      avitoUrl: platformUrls.avitoUrl,
       user: { connect: { id: userId } },
     },
   });
@@ -144,6 +163,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  // QR после удаления проекта показывают заглушку — сбрасываем кэш до удаления,
+  // пока связи ещё можно найти.
+  await invalidateEstablishmentScans(id);
   await prisma.establishment.delete({ where: { id } });
 
   return NextResponse.json({ success: true });

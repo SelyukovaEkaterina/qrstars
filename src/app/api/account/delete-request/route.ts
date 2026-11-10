@@ -6,6 +6,22 @@ import { sendUserSupportMessage } from "@/lib/support-service";
 
 const REQUEST_MARKER = "Запрос на удаление аккаунта";
 
+/** Сколько QR-кодов перестанут работать после удаления аккаунта (для предупреждения в UI). */
+export async function GET() {
+  const auth = await requireDbUserId();
+  if (!auth.ok) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const qrCount = await prisma.qRCode.count({
+    where: {
+      OR: [{ userId: auth.userId }, { establishment: { userId: auth.userId } }],
+    },
+  });
+
+  return NextResponse.json({ qrCount });
+}
+
 export async function POST() {
   const auth = await requireDbUserId();
   if (!auth.ok) {

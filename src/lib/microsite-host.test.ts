@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { isMicrositeSlug, micrositeSlugFromHost } from "./microsite-host";
+import { demoScanCodeFromHost, isMicrositeSlug, micrositeSlugFromHost } from "./microsite-host";
 
 describe("microsite host", () => {
   it("reads a client subdomain", () => {
@@ -23,5 +23,19 @@ describe("microsite host", () => {
     assert.equal(isMicrositeSlug("a"), false);
     assert.equal(isMicrositeSlug("app"), false);
     assert.equal(isMicrositeSlug("my-cafe"), true);
+  });
+
+  it("keeps demo names for the service", () => {
+    assert.equal(isMicrositeSlug("demo-landing"), false);
+    assert.equal(isMicrositeSlug("demo-cafe"), false);
+    assert.equal(isMicrositeSlug("democafe"), true);
+    assert.equal(micrositeSlugFromHost("demo.qrstars.ru"), null);
+  });
+
+  it("maps demo.qrstars.ru to the demo microsite", () => {
+    assert.equal(demoScanCodeFromHost("demo.qrstars.ru"), "demo-landing");
+    assert.equal(demoScanCodeFromHost("Demo.qrstars.ru:443"), "demo-landing");
+    assert.equal(demoScanCodeFromHost("cafe.qrstars.ru"), null);
+    assert.equal(demoScanCodeFromHost("demo.example.com"), null);
   });
 });

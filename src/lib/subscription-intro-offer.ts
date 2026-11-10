@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/prisma";
-import { PLAN_PRICING, PRO_INTRO_OFFER, type PlanId } from "@/lib/plans";
+import { PLAN_PRICING, PRO_INTRO_OFFER, type BillingPeriod, type PlanId } from "@/lib/plans";
 
 export const PRO_OFFER_CAMPAIGN_STARTED_AT_KEY = "pro_offer_campaign_started_at";
 
@@ -127,6 +127,7 @@ export async function issueProIntroOffer(userId: string, now = new Date()): Prom
 export async function resolveProIntroOfferAmount(params: {
   userId: string;
   plan: "PRO" | "NETWORK";
+  billing: BillingPeriod;
   catalogAmount: number;
   requestedCode?: unknown;
   now?: Date;
@@ -134,7 +135,7 @@ export async function resolveProIntroOfferAmount(params: {
   const requested =
     typeof params.requestedCode === "string" ? params.requestedCode.trim().toUpperCase() : "";
 
-  if (params.plan !== "PRO") {
+  if (params.plan !== "PRO" || params.billing !== "yearly") {
     if (requested) {
       throw new IntroOfferError("Промокод действует только на годовой тариф PRO");
     }

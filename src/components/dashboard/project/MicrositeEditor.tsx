@@ -1438,7 +1438,7 @@ function MyPageDashboardContent() {
                     {lastPaidPlan === "NETWORK"
                       ? `Продлить «Сеть» · ${formatRub(PLAN_PRICING.NETWORK.yearlyRub)}/год`
                       : lastPaidPlan === "PRO"
-                        ? `Продлить PRO · ${formatRub(PLAN_PRICING.PRO.yearlyRub)}/год`
+                        ? `Продлить PRO · от ${formatRub(PLAN_PRICING.PRO.halfYearRub)}`
                         : "Продлить тариф"}
                   </Link>
                 </div>

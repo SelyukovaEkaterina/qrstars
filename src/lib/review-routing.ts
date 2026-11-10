@@ -1,4 +1,5 @@
 import { toPlatformReviewUrl } from "@/lib/review-platform-url";
+import { toSafeHttpUrl } from "@/lib/platform-url-input";
 
 export type ReviewStarAction = "COMPLAINT" | "YANDEX" | "TWO_GIS" | "AVITO" | "CUSTOM" | "THANKS";
 
@@ -190,11 +191,14 @@ function parsePlatformList(raw: unknown): OrderedPlatformEntry[] | undefined {
     if (isValidStandardType(o.type)) {
       result.push({ type: o.type });
     } else if (o.type === "CUSTOM" && typeof o.id === "string" && typeof o.name === "string" && typeof o.url === "string") {
+      // Ссылка своей площадки уходит гостю в location.assign — только http(s).
+      const safeUrl = toSafeHttpUrl(o.url);
+      if (o.url.trim() && !safeUrl) continue;
       result.push({
         type: "CUSTOM",
         id: o.id,
         name: o.name,
-        url: o.url,
+        url: safeUrl ?? "",
         iconUrl: typeof o.iconUrl === "string" ? o.iconUrl : undefined,
       });
     }

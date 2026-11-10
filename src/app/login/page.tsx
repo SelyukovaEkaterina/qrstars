@@ -104,7 +104,7 @@ function LoginForm() {
             </a>
           </p>
           <p className="text-xs text-gray-400">
-            Без таблички — после регистрации настроите QR за 2 минуты
+            После регистрации настроите QR за 2 минуты
           </p>
         </div>
       </form>

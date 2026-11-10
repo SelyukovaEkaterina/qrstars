@@ -35,6 +35,12 @@ export const METRIKA_GOALS = {
   /** Клик на регистрацию с переносом дизайна из генератора (`?qr_style=`). */
   qrStyleTransfer: 'qr_style_transfer',
   qrDynamicCta: 'qr_dynamic_cta',
+  /** Генератор: открыли пример анимированного QR (`animation` — id). */
+  qrAnimationOpen: 'qr_animation_open',
+  /** Клик «Сделать анимированный QR» → регистрация с plan=pro. */
+  qrAnimationProCta: 'qr_animation_pro_cta',
+  /** SEO-блок «Анимированный QR» → «Примерить на своём оформлении» (генератор с `?anim=1`). */
+  qrAnimationTry: 'qr_animation_try',
   tableOrderAttempt: 'table_order_attempt',
   /** Конструктор визиток: визит страницы. */
   cardMakerVisit: 'card_maker_visit',

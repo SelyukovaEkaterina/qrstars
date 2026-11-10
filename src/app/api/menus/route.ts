@@ -10,6 +10,7 @@ import { parseIikoHiddenCategoryIds } from "@/lib/iiko/category-filter";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { invalidateIikoMenuCache } from "@/lib/cache";
 import type { MenuSource } from "@/generated/prisma/client";
+import { collectContentCacheTargets, invalidateCacheTargets, invalidateContentCache } from "@/lib/content-cache";
 
 type MenuItemInput = {
   name: string;
@@ -168,6 +169,7 @@ export async function POST(request: Request) {
     });
   }
 
+  invalidateContentCache("menu", menu.id);
   return NextResponse.json({ menu: sanitizeMenuForClient(menu) });
 }
 
@@ -288,6 +290,7 @@ export async function PUT(request: Request) {
     starterItemsLeft: countStarterMenuItems(menu.items),
   });
 
+  invalidateContentCache("menu", menu.id);
   return NextResponse.json({ menu: sanitizeMenuForClient(menu) });
 }
 
@@ -329,7 +332,9 @@ export async function DELETE(request: Request) {
     }
   }
 
+  const cacheTargets = await collectContentCacheTargets("menu", id);
   await prisma.qRMenu.delete({ where: { id } });
+  void invalidateCacheTargets(cacheTargets);
 
   return NextResponse.json({ ok: true });
 }

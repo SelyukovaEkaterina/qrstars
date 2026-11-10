@@ -304,17 +304,15 @@ export default function PartnerPage() {
               )}
               <form onSubmit={handleSubmitWithdrawal} className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Input
-                    id="wd-amount"
-                    label="Сумма вывода (₽)"
-                    type="number"
-                    min={PARTNER_MIN_WITHDRAWAL_RUB}
-                    max={stats.availableBalance}
-                    step="0.01"
-                    required
-                    value={form.amount}
-                    onChange={(e) => setForm({ ...form, amount: parseFloat(e.target.value) || 0 })}
-                  />
+                  {/* Выводится весь доступный баланс: начисления неделимы, а частичный
+                      вывод раньше молча списывал остаток. */}
+                  <div className="space-y-1">
+                    <p className="block text-sm font-medium text-gray-700">Сумма вывода</p>
+                    <p className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 font-semibold text-gray-900">
+                      {formatMoney(stats.availableBalance)}
+                    </p>
+                    <p className="text-xs text-gray-500">Выводится весь доступный баланс</p>
+                  </div>
                   <div className="space-y-1">
                     <label htmlFor="wd-type" className="block text-sm font-medium text-gray-700">
                       Тип получателя

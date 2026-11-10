@@ -51,7 +51,8 @@ export async function GET() {
       sum +
       estimateSubscriptionMonthlyRevenue(
         s.plan,
-        s.user._count.establishments
+        s.user._count.establishments,
+        s.billing
       ),
     0
   );

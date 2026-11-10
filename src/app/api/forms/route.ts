@@ -15,6 +15,7 @@ import {
   establishmentHasPaidFeatures,
 } from "@/lib/establishment-access";
 import { BUSINESS_CARD_LEAD_FORM_PRESET } from "@/lib/business-card-leads";
+import { collectContentCacheTargets, invalidateCacheTargets, invalidateContentCache } from "@/lib/content-cache";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -94,6 +95,7 @@ export async function POST(request: Request) {
     include: { fields: { orderBy: { order: "asc" } } },
   });
 
+  invalidateContentCache("form", form.id);
   return NextResponse.json({ form });
 }
 
@@ -196,6 +198,7 @@ export async function PUT(request: Request) {
     include: { fields: { orderBy: { order: "asc" } } },
   });
 
+  invalidateContentCache("form", id);
   return NextResponse.json({ form: updated });
 }
 
@@ -220,6 +223,8 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const cacheTargets = await collectContentCacheTargets("form", id);
   await prisma.form.delete({ where: { id } });
+  void invalidateCacheTargets(cacheTargets);
   return NextResponse.json({ ok: true });
 }

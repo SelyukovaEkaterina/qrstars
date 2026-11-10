@@ -9,6 +9,7 @@ import {
   normalizeCardServices,
   sanitizeSocialLinksInput,
 } from "@/lib/business-card";
+import { collectContentCacheTargets, invalidateCacheTargets, invalidateContentCache } from "@/lib/content-cache";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -102,6 +103,7 @@ export async function POST(request: Request) {
     }
   }
 
+  invalidateContentCache("businessCard", businessCard.id);
   return NextResponse.json({ businessCard });
 }
 
@@ -190,6 +192,7 @@ export async function PUT(request: Request) {
     contactForm: businessCard.contactEnabled,
   });
 
+  invalidateContentCache("businessCard", businessCard.id);
   return NextResponse.json({ businessCard });
 }
 
@@ -215,7 +218,9 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const cacheTargets = await collectContentCacheTargets("businessCard", id);
   await prisma.businessCard.delete({ where: { id } });
+  void invalidateCacheTargets(cacheTargets);
 
   return NextResponse.json({ ok: true });
 }

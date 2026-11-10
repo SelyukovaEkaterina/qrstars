@@ -3,7 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import { OPERATOR, LEGAL_LINKS } from '../lib/legal';
 import { appendAttributionParams } from '../lib/utm';
 
-const updatedAt = '4 октября 2026 г.';
+const updatedAt = '6 ноября 2026 г.';
 const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.searchParams);
 ---
 
@@ -42,7 +42,7 @@ const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.sear
       <h2>3. Тарифные планы</h2>
       <ul>
         <li><strong>FREE</strong> — 0 ₽, 1 заведение, сбор отзывов и отдельные QR-режимы (меню, визитка, Wi‑Fi, редирект, файл) навсегда.</li>
-        <li><strong>PRO</strong> — 990 ₽/год, 1 заведение, прямой переход по QR-ссылке без экрана QrStars, микро-лендинг и расширенные функции.</li>
+        <li><strong>PRO</strong> — 990 ₽ за 6 месяцев или 1 490 ₽ за год, 1 заведение, прямой переход по QR-ссылке без экрана QrStars, микро-лендинг и расширенные функции.</li>
         <li>
           <strong>Сеть</strong> — 2 900 ₽/год, до 5 заведений. Если заведений больше или нужны особые условия,
           индивидуальный тариф подбирается через техподдержку в личном кабинете.
@@ -57,7 +57,7 @@ const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.sear
       </p>
       <h3>4.1. Порядок первого платежа</h3>
       <ol>
-        <li>В личном кабинете выбирается тарифный план (тарифы PRO и «Сеть» оплачиваются на 1 год).</li>
+        <li>В личном кабинете выбирается тарифный план (тариф PRO оплачивается на 6 месяцев или на 1 год, тариф «Сеть» — на 1 год).</li>
         <li>Пользователь проставляет чекбокс согласия на автоматические списания.</li>
         <li>После редиректа на защищённую страницу ROBOKASSA выполняется первый платёж.</li>
       </ol>
@@ -65,6 +65,10 @@ const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.sear
       <ul>
         <li>
           <strong>Ежемесячная подписка</strong> — оплаченный период составляет <strong>30 календарных дней</strong>
+          с даты успешного платежа; очередное списание — в дату окончания периода (ориентировочно 06:00 МСК).
+        </li>
+        <li>
+          <strong>Подписка на 6 месяцев</strong> — оплаченный период составляет <strong>183 календарных дня</strong>
           с даты успешного платежа; очередное списание — в дату окончания периода (ориентировочно 06:00 МСК).
         </li>
         <li>

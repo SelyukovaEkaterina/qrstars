@@ -63,7 +63,8 @@ export interface ReceiptPayload {
 
 function receiptItemName(plan: PlanId, billing: BillingPeriod): string {
   const planLabel = plan === "NETWORK" ? "Set" : "PRO";
-  const periodLabel = billing === "yearly" ? "1 god" : "1 mes";
+  const periodLabel =
+    billing === "yearly" ? "1 god" : billing === "halfyear" ? "6 mes" : "1 mes";
   return `Podpiska QrStars ${planLabel}, ${periodLabel}`.slice(0, 128);
 }
 

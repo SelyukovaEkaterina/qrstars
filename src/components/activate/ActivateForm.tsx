@@ -16,7 +16,7 @@ interface Establishment {
   name: string;
 }
 
-export default function ActivateForm({ qrCodeId, code }: ActivateFormProps) {
+export default function ActivateForm({ code }: ActivateFormProps) {
   const { status } = useSession();
   const [step, setStep] = useState<"form" | "success">("form");
   const [loading, setLoading] = useState(false);
@@ -57,7 +57,7 @@ export default function ActivateForm({ qrCodeId, code }: ActivateFormProps) {
     setError("");
 
     try {
-      const payload: Record<string, string> = { ...form, qrCodeId };
+      const payload: Record<string, string> = { ...form };
       if (status === "authenticated" && linkMode === "existing" && selectedEstId) {
         payload.establishmentId = selectedEstId;
       }

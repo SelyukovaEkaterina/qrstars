@@ -1,4 +1,5 @@
 import { isYandexMapsOrgPath, parseYandexMapsInput } from "@/lib/yandex-maps-url";
+import { toSafeHttpUrl } from "@/lib/platform-url-input";
 
 type PlatformAction = "YANDEX" | "TWO_GIS" | "AVITO" | "CUSTOM" | string;
 
@@ -62,12 +63,15 @@ export function toPlatformReviewUrl(
 ): string | null {
   if (!url?.trim()) return null;
   const raw = url.trim();
+  // Запасной вариант — исходная ссылка, но только http(s): иначе `javascript:`
+  // из БД ушёл бы в location.assign на скане.
+  const fallback = toSafeHttpUrl(raw);
   try {
-    if (action === "YANDEX") return toYandexReviewSubmitUrl(raw) || raw;
-    if (action === "TWO_GIS") return toTwoGisReviewSubmitUrl(raw) || raw;
-    if (action === "AVITO") return toAvitoReviewSubmitUrl(raw) || raw;
-    return raw;
+    if (action === "YANDEX") return toYandexReviewSubmitUrl(raw) || fallback;
+    if (action === "TWO_GIS") return toTwoGisReviewSubmitUrl(raw) || fallback;
+    if (action === "AVITO") return toAvitoReviewSubmitUrl(raw) || fallback;
+    return fallback;
   } catch {
-    return raw;
+    return fallback;
   }
 }

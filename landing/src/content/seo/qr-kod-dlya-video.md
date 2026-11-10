@@ -11,6 +11,7 @@ ctaGoal: "qr_generator_cta"
 ctaSecondaryText: "Динамический QR в кабинете"
 ctaSecondaryHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=generator_search&utm_content=qr-kod-dlya-video"
 ctaSecondaryGoal: "register_click"
+animatedQrPromo: true
 faq:
   - q: "Как сделать QR-код для видео на YouTube?"
     a: "Откройте ролик или канал на YouTube → «Поделиться» → скопируйте ссылку (youtube.com или youtu.be). Вставьте URL в генератор QrStars и скачайте PNG или векторный SVG."

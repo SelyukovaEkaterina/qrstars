@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run on VPS after A-records point to this server (109.69.17.233):
+# Run on VPS after A-records point to this server (138.16.170.220):
 #   app.qrstars.ru, qrstars.ru, www.qrstars.ru
 set -euo pipefail
 
@@ -12,7 +12,8 @@ certbot --nginx \
   --redirect \
   --register-unsafely-without-email
 
-env_get() { grep -m1 "^$1=" /opt/qrstars/deploy/.env | cut -d= -f2- | tr -d '"'; }
+# Значения в .env бывают и в одинарных, и в двойных кавычках.
+env_get() { grep -m1 "^$1=" /opt/qrstars/deploy/.env | cut -d= -f2- | tr -d "\"'"; }
 
 TELEGRAM_BOT_TOKEN=$(env_get TELEGRAM_BOT_TOKEN)
 TELEGRAM_SUPPORT_BOT_TOKEN=$(env_get TELEGRAM_SUPPORT_BOT_TOKEN)

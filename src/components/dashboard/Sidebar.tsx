@@ -25,7 +25,9 @@ import {
   X,
   Contact,
   type LucideIcon,
+  LifeBuoy,
 } from "lucide-react";
+import { BEGET_INCIDENT } from "@/lib/incident";
 import { signOutTo } from "@/lib/sign-out-client";
 import {
   LAST_PROJECT_COOKIE,
@@ -412,6 +414,21 @@ export default function Sidebar({
       </div>
 
       <nav id="tour-sidebar-nav" className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
+        {BEGET_INCIDENT.active && (
+          <Link
+            href="/dashboard/restore"
+            onClick={onNavigate}
+            className={cn(
+              "mb-5 flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold shadow-sm transition-colors",
+              pathname === "/dashboard/restore"
+                ? "bg-amber-700 text-white"
+                : "bg-amber-500 text-white hover:bg-amber-600"
+            )}
+          >
+            <LifeBuoy className="h-5 w-5" />
+            Восстановить QR
+          </Link>
+        )}
         {showProjectNav && (
           <div className="mb-5">
             <div className="mb-1.5 flex items-center justify-between px-3">

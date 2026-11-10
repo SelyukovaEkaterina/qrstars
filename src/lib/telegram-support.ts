@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import type { SupportTicket, User } from "@/generated/prisma/client";
 import { sendMaxMessage } from "@/lib/max";
 import { sendSupportStaffReplyEmail } from "@/lib/mailer";
+import { billingPeriodLabel, type BillingPeriod } from "@/lib/plans";
 import {
   isSupportImageMime,
   supportFileUrlForTelegram,
@@ -343,7 +344,7 @@ export async function notifyPaymentAttempt(params: {
   email: string;
   name: string | null;
   plan: "PRO" | "NETWORK";
-  billing: "monthly" | "yearly";
+  billing: BillingPeriod;
   amount: number;
   establishmentCount: number;
   paymentId?: string;
@@ -353,7 +354,7 @@ export async function notifyPaymentAttempt(params: {
 
   const groupId = GROUP_ID()!;
   const planLabel = params.plan === "PRO" ? "PRO" : "Сеть";
-  const periodLabel = params.billing === "yearly" ? "1 год" : "1 месяц";
+  const periodLabel = billingPeriodLabel(params.billing);
 
   const dashboardUrl = process.env.NEXT_PUBLIC_BASE_URL
     ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin/users`
@@ -398,7 +399,7 @@ export async function notifyPaymentSuccess(params: {
     select: { email: true, name: true },
   });
   const planLabel = params.plan === "NETWORK" ? "Сеть" : params.plan;
-  const periodLabel = params.billing === "yearly" ? "1 год" : "1 месяц";
+  const periodLabel = billingPeriodLabel(params.billing);
   const kindLabel = params.kind === "INITIAL" ? "первая оплата" : "автопродление";
 
   const dashboardUrl = process.env.NEXT_PUBLIC_BASE_URL

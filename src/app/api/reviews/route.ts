@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import type { Prisma } from "@/generated/prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -9,6 +10,8 @@ import { sendMaxNotification } from "@/lib/max";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
 import { getEmailTargets, getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
+import { parseReviewInput } from "@/lib/review-input";
+import { getAppBaseUrl } from "@/lib/utils";
 
 export async function POST(request: Request) {
   // Rate limit: 10 отзывов в минуту с одного IP
@@ -21,17 +24,18 @@ export async function POST(request: Request) {
     );
   }
 
-  const body = await request.json();
-  const { establishmentId, qrCodeId, rating, comment, guestName, guestPhone, isNegative, pdConsentGiven } = body;
-
-  if (!establishmentId || !rating) {
-    return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+  let body: Record<string, unknown>;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Некорректный запрос" }, { status: 400 });
   }
-
-  // Валидация rating
-  if (typeof rating !== "number" || rating < 1 || rating > 5) {
-    return NextResponse.json({ error: "Неверная оценка" }, { status: 400 });
+  const parsed = parseReviewInput(body);
+  if (!parsed.ok) {
+    return NextResponse.json({ error: parsed.error }, { status: 400 });
   }
+  const { establishmentId, qrCodeId, rating, comment, guestName, guestPhone, isNegative, pdConsentGiven } =
+    parsed.data;
 
   if (establishmentId === DEMO_ESTABLISHMENT_ID || establishmentId === demo2EstablishmentId) {
     return NextResponse.json({ success: true, demo: true });
@@ -47,14 +51,16 @@ export async function POST(request: Request) {
   }
 
   // Если передан qrCodeId — проверяем что он принадлежит этому заведению
+  let qrLabel: string | null = null;
   if (qrCodeId) {
     const qr = await prisma.qRCode.findFirst({
       where: { id: qrCodeId, establishmentId },
-      select: { id: true },
+      select: { id: true, label: true, code: true },
     });
     if (!qr) {
       return NextResponse.json({ error: "QR-код не найден" }, { status: 404 });
     }
+    qrLabel = qr.label || qr.code;
   }
 
   const consentIp = getClientIp(request);
@@ -63,35 +69,73 @@ export async function POST(request: Request) {
       establishment: { connect: { id: establishmentId } },
       ...(qrCodeId ? { qrCode: { connect: { id: qrCodeId } } } : {}),
       rating,
-      comment: comment || null,
-      guestName: guestName || null,
-      guestPhone: guestPhone || null,
+      comment,
+      guestName,
+      guestPhone,
       isNegative,
       ...(pdConsentGiven && guestPhone ? { pdConsentAt: new Date(), pdConsentIp: consentIp } : {}),
     },
     include: { establishment: { include: { user: true } } },
   });
 
+  // Уведомления — после ответа: раньше гость ждал письмо, Telegram (2–8 с на
+  // подключение), MAX и SMS по очереди и видел «Отправляем…» до 10+ секунд.
+  // Жалоба к этому моменту уже в кабинете, сбой канала её не теряет.
   if (isNegative) {
-    const { establishment } = review;
-    const owner = establishment.user;
+    after(() =>
+      notifyOwnerAboutComplaint(review, { rating, comment, guestName, guestPhone, qrLabel }).catch((err) =>
+        console.error("Complaint notification failed", { reviewId: review.id, err })
+      )
+    );
+  }
 
-    const notifyFields = {
-      userId: establishment.userId,
-      notificationTelegramEnabled: establishment.notificationTelegramEnabled,
-      notificationTelegramRequestsEnabled: establishment.notificationTelegramRequestsEnabled,
-      notificationTelegramChatId: establishment.notificationTelegramChatId,
-      notificationMaxEnabled: establishment.notificationMaxEnabled,
-      notificationMaxRequestsEnabled: establishment.notificationMaxRequestsEnabled,
-      notificationMaxUserId: establishment.notificationMaxUserId,
-      notificationEmailEnabled: establishment.notificationEmailEnabled,
-      notificationEmailRequestsEnabled: establishment.notificationEmailRequestsEnabled,
-      notificationEmail: establishment.notificationEmail,
-    };
+  return NextResponse.json({ success: true, reviewId: review.id });
+}
 
-    const emailTargets = await getEmailTargets(notifyFields, "reviews");
-    const emailTo = [...new Set((emailTargets.length ? emailTargets : [owner.email]).filter(Boolean))];
-    for (const to of emailTo) {
+type ReviewWithOwner = Prisma.ReviewGetPayload<{ include: { establishment: { include: { user: true } } } }>;
+
+async function notifyOwnerAboutComplaint(
+  review: ReviewWithOwner,
+  details: {
+    rating: number;
+    comment: string | null;
+    guestName: string | null;
+    guestPhone: string | null;
+    qrLabel: string | null;
+  }
+) {
+  const { establishment } = review;
+  const owner = establishment.user;
+  const { rating, comment, guestName, guestPhone, qrLabel } = details;
+
+  const notifyFields = {
+    userId: establishment.userId,
+    notificationTelegramEnabled: establishment.notificationTelegramEnabled,
+    notificationTelegramRequestsEnabled: establishment.notificationTelegramRequestsEnabled,
+    notificationTelegramChatId: establishment.notificationTelegramChatId,
+    notificationMaxEnabled: establishment.notificationMaxEnabled,
+    notificationMaxRequestsEnabled: establishment.notificationMaxRequestsEnabled,
+    notificationMaxUserId: establishment.notificationMaxUserId,
+    notificationEmailEnabled: establishment.notificationEmailEnabled,
+    notificationEmailRequestsEnabled: establishment.notificationEmailRequestsEnabled,
+    notificationEmail: establishment.notificationEmail,
+  };
+
+  const messengerExtra = {
+    guestContact: guestPhone || undefined,
+    qrLabel: qrLabel || undefined,
+    inboxUrl: `${getAppBaseUrl()}/dashboard/projects/${establishment.id}/inbox`,
+  };
+
+  const [emailTargets, telegramTargets, maxTargets] = await Promise.all([
+    getEmailTargets(notifyFields, "reviews"),
+    getTelegramTargets(notifyFields, "reviews"),
+    getMaxTargets(notifyFields, "reviews"),
+  ]);
+  const emailTo = [...new Set((emailTargets.length ? emailTargets : [owner.email]).filter(Boolean))];
+
+  const jobs: Promise<unknown>[] = [
+    ...emailTo.map(async (to) => {
       const sent = await sendNegativeReviewNotification(
         to,
         establishment.name,
@@ -101,47 +145,37 @@ export async function POST(request: Request) {
         guestPhone || undefined
       );
       if (!sent) {
-        console.error("Complaint email was not delivered", { to, establishmentId, reviewId: review.id });
-      }
-    }
-
-    for (const chatId of await getTelegramTargets(notifyFields, "reviews")) {
-      await sendTelegramNotification(
-        chatId,
-        establishment.name,
-        rating,
-        comment || "",
-        guestName || undefined
-      );
-    }
-
-    for (const maxUserId of await getMaxTargets(notifyFields, "reviews")) {
-      await sendMaxNotification(
-        maxUserId,
-        establishment.name,
-        rating,
-        comment || "",
-        guestName || undefined
-      );
-    }
-
-    if (process.env.SMS_RU_API_KEY && owner.phone) {
-      try {
-        await fetch("https://sms.ru/sms/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({
-            api_id: process.env.SMS_RU_API_KEY,
-            to: owner.phone,
-            msg: `QrStars.ru: Негативный отзыв (${rating}★) от ${establishment.name}. Проверьте почту.`,
-            json: "1",
-          }),
+        console.error("Complaint email was not delivered", {
+          to,
+          establishmentId: establishment.id,
+          reviewId: review.id,
         });
-      } catch {}
-    }
+      }
+    }),
+    ...telegramTargets.map((chatId) =>
+      sendTelegramNotification(chatId, establishment.name, rating, comment || "", guestName || undefined, messengerExtra)
+    ),
+    ...maxTargets.map((maxUserId) =>
+      sendMaxNotification(maxUserId, establishment.name, rating, comment || "", guestName || undefined, messengerExtra)
+    ),
+  ];
+
+  if (process.env.SMS_RU_API_KEY && owner.phone) {
+    jobs.push(
+      fetch("https://sms.ru/sms/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          api_id: process.env.SMS_RU_API_KEY,
+          to: owner.phone,
+          msg: `QrStars.ru: Негативный отзыв (${rating}★) от ${establishment.name}. Проверьте почту.`,
+          json: "1",
+        }),
+      })
+    );
   }
 
-  return NextResponse.json({ success: true, reviewId: review.id });
+  await Promise.allSettled(jobs);
 }
 
 export async function GET(request: Request) {
