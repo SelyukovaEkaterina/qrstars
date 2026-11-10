@@ -454,13 +454,24 @@ const QR_TABS = [
                                 <details class="qr-acc" data-acc="animation">
                                     <summary><i class="fa-solid fa-film text-primary"></i>Анимация<span class="qr-acc-value"><span class="qr-pro-badge">PRO</span></span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body">
-                                        <p class="text-sm text-slate-600 mb-3">Живой QR для экранов, сторис и сайта: блик, перелив, волна. Нажмите — покажем на вашем оформлении.</p>
+                                        <p class="text-sm text-slate-600 mb-3">Живой QR для экранов, сторис и сайта: блик, перелив, 3D-поворот, YouTube и Telegram. Нажмите — покажем на вашем оформлении.</p>
                                         <div class="flex flex-wrap gap-2" id="anim-chips">
                                             {QR_ANIMATIONS.map(a => (
                                                 <button type="button" class="anim-chip" data-anim={a.id} title={a.hint}>{a.label}</button>
                                             ))}
                                         </div>
                                         <p class="mt-2 text-xs text-slate-500">Пример ведёт на qrstars.ru. Анимированный GIF со своей ссылкой — в тарифе PRO.</p>
+                                    </div>
+                                </details>
+
+                                <details class="qr-acc" data-acc="print3d">
+                                    <summary><i class="fa-solid fa-cube text-primary"></i>3D-печать<span class="qr-acc-value">STL</span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
+                                    <div class="qr-acc-body">
+                                        <p class="text-sm text-slate-600 mb-3">Модель STL для 3D-принтера: табличка, брелок или бирка с этим QR-кодом. Рельеф или гравировка, печать в два цвета.</p>
+                                        <a href="/qr-kod-dlya-3d-pechati.html" id="print3d-link" data-goal="qr_stl_generator_link" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-sm font-semibold text-slate-800 hover:border-primary hover:text-primary transition">
+                                            <i class="fa-solid fa-cube"></i> Сделать 3D-модель моего кода
+                                        </a>
+                                        <p class="mt-2 text-xs text-slate-500">Бесплатно и без регистрации. Код откроется с тем же содержимым.</p>
                                     </div>
                                 </details>
 
@@ -2673,6 +2684,13 @@ const QR_TABS = [
         $('qr-readability-warning').classList.add('hidden');
         renderScanAlerts('ok');
     }
+
+    // «3D-печать»: открываем страницу модели с текущим содержимым (в #hash — не уходит на сервер).
+    $('print3d-link')?.addEventListener('click', e => {
+        const res = buildPayload(state.type, fieldValue);
+        if (res.kind !== 'ok') return;
+        (e.currentTarget as HTMLAnchorElement).href = `/qr-kod-dlya-3d-pechati.html#u=${encodeURIComponent(res.payload)}`;
+    });
 
     function generate() {
         const res = buildPayload(state.type, fieldValue);

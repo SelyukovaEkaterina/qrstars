@@ -91,6 +91,7 @@ export const KEY_PAGES: Array<{ href: string; title: string; note: string }> = [
   { href: `${SITE}/file-sharing.html`, title: 'QR-файлы', note: 'PDF и документы по QR' },
   { href: `${SITE}/free-qr-generator.html`, title: 'Бесплатный генератор QR', note: 'статические QR без регистрации, PNG/SVG' },
   { href: `${SITE}/konstruktor-vizitok.html`, title: 'Конструктор визиток', note: 'бумажные визитки с QR, PDF для типографии' },
+  { href: `${SITE}/qr-kod-dlya-3d-pechati.html`, title: 'QR-код для 3D-печати', note: 'бесплатный STL таблички или брелока со своей ссылкой; динамический QR для печати — PRO' },
   { href: `${SITE}/otraslevye-resheniya.html`, title: 'Отраслевые решения', note: 'HoReCa, бьюти, клиники, автосервисы' },
   { href: API_DOCS_URL, title: 'API', note: 'REST API и OpenAPI для интеграций и ИИ-агентов' },
   { href: `${SITE}/blog.html`, title: 'Блог', note: 'статьи про QR-коды и отзывы' },

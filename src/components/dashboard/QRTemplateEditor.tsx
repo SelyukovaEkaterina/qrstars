@@ -28,6 +28,7 @@ import {
   Info,
   Ban,
   Sparkles,
+  Box,
 } from "lucide-react";
 import { scanUrlForCode } from "@/lib/utils";
 import {
@@ -78,6 +79,7 @@ import {
 } from "@/lib/qr-engine";
 import QRMockupDialog from "@/components/dashboard/QRMockupDialog";
 import QRAnimationPanel from "@/components/dashboard/QRAnimationPanel";
+import QR3DPrintPanel from "@/components/dashboard/QR3DPrintPanel";
 import { TEMPLATES_CHANGED_EVENT } from "@/components/dashboard/GeneratorStyleImporter";
 
 type UserQR = {
@@ -1616,6 +1618,10 @@ export default function QRTemplateEditor({
                 silhouetteImage={silhouetteImage}
                 fileBase={downloadBaseName}
               />
+            </Section>
+
+            <Section title="3D-печать (STL)" icon={<Box size={16} />} value="PRO">
+              <QR3DPrintPanel payload={payload} fileBase={downloadBaseName} />
             </Section>
 
             <Section title="Дополнительно" icon={<ChevronDown size={16} />}>
