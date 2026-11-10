@@ -1,0 +1,457 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { PLAN_PRICING } from '../../../src/lib/plans';
+import { QR_STL_COLOR_PAIRS } from '../../../src/lib/qr-engine/stl-preview';
+import { generatorRegisterUrl, withPlan } from '../lib/utm';
+
+const PRO_URL = withPlan(generatorRegisterUrl('qr-3d-print-after-download', Astro.url.searchParams), 'pro');
+const PRO_URL_BOTTOM = withPlan(generatorRegisterUrl('qr-3d-print-bottom', Astro.url.searchParams), 'pro');
+const PRO_FROM = `${PLAN_PRICING.PRO.halfYearRub.toLocaleString('ru-RU')} ₽`;
+
+const ideas = [
+  { icon: 'fa-mug-hot', title: 'Табличка на стол или стойку', text: 'Отзывы, меню или Wi‑Fi в кафе и салоне. Пластик не мнётся и не выгорает, как бумажный стикер.' },
+  { icon: 'fa-key', title: 'Брелок с контактами', text: 'Мастеру на час, электрику, сантехнику: клиент сканирует брелок на ключах — и у него ваша визитка.' },
+  { icon: 'fa-screwdriver-wrench', title: 'Бирка на оборудование', text: 'Инструкция, видео или заявка в сервис — прямо на станке, котле или кофемашине.' },
+  { icon: 'fa-car', title: 'Подвеска в автосервис', text: 'Код на ключах клиента ведёт на отзыв о ремонте или запись на ТО.' },
+  { icon: 'fa-magnet', title: 'Магнит на холодильник', text: 'Вклейте магнит в подложку — и клиент найдёт ваш номер, когда что-то сломается.' },
+  { icon: 'fa-gift', title: 'Подарок и мерч', text: 'Брелок с QR на ролик, плейлист или поздравление. Печатается за час на домашнем принтере.' },
+];
+
+const faqItems = [
+  {
+    q: 'Как напечатать QR-код двумя цветами на обычном принтере?',
+    a: 'Скачайте STL одним телом и в слайсере (Bambu Studio, PrusaSlicer, Cura, Orca) добавьте смену филамента на высоте подложки — мы подписываем её в мм. Для «Рельефа» подложку печатайте светлым пластиком, модули — тёмным; для «Гравировки» наоборот. Принтер остановится на нужном слое, вы меняете пластик, и верх печатается вторым цветом. На многоцветных принтерах (AMS, MMU) скачайте ZIP с двумя деталями и назначьте каждой свой цвет.',
+  },
+  {
+    q: 'Какой размер выбрать, чтобы код читался?',
+    a: 'Главное — размер одного модуля (квадратика): не меньше 1,2 мм при сопле 0,4 мм, лучше 1,5 мм и больше. Для динамического QR QrStars это пластина от 40–50 мм. Длинная ссылка даёт больше модулей, и пластину придётся делать крупнее — поэтому для печати выгоднее короткий динамический код.',
+  },
+  {
+    q: 'Рельеф или гравировка — что лучше?',
+    a: '«Рельеф» — тёмные модули выступают над светлой подложкой, это классика и печатается быстрее. «Гравировка» — светлая крышка с утопленными модулями: поверхность ровная, код меньше пачкается и не цепляется, хорошо подходит для брелоков.',
+  },
+  {
+    q: 'Какие настройки печати подойдут?',
+    a: 'PLA или PETG, сопло 0,4 мм, слой 0,12–0,2 мм, модель лицом вверх — как она стоит в файле. Заполнение 15–20% достаточно. Самое важное — контраст пластиков: чёрный по белому или белый по чёрному читаются лучше всего.',
+  },
+  {
+    q: 'Что будет, если ссылка поменяется?',
+    a: 'Если в модели динамический QR из кабинета QrStars, ничего перепечатывать не нужно: код ведёт на короткую ссылку, а куда она перенаправляет, вы меняете в кабинете в любой момент. Статический код со ссылкой внутри пришлось бы печатать заново.',
+  },
+  {
+    q: 'Это бесплатно?',
+    a: `Да, без регистрации и водяных знаков: STL со своей ссылкой скачивается прямо здесь, модель собирается в вашем браузере. Такой код статический — ссылка зашита в пластик навсегда. Если хотите менять ссылку после печати и видеть статистику сканов, сделайте динамический QR в кабинете на тарифе PRO от ${PRO_FROM} за полгода.`,
+  },
+];
+
+const faqPageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqItems.map((item) => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: { '@type': 'Answer', text: item.a },
+  })),
+};
+---
+
+<Layout
+  title="QR-код для 3D-печати — STL бесплатно для таблички и брелока"
+  description="Бесплатный QR-код для 3D-принтера: STL с рельефом или гравировкой, ушко для брелока, печать в два цвета. 3D-превью онлайн, без регистрации."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(faqPageSchema)} />
+
+  <section class="pt-20 pb-4 lg:pt-[5.5rem] lg:pb-6 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-xs sm:text-sm mb-3 lg:mb-4 border border-primary/20">
+        <i class="fa-solid fa-cube mr-1"></i> Бесплатно &middot; Без регистрации &middot; STL в два цвета
+      </div>
+      <h1 class="text-[1.65rem] leading-[1.15] md:text-4xl lg:text-[2.75rem] font-extrabold tracking-tight lg:leading-tight mb-2 lg:mb-3 max-w-4xl mx-auto">
+        QR-код для <span class="bg-gradient-to-r from-primary to-purple-500 gradient-text">3D-печати</span>
+      </h1>
+      <p class="text-base lg:text-lg text-slate-600 mb-0 max-w-2xl mx-auto">
+        Табличка, брелок или бирка с QR-кодом на вашем 3D-принтере. Вставьте ссылку, покрутите модель и скачайте STL для печати в два цвета.
+      </p>
+    </div>
+  </section>
+
+  <section class="pb-14 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="bg-slate-50 rounded-3xl border border-slate-200 shadow-sm p-4 sm:p-6 md:p-8 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,560px)] gap-6 lg:gap-10">
+        <!-- Превью -->
+        <div class="lg:col-start-2 lg:row-start-1 min-w-0">
+          <div class="lg:sticky lg:top-24">
+            <div class="relative rounded-2xl bg-gradient-to-b from-slate-100 to-slate-300 overflow-hidden">
+              <canvas id="stl-canvas" class="block w-full aspect-[5/4]" aria-label="3D-модель QR-кода"></canvas>
+              <span class="pointer-events-none absolute bottom-2 right-3 text-[11px] text-slate-600"><i class="fa-solid fa-hand-pointer mr-1"></i>Покрутите модель</span>
+            </div>
+            <p id="stl-stats" class="mt-3 text-sm text-slate-600"></p>
+            <p id="stl-warn" class="hidden mt-2 rounded-xl bg-amber-50 border border-amber-200 px-3 py-2 text-sm text-amber-900"></p>
+
+            <div class="mt-4 grid gap-2.5">
+              <button type="button" id="stl-download" class="inline-flex items-center justify-center gap-2 bg-primary text-white px-5 py-3.5 rounded-xl font-bold text-base hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/25">
+                <i class="fa-solid fa-download"></i> Скачать STL бесплатно
+              </button>
+              <button type="button" id="stl-download-zip" class="inline-flex items-center justify-center gap-2 bg-white border border-slate-300 text-slate-800 px-4 py-3 rounded-xl font-semibold hover:border-primary hover:text-primary transition">
+                <i class="fa-solid fa-layer-group"></i> Две детали для многоцветной печати (ZIP)
+              </button>
+            </div>
+            <p class="mt-2.5 text-xs text-slate-500 leading-relaxed">
+              Модель собирается в вашем браузере: без регистрации и водяных знаков. Одним файлом — для печати со сменой пластика, ZIP — для AMS и MMU.
+            </p>
+
+            <div id="stl-after" class="hidden mt-5 rounded-2xl border border-indigo-200 bg-indigo-50 p-4 sm:p-5">
+              <div class="font-bold text-indigo-950 mb-1"><i class="fa-solid fa-circle-check mr-1.5 text-emerald-600"></i>Модель готова</div>
+              <p class="text-sm text-indigo-950/80 leading-relaxed mb-3">
+                Ссылка в этом коде зашита в пластик навсегда. Хотите менять её после печати — сменили меню, акцию или карточку на картах — и видеть, сколько раз код сканировали? Сделайте динамический QR: печатаете один раз, адрес меняете в кабинете.
+              </p>
+              <a href={PRO_URL} data-goal="qr_stl_pro_cta" data-goal-params='{"source":"after_download"}' class="inline-flex items-center gap-2 bg-primary text-white font-bold px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition text-sm">
+                Динамический QR для печати · PRO от {PRO_FROM} <i class="fa-solid fa-arrow-right"></i>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Настройки -->
+        <div class="lg:col-start-1 lg:row-start-1 min-w-0 space-y-5">
+          <label class="block">
+            <span class="stl-label">Ссылка в QR-коде</span>
+            <input id="stl-link" type="url" inputmode="url" autocomplete="off" placeholder="https://ваш-сайт.ru или ссылка на карточку" class="w-full h-12 rounded-xl border border-slate-300 bg-white px-4 text-base focus:border-primary focus:outline-none" />
+            <span class="mt-1.5 block text-xs text-slate-500">Чем короче ссылка, тем крупнее модули и тем меньше можно сделать пластину.</span>
+          </label>
+
+          <div>
+            <span class="stl-label">Вид</span>
+            <div class="inline-flex rounded-xl bg-white border border-slate-200 p-1" role="group" aria-label="Вид кода">
+              <button type="button" class="stl-seg active" data-style="raised">Рельеф</button>
+              <button type="button" class="stl-seg" data-style="engraved">Гравировка</button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <label class="block">
+              <span class="stl-label">Размер</span>
+              <select id="stl-size" class="stl-select">
+                {[30, 40, 50, 60, 80, 100, 150].map((s) => <option value={s} selected={s === 50}>{s}×{s} мм</option>)}
+              </select>
+            </label>
+            <label class="block">
+              <span class="stl-label" id="stl-relief-label">Высота рельефа</span>
+              <select id="stl-relief" class="stl-select">
+                {[0.6, 1, 1.5, 2].map((r) => <option value={r} selected={r === 1}>{String(r).replace('.', ',')} мм</option>)}
+              </select>
+            </label>
+            <label class="block">
+              <span class="stl-label">Подложка</span>
+              <select id="stl-base" class="stl-select">
+                {[1.2, 1.6, 2, 3].map((b) => <option value={b} selected={b === 2}>{String(b).replace('.', ',')} мм</option>)}
+              </select>
+            </label>
+            <label class="block">
+              <span class="stl-label">Поле вокруг кода</span>
+              <select id="stl-margin" class="stl-select">
+                {[1, 2, 3, 4].map((m) => <option value={m} selected={m === 2}>{m} мод.</option>)}
+              </select>
+            </label>
+          </div>
+
+          <label class="flex items-center gap-2.5 text-sm font-medium text-slate-700 cursor-pointer">
+            <input id="stl-keyring" type="checkbox" class="h-[18px] w-[18px] rounded border-slate-300 text-primary" />
+            Ушко для брелока
+          </label>
+
+          <div>
+            <span class="stl-label">Пластик: светлый и тёмный</span>
+            <div class="flex flex-wrap gap-2" id="stl-colors">
+              {QR_STL_COLOR_PAIRS.map((p, i) => (
+                <button type="button" class={`stl-color ${i === 0 ? 'active' : ''}`} data-color={p.id} title={p.label} aria-label={p.label}>
+                  <span style={`background:${p.light}`}></span><span style={`background:${p.dark}`}></span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-12 lg:py-16 bg-slate-950 text-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl sm:text-3xl font-extrabold">Динамический QR: печатаете один раз — ссылку меняете сколько угодно</h2>
+      <p class="mt-3 max-w-3xl text-slate-300">
+        Бесплатный STL выше — статический: код навсегда привязан к одной ссылке. На тарифе PRO в модель зашивается короткий динамический адрес: акция закончилась, сменили меню или карточку на картах — поменяйте ссылку в кабинете, а табличка и брелоки продолжат работать.
+      </p>
+      <div class="mt-8 grid gap-4 sm:grid-cols-3">
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+          <div class="text-indigo-300 font-bold text-sm">Шаг 1</div>
+          <div class="mt-1 font-bold">Создайте QR в кабинете</div>
+          <p class="mt-1 text-sm text-slate-300">Отзывы, меню, визитка, Wi‑Fi или прямая ссылка — бесплатно, за пару минут.</p>
+        </div>
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+          <div class="text-indigo-300 font-bold text-sm">Шаг 2</div>
+          <div class="mt-1 font-bold">Скачайте STL</div>
+          <p class="mt-1 text-sm text-slate-300">В редакторе стиля — раздел «3D-печать»: размер, рельеф или гравировка, ушко. Одним телом или двумя деталями.</p>
+        </div>
+        <div class="rounded-2xl bg-white/5 border border-white/10 p-5">
+          <div class="text-indigo-300 font-bold text-sm">Шаг 3</div>
+          <div class="mt-1 font-bold">Напечатайте в два цвета</div>
+          <p class="mt-1 text-sm text-slate-300">Смена филамента на высоте подложки или многоцветный принтер. Мы подскажем высоту в мм.</p>
+        </div>
+      </div>
+      <a href={PRO_URL_BOTTOM} data-goal="qr_stl_pro_cta" data-goal-params='{"source":"steps"}' class="mt-8 inline-flex items-center gap-2 bg-primary text-white px-6 py-3.5 rounded-xl font-bold hover:bg-indigo-500 transition shadow-lg shadow-indigo-500/30">
+        <i class="fa-solid fa-cube"></i> Сделать динамический QR · PRO
+      </a>
+    </div>
+  </section>
+
+  <section class="py-12 lg:py-16 bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">Что напечатать с QR-кодом</h2>
+      <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {ideas.map((i) => (
+          <div class="rounded-2xl border border-slate-200 p-5">
+            <i class={`fa-solid ${i.icon} text-primary text-xl`}></i>
+            <div class="mt-2 font-bold text-slate-900">{i.title}</div>
+            <p class="mt-1 text-sm text-slate-600">{i.text}</p>
+          </div>
+        ))}
+      </div>
+
+      <div class="mt-12 grid gap-8 lg:grid-cols-2">
+        <div>
+          <h2 class="text-xl sm:text-2xl font-extrabold text-slate-900">Как напечатать, чтобы код читался</h2>
+          <ul class="mt-4 space-y-2.5 text-slate-700 text-sm sm:text-base">
+            <li><b>Модуль от 1,2 мм.</b> Это сторона одного квадратика; мы показываем её под превью и предупреждаем, если мало.</li>
+            <li><b>Контрастные пластики.</b> Чёрный по белому — надёжнее всего. Прозрачные и «шёлковые» пластики бликуют.</li>
+            <li><b>Лицом вверх, тонкий слой.</b> 0,12–0,2 мм, сопло 0,4 мм, заполнение 15–20%.</li>
+            <li><b>Смена цвета на высоте подложки.</b> В слайсере — «пауза / смена филамента» на нужном слое (M600).</li>
+            <li><b>Поле вокруг кода.</b> Не меньше 1–2 модулей светлого цвета, иначе камера не найдёт края.</li>
+          </ul>
+        </div>
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-5 sm:p-6">
+          <h3 class="font-bold text-slate-900">Ещё по теме</h3>
+          <div class="mt-3 grid gap-2">
+            <a href="/free-qr-generator.html" class="text-primary font-semibold hover:underline">Бесплатный генератор QR-кодов →</a>
+            <a href="/qr-kod-dlya-video.html" class="text-primary font-semibold hover:underline">Анимированный QR для видео и экранов →</a>
+            <a href="/dynamic-qr.html" class="text-primary font-semibold hover:underline">Что такое динамический QR-код →</a>
+            <a href="/konstruktor-vizitok.html" class="text-primary font-semibold hover:underline">Конструктор визиток с QR →</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-12 bg-slate-50 rounded-2xl p-6 md:p-8">
+        <h2 class="text-lg md:text-xl font-bold text-slate-900 mb-4">Часто задаваемые вопросы</h2>
+        <div class="space-y-4">
+          {faqItems.map((item) => (
+            <div>
+              <h3 class="font-semibold text-slate-900">{item.q}</h3>
+              <p class="mt-1 text-sm text-slate-600 leading-relaxed">{item.a}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  </section>
+</Layout>
+
+<style>
+  .stl-label { display: block; margin-bottom: 0.4rem; font-size: 0.8125rem; font-weight: 700; color: #334155; }
+  .stl-select { width: 100%; height: 2.75rem; border-radius: 0.75rem; border: 1px solid #cbd5e1; background: #fff; padding: 0 0.75rem; font-size: 0.9375rem; }
+  .stl-seg { height: 2.25rem; padding: 0 1rem; border-radius: 0.6rem; font-size: 0.875rem; font-weight: 600; color: #334155; }
+  .stl-seg.active { background: #4f46e5; color: #fff; }
+  .stl-color { display: flex; width: 3rem; height: 2.25rem; border-radius: 0.6rem; overflow: hidden; border: 2px solid #e2e8f0; }
+  .stl-color span { width: 50%; height: 100%; }
+  .stl-color.active { border-color: #4f46e5; box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2); }
+  @media (max-width: 639px) { .stl-select { font-size: 16px; } }
+</style>
+
+<script>
+  import QRCode from 'qrcode';
+  import {
+    QR_STL_COLOR_PAIRS,
+    QR_STL_DEFAULTS,
+    QR_STL_MIN_MODULE_MM,
+    QR_STL_PREVIEW_DEFAULT_VIEW,
+    bindQrStlOrbit,
+    buildQrStlModel,
+    drawQrStlPreview,
+    encodeBinaryStl,
+    estimatePlaGrams,
+    zipStore,
+    qrStlModuleMm,
+    type QrModules,
+    type QrStlOptions,
+  } from '../../../src/lib/qr-engine';
+  import { deliverFile } from '../lib/qr-generator/deliver';
+
+  const goal = (name: string, params?: Record<string, unknown>) => (window as any).ymGoal?.(name, params);
+  const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
+  // Пока ссылки нет, превью показывает код на qrstars.ru (скачать без своей ссылки нельзя).
+  const SAMPLE_URL = 'https://qrstars.ru';
+
+  const canvas = $<HTMLCanvasElement>('stl-canvas');
+  const linkInput = $<HTMLInputElement>('stl-link');
+  const opts: QrStlOptions = { ...QR_STL_DEFAULTS };
+  let colorId: string = QR_STL_COLOR_PAIRS[0].id;
+  let modules: QrModules | null = null;
+  const view = { azimuth: QR_STL_PREVIEW_DEFAULT_VIEW.azimuth, elevation: QR_STL_PREVIEW_DEFAULT_VIEW.elevation };
+  let lastDrag = -Infinity;
+
+  // Ссылка из генератора приходит в #u= (hash не уходит на сервер).
+  const fromHash = new URLSearchParams(location.hash.slice(1)).get('u');
+  if (fromHash) linkInput.value = fromHash;
+
+  const fmt = (n: number) => n.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+  const makeModules = (text: string) => QRCode.create(text, { errorCorrectionLevel: 'M' }).modules as unknown as QrModules;
+
+  function draw() {
+    if (!modules) return;
+    const pair = QR_STL_COLOR_PAIRS.find((p) => p.id === colorId) ?? QR_STL_COLOR_PAIRS[0];
+    drawQrStlPreview(canvas, modules, opts, { ...view, lightColor: pair.light, darkColor: pair.dark });
+  }
+
+  function resize() {
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    canvas.width = Math.round(canvas.clientWidth * dpr);
+    canvas.height = Math.round(canvas.clientWidth * 0.8 * dpr);
+    draw();
+  }
+
+  function refresh() {
+    const text = linkInput.value.trim() || SAMPLE_URL;
+    const warn = $('stl-warn');
+    try {
+      modules = makeModules(text);
+    } catch {
+      modules = null;
+      warn.textContent = 'Слишком длинный текст для QR-кода.';
+      warn.classList.remove('hidden');
+      return;
+    }
+    const model = buildQrStlModel(modules, opts);
+    const moduleMm = qrStlModuleMm(modules, opts);
+    $('stl-stats').innerHTML =
+      `Модуль <b>${fmt(moduleMm)} мм</b> · ${fmt(model.widthMm)}×${fmt(model.depthMm)}×${fmt(model.heightMm)} мм · до ${fmt(estimatePlaGrams(model.single))} г PLA<br>` +
+      (opts.style === 'raised'
+        ? `Подложка — светлым пластиком, на высоте <b>${fmt(model.colorChangeMm)} мм</b> смена на тёмный`
+        : `Подложка — тёмным пластиком, на высоте <b>${fmt(model.colorChangeMm)} мм</b> смена на светлый`);
+    $('stl-relief-label').textContent = opts.style === 'raised' ? 'Высота рельефа' : 'Глубина гравировки';
+    if (moduleMm < QR_STL_MIN_MODULE_MM) {
+      warn.textContent = `Модули ${fmt(moduleMm)} мм — мельче ${fmt(QR_STL_MIN_MODULE_MM)} мм сопло 0,4 мм пропечатает плохо. Увеличьте размер или используйте короткую динамическую ссылку.`;
+      warn.classList.remove('hidden');
+    } else {
+      warn.classList.add('hidden');
+    }
+    draw();
+  }
+
+  linkInput.addEventListener('input', refresh);
+  document.querySelectorAll<HTMLButtonElement>('[data-style]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      opts.style = btn.dataset.style as QrStlOptions['style'];
+      document.querySelectorAll('[data-style]').forEach((b) => b.classList.toggle('active', b === btn));
+      refresh();
+    }),
+  );
+  const bindSelect = (id: string, key: 'sizeMm' | 'reliefMm' | 'baseMm' | 'margin') =>
+    $<HTMLSelectElement>(id).addEventListener('change', (e) => {
+      opts[key] = Number((e.target as HTMLSelectElement).value);
+      refresh();
+    });
+  bindSelect('stl-size', 'sizeMm');
+  bindSelect('stl-relief', 'reliefMm');
+  bindSelect('stl-base', 'baseMm');
+  bindSelect('stl-margin', 'margin');
+  $<HTMLInputElement>('stl-keyring').addEventListener('change', (e) => {
+    opts.keyring = (e.target as HTMLInputElement).checked;
+    refresh();
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-color]').forEach((btn) =>
+    btn.addEventListener('click', () => {
+      colorId = btn.dataset.color!;
+      document.querySelectorAll('[data-color]').forEach((b) => b.classList.toggle('active', b === btn));
+      draw();
+    }),
+  );
+
+  async function download(format: 'stl' | 'zip') {
+    const text = linkInput.value.trim();
+    if (!text) {
+      const warn = $('stl-warn');
+      warn.textContent = 'Вставьте свою ссылку — модель соберётся с ней.';
+      warn.classList.remove('hidden');
+      linkInput.focus();
+      return;
+    }
+    let mods: QrModules;
+    try {
+      mods = makeModules(text);
+    } catch {
+      return;
+    }
+    const model = buildQrStlModel(mods, opts);
+    const name = `qr-3d-${opts.sizeMm}mm`;
+    if (format === 'stl') {
+      const bytes = encodeBinaryStl(model.single, 'QR code by qrstars.ru');
+      await deliverFile(new Blob([bytes as BlobPart], { type: 'model/stl' }), `${name}.stl`, false);
+    } else {
+      const files = model.parts.map((p) => ({
+        name: `${name}-${p.name === 'base' ? '1-base' : '2-top'}.stl`,
+        data: encodeBinaryStl(p.triangles, `QR code by qrstars.ru ${p.name}`),
+      }));
+      await deliverFile(new Blob([zipStore(files) as BlobPart], { type: 'application/zip' }), `${name}-2-colors.zip`, false);
+    }
+    goal('qr_stl_free_download', { format, style: opts.style, size: opts.sizeMm, keyring: !!opts.keyring });
+    $('stl-after').classList.remove('hidden');
+  }
+  $('stl-download').addEventListener('click', () => download('stl'));
+  $('stl-download-zip').addEventListener('click', () => download('zip'));
+
+  bindQrStlOrbit(
+    canvas,
+    () => view,
+    (v) => {
+      view.azimuth = v.azimuth;
+      view.elevation = v.elevation;
+      draw();
+    },
+    () => {
+      lastDrag = performance.now();
+    },
+  );
+
+  // Лёгкое покачивание, пока модель на экране и её не крутят руками.
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (!reduceMotion) {
+    let raf = 0;
+    let lastFrame = 0;
+    let baseAz = view.azimuth;
+    let swayStart = -1;
+    const loop = (now: number) => {
+      raf = requestAnimationFrame(loop);
+      if (now - lastFrame < 33) return;
+      lastFrame = now;
+      if (swayStart < 0 || now - lastDrag < 2500) {
+        // Только что крутили руками — качаемся вокруг нового положения.
+        baseAz = view.azimuth;
+        swayStart = now;
+        return;
+      }
+      view.azimuth = baseAz + Math.sin((now - swayStart) / 1800) * 0.25;
+      draw();
+    };
+    new IntersectionObserver((entries) => {
+      const visible = entries.some((e) => e.isIntersecting);
+      if (visible && !raf) raf = requestAnimationFrame(loop);
+      if (!visible && raf) {
+        cancelAnimationFrame(raf);
+        raf = 0;
+      }
+    }).observe(canvas);
+  }
+
+  window.addEventListener('resize', resize);
+  goal('qr_stl_visit');
+  refresh();
+  resize();
+</script>
