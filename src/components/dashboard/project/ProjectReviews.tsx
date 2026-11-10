@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useLockedProjectId } from "@/components/dashboard/ProjectScope";
@@ -130,6 +130,14 @@ export default function ReviewsPage({ hideHeader = false }: { hideHeader?: boole
   const [negativeTotal, setNegativeTotal] = useState(0);
 
   const [search, setSearch] = useState("");
+  // Запрос уходит через 300 мс после ввода; ответы на устаревшие запросы отбрасываем
+  // (раньше медленный ответ на «ко» мог перезаписать выдачу по «кофе»).
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const requestSeq = useRef(0);
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    return () => clearTimeout(t);
+  }, [search]);
   const [filterNegative, setFilterNegative] = useState("");
   const [filterRating, setFilterRating] = useState("");
   const [filterEstablishment, setFilterEstablishment] = useState(lockedEstId);
@@ -163,11 +171,13 @@ export default function ReviewsPage({ hideHeader = false }: { hideHeader?: boole
     if (establishmentId) params.set("establishmentId", establishmentId);
     if (dateFrom) params.set("dateFrom", dateFrom);
     if (dateTo) params.set("dateTo", dateTo);
-    if (search.trim()) params.set("search", search.trim());
+    if (debouncedSearch) params.set("search", debouncedSearch);
 
+    const seq = ++requestSeq.current;
     fetch(`/api/reviews?${params}`)
       .then((r) => r.json())
       .then((data) => {
+        if (seq !== requestSeq.current) return;
         setReviews(data.reviews || []);
         setPages(data.pages || 1);
         setTotal(data.total || 0);
@@ -175,8 +185,10 @@ export default function ReviewsPage({ hideHeader = false }: { hideHeader?: boole
         setNegativeTotal(data.negativeTotal || 0);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
-  }, [status, page, filterNegative, filterRating, filterEstablishment, lockedEstId, dateFrom, dateTo, search]);
+      .catch(() => {
+        if (seq === requestSeq.current) setLoading(false);
+      });
+  }, [status, page, filterNegative, filterRating, filterEstablishment, lockedEstId, dateFrom, dateTo, debouncedSearch]);
 
   useEffect(() => {
     if (status === "unauthenticated") router.push("/login");

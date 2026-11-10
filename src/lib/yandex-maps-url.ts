@@ -215,3 +215,21 @@ export async function resolveYandexMapsPreview(
 
   return { ok: true, name, canonicalUrl: finalUrl.href };
 }
+
+/**
+ * Поле ссылки на Яндекс.Карты из формы — те же правила, что в настройках проекта:
+ * только карточка организации; короткие `/maps/-/…` и поиск не принимаем
+ * (могут вести на чужую организацию). `undefined` — не трогать, `null` — пусто.
+ */
+export function parseYandexMapsUrlField(
+  raw: unknown,
+): string | null | undefined | { error: string } {
+  if (raw === undefined) return undefined;
+  if (raw === null) return null;
+  if (typeof raw !== "string") return { error: YANDEX_MAPS_INVALID_ERROR };
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const problem = yandexMapsUrlError(trimmed);
+  if (problem) return { error: problem };
+  return normalizeYandexMapsUrl(trimmed) ?? { error: YANDEX_MAPS_INVALID_ERROR };
+}

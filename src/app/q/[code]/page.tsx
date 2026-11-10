@@ -732,15 +732,30 @@ export default async function ScanPage({ params }: ScanPageProps) {
   return <ScanFlow {...reviewProps} {...brandProps} pdConsent={pdConsent} />;
 }
 
-/** FREE-владелец и QR создан после появления экрана QrStars → показать экран. */
+/**
+ * FREE и QR создан после появления экрана QrStars → показать экран.
+ * Платный — автор QR или владелец проекта: QR, созданный участником команды,
+ * в PRO-проекте раньше показывал экран QrStars платному клиенту.
+ */
 async function needsRedirectInterstitial(qrCode: {
   userId: string | null;
+  establishmentId: string | null;
   redirectGrandfathered?: boolean;
 }): Promise<boolean> {
   const grandfathered = qrCode.redirectGrandfathered ?? false;
-  if (!qrCode.userId || grandfathered) return false;
+  if (grandfathered) return false;
+  const payerIds = new Set<string>();
+  if (qrCode.userId) payerIds.add(qrCode.userId);
+  if (qrCode.establishmentId) {
+    const est = await prisma.establishment.findUnique({
+      where: { id: qrCode.establishmentId },
+      select: { userId: true },
+    });
+    if (est?.userId) payerIds.add(est.userId);
+  }
+  if (payerIds.size === 0) return false;
   const paidSub = await prisma.subscription.findFirst({
-    where: { userId: qrCode.userId, status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
+    where: { userId: { in: [...payerIds] }, status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
     select: { plan: true },
   });
   return shouldShowRedirectInterstitial({

@@ -132,7 +132,12 @@ export async function PUT(request: Request) {
 
   const data: Record<string, unknown> = {};
 
-  if (body.name !== undefined) data.name = body.name;
+  if (body.name !== undefined) {
+    if (typeof body.name !== "string" || !body.name.trim()) {
+      return NextResponse.json({ error: "Укажите название проекта" }, { status: 400 });
+    }
+    data.name = body.name.trim().slice(0, 200);
+  }
   if (body.industry !== undefined) {
     const industry = body.industry ? parseEstablishmentIndustry(body.industry) : null;
     if (body.industry && !industry) {

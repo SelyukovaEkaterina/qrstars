@@ -91,14 +91,21 @@ export default function SubscriptionPage() {
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [notice, setNotice] = useState<{ tone: "error" | "success"; text: string } | null>(null);
 
-  const load = () =>
-    fetch("/api/subscription")
-      .then((r) => r.json())
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  // Раньше при ошибке запроса страница навсегда оставалась со спиннером.
+  const load = () => {
+    return fetch("/api/subscription")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((json) => {
         setData(json);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => {
+        setLoadFailed(true);
+        setLoading(false);
+      });
+  };
 
   const loadHistory = () =>
     fetch("/api/subscription/history")
@@ -204,6 +211,30 @@ export default function SubscriptionPage() {
       setNotice({ tone: "error", text: "Не удалось отменить подписку. Проверьте интернет и попробуйте ещё раз." });
     }
   };
+
+  if (!loading && !data && loadFailed) {
+    return (
+      <div className="flex min-h-screen bg-gray-50">
+        <main className="flex min-w-0 flex-1 items-center justify-center p-4">
+          <div className="max-w-sm text-center space-y-3">
+            <p className="font-semibold text-gray-900">Не удалось загрузить тариф</p>
+            <p className="text-sm text-gray-500">Проверьте соединение и попробуйте ещё раз.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadFailed(false);
+                setLoading(true);
+                void load();
+              }}
+              className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+            >
+              Обновить
+            </button>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (loading || !data) {
     return (

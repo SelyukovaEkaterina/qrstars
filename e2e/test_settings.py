@@ -132,3 +132,26 @@ def test_create_establishment_rejects_non_http_platform_url(owner_session, base_
     assert r.status_code in (400, 403)
     if r.status_code == 403:
         pytest.skip("Project limit reached before URL validation")
+
+
+@pytest.mark.parametrize(
+    "yandex_url",
+    ["https://yandex.ru/maps/-/CDwZ6KMr", "https://yandex.ru/maps/search/кафе/", "https://yandex.ru/maps/"],
+)
+def test_create_establishment_rejects_unconfirmed_yandex_link(owner_session, base_url, yandex_url):
+    """Как в настройках проекта: короткая ссылка, поиск и главная Яндекс.Карт не сохраняются."""
+    r = owner_session.post(
+        f"{base_url}/api/establishments",
+        json={"name": "Yandex link project", "yandexMapsUrl": yandex_url},
+    )
+    assert r.status_code == 400, r.text
+
+
+def test_create_establishment_rejects_blank_name(owner_session, base_url):
+    r = owner_session.post(f"{base_url}/api/establishments", json={"name": "   "})
+    assert r.status_code == 400
+
+
+def test_settings_rejects_blank_project_name(owner_session, base_url, owner_establishment_id):
+    r = owner_session.put(f"{base_url}/api/settings", json={"id": owner_establishment_id, "name": "  "})
+    assert r.status_code == 400

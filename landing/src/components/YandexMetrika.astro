@@ -46,7 +46,8 @@ import {
         clickmap: true,
         ecommerce: 'dataLayer',
         referrer: document.referrer,
-        url: location.href,
+        // Без #: генератор хранит в нём настройки, включая пароль Wi‑Fi и реквизиты
+        url: location.href.split('#')[0],
         accurateTrackBounce: true,
         trackLinks: true,
       });

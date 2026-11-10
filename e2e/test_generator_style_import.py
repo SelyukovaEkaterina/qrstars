@@ -175,6 +175,10 @@ def test_quick_start_applies_generator_style_to_first_qr_only(base_url):
         },
     )
     assert first.status_code == 200, first.text
+    # Мастер рисует превью и скачивание сам: свой стиль должен прийти вместе с QR
+    returned_tpl = first.json()["qrcode"]["qrStyleTemplate"]
+    assert returned_tpl["id"] == template_id
+    assert returned_tpl["layout"]["source"] == "free-generator"
     first_qr = session.get(
         f"{base_url}/api/qrcodes", params={"id": first.json()["qrcode"]["id"]}
     ).json()["qrcode"]

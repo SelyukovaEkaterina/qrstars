@@ -1,3 +1,5 @@
+import { isPlatformUrlError, parsePlatformUrlField } from "@/lib/platform-url-input";
+import { parseYandexMapsUrlField } from "@/lib/yandex-maps-url";
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
@@ -64,6 +66,15 @@ export async function POST(request: Request) {
 
   if (!masterCode) {
     return NextResponse.json({ error: "Укажите мастер-код" }, { status: 400 });
+  }
+
+  // Те же правила, что в /api/activate/[id]: Яндекс — карточка организации, остальное — только http(s)
+  const yandex = parseYandexMapsUrlField(yandexMapsUrl);
+  const twoGis = parsePlatformUrlField(twoGisUrl);
+  for (const parsed of [yandex, twoGis]) {
+    if (isPlatformUrlError(parsed)) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 });
+    }
   }
 
   const batch = await prisma.activationBatch.findUnique({
@@ -187,8 +198,8 @@ export async function POST(request: Request) {
   const establishment = await prisma.establishment.create({
     data: {
       name: establishmentName,
-      yandexMapsUrl: yandexMapsUrl || null,
-      twoGisUrl: twoGisUrl || null,
+      yandexMapsUrl: (yandex as string | null | undefined) ?? null,
+      twoGisUrl: (twoGis as string | null | undefined) ?? null,
       phone: phone || null,
       user: { connect: { id: user.id } },
     },

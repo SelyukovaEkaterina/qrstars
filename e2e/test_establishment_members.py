@@ -203,3 +203,48 @@ def test_invite_rate_limit(owner_session, base_url):
             break
 
     assert last_status == 429
+
+
+def test_member_redirect_qr_in_pro_project_skips_interstitial(admin_session, base_url):
+    """QR-редирект, созданный участником в PRO-проекте, не показывает экран QrStars:
+    тариф берётся у владельца проекта, а не у автора QR."""
+    from conftest import reset_user_to_free, unique_code
+
+    # Свой владелец: у демо-владельца лимит приглашений съедает test_invite_rate_limit
+    owner_email, owner_password = register_user(base_url, unique_email("pro-owner"))
+    owner = req_lib.Session()
+    login(owner, base_url, owner_email, owner_password)
+    project = owner.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "redirect", "name": "PRO команда", "redirectUrl": "https://example.com/own"},
+    )
+    assert project.status_code == 200, project.text
+    est_id = project.json()["establishment"]["id"]
+
+    member_email, member_password = register_user(base_url, unique_email("redirector"))
+    invite = owner.post(f"{base_url}/api/establishments/{est_id}/members", json={"email": member_email})
+    assert invite.status_code == 201, invite.text
+
+    member_session = req_lib.Session()
+    login(member_session, base_url, member_email, member_password)
+
+    code = unique_code("mbrredir")
+    target = "https://example.com/member-pro-target"
+    created = member_session.post(
+        f"{base_url}/api/qrcodes",
+        json={"code": code, "establishmentId": est_id, "mode": "REDIRECT", "redirectUrl": target},
+    )
+    assert created.status_code == 200, created.text
+
+    set_user_plan(admin_session, base_url, "PRO", email=owner_email)
+    try:
+        r = req_lib.get(f"{base_url}/q/{code}", allow_redirects=False)
+        assert r.status_code in (302, 303, 307, 308), f"{r.status_code} {r.text[:300]}"
+        assert r.headers["location"] == target
+    finally:
+        reset_user_to_free(admin_session, base_url, email=owner_email)
+
+    # Владелец на FREE — экран QrStars на месте
+    r = req_lib.get(f"{base_url}/q/{code}", allow_redirects=False)
+    assert r.status_code == 200
+    assert "Перейти сейчас" in r.text

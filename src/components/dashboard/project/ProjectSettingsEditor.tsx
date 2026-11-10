@@ -138,6 +138,8 @@ export default function EstablishmentSettingsPage() {
 
       if (res.ok) {
         setSavedSnapshot(JSON.stringify(payload));
+        // Название проекта видно в сайдбаре — перечитать список
+        window.dispatchEvent(new Event("qrstars:projects-changed"));
         setStatus({ kind: "success", text: "Настройки сохранены" });
         setTimeout(() => setStatus((s) => (s?.kind === "success" ? null : s)), 3000);
       } else {

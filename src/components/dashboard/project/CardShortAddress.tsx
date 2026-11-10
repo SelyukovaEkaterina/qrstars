@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Check, Copy, Crown, Link2 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { MICROSITE_HOST_SUFFIX } from "@/lib/microsite-host";
+import { isMicrositeSlug, isReservedMicrositeSlug, MICROSITE_HOST_SUFFIX } from "@/lib/microsite-host";
 import { PLAN_PRICING } from "@/lib/plans";
 
 interface CardShortAddressProps {
@@ -66,6 +66,14 @@ export default function CardShortAddress({
     setError("");
     try {
       const value = slug.trim().toLowerCase();
+      if (value && isReservedMicrositeSlug(value)) {
+        setError("Это имя зарезервировано");
+        return;
+      }
+      if (value && !isMicrositeSlug(value)) {
+        setError("2–32 символа: строчные латинские буквы, цифры и дефис (не в начале и не в конце)");
+        return;
+      }
       const res = await fetch(`/api/establishments/${projectId}/page`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -77,6 +85,7 @@ export default function CardShortAddress({
         return;
       }
       setSavedSlug(value || null);
+      window.dispatchEvent(new Event("qrstars:projects-changed"));
     } catch {
       setError("Ошибка соединения");
     } finally {

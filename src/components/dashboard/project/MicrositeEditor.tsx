@@ -1,5 +1,6 @@
 "use client";
 
+import { isMicrositeSlug, isReservedMicrositeSlug } from "@/lib/microsite-host";
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -770,8 +771,12 @@ function MyPageDashboardContent() {
   const saveShortSlug = async (value: string) => {
     if (micrositeFrozen) return;
     const trimmed = value.trim().toLowerCase();
-    if (trimmed && !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(trimmed)) {
-      setShortSlugError("Только строчные латинские буквы, цифры, дефис, подчёркивание (2–32 символа)");
+    if (trimmed && isReservedMicrositeSlug(trimmed)) {
+      setShortSlugError("Это имя зарезервировано");
+      return;
+    }
+    if (trimmed && !isMicrositeSlug(trimmed)) {
+      setShortSlugError("2–32 символа: строчные латинские буквы, цифры и дефис (не в начале и не в конце)");
       return;
     }
     setShortSlugSaving(true);
@@ -787,6 +792,8 @@ function MyPageDashboardContent() {
       setShortSlugError(json.error || "Ошибка сохранения");
     } else {
       setShortSlug(json.establishment.shortSlug || "");
+      // Сайдбар показывает ссылку на микросайт по короткому адресу
+      window.dispatchEvent(new Event("qrstars:projects-changed"));
     }
   };
 

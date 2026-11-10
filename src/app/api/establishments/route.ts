@@ -14,6 +14,8 @@ import {
 } from "@/lib/establishment-access";
 import { parseEstablishmentIndustry } from "@/lib/establishment-industry";
 import { isPlatformUrlError, parsePlatformUrlField } from "@/lib/platform-url-input";
+import { parseYandexMapsUrlField } from "@/lib/yandex-maps-url";
+import { normalizeTwoGisUrl } from "@/lib/two-gis-url";
 import { invalidateEstablishmentScans } from "@/lib/content-cache";
 
 export async function GET() {
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Некорректная отрасль" }, { status: 400 });
   }
 
-  if (!name) {
+  if (typeof name !== "string" || !name.trim()) {
     return NextResponse.json(
       { error: "Название обязательно" },
       { status: 400 }
@@ -85,11 +87,13 @@ export async function POST(request: Request) {
     ["twoGisUrl", twoGisUrl],
     ["avitoUrl", avitoUrl],
   ] as const) {
-    const parsed = parsePlatformUrlField(raw);
+    // Яндекс — как в настройках проекта: только карточка организации, без коротких ссылок
+    const parsed = field === "yandexMapsUrl" ? parseYandexMapsUrlField(raw) : parsePlatformUrlField(raw);
     if (isPlatformUrlError(parsed)) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
     }
-    platformUrls[field] = parsed ?? null;
+    platformUrls[field] =
+      field === "twoGisUrl" && parsed ? normalizeTwoGisUrl(parsed) ?? parsed : parsed ?? null;
   }
 
   const existingCount = await prisma.establishment.count({ where: { userId } });
@@ -109,7 +113,7 @@ export async function POST(request: Request) {
 
   const establishment = await prisma.establishment.create({
     data: {
-      name,
+      name: name.trim().slice(0, 200),
       industry,
       address: address || null,
       phone: phone || null,

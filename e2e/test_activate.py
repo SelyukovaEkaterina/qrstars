@@ -9,7 +9,7 @@ def test_activate_already_active(base_url):
         json={
             "establishmentName": "Test",
             "email": "test@test.com",
-            "yandexMapsUrl": "https://yandex.ru/maps/test",
+            "yandexMapsUrl": "https://yandex.ru/maps/org/test/123/",
         },
     )
     assert r.status_code == 404

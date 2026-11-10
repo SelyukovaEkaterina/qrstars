@@ -23,7 +23,11 @@ export default async function YandexMetrika() {
   k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
 })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=${METRIKA_ID}', 'ym');
 
-ym(${METRIKA_ID}, 'init', {webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
+// Вебвизор только в кабинете: на гостевых страницах (скан, микросайт на поддомене,
+// активация) гость вводит телефон и текст жалобы — эти записи нам не нужны.
+var ymGuestPage = location.hostname !== 'app.qrstars.ru' && location.hostname !== 'localhost'
+  || /^\/(q|scan|a|activate)\//.test(location.pathname);
+ym(${METRIKA_ID}, 'init', {webvisor:!ymGuestPage, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
         `}
       </Script>
       <noscript>

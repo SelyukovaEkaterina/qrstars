@@ -30,7 +30,7 @@ import {
 } from "@/lib/establishment-industry";
 import { ensureQrStylePresets } from "@/lib/ensure-qr-style-presets";
 import { isGeneratorStyleLayout } from "@/lib/generator-style";
-import { qrStylePresetTemplateId } from "@/lib/qr-code-templates";
+import { isBuiltInQrStyleTemplateId, qrStylePresetTemplateId } from "@/lib/qr-code-templates";
 import { findRedirectUrlProblem } from "@/lib/redirect-url";
 import { cardTextFieldsFromBody, maxHref, phoneDigits } from "@/lib/business-card";
 import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
@@ -165,6 +165,14 @@ export async function POST(request: Request) {
   const qrStyleTemplateId =
     (await findFirstQrGeneratorStyleId(userId)) ??
     qrStylePresetTemplateId(professionPreset ?? industryQrStylePreset(industry));
+  // Свой стиль (из генератора) клиент не найдёт среди встроенных — отдаём его вместе с QR,
+  // иначе мастер показывал и скачивал обычный ч/б код.
+  const qrStyleTemplate = isBuiltInQrStyleTemplateId(qrStyleTemplateId)
+    ? null
+    : await prisma.template.findFirst({
+        where: { id: qrStyleTemplateId, userId },
+        select: { id: true, name: true, layout: true },
+      });
   const qualifiedOnboarding = true;
 
   if (intent === "redirect") {
@@ -456,6 +464,7 @@ export async function POST(request: Request) {
         mode: qrcode.mode,
         label: qrcode.label,
         qrStyleTemplateId,
+        qrStyleTemplate,
       },
     });
   }
@@ -538,6 +547,7 @@ export async function POST(request: Request) {
         mode: qrcode.mode,
         label: qrcode.label,
         qrStyleTemplateId,
+        qrStyleTemplate,
       },
     });
   }

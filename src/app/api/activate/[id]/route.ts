@@ -7,6 +7,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
 import { isPlatformUrlError, parsePlatformUrlField } from "@/lib/platform-url-input";
+import { parseYandexMapsUrlField } from "@/lib/yandex-maps-url";
 import {
   canAddEstablishment,
   countUserEstablishments,
@@ -104,7 +105,7 @@ export async function POST(
     );
   }
 
-  const yandex = parsePlatformUrlField(yandexMapsUrl);
+  const yandex = parseYandexMapsUrlField(yandexMapsUrl);
   const twoGis = parsePlatformUrlField(twoGisUrl);
   for (const parsed of [yandex, twoGis]) {
     if (isPlatformUrlError(parsed)) {

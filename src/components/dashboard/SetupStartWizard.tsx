@@ -10,6 +10,7 @@ import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import {
   isBuiltInQrStyleTemplateId,
+  type QrStyleTemplateSource,
   qrStylePresetTemplateId,
 } from "@/lib/qr-code-templates";
 import { scanUrlForCode, quotedEstablishmentName } from "@/lib/utils";
@@ -489,7 +490,13 @@ export default function SetupStartWizard({
 
   const [result, setResult] = useState<{
     establishment?: { id: string; name: string };
-    qrcode: { id: string; code: string; qrStyleTemplateId?: string | null };
+    qrcode: {
+      id: string;
+      code: string;
+      qrStyleTemplateId?: string | null;
+      /** Свой стиль (из генератора) — среди встроенных его нет. */
+      qrStyleTemplate?: QrStyleTemplateSource | null;
+    };
     intent: SetupIntent;
     /** QR привязан к уже существующему меню проекта — демо-блюд нет. */
     menuReused?: boolean;
@@ -688,6 +695,7 @@ export default function SetupStartWizard({
       });
       const img = await qrPreviewDataUrl(scanUrlForCode(data.qrcode.code), {
         qrStyleTemplateId: data.qrcode.qrStyleTemplateId,
+        qrStyleTemplates: data.qrcode.qrStyleTemplate ? [data.qrcode.qrStyleTemplate] : [],
         isPro: paidFeatures,
         size: 320,
       });
@@ -743,6 +751,7 @@ export default function SetupStartWizard({
       });
       const img = await qrPreviewDataUrl(scanUrlForCode(data.qrcode.code), {
         qrStyleTemplateId: data.qrcode.qrStyleTemplateId,
+        qrStyleTemplates: data.qrcode.qrStyleTemplate ? [data.qrcode.qrStyleTemplate] : [],
         isPro: paidFeatures,
         size: 320,
       });
@@ -848,6 +857,7 @@ export default function SetupStartWizard({
     });
     await downloadQrCode(format, scanUrlForCode(result.qrcode.code), `qr-${result.qrcode.code}`, {
       qrStyleTemplateId: result.qrcode.qrStyleTemplateId,
+      qrStyleTemplates: result.qrcode.qrStyleTemplate ? [result.qrcode.qrStyleTemplate] : [],
       isPro: paidFeatures,
       size: QR_EXPORT_SIZE,
       transparentBackground: opts?.transparentBackground,

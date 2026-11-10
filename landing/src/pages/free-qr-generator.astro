@@ -126,11 +126,11 @@ const QR_TABS = [
                                 <div class="space-y-4">
                                     <div>
                                         <label for="input-wifi-ssid" class="block text-sm font-semibold text-slate-700 mb-2">Название сети (SSID)</label>
-                                        <input type="text" id="input-wifi-ssid" placeholder="MyNetwork" class="qr-input" />
+                                        <input type="text" id="input-wifi-ssid" placeholder="MyNetwork" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-wifi-pass" class="block text-sm font-semibold text-slate-700 mb-2">Пароль</label>
-                                        <input type="text" id="input-wifi-pass" placeholder="••••••••" class="qr-input" />
+                                        <input type="text" id="input-wifi-pass" placeholder="••••••••" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-wifi-enc" class="block text-sm font-semibold text-slate-700 mb-2">Тип шифрования</label>
@@ -145,7 +145,7 @@ const QR_TABS = [
 
                             <div id="form-telegram" class="qr-form hidden">
                                 <label for="input-tg" class="block text-sm font-semibold text-slate-700 mb-2">Username или ссылка</label>
-                                <input type="text" id="input-tg" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="@qrstars или t.me/qrstars" class="qr-input" />
+                                <input type="text" id="input-tg" autocapitalize="off" autocomplete="off" spellcheck="false" placeholder="@qrstars или t.me/qrstars" class="ym-disable-keys ym-hide-content qr-input" />
                                 <p class="mt-2 text-xs text-slate-500">Подойдёт профиль, канал, группа или бот. Код откроет Telegram сразу на нужном чате.</p>
                             </div>
 
@@ -153,11 +153,11 @@ const QR_TABS = [
                                 <div class="space-y-4">
                                     <div>
                                         <label for="input-wa-phone" class="block text-sm font-semibold text-slate-700 mb-2">Номер WhatsApp</label>
-                                        <input type="tel" inputmode="tel" id="input-wa-phone" placeholder="+7 999 123-45-67" class="qr-input" />
+                                        <input type="tel" inputmode="tel" id="input-wa-phone" placeholder="+7 999 123-45-67" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-wa-text" class="block text-sm font-semibold text-slate-700 mb-2">Готовое сообщение (необязательно)</label>
-                                        <textarea id="input-wa-text" rows="2" placeholder="Здравствуйте! Хочу записаться" class="qr-input resize-none"></textarea>
+                                        <textarea id="input-wa-text" rows="2" placeholder="Здравствуйте! Хочу записаться" class="ym-disable-keys ym-hide-content qr-input resize-none"></textarea>
                                     </div>
                                 </div>
                             </div>
@@ -166,35 +166,35 @@ const QR_TABS = [
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="sm:col-span-2">
                                         <label for="input-pay-name" class="block text-sm font-semibold text-slate-700 mb-2">Получатель</label>
-                                        <input type="text" id="input-pay-name" placeholder="ИП Иванов Иван Иванович" class="qr-input" />
+                                        <input type="text" id="input-pay-name" placeholder="ИП Иванов Иван Иванович" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-pay-acc" class="block text-sm font-semibold text-slate-700 mb-2">Расчётный счёт</label>
-                                        <input type="text" inputmode="numeric" maxlength="24" id="input-pay-acc" placeholder="40802810000000000000" class="qr-input font-mono" />
+                                        <input type="text" inputmode="numeric" maxlength="24" id="input-pay-acc" placeholder="40802810000000000000" class="ym-disable-keys ym-hide-content qr-input font-mono" />
                                     </div>
                                     <div>
                                         <label for="input-pay-bic" class="block text-sm font-semibold text-slate-700 mb-2">БИК банка</label>
-                                        <input type="text" inputmode="numeric" maxlength="11" id="input-pay-bic" placeholder="044525225" class="qr-input font-mono" />
+                                        <input type="text" inputmode="numeric" maxlength="11" id="input-pay-bic" placeholder="044525225" class="ym-disable-keys ym-hide-content qr-input font-mono" />
                                     </div>
                                     <div>
                                         <label for="input-pay-bank" class="block text-sm font-semibold text-slate-700 mb-2">Банк</label>
-                                        <input type="text" id="input-pay-bank" placeholder="ПАО Сбербанк" class="qr-input" />
+                                        <input type="text" id="input-pay-bank" placeholder="ПАО Сбербанк" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-pay-corr" class="block text-sm font-semibold text-slate-700 mb-2">Корр. счёт</label>
-                                        <input type="text" inputmode="numeric" maxlength="24" id="input-pay-corr" placeholder="30101810400000000225" class="qr-input font-mono" />
+                                        <input type="text" inputmode="numeric" maxlength="24" id="input-pay-corr" placeholder="30101810400000000225" class="ym-disable-keys ym-hide-content qr-input font-mono" />
                                     </div>
                                     <div>
                                         <label for="input-pay-inn" class="block text-sm font-semibold text-slate-700 mb-2">ИНН (необязательно)</label>
-                                        <input type="text" inputmode="numeric" maxlength="12" id="input-pay-inn" placeholder="7700000000" class="qr-input font-mono" />
+                                        <input type="text" inputmode="numeric" maxlength="12" id="input-pay-inn" placeholder="7700000000" class="ym-disable-keys ym-hide-content qr-input font-mono" />
                                     </div>
                                     <div>
                                         <label for="input-pay-sum" class="block text-sm font-semibold text-slate-700 mb-2">Сумма, ₽ (необязательно)</label>
-                                        <input type="text" inputmode="decimal" id="input-pay-sum" placeholder="1500" class="qr-input" />
+                                        <input type="text" inputmode="decimal" id="input-pay-sum" placeholder="1500" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div class="sm:col-span-2">
                                         <label for="input-pay-purpose" class="block text-sm font-semibold text-slate-700 mb-2">Назначение платежа (необязательно)</label>
-                                        <input type="text" id="input-pay-purpose" placeholder="Оплата по счёту №15" class="qr-input" />
+                                        <input type="text" id="input-pay-purpose" placeholder="Оплата по счёту №15" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                 </div>
                                 <p class="mt-3 text-xs text-slate-500 leading-relaxed">
@@ -205,7 +205,7 @@ const QR_TABS = [
 
                             <div id="form-maps" class="qr-form hidden">
                                 <label for="input-maps" class="block text-sm font-semibold text-slate-700 mb-2">Ссылка на карточку в Яндекс Картах или 2ГИС</label>
-                                <input type="url" inputmode="url" id="input-maps" placeholder="https://yandex.ru/maps/org/…" class="qr-input" />
+                                <input type="url" inputmode="url" id="input-maps" placeholder="https://yandex.ru/maps/org/…" class="ym-disable-keys ym-hide-content qr-input" />
                                 <div class="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
                                     <p class="text-sm font-semibold text-slate-900 mb-1 flex items-center gap-1.5">
                                         <i class="fa-solid fa-shield-halved text-amber-500"></i>
@@ -223,56 +223,56 @@ const QR_TABS = [
 
                             <div id="form-text" class="qr-form hidden">
                                 <label for="input-text" class="block text-sm font-semibold text-slate-700 mb-2">Произвольный текст</label>
-                                <textarea id="input-text" rows="5" placeholder="Введите текст..." class="qr-input resize-none"></textarea>
+                                <textarea id="input-text" rows="5" placeholder="Введите текст..." class="ym-disable-keys ym-hide-content qr-input resize-none"></textarea>
                             </div>
 
                             <div id="form-email" class="qr-form hidden">
                                 <div class="space-y-4">
                                     <div>
                                         <label for="input-email-addr" class="block text-sm font-semibold text-slate-700 mb-2">Email-адрес</label>
-                                        <input type="email" inputmode="email" id="input-email-addr" placeholder="hello@example.com" class="qr-input" />
+                                        <input type="email" inputmode="email" id="input-email-addr" placeholder="hello@example.com" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-email-subj" class="block text-sm font-semibold text-slate-700 mb-2">Тема (необязательно)</label>
-                                        <input type="text" id="input-email-subj" placeholder="Тема письма" class="qr-input" />
+                                        <input type="text" id="input-email-subj" placeholder="Тема письма" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-email-body" class="block text-sm font-semibold text-slate-700 mb-2">Сообщение (необязательно)</label>
-                                        <textarea id="input-email-body" rows="3" placeholder="Текст письма..." class="qr-input resize-none"></textarea>
+                                        <textarea id="input-email-body" rows="3" placeholder="Текст письма..." class="ym-disable-keys ym-hide-content qr-input resize-none"></textarea>
                                     </div>
                                 </div>
                             </div>
 
                             <div id="form-phone" class="qr-form hidden">
                                 <label for="input-phone" class="block text-sm font-semibold text-slate-700 mb-2">Номер телефона</label>
-                                <input type="tel" inputmode="tel" id="input-phone" placeholder="+7 (999) 123-45-67" class="qr-input" />
+                                <input type="tel" inputmode="tel" id="input-phone" placeholder="+7 (999) 123-45-67" class="ym-disable-keys ym-hide-content qr-input" />
                             </div>
 
                             <div id="form-vcard" class="qr-form hidden">
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div>
                                         <label for="input-vcard-fname" class="block text-sm font-semibold text-slate-700 mb-2">Имя</label>
-                                        <input type="text" id="input-vcard-fname" placeholder="Иван" class="qr-input" />
+                                        <input type="text" id="input-vcard-fname" placeholder="Иван" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-vcard-lname" class="block text-sm font-semibold text-slate-700 mb-2">Фамилия</label>
-                                        <input type="text" id="input-vcard-lname" placeholder="Иванов" class="qr-input" />
+                                        <input type="text" id="input-vcard-lname" placeholder="Иванов" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-vcard-phone" class="block text-sm font-semibold text-slate-700 mb-2">Телефон</label>
-                                        <input type="tel" inputmode="tel" id="input-vcard-phone" placeholder="+7 999 123-45-67" class="qr-input" />
+                                        <input type="tel" inputmode="tel" id="input-vcard-phone" placeholder="+7 999 123-45-67" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-vcard-email" class="block text-sm font-semibold text-slate-700 mb-2">Email</label>
-                                        <input type="email" inputmode="email" id="input-vcard-email" placeholder="ivan@mail.ru" class="qr-input" />
+                                        <input type="email" inputmode="email" id="input-vcard-email" placeholder="ivan@mail.ru" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div class="sm:col-span-2">
                                         <label for="input-vcard-org" class="block text-sm font-semibold text-slate-700 mb-2">Организация</label>
-                                        <input type="text" id="input-vcard-org" placeholder="ООО Ромашка" class="qr-input" />
+                                        <input type="text" id="input-vcard-org" placeholder="ООО Ромашка" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div class="sm:col-span-2">
                                         <label for="input-vcard-url" class="block text-sm font-semibold text-slate-700 mb-2">Сайт</label>
-                                        <input type="url" inputmode="url" id="input-vcard-url" placeholder="https://example.com" class="qr-input" />
+                                        <input type="url" inputmode="url" id="input-vcard-url" placeholder="https://example.com" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                 </div>
                             </div>
@@ -281,11 +281,11 @@ const QR_TABS = [
                                 <div class="space-y-4">
                                     <div>
                                         <label for="input-sms-phone" class="block text-sm font-semibold text-slate-700 mb-2">Номер получателя</label>
-                                        <input type="tel" inputmode="tel" id="input-sms-phone" placeholder="+7 999 123-45-67" class="qr-input" />
+                                        <input type="tel" inputmode="tel" id="input-sms-phone" placeholder="+7 999 123-45-67" class="ym-disable-keys ym-hide-content qr-input" />
                                     </div>
                                     <div>
                                         <label for="input-sms-body" class="block text-sm font-semibold text-slate-700 mb-2">Текст сообщения</label>
-                                        <textarea id="input-sms-body" rows="3" placeholder="Здравствуйте..." class="qr-input resize-none"></textarea>
+                                        <textarea id="input-sms-body" rows="3" placeholder="Здравствуйте..." class="ym-disable-keys ym-hide-content qr-input resize-none"></textarea>
                                     </div>
                                 </div>
                             </div>

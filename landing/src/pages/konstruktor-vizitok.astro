@@ -153,27 +153,27 @@ const faqPageSchema = {
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div class="sm:col-span-2">
                   <label for="cm-name" class="cm-field-label">Имя и фамилия или название</label>
-                  <input id="cm-name" class="qr-input" maxlength="60" autocomplete="name" />
+                  <input id="cm-name" class="ym-disable-keys ym-hide-content qr-input" maxlength="60" autocomplete="name" />
                 </div>
                 <div>
                   <label for="cm-title" class="cm-field-label">Профессия или должность</label>
-                  <input id="cm-title" class="qr-input" maxlength="60" />
+                  <input id="cm-title" class="ym-disable-keys ym-hide-content qr-input" maxlength="60" />
                 </div>
                 <div>
                   <label for="cm-phone" class="cm-field-label">Телефон</label>
-                  <input id="cm-phone" class="qr-input" type="tel" inputmode="tel" maxlength="30" autocomplete="tel" />
+                  <input id="cm-phone" class="ym-disable-keys ym-hide-content qr-input" type="tel" inputmode="tel" maxlength="30" autocomplete="tel" />
                 </div>
                 <div>
                   <label for="cm-line2" class="cm-field-label">Ещё строка</label>
-                  <input id="cm-line2" class="qr-input" maxlength="60" placeholder="email, сайт, @telegram или адрес" />
+                  <input id="cm-line2" class="ym-disable-keys ym-hide-content qr-input" maxlength="60" placeholder="email, сайт, @telegram или адрес" />
                 </div>
                 <div>
                   <label for="cm-line3" class="cm-field-label">Ещё строка</label>
-                  <input id="cm-line3" class="qr-input" maxlength="60" placeholder="email, сайт, @telegram или адрес" />
+                  <input id="cm-line3" class="ym-disable-keys ym-hide-content qr-input" maxlength="60" placeholder="email, сайт, @telegram или адрес" />
                 </div>
                 <div class="sm:col-span-2">
                   <label for="cm-tagline" class="cm-field-label">Слоган или услуги</label>
-                  <input id="cm-tagline" class="qr-input" maxlength="80" placeholder="Например: Ремонт под ключ · гарантия 2 года" />
+                  <input id="cm-tagline" class="ym-disable-keys ym-hide-content qr-input" maxlength="80" placeholder="Например: Ремонт под ключ · гарантия 2 года" />
                 </div>
               </div>
               <p class="mt-2 text-xs text-slate-500">Иконка у строки подбирается сама: телефон, email, сайт, Telegram или адрес.</p>
@@ -215,13 +215,13 @@ const faqPageSchema = {
                 </div>
                 <p id="cm-qr-hint-vcard" class="cm-qr-form text-xs text-slate-500">Код соберётся из полей визитки: человек сканирует — и ваш номер сохраняется в телефонную книгу.</p>
                 <div id="cm-qr-form-url" class="cm-qr-form hidden">
-                  <input id="cm-qr-url" class="qr-input" type="url" inputmode="url" placeholder="https://ваш-сайт.ru" />
+                  <input id="cm-qr-url" class="ym-disable-keys ym-hide-content qr-input" type="url" inputmode="url" placeholder="https://ваш-сайт.ru" />
                 </div>
                 <div id="cm-qr-form-telegram" class="cm-qr-form hidden">
-                  <input id="cm-qr-tg" class="qr-input" autocapitalize="off" spellcheck="false" placeholder="@username или t.me/…" />
+                  <input id="cm-qr-tg" class="ym-disable-keys ym-hide-content qr-input" autocapitalize="off" spellcheck="false" placeholder="@username или t.me/…" />
                 </div>
                 <div id="cm-qr-form-whatsapp" class="cm-qr-form hidden">
-                  <input id="cm-qr-wa" class="qr-input" type="tel" inputmode="tel" placeholder="Номер WhatsApp (по умолчанию — телефон с визитки)" />
+                  <input id="cm-qr-wa" class="ym-disable-keys ym-hide-content qr-input" type="tel" inputmode="tel" placeholder="Номер WhatsApp (по умолчанию — телефон с визитки)" />
                 </div>
                 <p id="cm-qr-error" class="hidden text-xs font-semibold text-red-600"></p>
               </div>
