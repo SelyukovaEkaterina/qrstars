@@ -2,7 +2,7 @@
 title: "Как поднять ресторан в топ Яндекс Карт за 1 месяц"
 description: "Разбираем влияние отзывов на алгоритмы ранжирования и почему 4.8 лучше, чем 5.0."
 pubDate: 2026-05-12
-image: "https://images.unsplash.com/photo-1552581234-26160f608093?auto=format&fit=crop&q=80&w=800"
+image: "/images/blog/unsplash-1552581234.webp"
 tags: ["SEO и Карты", "HoReCa"]
 ---
 

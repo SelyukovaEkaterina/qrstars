@@ -3,6 +3,17 @@ import Layout from '../layouts/Layout.astro';
 import TryDemoSection from '../components/TryDemoSection.astro';
 import QrGallery from '../components/QrGallery.astro';
 import { registerUrl, withPlan } from '../lib/utm';
+import {
+  NETWORK_INCLUDED,
+  NETWORK_MONTHLY,
+  NETWORK_YEARLY,
+  NETWORK_YEARLY_NUM,
+  PRO_HALFYEAR,
+  PRO_HALFYEAR_NUM,
+  PRO_SAVINGS,
+  PRO_YEARLY,
+} from '../lib/prices';
+import { PLAN_PRICING } from '../../../src/lib/plans';
 
 const APP_URL = registerUrl('home', Astro.url.searchParams);
 
@@ -38,7 +49,7 @@ const faq = [
   },
   {
     q: 'Подходит ли QrStars для филиальной сети или франшизы?',
-    a: 'Да. Тариф «Сеть» (2 900 ₽/год за 5 заведений) специально разработан для компаний с филиалами. Если точек больше пяти или нужны особые условия — напишите в техподдержку в личном кабинете или на support@qrstars.ru, подберём индивидуальный выгодный тариф. В едином кабинете объединяются все точки бренда: топ-менеджмент видит сводный дашборд с рейтингами филиалов, управляющие на местах работают только со своими отзывами, а аналитика легко выгружается в CSV.',
+    a: `Да. Тариф «Сеть» (${NETWORK_YEARLY}/год за ${NETWORK_INCLUDED} заведений) специально разработан для компаний с филиалами. Если точек больше пяти или нужны особые условия — напишите в техподдержку в личном кабинете или на support@qrstars.ru, подберём индивидуальный выгодный тариф. В едином кабинете объединяются все точки бренда: топ-менеджмент видит сводный дашборд с рейтингами филиалов, управляющие на местах работают только со своими отзывами, а аналитика легко выгружается в CSV.`,
   },
   {
     q: 'Работаете ли вы с юрлицами по безналичному расчёту и через ЭДО?',
@@ -66,11 +77,11 @@ const faq = [
   },
   {
     q: 'Чем бесплатный тариф FREE отличается от PRO?',
-    a: 'FREE бесплатен навсегда: 1 проект, QR-кодов без лимита, сбор отзывов (4–5★ на Яндекс Карты или 2ГИС, жалобы 1–3★ на email), меню, визитка, Wi‑Fi, файл и редирект, базовая статистика сканирований и средний рейтинг. Ограничения FREE: вотермарка QrStars и экран QrStars на 3 секунды перед редиректом. PRO (990 ₽ за полгода или 1 490 ₽ за год) добавляет прямой переход без экрана, микросайт со всеми разделами в одном QR, ротацию площадок Яндекс / 2ГИС / Авито, жалобы в Telegram и MAX, White Label, промокод за отзыв 5★ и чаевые, расширенную аналитику по дням, устройствам и регионам.',
+    a: `FREE бесплатен навсегда: 1 проект, QR-кодов без лимита, сбор отзывов (4–5★ на Яндекс Карты или 2ГИС, жалобы 1–3★ на email), меню, визитка, Wi‑Fi, файл и редирект, базовая статистика сканирований и средний рейтинг. Ограничения FREE: вотермарка QrStars и экран QrStars на 3 секунды перед редиректом. PRO (${PRO_HALFYEAR} за полгода или ${PRO_YEARLY} за год) добавляет прямой переход без экрана, микросайт со всеми разделами в одном QR, ротацию площадок Яндекс / 2ГИС / Авито, жалобы в Telegram и MAX, White Label, промокод за отзыв 5★ и чаевые, расширенную аналитику по дням, устройствам и регионам.`,
   },
   {
     q: 'Как проходит оплата, автосписание, отмена и возврат?',
-    a: 'Платные тарифы оплачиваются банковской картой: PRO — 990 ₽ за полгода или 1 490 ₽ за год, «Сеть» — 2 900 ₽ за год. При оформлении вы отдельно соглашаетесь на автопродление; за несколько дней до списания приходит напоминание на email. Отменить подписку можно в любой момент в кабинете, раздел «Тариф и оплата» — платные функции сохранятся до конца оплаченного периода. Порядок возврата описан на странице «Условия оплаты и возврата».',
+    a: `Платные тарифы оплачиваются банковской картой: PRO — ${PRO_HALFYEAR} за полгода или ${PRO_YEARLY} за год, «Сеть» — ${NETWORK_YEARLY} за год. При оформлении вы отдельно соглашаетесь на автопродление; за несколько дней до списания приходит напоминание на email. Отменить подписку можно в любой момент в кабинете, раздел «Тариф и оплата» — платные функции сохранятся до конца оплаченного периода. Порядок возврата описан на странице «Условия оплаты и возврата».`,
     link: { href: '/usloviya-oplaty-i-vozvrata.html', label: 'Условия оплаты и возврата →' },
   },
   {
@@ -103,7 +114,7 @@ const softwareSchema = {
   offers: {
     '@type': 'AggregateOffer',
     lowPrice: '0',
-    highPrice: '2900',
+    highPrice: String(PLAN_PRICING.NETWORK.yearlyRub),
     priceCurrency: 'RUB',
     offerCount: 3,
   },
@@ -163,7 +174,7 @@ const softwareSchema = {
         </a>
       </div>
       <p class="mt-4 text-sm text-slate-500">
-        Бесплатный тариф навсегда · Оплата по счёту для юрлиц (54-ФЗ) · Серверы в РФ (152-ФЗ) · Тарифы от 990 ₽ за полгода
+        Бесплатный тариф навсегда · Оплата по счёту для юрлиц (54-ФЗ) · Серверы в РФ (152-ФЗ) · Тарифы от {PRO_HALFYEAR} за полгода
       </p>
 
       <ul
@@ -648,10 +659,10 @@ const softwareSchema = {
             <div class="inline-block bg-indigo-500/30 text-indigo-200 font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-indigo-400/30">PRO · 1 локация</div>
             <h3 class="text-xl font-bold text-white mb-1">Для одного заведения</h3>
             <div class="text-4xl font-bold text-white mb-1">
-              990 ₽
+              {PRO_HALFYEAR_NUM} ₽
               <span class="text-lg text-slate-400 font-normal"> / полгода</span>
             </div>
-            <div class="text-xs text-indigo-300 font-medium">или 1 490 ₽ за год — выгоднее на 25%</div>
+            <div class="text-xs text-indigo-300 font-medium">или {PRO_YEARLY} за год — выгоднее на {PRO_SAVINGS}</div>
             <p class="text-indigo-200 text-xs leading-relaxed mt-2">Максимум возможностей для одной точки: прямой переход без сторонних экранов, микросайт, ротация площадок отзывов и мгновенные жалобы в Telegram.</p>
           </div>
           <ul class="space-y-3 mb-6 flex-1 text-sm">
@@ -678,10 +689,10 @@ const softwareSchema = {
             <div class="inline-block bg-purple-500/20 text-purple-300 font-semibold px-3 py-1 rounded-full text-xs mb-4 border border-purple-500/30">Сеть · до 5 заведений</div>
             <h3 class="text-xl font-bold text-white mb-1">Несколько точек</h3>
             <div class="text-4xl font-bold text-white mb-1">
-              2 900 ₽
+              {NETWORK_YEARLY_NUM} ₽
               <span class="text-lg text-slate-400 font-normal"> / год</span>
             </div>
-            <div class="text-xs text-purple-300 font-medium">≈ 242 ₽ в месяц · оплата раз в год</div>
+            <div class="text-xs text-purple-300 font-medium">≈ {NETWORK_MONTHLY} в месяц · оплата раз в год</div>
             <p class="text-slate-400 text-xs leading-relaxed mt-2">Для небольших сетей, филиалов и франшиз: до 5 заведений в одном кабинете, всё из PRO для каждой точки и сводная аналитика.</p>
           </div>
           <ul class="space-y-3 mb-6 flex-1 text-sm">

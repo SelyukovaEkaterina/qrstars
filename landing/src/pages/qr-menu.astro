@@ -4,6 +4,7 @@ import DemoQrScan from '../components/DemoQrScan.astro';
 import MenuStickerPreview from '../components/MenuStickerPreview.astro';
 import StickyRegisterCta from '../components/seo/StickyRegisterCta.astro';
 import { menuRegisterUrl } from '../lib/utm';
+import { PRO_HALFYEAR } from '../lib/prices';
 
 const DEMO_SCAN_URL = 'https://app.qrstars.ru/q/demo-menu';
 const BOTTOM_REGISTER_URL = menuRegisterUrl('qr-menu-bottom', Astro.url.searchParams);
@@ -176,7 +177,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
     <section class="py-16 bg-slate-50 border-t border-slate-200">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-2xl font-bold mb-4">Быстрый и бесплатный старт</h2>
-            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты наклеек на столы. Тариф PRO (от 990 ₽ за полгода) можно подключить в любой момент: микросайт со всеми разделами в одном QR, жалобы в Telegram и MAX, White Label и расширенная аналитика.</p>
+            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты наклеек на столы. Тариф PRO (от {PRO_HALFYEAR} за полгода) можно подключить в любой момент: микросайт со всеми разделами в одном QR, жалобы в Telegram и MAX, White Label и расширенная аналитика.</p>
             <a href={BOTTOM_REGISTER_URL} data-goal="bottom_cta" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
                 Создать меню бесплатно
             </a>

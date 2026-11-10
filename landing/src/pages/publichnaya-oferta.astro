@@ -2,7 +2,9 @@
 import Layout from '../layouts/Layout.astro';
 import { OPERATOR, LEGAL_LINKS } from '../lib/legal';
 import { appendAttributionParams } from '../lib/utm';
+import { NETWORK_INCLUDED, NETWORK_YEARLY, PRO_HALFYEAR, PRO_YEARLY } from '../lib/prices';
 
+// Цены — из src/lib/plans.ts. Поменяли тариф — обновите и дату редакции оферты.
 const updatedAt = '6 ноября 2026 г.';
 const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.searchParams);
 ---
@@ -42,9 +44,9 @@ const APP_URL = appendAttributionParams('https://app.qrstars.ru', Astro.url.sear
       <h2>3. Тарифные планы</h2>
       <ul>
         <li><strong>FREE</strong> — 0 ₽, 1 заведение, сбор отзывов и отдельные QR-режимы (меню, визитка, Wi‑Fi, редирект, файл) навсегда.</li>
-        <li><strong>PRO</strong> — 990 ₽ за 6 месяцев или 1 490 ₽ за год, 1 заведение, прямой переход по QR-ссылке без экрана QrStars, микро-лендинг и расширенные функции.</li>
+        <li><strong>PRO</strong> — {PRO_HALFYEAR} за 6 месяцев или {PRO_YEARLY} за год, 1 заведение, прямой переход по QR-ссылке без экрана QrStars, микро-лендинг и расширенные функции.</li>
         <li>
-          <strong>Сеть</strong> — 2 900 ₽/год, до 5 заведений. Если заведений больше или нужны особые условия,
+          <strong>Сеть</strong> — {NETWORK_YEARLY}/год, до {NETWORK_INCLUDED} заведений. Если заведений больше или нужны особые условия,
           индивидуальный тариф подбирается через техподдержку в личном кабинете.
         </li>
       </ul>

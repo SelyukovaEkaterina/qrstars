@@ -7,7 +7,7 @@ h1: "QR-код для меню: цифровое меню для рестора�
 fullTitle: true
 ctaText: "Создать QR-код для меню"
 ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=menu_search&utm_content=blog-menu"
-image: "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?q=80&w=2000&auto=format&fit=crop"
+image: "/images/blog/unsplash-1555396273.webp"
 ---
 
 Индустрия гостеприимства (HoReCa) переживает масштабную цифровую трансформацию. Одним из главных трендов последних лет стал отказ от громоздких бумажных папок в пользу современных решений. **QR-код для меню** — это уже не просто модная фишка, а стандарт обслуживания, который ожидают увидеть гости в ресторане, кафе или баре.

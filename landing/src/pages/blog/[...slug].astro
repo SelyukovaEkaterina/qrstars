@@ -16,6 +16,8 @@ export async function getStaticPaths() {
 const { entry } = Astro.props;
 const { Content } = await entry.render();
 const d = entry.data;
+// Обложки лежат у нас (/images/blog/…): для Open Graph и schema.org нужен абсолютный адрес
+const imageAbs = d.image ? new URL(d.image, 'https://qrstars.ru').href : undefined;
 const displayTitle = d.h1 ?? d.title.replace(/\s*\|\s*QrStars\s*$/i, '');
 
 const rawCtaHref = d.ctaHref ?? '/#features';
@@ -38,7 +40,7 @@ const articleSchema = {
   '@type': 'Article',
   headline: displayTitle,
   description: d.description,
-  image: d.image ? [d.image] : [],
+  image: imageAbs ? [imageAbs] : [],
   datePublished: d.pubDate.toISOString(),
   dateModified: (d.updatedDate ?? d.pubDate).toISOString(),
   author: {
@@ -91,7 +93,7 @@ const faqPageSchema = d.faq && d.faq.length > 0 ? {
   fullTitle={d.fullTitle ?? false}
   canonical={canonicalUrl}
   noindex={isNoindex}
-  ogImage={d.image}
+  ogImage={imageAbs}
 >
   <script type="application/ld+json" set:html={JSON.stringify(articleSchema)} />
   <script type="application/ld+json" set:html={JSON.stringify(breadcrumbSchema)} />

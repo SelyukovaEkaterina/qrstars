@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 import DemoQrScan from '../components/DemoQrScan.astro';
 import { cardRegisterUrl } from '../lib/utm';
+import { PRO_HALFYEAR } from '../lib/prices';
 
 const DEMO_SCAN_URL = 'https://app.qrstars.ru/q/demo-business-card';
 const HERO_CTA_URL = cardRegisterUrl('business_card_hero', Astro.url.searchParams);
@@ -161,7 +162,7 @@ const BOTTOM_CTA_URL = cardRegisterUrl('business_card_bottom', Astro.url.searchP
     <section class="py-16 bg-white">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-2xl font-bold mb-4">Бесплатно на тарифе FREE</h2>
-            <p class="text-slate-600 mb-8">QR-визитка, сохранение контакта, ссылки и форма связи доступны бесплатно и без срока. На PRO (от 990 ₽ за полгода) добавляются кнопка чаевых, White Label без вотермарки QrStars и расширенная аналитика.</p>
+            <p class="text-slate-600 mb-8">QR-визитка, сохранение контакта, ссылки и форма связи доступны бесплатно и без срока. На PRO (от {PRO_HALFYEAR} за полгода) добавляются кнопка чаевых, White Label без вотермарки QrStars и расширенная аналитика.</p>
             <div class="flex flex-col sm:flex-row gap-3 justify-center">
                 <a href={BOTTOM_CTA_URL} data-goal="bottom_cta" class="inline-flex items-center justify-center bg-primary text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-indigo-700 transition shadow-lg shadow-indigo-500/30">
                     Создать визитку бесплатно
