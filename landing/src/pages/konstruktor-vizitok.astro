@@ -890,7 +890,7 @@ const faqPageSchema = {
         bleedMm: BLEED / 10,
       });
     }
-    await deliverFile(buildPdf(pages), 'vizitka-90x50.pdf', false);
+    await deliverFile(buildPdf(pages, 'Визитка', 'QrStars card maker'), 'vizitka-90x50.pdf', false);
   }
 
   /** Лист A4: 2×5 визиток с метками реза; оборот — зеркально для двусторонней печати. */
@@ -932,7 +932,7 @@ const faqPageSchema = {
       }
       pages.push({ jpeg: await canvasToJpeg(sheet, 0.92), pxW: sheet.width, pxH: sheet.height, wMm: A4W, hMm: A4H, lines });
     }
-    await deliverFile(buildPdf(pages), 'vizitki-list-a4.pdf', false);
+    await deliverFile(buildPdf(pages, 'Визитки', 'QrStars card maker'), 'vizitki-list-a4.pdf', false);
   }
 
   async function downloadPng() {

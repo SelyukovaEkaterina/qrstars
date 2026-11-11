@@ -33,6 +33,7 @@ import {
   Trash2,
   MoreHorizontal,
   ScanLine,
+  Printer,
 } from "lucide-react";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { downloadQrCode, QR_EXPORT_SIZE } from "@/lib/qr-download";
@@ -808,6 +809,17 @@ function QRCodesPageContent() {
                         >
                           SVG
                         </button>
+                        <Link
+                          href={`${projectQrPath(
+                            qr.establishmentId || lockedEstId || UNASSIGNED_PROJECT_ID,
+                            qr.id,
+                          )}?print=1`}
+                          className={`${downloadBtnClass} gap-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100`}
+                          title="Табличка, домик на стол или стикеры — готовый PDF"
+                        >
+                          <Printer className="h-3.5 w-3.5 shrink-0" />
+                          Табличка
+                        </Link>
                       </div>
                     </div>
                   </div>

@@ -112,12 +112,14 @@ import {
   Copy,
   Check,
   Trash2,
+  Printer,
 } from "lucide-react";
 import Link from "next/link";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
 import { scanUrlForCode } from "@/lib/utils";
 import type { TemplateLayout } from "@/types/template";
 import QRTemplateEditor from "@/components/dashboard/QRTemplateEditor";
+import PrintSheetDesigner from "@/components/dashboard/PrintSheetDesigner";
 import {
   QR_CODE_TEMPLATES,
   renderQRTemplate,
@@ -226,6 +228,7 @@ export default function QRCodeSettingsPage() {
   const [editingQrStyleTemplate, setEditingQrStyleTemplate] = useState<Template | null>(null);
   const [showWelcome, setShowWelcome] = useState(false);
   const [showLandingPaywall, setShowLandingPaywall] = useState(false);
+  const [showPrintSheet, setShowPrintSheet] = useState(false);
 
   const generateQRImage = useCallback(
     async (code: string, styleTemplateId: string, styleTemplates: Template[]) => {
@@ -499,6 +502,18 @@ export default function QRCodeSettingsPage() {
       setDeletingQr(false);
     }
   };
+
+  // ?print=1 (из списка QR и мастера) — сразу открыть табличку для печати.
+  const printAutoOpened = useRef(false);
+  useEffect(() => {
+    if (printAutoOpened.current || isCreateMode || !qrData?.id) return;
+    if (new URLSearchParams(window.location.search).get("print") !== "1") return;
+    printAutoOpened.current = true;
+    queueMicrotask(() => setShowPrintSheet(true));
+    const url = new URL(window.location.href);
+    url.searchParams.delete("print");
+    window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+  }, [isCreateMode, qrData?.id]);
 
   const handleDownloadQR = async (
     format: "png" | "svg",
@@ -1076,6 +1091,22 @@ export default function QRCodeSettingsPage() {
                           Скачать PNG и SVG можно после создания QR-кода.
                         </p>
                       ) : (
+                      <>
+                      <button
+                        type="button"
+                        onClick={() => setShowPrintSheet(true)}
+                        className="mb-2 flex w-full items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2.5 text-left transition hover:border-indigo-400 hover:bg-indigo-100"
+                      >
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-indigo-600 text-white">
+                          <Printer className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-indigo-900">Табличка для печати</span>
+                          <span className="block text-xs text-indigo-700/80">
+                            A6–A3, домик на стол, стикеры · готовый PDF
+                          </span>
+                        </span>
+                      </button>
                       <div className="flex flex-wrap items-center gap-2">
                         <Button
                           type="button"
@@ -1114,6 +1145,7 @@ export default function QRCodeSettingsPage() {
                           SVG
                         </Button>
                       </div>
+                      </>
                       )}
                       {qrHint && (
                         <p className="mt-1 text-xs text-amber-700">{qrHint}</p>
@@ -1594,6 +1626,26 @@ export default function QRCodeSettingsPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {showPrintSheet && qrData && !isCreateMode && (
+        <PrintSheetDesigner
+          qrId={qrData.id}
+          code={qrData.code}
+          mode={mode}
+          projectName={previewName}
+          logoUrl={landingPreview?.logoUrl ?? null}
+          brandColor={landingPreview?.brandColor ?? null}
+          wifi={
+            landingPreview?.wifiConfig?.ssid
+              ? { ssid: landingPreview.wifiConfig.ssid, password: landingPreview.wifiConfig.password || null }
+              : null
+          }
+          qrStyleTemplateId={qrStyleTemplateId || null}
+          qrStyleTemplates={qrStyleTemplates}
+          isPro={isPro}
+          onClose={() => setShowPrintSheet(false)}
+        />
       )}
 
       {editingQrStyleTemplate && (() => {

@@ -41,6 +41,14 @@ export const METRIKA_GOALS = {
   qrAnimationProCta: 'qr_animation_pro_cta',
   /** SEO-блок «Анимированный QR» → «Примерить на своём оформлении» (генератор с `?anim=1`). */
   qrAnimationTry: 'qr_animation_try',
+  /** Страница «QR для 3D-печати»: визит. */
+  qrStlVisit: 'qr_stl_visit',
+  /** «Динамический QR · PRO» → регистрация с plan=pro (`source`: after_download | steps). */
+  qrStlProCta: 'qr_stl_pro_cta',
+  /** Бесплатно скачали STL со своей ссылкой (`format`: stl | zip). */
+  qrStlFreeDownload: 'qr_stl_free_download',
+  /** Генератор: «Посмотреть 3D-модель моего кода». */
+  qrStlGeneratorLink: 'qr_stl_generator_link',
   tableOrderAttempt: 'table_order_attempt',
   /** Конструктор визиток: визит страницы. */
   cardMakerVisit: 'card_maker_visit',

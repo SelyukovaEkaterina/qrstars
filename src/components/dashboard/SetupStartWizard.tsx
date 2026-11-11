@@ -79,6 +79,7 @@ import {
   Contact,
   Share2,
   type LucideIcon,
+  Printer,
 } from "lucide-react";
 import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
 import { signOutTo } from "@/lib/sign-out-client";
@@ -973,6 +974,16 @@ export default function SetupStartWizard({
                 <Download className="w-4 h-4 mr-1" />
                 SVG для типографии
               </Button>
+              {projectId && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => goNextStep("print-sheet", `${projectQrPath(projectId, result.qrcode.id)}?print=1`)}
+                >
+                  <Printer className="w-4 h-4 mr-1" />
+                  Наклейка для печати
+                </Button>
+              )}
             </div>
             <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-950 leading-relaxed text-left">
               <Sparkles className="inline w-3.5 h-3.5 mr-1 text-amber-600" />
@@ -1202,6 +1213,20 @@ export default function SetupStartWizard({
                     <Download className="w-4 h-4 mr-1" />
                     SVG
                   </Button>
+                  {result.establishment?.id && (
+                    <Button
+                      size="sm"
+                      onClick={() =>
+                        goNextStep(
+                          "print-sheet",
+                          `${projectQrPath(result.establishment!.id, result.qrcode.id)}?print=1`,
+                        )
+                      }
+                    >
+                      <Printer className="w-4 h-4 mr-1" />
+                      Табличка для печати
+                    </Button>
+                  )}
                   {isReviews && !rerun && (
                     <Button
                       variant="outline"
