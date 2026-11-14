@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { logUserEvent } from "@/lib/user-events-server";
+import { PLAN_LIMIT_HIT_EVENT } from "@/lib/user-events";
 import prisma from "@/lib/prisma";
 import { generateQRCode, parseHttpUrl } from "@/lib/utils";
 import { requireDbUserId } from "@/lib/session-user";
@@ -34,7 +36,7 @@ import { isBuiltInQrStyleTemplateId, qrStylePresetTemplateId } from "@/lib/qr-co
 import { findRedirectUrlProblem } from "@/lib/redirect-url";
 import { cardTextFieldsFromBody, maxHref, phoneDigits } from "@/lib/business-card";
 import { ensureDefaultEmailContact } from "@/lib/owner-messenger-notify";
-import { normalizeTwoGisUrl, twoGisUrlError } from "@/lib/two-gis-url";
+import { extractPastedUrl, normalizeTwoGisUrl, twoGisUrlError } from "@/lib/two-gis-url";
 
 function resolveYandexMapsUrl(raw: string | undefined): {
   normalized: string | null;
@@ -96,6 +98,9 @@ async function findFirstQrGeneratorStyleId(userId: string): Promise<string | nul
   return templates.find((t) => isGeneratorStyleLayout(t.layout))?.id ?? null;
 }
 
+const REDIRECT_NOT_A_LINK_ERROR =
+  "Нужна ссылка: вставьте адрес страницы, например https://example.com. Чтобы показать телефон и контакты — выберите «QR-визитку»";
+
 export async function POST(request: Request) {
   const auth = await requireDbUserId();
   if (!auth.ok) {
@@ -153,7 +158,8 @@ export async function POST(request: Request) {
   const rawTwoGis = twoGisUrl?.trim() || "";
   const normalizedTwoGis = rawTwoGis ? normalizeTwoGisUrl(rawTwoGis) : null;
   // Как в карточке QR: «example.com» без схемы дополняем до https://
-  const rawRedirect = typeof redirectUrl === "string" ? redirectUrl.trim() : "";
+  // Вставили текст со ссылкой («Наш сайт: example.com/promo») — берём саму ссылку.
+  const rawRedirect = typeof redirectUrl === "string" ? extractPastedUrl(redirectUrl) : "";
   const trimmedRedirect =
     rawRedirect && !/^[a-z][a-z0-9+.-]*:/i.test(rawRedirect) ? `https://${rawRedirect}` : rawRedirect;
   const trimmedQrLabel = rawQrLabel?.trim();
@@ -182,8 +188,10 @@ export async function POST(request: Request) {
     if (!trimmedRedirect) {
       return NextResponse.json({ error: "Укажите ссылку для перенаправления" }, { status: 400 });
     }
-    if (!parseHttpUrl(trimmedRedirect)) {
-      return NextResponse.json({ error: "Некорректная ссылка для перенаправления" }, { status: 400 });
+    const parsedRedirect = parseHttpUrl(trimmedRedirect);
+    // «https://Мой сайт» парсится как URL, но хост без точки — это название, а не адрес.
+    if (!parsedRedirect || !parsedRedirect.hostname.includes(".")) {
+      return NextResponse.json({ error: REDIRECT_NOT_A_LINK_ERROR }, { status: 400 });
     }
     const redirectProblem = findRedirectUrlProblem(trimmedRedirect);
     if (redirectProblem) {
@@ -275,6 +283,7 @@ export async function POST(request: Request) {
   const plan = effectivePlan(subscription);
 
   if (intent === "landing" && !hasPaidFeatures(plan)) {
+    logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "landing", plan, via: "wizard" });
     return NextResponse.json(
       {
         error: LANDING_UPGRADE_ERROR,
@@ -291,6 +300,7 @@ export async function POST(request: Request) {
     }
   } else if (!canAddEstablishment(plan, ownedCount)) {
     const hint = getUpgradeHint(plan, ownedCount);
+    logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "projects", plan, via: "wizard", intent });
     return NextResponse.json(
       {
         error: hint?.message || "Достигнут лимит заведений на текущем тарифе",

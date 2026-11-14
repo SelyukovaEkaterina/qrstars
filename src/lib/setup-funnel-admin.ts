@@ -1,7 +1,7 @@
 import prisma from "@/lib/prisma";
 import { analyticsCohortUserWhere } from "@/lib/analytics-exclusion";
 import { parseRegistrationUtm } from "@/lib/registration-utm";
-import { SETUP_USER_EVENTS } from "@/lib/user-events";
+import { DASH_CLIENT_EVENTS, PLAN_LIMIT_HIT_EVENT, SETUP_USER_EVENTS } from "@/lib/user-events";
 
 const FUNNEL_STEP_DEFS = [
   { key: "registrations", event: null, label: "Регистрации" },
@@ -61,7 +61,139 @@ export interface SetupFunnelReport {
   sourceBreakdown: { source: string; registrations: number; completed: number; downloaded: number }[];
   destinations: { destination: string; count: number }[];
   daily: { date: string; registrations: number; completed: number; downloaded: number }[];
+  monetization: MonetizationReport;
   users: FunnelUserRow[];
+}
+
+/** Путь когорты к оплате: числа — уникальные пользователи. */
+export interface MonetizationReport {
+  steps: { key: string; label: string; count: number; rateFromStart: number | null }[];
+  /** Какие разделы кабинета открывали (пользователей). */
+  sections: { section: string; users: number }[];
+  /** Откуда кликали на «Тариф и оплата»: раздел + текст ссылки. */
+  upgradeClicks: { from: string; text: string; users: number }[];
+  paywalls: { feature: string; users: number }[];
+  limitHits: { limit: string; users: number }[];
+  /** Нажали «Оплатить» без галочки автосписаний и так и не создали счёт. */
+  checkoutWithoutConsent: number;
+}
+
+const RETURN_AFTER_MS = 24 * 3_600_000;
+
+function propString(props: unknown, key: string): string | null {
+  if (!props || typeof props !== "object") return null;
+  const value = (props as Record<string, unknown>)[key];
+  return typeof value === "string" && value ? value : null;
+}
+
+function addToSetMap(map: Map<string, Set<string>>, key: string, userId: string) {
+  const set = map.get(key) ?? new Set<string>();
+  set.add(userId);
+  map.set(key, set);
+}
+
+function setMapRows<K extends string>(map: Map<string, Set<string>>, field: K) {
+  return [...map.entries()]
+    .map(([key, set]) => ({ [field]: key, users: set.size }) as Record<K, string> & { users: number })
+    .sort((a, b) => b.users - a.users);
+}
+
+async function getMonetizationReport(
+  cohortUsers: { id: string; createdAt: Date }[]
+): Promise<MonetizationReport> {
+  const cohortIds = cohortUsers.map((u) => u.id);
+  const registeredAt = new Map(cohortUsers.map((u) => [u.id, u.createdAt.getTime()]));
+
+  const [events, orders, scannedOwners] =
+    cohortIds.length === 0
+      ? [[], [], []]
+      : await Promise.all([
+          prisma.userEvent.findMany({
+            where: {
+              userId: { in: cohortIds },
+              event: { in: [...DASH_CLIENT_EVENTS, PLAN_LIMIT_HIT_EVENT] },
+            },
+            select: { userId: true, event: true, props: true, createdAt: true },
+          }),
+          prisma.paymentOrder.findMany({
+            where: { userId: { in: cohortIds }, kind: "INITIAL" },
+            select: { userId: true, status: true },
+          }),
+          prisma.qRCode.findMany({
+            where: { userId: { in: cohortIds }, scansCount: { gte: 3 } },
+            select: { userId: true },
+            distinct: ["userId"],
+          }),
+        ]);
+
+  const returned = new Set<string>();
+  const viewedPlans = new Set<string>();
+  const clickedUpgrade = new Set<string>();
+  const clickedPay = new Set<string>();
+  const clickedPayNoConsent = new Set<string>();
+  const sections = new Map<string, Set<string>>();
+  const upgradeClicks = new Map<string, Set<string>>();
+  const paywalls = new Map<string, Set<string>>();
+  const limitHits = new Map<string, Set<string>>();
+
+  for (const ev of events) {
+    if (ev.event === "dash.section_viewed") {
+      const section = propString(ev.props, "section") ?? "?";
+      addToSetMap(sections, section, ev.userId);
+      if (section === "subscription") viewedPlans.add(ev.userId);
+      const reg = registeredAt.get(ev.userId);
+      if (reg !== undefined && ev.createdAt.getTime() - reg >= RETURN_AFTER_MS) {
+        returned.add(ev.userId);
+      }
+    } else if (ev.event === "dash.upgrade_clicked") {
+      clickedUpgrade.add(ev.userId);
+      const from = propString(ev.props, "from") ?? "?";
+      const text = propString(ev.props, "text") ?? "";
+      addToSetMap(upgradeClicks, `${from}\u0000${text}`, ev.userId);
+    } else if (ev.event === "dash.paywall_viewed") {
+      addToSetMap(paywalls, propString(ev.props, "feature") ?? "?", ev.userId);
+    } else if (ev.event === "dash.checkout_clicked") {
+      clickedPay.add(ev.userId);
+      const consent = (ev.props as Record<string, unknown> | null)?.consent;
+      if (consent === false) clickedPayNoConsent.add(ev.userId);
+    } else if (ev.event === PLAN_LIMIT_HIT_EVENT) {
+      addToSetMap(limitHits, propString(ev.props, "limit") ?? "?", ev.userId);
+    }
+  }
+
+  const orderUsers = new Set(orders.map((o) => o.userId));
+  const paidUsers = new Set(orders.filter((o) => o.status === "PAID").map((o) => o.userId));
+  const total = cohortUsers.length;
+
+  const stepDefs: [string, string, number][] = [
+    ["registrations", "Регистрации", total],
+    ["scans3", "QR с 3+ сканами", scannedOwners.length],
+    ["returned", "Вернулся через сутки и позже", returned.size],
+    ["plansViewed", "Открыл «Тариф и оплата»", viewedPlans.size],
+    ["payClicked", "Нажал «Оплатить»", clickedPay.size],
+    ["orderCreated", "Ушёл в Robokassa (счёт создан)", orderUsers.size],
+    ["paid", "Оплатил", paidUsers.size],
+  ];
+
+  return {
+    steps: stepDefs.map(([key, label, count]) => ({
+      key,
+      label,
+      count,
+      rateFromStart: pct(count, total),
+    })),
+    sections: setMapRows(sections, "section"),
+    upgradeClicks: [...upgradeClicks.entries()]
+      .map(([key, set]) => {
+        const [from, text] = key.split("\u0000");
+        return { from, text, users: set.size };
+      })
+      .sort((a, b) => b.users - a.users)
+      .slice(0, 20),
+    paywalls: setMapRows(paywalls, "feature"),
+    limitHits: setMapRows(limitHits, "limit"),
+    checkoutWithoutConsent: [...clickedPayNoConsent].filter((id) => !orderUsers.has(id)).length,
+  };
 }
 
 function startOfDay(date: Date): Date {
@@ -166,6 +298,7 @@ export async function getSetupFunnelReport(
   });
 
   const cohortIds = cohortUsers.map((u) => u.id);
+  const monetization = await getMonetizationReport(cohortUsers);
 
   const events =
     cohortIds.length === 0
@@ -345,6 +478,7 @@ export async function getSetupFunnelReport(
       .map(([destination, count]) => ({ destination, count }))
       .sort((a, b) => b.count - a.count),
     daily,
+    monetization,
     users: userRows,
   };
 }

@@ -125,3 +125,38 @@ def test_setup_completed_rerun_does_not_set_onboarding_completed(base_url):
     onboarding = session.get(f"{base_url}/api/user/onboarding")
     assert onboarding.status_code == 200
     assert onboarding.json().get("onboardingCompleted") is False
+
+
+def test_events_accepts_dashboard_payment_path_events(base_url):
+    session = register_and_login(base_url, "evt-dash")
+    payloads = [
+        {"event": "dash.section_viewed", "props": {"section": "subscription", "plan": "FREE"}},
+        {"event": "dash.upgrade_clicked", "props": {"from": "project.qrcode", "text": "Подключить PRO"}},
+        {"event": "dash.paywall_viewed", "props": {"feature": "landing"}},
+        {"event": "dash.checkout_clicked", "props": {"plan": "PRO", "billing": "yearly", "consent": False}},
+    ]
+    for payload in payloads:
+        r = session.post(f"{base_url}/api/events", json=payload)
+        assert r.status_code == 200, r.text
+
+    stored = {e["event"] for e in session.get(f"{base_url}/api/events").json()["events"]}
+    assert {p["event"] for p in payloads} <= stored
+
+
+def test_events_rejects_server_only_dashboard_events(base_url):
+    session = register_and_login(base_url, "evt-dash-server")
+    for event in ("dash.plan_limit_hit", "dash.qr_updated"):
+        r = session.post(f"{base_url}/api/events", json={"event": event})
+        assert r.status_code == 400
+
+
+def test_plan_limit_hit_is_logged_for_second_project_on_free(base_url):
+    session = register_and_login(base_url, "evt-limit")
+    first = session.post(f"{base_url}/api/establishments", json={"name": "First project"})
+    assert first.status_code in (200, 201), first.text
+    second = session.post(f"{base_url}/api/establishments", json={"name": "Second project"})
+    assert second.status_code == 403
+
+    events = session.get(f"{base_url}/api/events").json()["events"]
+    hits = [e for e in events if e["event"] == "dash.plan_limit_hit"]
+    assert hits and hits[0]["props"]["limit"] == "projects"

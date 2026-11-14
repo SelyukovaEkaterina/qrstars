@@ -35,7 +35,13 @@ export function parseEstablishmentIndustry(
 export function inferIndustryFromUtm(
   ...values: Array<string | null | undefined>
 ): EstablishmentIndustry | null {
-  const haystack = values.filter(Boolean).join(" ").toLowerCase();
+  // «---autotargeting» — служебное значение utm_term Директа, не слово «авто»:
+  // из-за него мастера с рекламы визиток получали отрасль AUTO.
+  const haystack = values
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+    .replace(/auto-?targeting|автотаргетинг/g, " ");
   // «car» — только отдельным словом/префиксом: иначе «master_card» и «card_maker» становятся AUTO.
   if (/(авто|auto|avto|(?<![a-z])car(?![dt])|шиномонтаж|tire|автосервис)/i.test(haystack)) {
     return "AUTO";

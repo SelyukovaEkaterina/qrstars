@@ -23,7 +23,7 @@ import {
   pickReadableIntensity,
 } from "@/lib/qr-animation-export";
 import { PLAN_PRICING, formatRub } from "@/lib/plans";
-import { trackMetrikaGoal } from "@/lib/track-event";
+import { trackEvent, trackMetrikaGoal } from "@/lib/track-event";
 
 type Props = {
   /** Последний статичный кадр редактора (600 px). */
@@ -138,6 +138,7 @@ export default function QRAnimationPanel({
     if (!payload || !base) return;
     if (!isPro) {
       trackMetrikaGoal("qr_gif_paywall", { animation: anim });
+      trackEvent("dash.paywall_viewed", { feature: "gif", animation: anim });
       return;
     }
     setMessage(null);

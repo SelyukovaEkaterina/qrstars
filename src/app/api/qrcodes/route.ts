@@ -1,4 +1,5 @@
 import { logUserEvent } from "@/lib/user-events-server";
+import { PLAN_LIMIT_HIT_EVENT } from "@/lib/user-events";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { DEMO_QR_PREFIX } from "@/lib/demo-qrcodes";
@@ -177,6 +178,7 @@ export async function POST(request: Request) {
     grandfathered: false,
   });
   if (!landingAccess.ok) {
+    logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "landing", via: "qr_create" });
     return withCorsHeaders(
       NextResponse.json(
         { error: landingAccess.error, upgradeRequired: landingAccess.upgradeRequired },
@@ -250,6 +252,7 @@ export async function PUT(request: Request) {
         grandfathered: qrcode.landingGrandfathered,
       });
       if (!landingAccess.ok) {
+        logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "landing", via: "qr_mode_switch" });
         return withCorsHeaders(
           NextResponse.json(
             { error: landingAccess.error, upgradeRequired: landingAccess.upgradeRequired },

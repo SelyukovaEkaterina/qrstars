@@ -11,6 +11,7 @@ import DashboardChrome from "@/components/dashboard/DashboardChrome";
 import { findActiveSubscription, effectivePlan } from "@/lib/subscription-utils";
 import { orphanQrcodeWhere } from "@/lib/establishment-access";
 import GeneratorStyleImporter from "@/components/dashboard/GeneratorStyleImporter";
+import DashboardActivityTracker from "@/components/dashboard/DashboardActivityTracker";
 import { Suspense } from "react";
 import type { Metadata, Viewport } from "next";
 
@@ -54,6 +55,7 @@ export default async function DashboardLayout({
     <>
       <QaModeBanner />
       <SetupGuideRedirect />
+      <DashboardActivityTracker plan={plan} />
       <Suspense fallback={null}>
         <GeneratorStyleImporter />
       </Suspense>

@@ -630,3 +630,52 @@ def test_quick_start_redirect_accepts_bare_domain(base_url):
     assert r.status_code == 200, r.text
     qr = session.get(f"{base_url}/api/qrcodes", params={"id": r.json()["qrcode"]["id"]}).json()["qrcode"]
     assert qr["redirectUrl"] == "https://example.com/promo"
+
+
+def test_quick_start_2gis_link_is_taken_from_shared_text(base_url):
+    """«Поделиться» в приложении 2GIS копирует название и адрес вместе со ссылкой."""
+    session = _new_session(base_url, "qs-2gis-text")
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={
+            "intent": "reviews",
+            "name": "Shared 2GIS",
+            "twoGisUrl": "Кафе Ромашка, Ленина 1\nhttps://go.2gis.com/abc12",
+        },
+    )
+    assert r.status_code == 200, r.text
+    est = session.get(f"{base_url}/api/establishments").json()["establishments"][0]
+    assert est["twoGisUrl"] == "https://go.2gis.com/abc12"
+
+
+def test_quick_start_2gis_explains_non_link_input(base_url):
+    session = _new_session(base_url, "qs-2gis-name")
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "reviews", "name": "Name only", "twoGisUrl": "Кафе Ромашка"},
+    )
+    assert r.status_code == 400, r.text
+    assert "не ссылка" in r.json()["error"]
+
+
+def test_quick_start_redirect_takes_link_from_text(base_url):
+    session = _new_session(base_url, "qs-redir-text")
+    r = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "redirect", "name": "Текст", "redirectUrl": "Наш сайт: https://example.com/promo"},
+    )
+    assert r.status_code == 200, r.text
+    qr = session.get(f"{base_url}/api/qrcodes", params={"id": r.json()["qrcode"]["id"]}).json()["qrcode"]
+    assert qr["redirectUrl"] == "https://example.com/promo"
+
+
+def test_quick_start_redirect_rejects_plain_words(base_url):
+    session = _new_session(base_url, "qs-redir-words")
+    for bad in ["Ромашка", "мой сайт", "+79991234567"]:
+        r = session.post(
+            f"{base_url}/api/setup/quick-start",
+            json={"intent": "redirect", "name": "Слова", "redirectUrl": bad},
+        )
+        assert r.status_code == 400, (bad, r.text)
+        assert "ссылка" in r.json()["error"].lower()
+    assert session.get(f"{base_url}/api/establishments").json()["establishments"] == []

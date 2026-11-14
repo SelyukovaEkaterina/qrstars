@@ -22,6 +22,12 @@ describe("establishment industry", () => {
     assert.equal(inferIndustryFromUtm("master_card"), "SERVICES");
     assert.equal(inferIndustryFromUtm("main_landing", "card_maker"), null);
     assert.equal(inferIndustryFromUtm("vizitka", "card_maker_cta"), null);
+    // utm_term Директа «---autotargeting» — не автосервис.
+    assert.equal(
+      inferIndustryFromUtm("master_search", "master_hero", "---autotargeting"),
+      "SERVICES"
+    );
+    assert.equal(inferIndustryFromUtm("main_landing", "home", "---autotargeting"), null);
   });
 
   it("rejects unknown values", () => {
