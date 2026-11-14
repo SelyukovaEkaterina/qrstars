@@ -998,8 +998,6 @@ def test_delete_qrcode(owner_session, base_url, owner_establishment_id):
 
     page = requests.get(f"{base_url}/q/{code}")
     assert page.status_code == 200
-    # Пока включён флаг аварии Beget (src/lib/incident.ts), неизвестный код ведёт
-    # на восстановление; без флага — заглушка «QR-код не активирован».
-    assert "QR-код не активирован" in page.text or (
-        "временно недоступен" in page.text and f"/restore?code={code}" in page.text
-    )
+    # Неизвестный код — заглушка «QR-код не найден» со ссылкой на поддержку.
+    assert "QR-код не найден" in page.text
+    assert "/dashboard/support" in page.text

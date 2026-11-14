@@ -6,11 +6,9 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import UxCheckPromoBanner from "@/components/dashboard/UxCheckPromoBanner";
-import IncidentBanner from "@/components/IncidentBanner";
 import type { PlanId } from "@/lib/plans";
 
 const START_PATH = "/dashboard/start";
-const RESTORE_PATH = "/dashboard/restore";
 const DESKTOP_QUERY = "(min-width: 1024px)";
 
 /** Событие для внешнего открытия мобильного меню (например, из мобильного тура). */
@@ -19,7 +17,6 @@ export const OPEN_DASHBOARD_MENU_EVENT = "qrstars:open-dashboard-menu";
 /** Заголовок для мобильной шапки на страницах аккаунта (на страницах проекта — имя проекта). */
 const ACCOUNT_TITLES: Array<[string, string]> = [
   ["/dashboard/projects", "Проекты"],
-  ["/dashboard/restore", "Восстановить QR"],
   ["/dashboard/subscription", "Тариф и оплата"],
   ["/dashboard/settings/templates", "Шаблоны оформления"],
   ["/dashboard/settings", "Аккаунт и уведомления"],
@@ -139,7 +136,6 @@ export default function DashboardChrome({
   if (pathname === START_PATH) {
     return (
       <div className="dash-shell-start">
-        <IncidentBanner />
         {children}
       </div>
     );
@@ -215,7 +211,6 @@ export default function DashboardChrome({
       </div>
 
       <div className="dash-main flex-1 min-w-0">
-        {pathname !== RESTORE_PATH && <IncidentBanner restoreHref={RESTORE_PATH} />}
         <UxCheckPromoBanner />
         {children}
       </div>

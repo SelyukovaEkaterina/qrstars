@@ -318,7 +318,7 @@ export function OnboardingTour({
 
   useEffect(() => {
     // На восстановлении QR тур перекрывает форму — человек пришёл с конкретной задачей.
-    if (dismissed || completed || isSetupWizardPath(pathname) || pathname === "/dashboard/restore") return;
+    if (dismissed || completed || isSetupWizardPath(pathname)) return;
     if (autoStartedRef.current) return;
 
     let cancelled = false;
