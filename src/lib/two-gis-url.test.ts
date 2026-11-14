@@ -2,12 +2,45 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   TWO_GIS_URL_INVALID_ERROR,
+  TWO_GIS_URL_NOT_A_LINK_ERROR,
+  TWO_GIS_URL_OTHER_SITE_ERROR,
   TWO_GIS_URL_REQUIRED_ERROR,
+  extractPastedUrl,
+  isYandexMapsLink,
   normalizeTwoGisUrl,
   twoGisUrlError,
   utmPointsToTwoGis,
 } from "./two-gis-url";
 import { defaultReviewRoutingFor, effectiveReviewRouting, DEFAULT_REVIEW_ROUTING } from "./review-routing";
+
+describe("pasted text with a link", () => {
+  it("takes the link out of the text copied by «Поделиться»", () => {
+    assert.equal(
+      normalizeTwoGisUrl("Кафе Ромашка, Ленина 1\nhttps://go.2gis.com/abc12"),
+      "https://go.2gis.com/abc12"
+    );
+    assert.equal(
+      normalizeTwoGisUrl("Мы в 2ГИС: 2gis.ru/moscow/firm/70000001012345678."),
+      "https://2gis.ru/moscow/firm/70000001012345678"
+    );
+    assert.equal(extractPastedUrl("  https://example.com/a b "), "https://example.com/a");
+    assert.equal(extractPastedUrl("example.com"), "example.com");
+  });
+
+  it("explains what is wrong with the input", () => {
+    assert.equal(twoGisUrlError("Кафе Ромашка"), TWO_GIS_URL_NOT_A_LINK_ERROR);
+    assert.equal(twoGisUrlError("Ромашка"), TWO_GIS_URL_NOT_A_LINK_ERROR);
+    assert.equal(twoGisUrlError("https://vk.com/romashka"), TWO_GIS_URL_OTHER_SITE_ERROR);
+    assert.equal(twoGisUrlError("https://2gis.ru/moscow/search/кафе"), TWO_GIS_URL_INVALID_ERROR);
+  });
+
+  it("detects a Yandex Maps link pasted into the 2GIS field", () => {
+    assert.equal(isYandexMapsLink("https://yandex.ru/maps/org/romashka/1234567890/"), true);
+    assert.equal(isYandexMapsLink("yandex.ru/maps/-/CDabc"), true);
+    assert.equal(isYandexMapsLink("https://yandex.ru/search/?text=1"), false);
+    assert.equal(isYandexMapsLink("https://2gis.ru/moscow/firm/1"), false);
+  });
+});
 
 describe("normalizeTwoGisUrl", () => {
   it("keeps city and firm id, drops coordinates, search path and query", () => {

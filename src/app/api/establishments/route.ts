@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { logUserEvent } from "@/lib/user-events-server";
+import { PLAN_LIMIT_HIT_EVENT } from "@/lib/user-events";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -102,6 +104,7 @@ export async function POST(request: Request) {
 
   if (!canAddEstablishment(plan, existingCount)) {
     const hint = getUpgradeHint(plan, existingCount);
+    logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "projects", plan, via: "projects" });
     return NextResponse.json(
       {
         error: hint?.message || "Достигнут лимит заведений на текущем тарифе",

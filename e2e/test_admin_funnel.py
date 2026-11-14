@@ -20,6 +20,10 @@ class TestAdminFunnel:
         assert "users" in data
         assert isinstance(data["funnel"], list)
         assert len(data["funnel"]) >= 5
+        steps = [s["key"] for s in data["monetization"]["steps"]]
+        assert steps[0] == "registrations" and steps[-1] == "paid"
+        for key in ("sections", "upgradeClicks", "paywalls", "limitHits"):
+            assert isinstance(data["monetization"][key], list)
 
     def test_funnel_with_date_params(self, admin_session, base_url):
         r = admin_session.get(

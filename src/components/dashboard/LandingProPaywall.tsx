@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import { PLAN_PRICING, PLANS, formatRub } from "@/lib/plans";
+import { trackEvent } from "@/lib/track-event";
 
 const LANDING_TILES: { icon: typeof Coffee; label: string }[] = [
   { icon: Coffee, label: "Меню" },
@@ -71,6 +72,10 @@ export default function LandingProPaywall({
   onClose,
   freeAlternatives,
 }: LandingProPaywallProps) {
+  useEffect(() => {
+    if (open) trackEvent("dash.paywall_viewed", { feature: "landing" });
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const onKeyDown = (e: KeyboardEvent) => {

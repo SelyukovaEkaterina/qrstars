@@ -30,6 +30,7 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { LEGAL_OFFER_URL } from "@/lib/legal-urls";
+import { trackEvent } from "@/lib/track-event";
 
 interface SubscriptionState {
   plan: string;
@@ -127,6 +128,12 @@ export default function SubscriptionPage() {
   }, []);
 
   const handleSubscribe = async (plan: "PRO" | "NETWORK") => {
+    // Клик без галочки автосписаний тоже пишем: это место, где оплату бросают.
+    trackEvent("dash.checkout_clicked", {
+      plan,
+      billing: plan === "PRO" ? proBilling : "yearly",
+      consent: recurringConsent,
+    });
     if (!recurringConsent) {
       setConsentErrorPlan(plan);
       document

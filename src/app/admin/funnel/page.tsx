@@ -387,6 +387,8 @@ export default function AdminFunnelPage() {
             </div>
           </div>
 
+          <MonetizationBlock data={report.monetization} />
+
           <div className="rounded-xl border border-gray-800 bg-gray-900 p-6">
             <div className="mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-amber-400" />
@@ -452,6 +454,140 @@ export default function AdminFunnelPage() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+
+const SECTION_LABELS: Record<string, string> = {
+  start: "Мастер",
+  home: "Главная кабинета",
+  projects: "Список проектов",
+  "project.home": "Главная проекта",
+  "project.qrcodes": "Список QR",
+  "project.qrcode": "Карточка QR",
+  "project.card": "Редактор визитки",
+  "project.page": "Микросайт",
+  "project.inbox": "Обратная связь",
+  "project.stats": "Статистика",
+  "project.settings": "Настройки проекта",
+  subscription: "Тариф и оплата",
+  settings: "Настройки аккаунта",
+  "settings.templates": "Стили QR",
+  support: "Поддержка",
+  partner: "Партнёрка",
+  network: "Сводка по сети",
+};
+
+const PAYWALL_LABELS: Record<string, string> = {
+  landing: "Микросайт",
+  gif: "Анимированный QR (GIF)",
+  stl: "3D-печать (STL)",
+};
+
+const LIMIT_LABELS: Record<string, string> = {
+  projects: "Второй проект на тарифе",
+  landing: "Микросайт на FREE",
+};
+
+function MonetizationList({
+  title,
+  hint,
+  rows,
+}: {
+  title: string;
+  hint?: string;
+  rows: { label: string; value: number }[];
+}) {
+  return (
+    <div className="rounded-xl border border-gray-800 bg-gray-950/40 p-4">
+      <h3 className="text-sm font-semibold text-white">{title}</h3>
+      {hint && <p className="mb-2 mt-0.5 text-xs text-gray-500">{hint}</p>}
+      {rows.length === 0 ? (
+        <p className="mt-2 text-sm text-gray-500">Пока нет данных</p>
+      ) : (
+        <div className="mt-2 space-y-1.5">
+          {rows.map((row) => (
+            <div
+              key={row.label}
+              className="flex items-center justify-between gap-3 rounded-lg bg-gray-800 px-3 py-1.5 text-sm"
+            >
+              <span className="min-w-0 truncate text-gray-300">{row.label}</span>
+              <span className="shrink-0 font-medium text-white">{row.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MonetizationBlock({ data }: { data: SetupFunnelReport["monetization"] }) {
+  const max = Math.max(...data.steps.map((s) => s.count), 1);
+  return (
+    <div className="mb-6 rounded-xl border border-gray-800 bg-gray-900 p-6">
+      <h2 className="text-lg font-semibold text-white">Путь к оплате</h2>
+      <p className="mb-4 mt-1 text-sm text-gray-500">
+        Уникальные пользователи когорты. Визиты в кабинет и клики по тарифам пишутся с 15 ноября
+        2026 — у более ранних регистраций эти шаги пустые.
+      </p>
+      <div className="space-y-2">
+        {data.steps.map((step) => (
+          <div key={step.key} className="flex items-center gap-3 text-sm">
+            <span className="w-64 shrink-0 text-gray-300">{step.label}</span>
+            <div className="h-6 min-w-0 flex-1 overflow-hidden rounded bg-gray-800">
+              <div
+                className="h-full rounded bg-amber-500"
+                style={{ width: `${(step.count / max) * 100}%` }}
+              />
+            </div>
+            <span className="w-24 shrink-0 text-right font-medium text-white">
+              {step.count}
+              {step.rateFromStart !== null && (
+                <span className="ml-1 font-normal text-gray-500">{step.rateFromStart}%</span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+      {data.checkoutWithoutConsent > 0 && (
+        <p className="mt-3 text-sm text-amber-300">
+          {data.checkoutWithoutConsent} чел. нажали «Оплатить» без галочки автосписаний и не дошли
+          до оплаты.
+        </p>
+      )}
+      <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <MonetizationList
+          title="Откуда идут на тарифы"
+          hint="Раздел кабинета и текст ссылки"
+          rows={data.upgradeClicks.map((r) => ({
+            label: `${SECTION_LABELS[r.from] ?? r.from} — ${r.text || "без текста"}`,
+            value: r.users,
+          }))}
+        />
+        <MonetizationList
+          title="Какие разделы открывают"
+          rows={data.sections.map((r) => ({
+            label: SECTION_LABELS[r.section] ?? r.section,
+            value: r.users,
+          }))}
+        />
+        <MonetizationList
+          title="Показы paywall"
+          rows={data.paywalls.map((r) => ({
+            label: PAYWALL_LABELS[r.feature] ?? r.feature,
+            value: r.users,
+          }))}
+        />
+        <MonetizationList
+          title="Упёрлись в лимит тарифа"
+          hint="Сервер отказал: нужен платный тариф"
+          rows={data.limitHits.map((r) => ({
+            label: LIMIT_LABELS[r.limit] ?? r.limit,
+            value: r.users,
+          }))}
+        />
+      </div>
     </div>
   );
 }

@@ -15,7 +15,13 @@ import {
 } from "@/lib/qr-code-templates";
 import { scanUrlForCode, quotedEstablishmentName } from "@/lib/utils";
 import { trackEvent } from "@/lib/track-event";
-import { normalizeTwoGisUrl, twoGisUrlError, utmPointsToTwoGis } from "@/lib/two-gis-url";
+import {
+  extractPastedUrl,
+  isYandexMapsLink,
+  normalizeTwoGisUrl,
+  twoGisUrlError,
+  utmPointsToTwoGis,
+} from "@/lib/two-gis-url";
 import { parseRequestedPlanParam, type RegistrationUtm } from "@/lib/registration-utm";
 import { PLAN_PRICING, formatRub } from "@/lib/plans";
 import {
@@ -534,12 +540,15 @@ export default function SetupStartWizard({
     stage: "client" | "server" | "network",
     message: string,
     status?: number,
+    /** Что ввели (только публичные ссылки на карточки) — чтобы понять, что не проходит проверку. */
+    input?: string,
   ) => {
     trackEvent("setup.form_failed", {
       intent: failedIntent,
       stage,
       error: message.slice(0, 200),
       status,
+      input: input ? input.trim().slice(0, 200) : undefined,
     });
   };
 
@@ -553,9 +562,21 @@ export default function SetupStartWizard({
     if (reviewsNeedLink && reviewPlatform === "2gis") {
       const twoGisError = twoGisUrlError(form.twoGisUrl);
       if (twoGisError) {
-        setTwoGisFieldError(twoGisError);
         setError("");
-        reportFormFailure(intent, "client", twoGisError);
+        if (isYandexMapsLink(form.twoGisUrl)) {
+          // Вставили ссылку Яндекс.Карт в поле 2GIS — переключаем площадку, ссылку переносим.
+          const yandexUrl = extractPastedUrl(form.twoGisUrl);
+          setReviewPlatform("yandex");
+          setForm({ ...form, twoGisUrl: "", yandexMapsUrl: yandexUrl });
+          setTwoGisFieldError("");
+          setYandexUrlFieldError(
+            "Это ссылка Яндекс.Карт — переключили площадку. Нажмите «Проверить ссылку» и подтвердите организацию."
+          );
+          reportFormFailure(intent, "client", "yandex_link_in_2gis_field", undefined, form.twoGisUrl);
+          return;
+        }
+        setTwoGisFieldError(twoGisError);
+        reportFormFailure(intent, "client", twoGisError, undefined, form.twoGisUrl);
         return;
       }
     }
@@ -684,7 +705,13 @@ export default function SetupStartWizard({
             ? data.error || "Сессия устарела. Выйдите и войдите снова."
             : data.error || "Не удалось создать проект";
         setError(msg);
-        reportFormFailure(intent, "server", msg, res.status);
+        reportFormFailure(
+          intent,
+          "server",
+          msg,
+          res.status,
+          intent === "redirect" && res.status === 400 ? form.redirectUrl : undefined
+        );
         return;
       }
 

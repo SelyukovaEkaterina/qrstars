@@ -20,7 +20,7 @@ import {
 } from "@/lib/qr-engine";
 import { downloadBlob } from "@/lib/download-file";
 import { PLAN_PRICING, formatRub } from "@/lib/plans";
-import { trackMetrikaGoal } from "@/lib/track-event";
+import { trackEvent, trackMetrikaGoal } from "@/lib/track-event";
 
 type Props = {
   payload: string | null;
@@ -105,6 +105,7 @@ export default function QR3DPrintPanel({ payload, fileBase }: Props) {
     if (!modules || !stats) return;
     if (locked) {
       trackMetrikaGoal("qr_stl_paywall", { format });
+      trackEvent("dash.paywall_viewed", { feature: "stl", format });
       return;
     }
     setBusy(true);
