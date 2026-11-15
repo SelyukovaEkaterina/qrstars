@@ -124,7 +124,7 @@ export async function POST(request: Request) {
     return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
   }
   const body = await request.json();
-  const { code: bodyCode, establishmentId, label, redirectUrl, mode } = body;
+  const { code: bodyCode, establishmentId, label, redirectUrl, mode, formId } = body;
 
   let code: string | undefined;
   if (bodyCode?.trim()) {
@@ -205,6 +205,12 @@ export async function POST(request: Request) {
   if (establishmentId) {
     createData.establishment = { connect: { id: establishmentId } };
   }
+  if (formId) {
+    if (!(await canLinkContent("form", formId, { userId }))) {
+      return NextResponse.json({ error: LINKED_CONTENT_NOT_FOUND.form }, { status: 404 });
+    }
+    createData.form = { connect: { id: formId } };
+  }
 
   const qrcode = await prisma.qRCode.create({
     data: createData as Parameters<typeof prisma.qRCode.create>[0]["data"],
@@ -220,7 +226,7 @@ export async function PUT(request: Request) {
       return withCorsHeaders(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
     }
     const body = await request.json();
-    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, qrStyleTemplateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId, tipsType, tipsPhone, tipsBankName } = body;
+    const { id, label, establishmentId, redirectUrl, mode, isActive, templateId, qrStyleTemplateId, businessCardId, wifiConfigId, fileAssetId, menuId, centerText, centerLogoUrl, customSectionId, tipsType, tipsPhone, tipsBankName, formId } = body;
 
     if (!id) {
       return NextResponse.json({ error: "ID required" }, { status: 400 });
@@ -270,6 +276,7 @@ export async function PUT(request: Request) {
       ["wifiConfig", wifiConfigId],
       ["fileAsset", fileAssetId],
       ["customPage", customSectionId],
+      ["form", formId],
     ] as const;
     for (const [kind, linkId] of linkChecks) {
       if (!linkId) continue;
@@ -370,6 +377,13 @@ export async function PUT(request: Request) {
         data.customPage = { connect: { id: customSectionId } };
       } else {
         data.customPage = { disconnect: true };
+      }
+    }
+    if (formId !== undefined) {
+      if (formId) {
+        data.form = { connect: { id: formId } };
+      } else {
+        data.form = { disconnect: true };
       }
     }
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Loader2 } from "lucide-react";
+import { CheckCircle2, Loader2, Star } from "lucide-react";
 import type { BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import { useBrandThemeScan } from "@/components/scan/brand-theme-props";
 import {
@@ -42,11 +42,27 @@ interface FormViewProps extends BrandThemeScanProps {
   embedded?: boolean;
   isBg?: boolean;
   pdConsent?: PdConsent;
+  /** FREE — подпись «Сделано в QrStars» под формой. */
+  watermarkEnabled?: boolean;
 }
 
 const inputClass =
   "w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white";
-export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brandColor, pageAppearance, pdConsent }: FormViewProps) {
+function isEmpty(v: unknown): boolean {
+  return v === undefined || v === null || v === "" || v === false || (Array.isArray(v) && v.length === 0);
+}
+
+export default function FormView({
+  form,
+  qrCodeId,
+  isDemo,
+  embedded,
+  isBg,
+  brandColor,
+  pageAppearance,
+  pdConsent,
+  watermarkEnabled = false,
+}: FormViewProps) {
   const { theme } = useBrandThemeScan({ brandColor, pageAppearance });
   const [values, setValues] = useState<Record<string, unknown>>({});
   const [submitting, setSubmitting] = useState(false);
@@ -71,8 +87,7 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
 
     for (const f of form.fields) {
       if (f.required) {
-        const v = values[f.id];
-        if (v === undefined || v === null || v === "" || v === false) {
+        if (isEmpty(values[f.id])) {
           setError(`Заполните поле «${f.label}»`);
           return;
         }
@@ -113,7 +128,7 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
       <div className={wrapperClass} style={scanRootStyle(theme, { isBg, embedded })}>
         <div className="bg-white rounded-2xl p-6 shadow-sm text-center">
           <CheckCircle2 className="w-14 h-14 mx-auto text-green-500 mb-3" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Заявка отправлена</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Спасибо!</h2>
           <p className="text-sm text-gray-600 whitespace-pre-wrap">{form.successMessage}</p>
         </div>
       </div>
@@ -184,6 +199,115 @@ export default function FormView({ form, qrCodeId, isDemo, embedded, isBg, brand
           )}
         </button>
       </form>
+
+      {watermarkEnabled && !embedded && (
+        <a
+          href="https://qrstars.ru/?utm_source=qrstars&utm_medium=watermark&utm_campaign=form"
+          target="_blank"
+          rel="noopener"
+          className="mt-4 block text-center text-xs"
+          style={{ color: mutedColor(!!isBg) }}
+        >
+          Сделано в QrStars · создать свою анкету бесплатно
+        </a>
+      )}
+    </div>
+  );
+}
+
+function OptionList({
+  f,
+  value,
+  onChange,
+  multiple,
+}: {
+  f: FormViewField;
+  value: unknown;
+  onChange: (v: unknown) => void;
+  multiple: boolean;
+}) {
+  const picked = multiple ? (Array.isArray(value) ? (value as string[]) : []) : [];
+  return (
+    <div className="space-y-1.5" role={multiple ? "group" : "radiogroup"} aria-label={f.label}>
+      {(f.options ?? []).map((opt) => {
+        const checked = multiple ? picked.includes(opt) : value === opt;
+        return (
+          <label
+            key={opt}
+            className={`flex cursor-pointer items-center gap-2.5 rounded-lg border px-3 py-2.5 text-sm transition-colors ${
+              checked ? "border-[var(--brand-600)] bg-[var(--brand-50)]" : "border-gray-200 bg-white"
+            }`}
+          >
+            <input
+              type={multiple ? "checkbox" : "radio"}
+              name={f.id}
+              checked={checked}
+              onChange={() => {
+                if (!multiple) return onChange(opt);
+                onChange(checked ? picked.filter((p) => p !== opt) : [...picked, opt]);
+              }}
+              className="h-4 w-4 accent-[var(--brand-600)]"
+            />
+            <span className="text-gray-800">{opt}</span>
+          </label>
+        );
+      })}
+    </div>
+  );
+}
+
+function RatingInput({ f, value, onChange }: { f: FormViewField; value: unknown; onChange: (v: unknown) => void }) {
+  const current = typeof value === "number" ? value : 0;
+  return (
+    <div className="flex gap-1.5" role="radiogroup" aria-label={f.label}>
+      {[1, 2, 3, 4, 5].map((n) => (
+        <button
+          key={n}
+          type="button"
+          role="radio"
+          aria-checked={current === n}
+          aria-label={`${n} из 5`}
+          onClick={() => onChange(current === n && !f.required ? null : n)}
+          className="rounded-lg p-1 transition-transform active:scale-95"
+        >
+          <Star
+            className="h-9 w-9"
+            strokeWidth={1.5}
+            fill={n <= current ? "#f59e0b" : "none"}
+            color={n <= current ? "#f59e0b" : "#d1d5db"}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function NpsInput({ f, value, onChange }: { f: FormViewField; value: unknown; onChange: (v: unknown) => void }) {
+  const current = typeof value === "number" ? value : null;
+  return (
+    <div>
+      <div className="grid grid-cols-11 gap-1" role="radiogroup" aria-label={f.label}>
+        {Array.from({ length: 11 }, (_, n) => (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={current === n}
+            onClick={() => onChange(n)}
+            className={`h-9 rounded-md border text-sm font-medium transition-colors ${
+              current === n
+                ? "border-[var(--brand-600)] bg-[var(--brand-600)] text-white"
+                : "border-gray-200 bg-white text-gray-700"
+            }`}
+          >
+            {n}
+          </button>
+        ))}
+      </div>
+      <div className="mt-1 flex justify-between text-[11px] text-gray-500">
+        <span>Точно нет</span>
+        <span>Обязательно</span>
+      </div>
     </div>
   );
 }
@@ -270,6 +394,14 @@ function renderInput(
           ))}
         </select>
       );
+    case "radio":
+      return <OptionList f={f} value={value} onChange={onChange} multiple={false} />;
+    case "multi":
+      return <OptionList f={f} value={value} onChange={onChange} multiple />;
+    case "rating":
+      return <RatingInput f={f} value={value} onChange={onChange} />;
+    case "nps":
+      return <NpsInput f={f} value={value} onChange={onChange} />;
     case "checkbox":
       return (
         <label className="inline-flex items-center gap-2 text-sm text-gray-700">

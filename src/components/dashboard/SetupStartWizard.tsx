@@ -53,6 +53,7 @@ import {
 import { SETUP_GUIDE_DISMISS_KEY } from "@/lib/setup-wizard-path";
 import {
   projectCardPath,
+  projectFormsPath,
   projectHomePath,
   projectPagePath,
   projectQrPath,
@@ -86,11 +87,13 @@ import {
   Share2,
   type LucideIcon,
   Printer,
+  ClipboardList,
 } from "lucide-react";
+import { FORM_PRESETS } from "@/lib/form-config";
 import { REDIRECT_INTERSTITIAL_SECONDS } from "@/lib/redirect-interstitial";
 import { signOutTo } from "@/lib/sign-out-client";
 
-export type SetupIntent = "reviews" | "landing" | "redirect" | "menu" | "card";
+export type SetupIntent = "reviews" | "landing" | "redirect" | "menu" | "card" | "form";
 
 const REDIRECT_INSTANT_FEATURE = "Мгновенный переход по вашей ссылке при сканировании";
 const REDIRECT_FREE_FEATURE = "Переход через короткий экран QrStars (на PRO — мгновенно)";
@@ -170,6 +173,21 @@ const INTENT_OPTIONS: {
       "Сбор отзывов, меню и Wi-Fi можно включить рядом",
       "Простой визуальный редактор — справится каждый",
       "Позже можно создать отдельные QR-коды для каждого блока",
+    ],
+  },
+  {
+    id: "form",
+    title: "Анкета / форма",
+    tagline: "Опрос, запись, регистрация, участие в акции",
+    icon: ClipboardList,
+    accent: "hover:border-violet-300 hover:shadow-violet-100/80 group-hover:ring-violet-200",
+    iconWrap: "bg-gradient-to-br from-violet-100 to-fuchsia-50 text-violet-700 ring-violet-200/60",
+    features: [
+      "Гость сканирует QR и заполняет форму на телефоне — без приложений",
+      "Готовые шаблоны: опрос гостей, запись, регистрация, акция, вакансия",
+      "Варианты ответа, оценка звёздами, шкала 0–10, дата, телефон",
+      "Ответы — в кабинете и сразу в Telegram, MAX или на почту",
+      "Бесплатно: до 50 ответов в месяц",
     ],
   },
   {
@@ -449,6 +467,7 @@ export default function SetupStartWizard({
   const [orgMode, setOrgMode] = useState<"existing" | "new" | null>(null);
   const [selectedEstablishmentId, setSelectedEstablishmentId] = useState<string | null>(null);
   const [intent, setIntent] = useState<SetupIntent | null>(() => autoSelectedIntent);
+  const [formPresetId, setFormPresetId] = useState<string>("guest_survey");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   /** Сервер отказал во второй визитке: проект с уже созданной визиткой — ведём в её редактор. */
@@ -505,6 +524,8 @@ export default function SetupStartWizard({
       qrStyleTemplateId?: string | null;
       /** Свой стиль (из генератора) — среди встроенных его нет. */
       qrStyleTemplate?: QrStyleTemplateSource | null;
+      /** Сценарий «Анкета»: созданная форма — для перехода в её редактор. */
+      formId?: string | null;
     };
     intent: SetupIntent;
     /** QR привязан к уже существующему меню проекта — демо-блюд нет. */
@@ -669,7 +690,9 @@ export default function SetupStartWizard({
                 ? "demo-menu"
                 : intent === "card"
                   ? "demo-business-card"
-                  : "demo-landing";
+                  : intent === "form"
+                    ? "demo-form"
+                    : "demo-landing";
         const mockResult = {
           establishment: { id: "demo", name: form.name.trim() || "Демо-проект" },
           qrcode: {
@@ -693,6 +716,7 @@ export default function SetupStartWizard({
 
       const payload: Record<string, string> = { ...form, intent };
       if (industry) payload.industry = industry;
+      if (intent === "form") payload.formPresetId = formPresetId;
       if (intent === "card") {
         payload.profession = cardForm.profession;
         payload.telegram = cardForm.telegram;
@@ -1093,6 +1117,7 @@ export default function SetupStartWizard({
     const isReviews = result.intent === "reviews";
     const isRedirect = result.intent === "redirect";
     const isMenu = result.intent === "menu";
+    const isFormResult = result.intent === "form";
     const projectId = result.establishment?.id;
     return (
       <SetupWizardShell>
@@ -1124,6 +1149,12 @@ export default function SetupStartWizard({
                     ? "При сканировании гости сразу перейдут по вашей ссылке"
                     : `При сканировании гости перейдут по вашей ссылке через короткий экран QrStars (${REDIRECT_INTERSTITIAL_SECONDS} сек.; на PRO — мгновенно)`}
                   {" "}— ссылку можно поменять в кабинете без перепечатки.
+                </>
+              ) : isFormResult ? (
+                <>
+                  QR-код ведёт на анкету проекта{" "}
+                  <strong className="text-gray-950 font-semibold">{quotedEstablishmentName(result.establishment?.name)}</strong>.
+                  Проверьте вопросы и поменяйте их под себя — ответы будут приходить в кабинет и уведомлениями.
                 </>
               ) : isMenu ? (
                 <>
@@ -1398,6 +1429,16 @@ export default function SetupStartWizard({
                   </Button>
                 </div>
               )}
+              {isFormResult && projectId && (
+                <Button
+                  size="lg"
+                  className="w-full"
+                  onClick={() => goNextStep("form-editor", projectFormsPath(projectId, result.qrcode.formId ?? undefined))}
+                >
+                  Настроить вопросы анкеты
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              )}
               {isMenu && projectId && (
                 <Button
                   size="lg"
@@ -1410,7 +1451,7 @@ export default function SetupStartWizard({
               )}
               <Button
                 size="lg"
-                variant={isMenu && projectId ? "outline" : undefined}
+                variant={(isMenu || isFormResult) && projectId ? "outline" : undefined}
                 className="w-full"
                 onClick={() =>
                   goNextStep(
@@ -1437,7 +1478,7 @@ export default function SetupStartWizard({
                   Оформить дизайн QR-кода
                 </Button>
               )}
-              {!isRedirect && !isReviews && !isMenu && projectId && (
+              {!isRedirect && !isReviews && !isMenu && !isFormResult && projectId && (
                 <Button
                   size="lg"
                   variant="outline"
@@ -1812,6 +1853,7 @@ export default function SetupStartWizard({
   const isRedirect = intent === "redirect";
   const isMenu = intent === "menu";
   const isCard = intent === "card";
+  const isForm = intent === "form";
   const reviewsNeedLink = isReviews && (!usingExistingOrg || !existingHasReviewPlatform);
   const yandexRequired = reviewsNeedLink && reviewPlatform === "yandex";
   const yandexNeedsCheck = Boolean(yandexRequired && !yandexConfirmedUrl);
@@ -1854,7 +1896,9 @@ export default function SetupStartWizard({
                   ? "Настройка QR-меню"
                   : isCard
                     ? "Ваша QR-визитка"
-                    : "Настройка микросайта"}
+                    : isForm
+                      ? "Анкета по QR-коду"
+                      : "Настройка микросайта"}
           </h1>
           <p className="text-gray-600 max-w-md mx-auto text-sm leading-relaxed">
             {isCard ? (
@@ -1869,7 +1913,9 @@ export default function SetupStartWizard({
                     ? " Введите ссылку, по которой будут переходить гости."
                     : isMenu
                       ? " Подтвердите создание QR-кода с базовым меню."
-                      : " Подтвердите создание QR-кода для микросайта."}
+                      : isForm
+                        ? " Выберите шаблон анкеты — вопросы поменяете потом."
+                        : " Подтвердите создание QR-кода для микросайта."}
               </>
             ) : isReviews ? (
               "Укажите название проекта и ссылку на карточку в Яндекс.Картах или 2GIS. Мы сгенерируем QR-код, который сразу начнёт собирать отзывы."
@@ -1877,6 +1923,8 @@ export default function SetupStartWizard({
               "Укажите название проекта и ссылку. QR можно печатать сразу — ссылку потом меняете в кабинете без перепечатки."
             ) : isMenu ? (
               "Введите название проекта. Мы создадим базовое меню с примерами позиций и QR-код для гостей."
+            ) : isForm ? (
+              "Выберите шаблон и укажите название проекта. Вопросы, варианты ответов и текст после отправки поменяете в кабинете."
             ) : (
               "Введите название проекта. Мы автоматически создадим для него микросайт и рабочий QR-код."
             )}
@@ -1991,6 +2039,48 @@ export default function SetupStartWizard({
                   placeholder="Например: кафе «Ромашка»"
                 />
               </div>
+            )}
+
+            {isForm && (
+              <fieldset>
+                <legend className="mb-2 block text-sm font-medium text-gray-700">Шаблон анкеты</legend>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                  {FORM_PRESETS.map((p) => {
+                    const active = p.id === formPresetId;
+                    return (
+                      <label
+                        key={p.id}
+                        className={`flex cursor-pointer items-start gap-2.5 rounded-xl border p-3 text-left transition-colors ${
+                          active ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500" : "border-gray-200 bg-white hover:border-indigo-200"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="formPreset"
+                          value={p.id}
+                          checked={active}
+                          onChange={() => setFormPresetId(p.id)}
+                          className="sr-only"
+                        />
+                        <span className="text-xl leading-none" aria-hidden>{p.emoji}</span>
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-gray-900">{p.name}</span>
+                          <span className="block text-xs text-gray-500 leading-snug">{p.description}</span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                <a
+                  href={`/q/demo-form?t=${formPresetId}`}
+                  target="_blank"
+                  rel="noopener"
+                  className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Посмотреть, как увидит гость
+                </a>
+              </fieldset>
             )}
 
             {isRedirect && (
@@ -2278,7 +2368,9 @@ export default function SetupStartWizard({
             </div>
             {!isReviews && !isRedirect && !isCard && (
               <p className="text-xs text-gray-500 text-center leading-relaxed pt-1">
-                {isMenu
+                {isForm
+                  ? "Вопросы, варианты ответов и текст после отправки меняются в разделе «Формы»."
+                  : isMenu
                   ? "Добавить фото, изменить цены и включить корзину можно в разделе «Микросайт»."
                   : "Наполнить микросайт (добавить меню, Wi‑Fi, ссылки на соцсети) можно будет в личном кабинете."}
               </p>
@@ -2312,6 +2404,12 @@ export default function SetupStartWizard({
               <li>Страницу-визитку с кнопками «Позвонить», WhatsApp, Telegram и MAX</li>
               <li>QR-код для наклейки, магнита или бумажной визитки</li>
               <li>Ссылку на визитку, которую можно отправить клиенту в мессенджер</li>
+            </ul>
+          ) : isForm ? (
+            <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">
+              <li>QR-код, который сразу открывает анкету на телефоне гостя</li>
+              <li>Ответы в кабинете и уведомления в Telegram, MAX или на почту</li>
+              <li>Конструктор: свои вопросы, варианты, оценки, обязательные поля</li>
             </ul>
           ) : isMenu ? (
             <ul className="list-disc list-inside space-y-1.5 text-xs text-gray-600 leading-relaxed">

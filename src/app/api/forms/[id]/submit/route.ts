@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
 import { sendTelegramContactNotification } from "@/lib/telegram";
@@ -6,34 +6,43 @@ import { sendMaxMessage } from "@/lib/max";
 import { getEmailTargets, getMaxTargets, getTelegramTargets } from "@/lib/owner-messenger-notify";
 import {
   formatSubmissionForNotification,
+  validateFieldValue,
   type FormFieldDef,
   type FormFieldType,
 } from "@/lib/form-config";
+import { formQuotaForOwner, isLimitExemptPreset } from "@/lib/form-limits";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { FORM_FREE_MONTHLY_SUBMISSIONS } from "@/lib/plans";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
+/** Заявок с одного IP в одну форму в минуту: защита от накрутки и спама. */
+const SUBMIT_LIMIT_PER_MINUTE = 30;
 
-function coerceValue(type: FormFieldType, raw: unknown): unknown {
-  if (raw === undefined || raw === null) return null;
-  if (type === "checkbox") return !!raw;
-  if (type === "number") {
-    const n = Number(raw);
-    return Number.isFinite(n) ? n : null;
-  }
-  if (typeof raw === "string") return raw.trim().slice(0, 2000);
-  return raw;
+const PD_CONSENT_REQUIRED_ERROR =
+  "Подтвердите согласие на обработку персональных данных — без него мы не можем принять телефон или email";
+
+function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 export async function POST(request: Request, context: RouteContext) {
   const { id } = await context.params;
+  const guestIp = getClientIp(request).slice(0, 60) || null;
+
+  const limited = rateLimit(`form-submit:${id}:${guestIp}`, SUBMIT_LIMIT_PER_MINUTE, 60_000);
+  if (!limited.ok) {
+    return NextResponse.json(
+      { error: "Слишком много отправок. Попробуйте через минуту." },
+      { status: 429, headers: { "Retry-After": String(limited.retryAfterSeconds) } }
+    );
+  }
+
   const body = await request.json().catch(() => ({}));
-  const incomingValues = (body?.values ?? {}) as Record<string, unknown>;
+  const incomingValues =
+    body?.values && typeof body.values === "object" && !Array.isArray(body.values)
+      ? (body.values as Record<string, unknown>)
+      : {};
   const qrCodeId =
     typeof body?.qrCodeId === "string" && body.qrCodeId.length > 0 ? body.qrCodeId : null;
   const pdConsentGiven = body?.pdConsentGiven === true;
@@ -62,27 +71,34 @@ export async function POST(request: Request, context: RouteContext) {
 
   const cleaned: Record<string, unknown> = {};
   for (const f of fields) {
-    const v = coerceValue(f.type, incomingValues[f.id]);
-    if (f.required && (v === null || v === "" || v === false)) {
-      return NextResponse.json(
-        { error: `Поле «${f.label}» обязательно` },
-        { status: 400 }
-      );
+    const result = validateFieldValue(f, incomingValues[f.id]);
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 400 });
     }
-    cleaned[f.id] = v;
+    cleaned[f.id] = result.value;
   }
 
+  const contactFilled = fields.some(
+    (f) => (f.type === "phone" || f.type === "email") && typeof cleaned[f.id] === "string" && cleaned[f.id] !== ""
+  );
+  if (contactFilled && !pdConsentGiven) {
+    return NextResponse.json({ error: PD_CONSENT_REQUIRED_ERROR }, { status: 400 });
+  }
+
+  // QR засчитываем, только если он ведёт на эту форму или из того же проекта.
   let resolvedQrId: string | null = null;
   if (qrCodeId) {
-    const qr = await prisma.qRCode.findUnique({ where: { id: qrCodeId } });
-    if (qr) resolvedQrId = qr.id;
+    const qr = await prisma.qRCode.findUnique({
+      where: { id: qrCodeId },
+      select: { id: true, formId: true, establishmentId: true },
+    });
+    if (qr && (qr.formId === form.id || qr.establishmentId === form.establishmentId)) {
+      resolvedQrId = qr.id;
+    }
   }
 
   const userAgent = request.headers.get("user-agent")?.slice(0, 300) ?? null;
-  const xff = request.headers.get("x-forwarded-for") ?? "";
-  const guestIp = xff.split(",")[0]?.trim().slice(0, 60) || null;
 
-  const hasSensitiveFields = form.fields.some((f) => f.type === "phone" || f.type === "email");
   const submission = await prisma.formSubmission.create({
     data: {
       form: { connect: { id } },
@@ -90,14 +106,22 @@ export async function POST(request: Request, context: RouteContext) {
       values: cleaned as Record<string, never>,
       guestIp,
       userAgent,
-      ...(pdConsentGiven && hasSensitiveFields ? { pdConsentAt: new Date(), pdConsentIp: guestIp } : {}),
+      ...(contactFilled ? { pdConsentAt: new Date(), pdConsentIp: guestIp } : {}),
     },
   });
 
   const est = form.establishment;
   const owner = est.user;
-  const textBody = formatSubmissionForNotification(fields, cleaned);
+  const exempt = isLimitExemptPreset(form.preset);
+  const quota = exempt ? null : await formQuotaForOwner(est.userId);
+  const overLimit = !!quota && !quota.unlimited && quota.used > quota.limit;
+
+  // Сверх лимита FREE содержимое заявки в уведомление не кладём — оно откроется на PRO.
+  const textBody = overLimit
+    ? `Заявка сохранена, но скрыта: на FREE доступно ${FORM_FREE_MONTHLY_SUBMISSIONS} заявок в месяц. Подключите PRO, чтобы открыть её в кабинете.`
+    : formatSubmissionForNotification(fields, cleaned);
   const subject = `📩 Новая заявка — ${est.name} (${form.title})`;
+  const cabinetUrl = `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/dashboard/projects/${est.id}/inbox`;
 
   const notifyFields = {
     userId: est.userId,
@@ -115,47 +139,42 @@ export async function POST(request: Request, context: RouteContext) {
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
       <h2 style="color:#4f46e5;">Новая заявка из формы</h2>
-      <p><strong>Заведение:</strong> ${escapeHtml(est.name)}</p>
+      <p><strong>Проект:</strong> ${escapeHtml(est.name)}</p>
       <p><strong>Форма:</strong> ${escapeHtml(form.title)}</p>
       <div style="background:#f9fafb;padding:16px;border-radius:8px;border-left:4px solid #4f46e5;white-space:pre-wrap;">${escapeHtml(textBody)}</div>
-      <a href="${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/dashboard/projects"
+      <a href="${cabinetUrl}"
          style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:16px;">
-        Открыть кабинет
+        Открыть в кабинете
       </a>
     </div>
   `;
-
-  const emailTargets = await getEmailTargets(notifyFields, "requests");
-  const emailTo = emailTargets[0] ?? owner.email;
-  if (emailTo) {
-    try {
-      await sendMail(emailTo, subject, html);
-    } catch (e) {
-      console.error("Form email error", e);
-    }
-  }
-
-  const tg = [
+  const messengerText = [
     `<b>📩 Новая заявка</b>`,
     `<b>${escapeHtml(est.name)}</b> — ${escapeHtml(form.title)}`,
     "",
     escapeHtml(textBody),
-  ].join("\n");
-
-  for (const chatId of await getTelegramTargets(notifyFields, "requests")) {
-    await sendTelegramContactNotification(chatId, tg);
-  }
-
-  const mx = [
-    `<b>📩 Новая заявка</b>`,
-    `<b>${escapeHtml(est.name)}</b> — ${escapeHtml(form.title)}`,
     "",
-    escapeHtml(textBody),
+    `<a href="${cabinetUrl}">Открыть в кабинете</a>`,
   ].join("\n");
 
-  for (const maxUserId of await getMaxTargets(notifyFields, "requests")) {
-    await sendMaxMessage(maxUserId, mx, "html");
-  }
+  // Гость не ждёт каналы уведомлений: заявка уже сохранена.
+  after(async () => {
+    const [emailTargets, tgTargets, maxTargets] = await Promise.all([
+      getEmailTargets(notifyFields, "requests"),
+      getTelegramTargets(notifyFields, "requests"),
+      getMaxTargets(notifyFields, "requests"),
+    ]);
+    const emailTo = emailTargets[0] ?? owner.email;
+    await Promise.allSettled([
+      emailTo ? sendMail(emailTo, subject, html) : Promise.resolve(),
+      ...tgTargets.map((chatId) => sendTelegramContactNotification(chatId, messengerText)),
+      ...maxTargets.map((maxUserId) => sendMaxMessage(maxUserId, messengerText, "html")),
+    ]).then((results) => {
+      for (const r of results) {
+        if (r.status === "rejected") console.error("Form notification error", r.reason);
+      }
+    });
+  });
 
   return NextResponse.json({
     ok: true,

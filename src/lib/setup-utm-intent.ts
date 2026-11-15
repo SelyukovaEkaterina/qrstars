@@ -1,4 +1,4 @@
-export type SetupUtmHint = "reviews" | "menu" | "generator" | "card" | null;
+export type SetupUtmHint = "reviews" | "menu" | "generator" | "card" | "form" | null;
 
 const REVIEWS_CAMPAIGNS = new Set([
   "reviews_search",
@@ -42,6 +42,11 @@ export function parseSetupUtmContext(
     return { hint: "card", hideRedirect: false };
   }
 
+  // Лендинги и статьи про анкеты: utm_campaign=forms_landing, anketa_blog…
+  if (/(form|anket|opros|survey)/.test(campaign) || /(anket|opros|survey)/.test(content)) {
+    return { hint: "form", hideRedirect: false };
+  }
+
   if (campaign === "generator_search" || campaign.includes("generator")) {
     return { hint: "generator", hideRedirect: false };
   }
@@ -49,7 +54,7 @@ export function parseSetupUtmContext(
   return { hint: null, hideRedirect: false };
 }
 
-export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu" | "card";
+export type SetupIntentId = "reviews" | "landing" | "redirect" | "menu" | "card" | "form";
 
 export function parseSetupIntentParam(raw: string | null | undefined): SetupIntentId | null {
   const value = (raw ?? "").trim().toLowerCase();
@@ -58,12 +63,14 @@ export function parseSetupIntentParam(raw: string | null | undefined): SetupInte
     value === "landing" ||
     value === "redirect" ||
     value === "menu" ||
-    value === "card"
+    value === "card" ||
+    value === "form"
   ) {
     return value;
   }
   // Синонимы из рекламных ссылок
   if (value === "business_card" || value === "vizitka") return "card";
+  if (value === "anketa" || value === "survey" || value === "opros") return "form";
   return null;
 }
 
@@ -87,13 +94,15 @@ export function orderSetupIntents(
 ): SetupIntentId[] {
   const preferred: SetupIntentId[] =
     hint === "menu"
-      ? ["menu", "reviews", "landing", "card", "redirect"]
+      ? ["menu", "reviews", "landing", "card", "form", "redirect"]
       : hint === "reviews"
-        ? ["reviews", "landing", "menu", "card", "redirect"]
+        ? ["reviews", "landing", "menu", "card", "form", "redirect"]
         : hint === "generator"
-          ? ["redirect", "landing", "card", "reviews", "menu"]
+          ? ["redirect", "landing", "card", "form", "reviews", "menu"]
           : hint === "card"
-            ? ["card", "reviews", "redirect", "landing", "menu"]
-            : intents;
+            ? ["card", "reviews", "redirect", "form", "landing", "menu"]
+            : hint === "form"
+              ? ["form", "reviews", "card", "landing", "redirect", "menu"]
+              : intents;
   return preferred.filter((id) => intents.includes(id));
 }

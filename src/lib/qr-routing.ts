@@ -2,7 +2,7 @@ export type RoutingGroup = "LANDING" | "SECTION" | "REDIRECT";
 
 export type BuiltinSectionTarget = "MENU" | "REVIEW" | "BUSINESS_CARD" | "WIFI" | "TIPS";
 
-export type SectionTarget = BuiltinSectionTarget | `CUSTOM_${string}`;
+export type SectionTarget = BuiltinSectionTarget | `CUSTOM_${string}` | `FORM_${string}`;
 
 export type QRMode =
   | "LANDING"
@@ -13,7 +13,8 @@ export type QRMode =
   | "FILE"
   | "MENU"
   | "CUSTOM_SECTION"
-  | "TIPS";
+  | "TIPS"
+  | "FORM";
 
 const BUILTIN_SECTION_MODES: BuiltinSectionTarget[] = [
   "MENU",
@@ -41,6 +42,16 @@ export function targetToCustomPageId(target: string): string | null {
   return null;
 }
 
+/** Быстрый доступ к форме / анкете проекта (режим QR `FORM`). */
+export function formIdToTarget(formId: string): `FORM_${string}` {
+  return `FORM_${formId}`;
+}
+
+export function targetToFormId(target: string): string | null {
+  if (target.startsWith("FORM_")) return target.slice("FORM_".length);
+  return null;
+}
+
 export function modeToRouting(mode: QRMode): {
   group: RoutingGroup;
   section?: SectionTarget;
@@ -51,6 +62,8 @@ export function modeToRouting(mode: QRMode): {
   if (mode === "REDIRECT") return { group: "REDIRECT" };
   if (mode === "FILE") return { group: "SECTION", legacyFile: true };
   if (mode === "CUSTOM_SECTION") return { group: "SECTION", section: undefined, customSectionId: undefined };
+  // Конкретную форму подставляет вызывающий код из qr.formId.
+  if (mode === "FORM") return { group: "SECTION", section: undefined };
   if (BUILTIN_SECTION_MODES.includes(mode as BuiltinSectionTarget)) {
     return { group: "SECTION", section: mode as BuiltinSectionTarget };
   }
@@ -65,6 +78,7 @@ export function routingToMode(
   if (group === "LANDING") return "LANDING";
   if (group === "REDIRECT") return "REDIRECT";
   if (customSectionId) return "CUSTOM_SECTION";
+  if (section && targetToFormId(section)) return "FORM";
   if (section && isBuiltinSection(section)) return section;
   return "REVIEW";
 }
@@ -115,4 +129,5 @@ export const MODE_LABELS: Record<QRMode, string> = {
   MENU: "QR-Меню",
   CUSTOM_SECTION: "Кастомная страница",
   TIPS: "Чаевые",
+  FORM: "Анкета",
 };

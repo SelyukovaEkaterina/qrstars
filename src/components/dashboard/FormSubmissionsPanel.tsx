@@ -17,7 +17,12 @@ import {
   ChevronsRight,
   CheckCheck,
   Eye,
+  Lock,
+  Download,
 } from "lucide-react";
+import Link from "next/link";
+import { formatFieldValue } from "@/lib/form-config";
+import { projectFormsPath } from "@/lib/project-routes";
 
 interface FormOption {
   id: string;
@@ -28,13 +33,15 @@ interface FormOption {
 interface SubmissionRow {
   id: string;
   values: Record<string, unknown>;
+  /** FREE сверх лимита месяца: значения скрыты до PRO. */
+  locked?: boolean;
   guestIp: string | null;
   isRead: boolean;
   createdAt: string;
   form: {
     id: string;
     title: string;
-    fields: { id: string; label: string }[];
+    fields: { id: string; label: string; type?: string }[];
   };
   qrCode?: { id: string; code: string; label: string | null } | null;
 }
@@ -45,11 +52,25 @@ interface FormSubmissionsPanelProps {
   onUnreadChange?: (count: number) => void;
 }
 
-function formatValue(val: unknown): string {
-  if (val === true) return "Да";
-  if (val === false) return "Нет";
-  if (val === null || val === "") return "—";
-  return String(val);
+interface FormQuota {
+  unlimited: boolean;
+  limit: number;
+  used: number;
+  locked: number;
+}
+
+/** Значения в порядке полей формы; ответы на удалённые поля — в конце, по id. */
+function submissionEntries(s: SubmissionRow): { key: string; label: string; value: string }[] {
+  const known = s.form.fields.map((f) => ({
+    key: f.id,
+    label: f.label,
+    value: formatFieldValue(f.type ?? "text", s.values[f.id]),
+  }));
+  const ids = new Set(s.form.fields.map((f) => f.id));
+  const orphans = Object.entries(s.values)
+    .filter(([id]) => !ids.has(id))
+    .map(([id, v]) => ({ key: id, label: "Удалённое поле", value: formatFieldValue("text", v) }));
+  return [...known, ...orphans];
 }
 
 export default function FormSubmissionsPanel({
@@ -65,6 +86,7 @@ export default function FormSubmissionsPanel({
   const [page, setPage] = useState(1);
   const [pages, setPages] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [quota, setQuota] = useState<FormQuota | null>(null);
 
   const [search, setSearch] = useState("");
   const [filterFormId, setFilterFormId] = useState("");
@@ -91,6 +113,7 @@ export default function FormSubmissionsPanel({
         setTotal(data.total || 0);
         setUnreadCount(data.unreadCount || 0);
         setPages(data.pages || 1);
+        setQuota(data.quota ?? null);
         if (data.forms?.length) setFormOptions(data.forms);
         const unread = data.unreadCount || 0;
         onUnreadChange?.(unread);
@@ -167,10 +190,10 @@ export default function FormSubmissionsPanel({
         <Inbox className="w-12 h-12 mx-auto mb-3 text-gray-300" />
         <p className="font-medium text-gray-700">Заявок пока нет</p>
         <p className="text-sm mt-1">
-          Добавьте блок «Форма» в{" "}
-          <a href="/dashboard/projects" className="text-indigo-600 hover:underline">
-            микросайт
-          </a>{" "}
+          Создайте анкету в разделе{" "}
+          <Link href={projectFormsPath(establishmentId)} className="text-indigo-600 hover:underline">
+            «Формы»
+          </Link>{" "}
           — сюда будут попадать ответы.
         </p>
       </div>
@@ -215,6 +238,58 @@ export default function FormSubmissionsPanel({
           </Button>
         </div>
       </div>
+
+      {quota && !quota.unlimited && (
+        <div
+          className={`rounded-lg border px-3 py-2 text-sm ${
+            quota.locked > 0 ? "border-amber-300 bg-amber-50 text-amber-950" : "border-gray-200 bg-white text-gray-600"
+          }`}
+          data-upsell="form-quota"
+        >
+          {quota.locked > 0 ? (
+            <>
+              <strong>{quota.locked}</strong> {quota.locked === 1 ? "заявка скрыта" : "заявок скрыто"}: на FREE доступно{" "}
+              {quota.limit} в месяц. Они сохранены —{" "}
+              <Link href="/dashboard/subscription" className="font-semibold underline">
+                подключите PRO
+              </Link>
+              , чтобы открыть их и получать заявки без лимита.
+            </>
+          ) : (
+            <>
+              Заявок из форм в этом месяце: {Math.min(quota.used, quota.limit)} из {quota.limit} на FREE. Безлимит и
+              выгрузка в CSV —{" "}
+              <Link href="/dashboard/subscription" className="font-medium text-indigo-600 hover:underline">
+                на PRO
+              </Link>
+              .
+            </>
+          )}
+        </div>
+      )}
+
+      {filterFormId && (
+        <div className="flex justify-end">
+          {quota?.unlimited ? (
+            <a
+              href={`/api/forms/${filterFormId}/export`}
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Download className="h-4 w-4" />
+              Скачать CSV
+            </a>
+          ) : (
+            <Link
+              href="/dashboard/subscription"
+              data-upsell="form-csv"
+              className="inline-flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-500 hover:bg-gray-50"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              Скачать CSV · PRO
+            </Link>
+          )}
+        </div>
+      )}
 
       {filtersOpen && (
         <Card padding="sm">
@@ -301,9 +376,9 @@ export default function FormSubmissionsPanel({
         <>
           <div className="space-y-2">
             {submissions.map((s) => {
-              const fieldLabels = new Map(s.form.fields.map((f) => [f.id, f.label]));
               const expanded = expandedId === s.id;
-              const previewEntries = Object.entries(s.values).slice(0, 2);
+              const entries = s.locked ? [] : submissionEntries(s);
+              const previewEntries = entries.filter((e) => e.value !== "—").slice(0, 2);
 
               return (
                 <div
@@ -332,14 +407,14 @@ export default function FormSubmissionsPanel({
                             </Badge>
                           )}
                         </div>
+                        {!expanded && s.locked && (
+                          <p className="flex items-center gap-1 text-sm text-amber-700">
+                            <Lock className="h-3.5 w-3.5" /> Скрыта — лимит FREE в этом месяце
+                          </p>
+                        )}
                         {!expanded && previewEntries.length > 0 && (
                           <p className="text-sm text-gray-600 truncate">
-                            {previewEntries
-                              .map(([fid, val]) => {
-                                const label = fieldLabels.get(fid) ?? fid;
-                                return `${label}: ${formatValue(val)}`;
-                              })
-                              .join(" · ")}
+                            {previewEntries.map((e) => `${e.label}: ${e.value}`).join(" · ")}
                           </p>
                         )}
                         <p className="text-xs text-gray-400 mt-1">
@@ -354,18 +429,24 @@ export default function FormSubmissionsPanel({
 
                   {expanded && (
                     <div className="px-3 pb-3 border-t border-gray-100 pt-2">
-                      <dl className="text-sm space-y-1">
-                        {Object.entries(s.values).map(([fid, val]) => (
-                          <div key={fid} className="flex gap-2">
-                            <dt className="text-gray-500 min-w-[100px] shrink-0">
-                              {fieldLabels.get(fid) ?? fid}:
-                            </dt>
-                            <dd className="text-gray-900 flex-1 break-words">
-                              {formatValue(val)}
-                            </dd>
-                          </div>
-                        ))}
-                      </dl>
+                      {s.locked ? (
+                        <p className="text-sm text-amber-900" data-upsell="form-locked">
+                          Заявка сохранена, но на FREE доступно {quota?.limit ?? 50} заявок в месяц.{" "}
+                          <Link href="/dashboard/subscription" className="font-semibold underline">
+                            Подключите PRO
+                          </Link>
+                          , чтобы открыть её.
+                        </p>
+                      ) : (
+                        <dl className="text-sm space-y-1">
+                          {entries.map((e) => (
+                            <div key={e.key} className="flex gap-2">
+                              <dt className="text-gray-500 min-w-[100px] shrink-0">{e.label}:</dt>
+                              <dd className="text-gray-900 flex-1 break-words">{e.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                      )}
                     </div>
                   )}
                 </div>

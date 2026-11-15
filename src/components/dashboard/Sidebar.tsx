@@ -24,6 +24,7 @@ import {
   Network,
   X,
   Contact,
+  ClipboardList,
   type LucideIcon,
 } from "lucide-react";
 import { signOutTo } from "@/lib/sign-out-client";
@@ -35,6 +36,7 @@ import {
   parseProjectIdFromPath,
   projectHomePath,
   projectInboxPath,
+  projectFormsPath,
   projectPagePath,
   projectCardPath,
   projectQrcodesPath,
@@ -268,6 +270,12 @@ export default function Sidebar({
             label: "Микросайт",
             icon: Layout,
             tourId: "tour-nav-my-page",
+          },
+          {
+            href: projectFormsPath(activeProjectId),
+            label: "Формы",
+            icon: ClipboardList,
+            tourId: "tour-nav-forms",
           },
           {
             href: projectInboxPath(activeProjectId),

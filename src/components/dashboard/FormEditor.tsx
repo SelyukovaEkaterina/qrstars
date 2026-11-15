@@ -1,13 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Plus, Trash2, Loader2, Lock } from "lucide-react";
+import { Plus, Trash2, Loader2, ArrowUp, ArrowDown } from "lucide-react";
 import Button from "@/components/ui/Button";
 import {
   FORM_FIELD_TYPES,
+  FORM_MAX_FIELDS,
+  fieldHasOptions,
   isFormFieldType,
   type FormFieldType,
 } from "@/lib/form-config";
+
+/** У этих типов нет текстовой подсказки в поле ввода. */
+const NO_PLACEHOLDER_TYPES: FormFieldType[] = ["radio", "multi", "rating", "nps", "date", "time"];
 
 export interface FormFieldEditState {
   id?: string;
@@ -32,7 +37,8 @@ export interface FormEditState {
 
 interface FormEditorProps {
   initialData: FormEditState;
-  isPro: boolean;
+  /** Раньше на FREE нельзя было добавлять поля; теперь лимит — только по числу заявок. */
+  isPro?: boolean;
   saving: boolean;
   onSave: (data: Partial<FormEditState> & { fields?: FormFieldEditState[] }) => Promise<void>;
 }
@@ -41,18 +47,18 @@ function fieldOptionsKey(field: FormFieldEditState, idx: number): string {
   return field.id ?? `new-${idx}`;
 }
 
+/** Варианты — по одному на строку (запятая бывает внутри варианта: «Чай, кофе»). */
 function parseOptionsText(raw: string): string[] | null {
   const options = raw
-    .split(",")
+    .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
   return options.length > 0 ? options : null;
 }
 
-export default function FormEditor({ initialData, isPro, saving, onSave }: FormEditorProps) {
+export default function FormEditor({ initialData, saving, onSave }: FormEditorProps) {
   const [form, setForm] = useState<FormEditState>(initialData);
   const [optionsDraft, setOptionsDraft] = useState<Record<string, string>>({});
-  const initialFieldsCount = initialData.fields.length;
 
   useEffect(() => {
     setForm(initialData);
@@ -73,19 +79,24 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
     }));
   };
 
+  const moveField = (idx: number, dir: -1 | 1) => {
+    setForm((prev) => {
+      const next = [...prev.fields];
+      const target = idx + dir;
+      if (target < 0 || target >= next.length) return prev;
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return { ...prev, fields: next.map((f, i) => ({ ...f, order: i })) };
+    });
+  };
+
   const addField = () => {
-    if (!isPro && form.fields.length >= initialFieldsCount) {
-      alert(
-        "Добавление новых полей доступно на PRO-тарифе. На FREE можно редактировать пресет, но не добавлять поля сверх него."
-      );
-      return;
-    }
+    if (form.fields.length >= FORM_MAX_FIELDS) return;
     setForm((prev) => ({
       ...prev,
       fields: [
         ...prev.fields,
         {
-          label: "Новое поле",
+          label: "Новый вопрос",
           placeholder: null,
           helpText: null,
           type: "text",
@@ -192,20 +203,17 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
       <div>
         <div className="flex items-center justify-between mb-2">
           <h4 className="font-semibold text-gray-900">Поля формы</h4>
-          <Button variant="outline" size="sm" onClick={addField}>
-            {isPro ? (
-              <Plus className="w-4 h-4 mr-1" />
-            ) : (
-              <Lock className="w-3.5 h-3.5 mr-1" />
-            )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={addField}
+            disabled={form.fields.length >= FORM_MAX_FIELDS}
+            title={form.fields.length >= FORM_MAX_FIELDS ? `Не больше ${FORM_MAX_FIELDS} полей` : undefined}
+          >
+            <Plus className="w-4 h-4 mr-1" />
             Добавить поле
           </Button>
         </div>
-        {!isPro && (
-          <p className="text-xs text-amber-600 mb-2">
-            На FREE можно редактировать поля пресета. Добавление новых полей — на PRO.
-          </p>
-        )}
         <div className="space-y-3">
           {form.fields.map((field, idx) => (
             <div key={field.id ?? `new-${idx}`} className="border border-gray-200 rounded-lg p-3 bg-gray-50">
@@ -216,6 +224,7 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
                   onChange={(e) => updateField(idx, { label: e.target.value })}
                   placeholder="Название поля"
                   className="md:col-span-4 px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  aria-label="Вопрос"
                 />
                 <select
                   value={field.type}
@@ -233,10 +242,18 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
                 </select>
                 <input
                   type="text"
-                  value={field.placeholder ?? ""}
+                  value={NO_PLACEHOLDER_TYPES.includes(field.type) ? "" : field.placeholder ?? ""}
                   onChange={(e) => updateField(idx, { placeholder: e.target.value || null })}
-                  placeholder="Подсказка"
-                  className="md:col-span-3 px-2 py-1.5 border border-gray-300 rounded text-sm"
+                  placeholder={
+                    NO_PLACEHOLDER_TYPES.includes(field.type)
+                      ? "—"
+                      : field.type === "checkbox"
+                        ? "Текст рядом с галочкой"
+                        : "Подсказка в поле"
+                  }
+                  disabled={NO_PLACEHOLDER_TYPES.includes(field.type)}
+                  className="md:col-span-2 px-2 py-1.5 border border-gray-300 rounded text-sm disabled:bg-gray-100"
+                  aria-label="Подсказка в поле"
                 />
                 <label className="md:col-span-1 flex items-center gap-1 text-xs text-gray-700">
                   <input
@@ -246,25 +263,54 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
                   />
                   обяз.
                 </label>
-                <button
-                  type="button"
-                  onClick={() => removeField(idx)}
-                  className="md:col-span-1 p-1.5 text-gray-400 hover:text-red-600 justify-self-end"
-                  title="Удалить поле"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="md:col-span-2 flex items-center justify-end gap-0.5">
+                  <button
+                    type="button"
+                    onClick={() => moveField(idx, -1)}
+                    disabled={idx === 0}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                    title="Выше"
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveField(idx, 1)}
+                    disabled={idx === form.fields.length - 1}
+                    className="p-1.5 text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                    title="Ниже"
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeField(idx)}
+                    className="p-1.5 text-gray-400 hover:text-red-600"
+                    title="Удалить поле"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-              {field.type === "select" && (
+              <input
+                type="text"
+                value={field.helpText ?? ""}
+                onChange={(e) => updateField(idx, { helpText: e.target.value || null })}
+                placeholder="Пояснение под вопросом (необязательно)"
+                maxLength={200}
+                className="mt-2 w-full px-2 py-1.5 border border-gray-200 rounded text-xs bg-white"
+                aria-label="Пояснение под вопросом"
+              />
+              {fieldHasOptions(field.type) && (
                 <div className="mt-2">
                   <label className="block text-xs text-gray-500 mb-1">
-                    Варианты (через запятую)
+                    Варианты ответа — каждый с новой строки
                   </label>
-                  <input
-                    type="text"
+                  <textarea
+                    rows={Math.min(8, Math.max(3, (field.options ?? []).length + 1))}
                     value={
                       optionsDraft[fieldOptionsKey(field, idx)] ??
-                      (field.options ?? []).join(", ")
+                      (field.options ?? []).join("\n")
                     }
                     onChange={(e) => {
                       const key = fieldOptionsKey(field, idx);
@@ -279,7 +325,7 @@ export default function FormEditor({ initialData, isPro, saving, onSave }: FormE
                         return next;
                       });
                     }}
-                    placeholder="Опция 1, Опция 2, Опция 3"
+                    placeholder={"Вариант 1\nВариант 2\nВариант 3"}
                     className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm"
                   />
                 </div>

@@ -7,6 +7,7 @@ import { useLockedProjectId } from "@/components/dashboard/ProjectScope";
 import {
   UNASSIGNED_PROJECT_ID,
   isUnassignedProjectId,
+  projectFormsPath,
   projectPagePath,
   projectCardPath,
   projectQrPath,
@@ -31,10 +32,11 @@ import {
   MODE_LABELS,
   isBuiltinSection,
   customSectionIdToTarget,
+  formIdToTarget,
+  targetToFormId,
   targetToCustomPageId,
   type RoutingGroup,
   type SectionTarget,
-  type BuiltinSectionTarget,
   type QRMode,
 } from "@/lib/qr-routing";
 import { parsePageModules, type PageModules } from "@/lib/page-modules";
@@ -148,6 +150,7 @@ interface QRCodeData {
   mode: QRMode;
   redirectUrl: string | null;
   customSectionId: string | null;
+  formId?: string | null;
   scansCount: number;
   establishmentId: string | null;
   templateId: string | null;
@@ -217,6 +220,7 @@ export default function QRCodeSettingsPage() {
     { id: string; menuItemLabel: string; enabled: boolean; type?: string }[]
   >([]);
   const [legacyFileMode, setLegacyFileMode] = useState(false);
+  const [projectForms, setProjectForms] = useState<{ id: string; title: string; enabled: boolean }[]>([]);
 
   const [isPro, setIsPro] = useState(false);
   const [qrDownloading, setQrDownloading] = useState(false);
@@ -381,6 +385,9 @@ export default function QRCodeSettingsPage() {
         setCustomSectionId(qr.customSectionId || null);
         if (qr.customSectionId) {
           setSectionTarget(customSectionIdToTarget(qr.customSectionId));
+        }
+        if (qrMode === "FORM" && qr.formId) {
+          setSectionTarget(formIdToTarget(qr.formId));
         }
         setRedirectUrl(qr.redirectUrl || "");
         setEstablishmentId(qr.establishmentId || "");
@@ -569,6 +576,22 @@ export default function QRCodeSettingsPage() {
       .catch(() => {});
   }, [establishmentId]);
 
+  // Формы проекта — для режима «Анкета» в быстром доступе.
+  useEffect(() => {
+    const estId = lockedEstId || establishmentId;
+    if (!estId || isUnassignedProjectId(estId)) return;
+    let cancelled = false;
+    fetch(`/api/forms?establishmentId=${estId}`)
+      .then((r) => (r.ok ? r.json() : { forms: [] }))
+      .then((data: { forms?: { id: string; title: string; enabled: boolean }[] }) => {
+        if (!cancelled) setProjectForms((data.forms ?? []).map((f) => ({ id: f.id, title: f.title, enabled: f.enabled })));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [lockedEstId, establishmentId]);
+
   const applyRouting = (group: RoutingGroup, section?: SectionTarget, customPageId?: string | null) => {
     setRoutingGroup(group);
     setLegacyFileMode(false);
@@ -585,8 +608,14 @@ export default function QRCodeSettingsPage() {
     setMode(routingToMode(group, section, customPageId || undefined));
   };
 
+  const selectedFormId = targetToFormId(sectionTarget);
+
   const handleSaveBasic = async () => {
     const saveMode = routingToMode(routingGroup, sectionTarget, customSectionId || undefined);
+    if (saveMode === "FORM" && !selectedFormId) {
+      setError("Выберите форму");
+      return;
+    }
     if (routingGroup === "REDIRECT" && !redirectUrl.trim()) {
       setError("Укажите URL для редиректа");
       return;
@@ -610,6 +639,7 @@ export default function QRCodeSettingsPage() {
             mode: saveMode,
             redirectUrl: routingGroup === "REDIRECT" ? redirectUrl : undefined,
             establishmentId: establishmentId || undefined,
+            formId: saveMode === "FORM" ? selectedFormId : undefined,
           }),
         });
         const postData = await postRes.json();
@@ -656,6 +686,7 @@ export default function QRCodeSettingsPage() {
         mode: saveMode,
         redirectUrl: routingGroup === "REDIRECT" ? redirectUrl : null,
         customSectionId: saveMode === "CUSTOM_SECTION" ? (customSectionId || null) : null,
+        ...(saveMode === "FORM" ? { formId: selectedFormId } : {}),
         establishmentId: establishmentId || null,
         templateId: templateId || null,
         qrStyleTemplateId: qrStyleTemplateId || null,
@@ -1256,14 +1287,20 @@ export default function QRCodeSettingsPage() {
                       Открыть раздел
                     </label>
                     <select
-                      value={customSectionId ? customSectionIdToTarget(customSectionId) : (isBuiltinSection(sectionTarget) ? sectionTarget : "REVIEW")}
+                      value={
+                        customSectionId
+                          ? customSectionIdToTarget(customSectionId)
+                          : isBuiltinSection(sectionTarget) || selectedFormId
+                            ? sectionTarget
+                            : "REVIEW"
+                      }
                       onChange={(e) => {
                         const val = e.target.value;
                         const cId = targetToCustomPageId(val);
                         if (cId) {
                           applyRouting("SECTION", undefined, cId);
                         } else {
-                          applyRouting("SECTION", val as BuiltinSectionTarget, null);
+                          applyRouting("SECTION", val as SectionTarget, null);
                         }
                       }}
                       className={selectClass}
@@ -1275,6 +1312,16 @@ export default function QRCodeSettingsPage() {
                             </option>
                           ))}
                       </optgroup>
+                      {projectForms.length > 0 && (
+                        <optgroup label="Формы и анкеты">
+                          {projectForms.map((f) => (
+                            <option key={f.id} value={formIdToTarget(f.id)}>
+                              {f.title}
+                              {f.enabled ? "" : " · выключена"}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
                       {customPages.length > 0 && (
                         <optgroup label="Кастомные страницы">
                           {customPages.map((cp) => (
@@ -1286,6 +1333,34 @@ export default function QRCodeSettingsPage() {
                         </optgroup>
                       )}
                     </select>
+                    {(lockedEstId || establishmentId) && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        {selectedFormId ? (
+                          <>
+                            Вопросы и текст после отправки —{" "}
+                            <Link
+                              href={projectFormsPath(lockedEstId || establishmentId, selectedFormId)}
+                              className="font-medium text-indigo-600 hover:underline"
+                            >
+                              в редакторе формы
+                            </Link>
+                            {projectForms.find((f) => f.id === selectedFormId)?.enabled === false &&
+                              " · форма выключена, гости увидят «не принимает заявки»"}
+                          </>
+                        ) : (
+                          <>
+                            Нужен опрос, запись или регистрация?{" "}
+                            <Link
+                              href={projectFormsPath(lockedEstId || establishmentId)}
+                              className="font-medium text-indigo-600 hover:underline"
+                            >
+                              Создайте анкету из шаблона
+                            </Link>
+                            {projectForms.length > 0 && " — она появится в этом списке"}
+                          </>
+                        )}
+                      </p>
+                    )}
                     {(() => {
                       const hiddenBuiltin =
                         !customSectionId &&

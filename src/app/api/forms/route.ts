@@ -2,18 +2,17 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@/generated/prisma/client";
 import {
+  FORM_MAX_FIELDS,
   FORM_PRESETS,
+  fieldHasOptions,
   getPreset,
-  isFormFieldType,
   normalizeFieldType,
   parseFieldOptions,
 } from "@/lib/form-config";
-import {
-  establishmentAccessWhere,
-  establishmentRelationWhere,
-  establishmentHasPaidFeatures,
-} from "@/lib/establishment-access";
+import { establishmentAccessWhere, establishmentRelationWhere } from "@/lib/establishment-access";
+import { formCreateFromPreset } from "@/lib/form-create";
 import { BUSINESS_CARD_LEAD_FORM_PRESET } from "@/lib/business-card-leads";
 import { collectContentCacheTargets, invalidateCacheTargets, invalidateContentCache } from "@/lib/content-cache";
 
@@ -54,9 +53,12 @@ export async function POST(request: Request) {
 
   const userId = (session.user as Record<string, unknown>).id as string;
   const body = await request.json();
-  const { establishmentId, presetId } = body as {
+  const { establishmentId, presetId, title, enabled } = body as {
     establishmentId?: string;
     presetId?: string;
+    title?: string;
+    /** Для отдельного QR-анкеты форму включаем сразу; в микросайте — после настройки. */
+    enabled?: boolean;
   };
 
   if (!establishmentId) {
@@ -75,22 +77,7 @@ export async function POST(request: Request) {
   const form = await prisma.form.create({
     data: {
       establishment: { connect: { id: establishmentId } },
-      title: preset.title,
-      submitLabel: preset.submitLabel,
-      successMessage: preset.successMessage,
-      preset: preset.id,
-      enabled: false,
-      fields: {
-        create: preset.fields.map((f, idx) => ({
-          label: f.label,
-          placeholder: f.placeholder ?? null,
-          helpText: f.helpText ?? null,
-          type: f.type,
-          required: f.required,
-          options: f.options ?? undefined,
-          order: idx,
-        })),
-      },
+      ...formCreateFromPreset(preset, { title, enabled: enabled === true }),
     },
     include: { fields: { orderBy: { order: "asc" } } },
   });
@@ -139,13 +126,22 @@ export async function PUT(request: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const isPro = await establishmentHasPaidFeatures(existing.establishmentId);
-
-  if (Array.isArray(fields) && !isPro && fields.length > existing.fields.length) {
+  // Поля и их типы доступны на всех тарифах; на FREE ограничено число заявок в месяц.
+  if (Array.isArray(fields) && fields.length > FORM_MAX_FIELDS) {
     return NextResponse.json(
-      { error: "Добавление новых полей доступно только на PRO-тарифе" },
-      { status: 403 }
+      { error: `В форме может быть не больше ${FORM_MAX_FIELDS} полей` },
+      { status: 400 }
     );
+  }
+  if (Array.isArray(fields)) {
+    for (const f of fields) {
+      if (fieldHasOptions(normalizeFieldType(f.type)) && (parseFieldOptions(f.options)?.length ?? 0) < 2) {
+        return NextResponse.json(
+          { error: `Добавьте хотя бы два варианта ответа в поле «${(f.label ?? "").trim() || "без названия"}»` },
+          { status: 400 }
+        );
+      }
+    }
   }
 
   const data: Record<string, unknown> = {};
@@ -176,7 +172,7 @@ export async function PUT(request: Request) {
           helpText: f.helpText ? String(f.helpText).slice(0, 200) : null,
           type: normalizeFieldType(f.type),
           required: !!f.required,
-          options: isFormFieldType(f.type) && f.type === "select" ? parseFieldOptions(f.options) ?? undefined : undefined,
+          options: fieldHasOptions(normalizeFieldType(f.type)) ? parseFieldOptions(f.options) ?? undefined : Prisma.DbNull,
           order: typeof f.order === "number" ? f.order : i,
         };
 

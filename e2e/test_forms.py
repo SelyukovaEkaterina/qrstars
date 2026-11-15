@@ -56,7 +56,7 @@ def test_list_forms_for_establishment(owner_session, base_url, owner_establishme
         owner_session.delete(f"{base_url}/api/forms", params={"id": fid})
 
 
-def test_update_form_fields_pro_required_to_add(
+def test_free_can_add_form_fields(
     owner_session, admin_session, base_url, owner_establishment_id
 ):
     # Ensure user is FREE
@@ -78,11 +78,13 @@ def test_update_form_fields_pro_required_to_add(
                 "required": False,
             }
         ]
+        # С 2026-11-15 поля на FREE не ограничены — лимит только по числу заявок в месяц.
         r = owner_session.put(
             f"{base_url}/api/forms",
             json={"id": fid, "fields": new_fields},
         )
-        assert r.status_code == 403
+        assert r.status_code == 200, r.text
+        assert len(r.json()["form"]["fields"]) == len(existing) + 1
     finally:
         owner_session.delete(f"{base_url}/api/forms", params={"id": fid})
 
@@ -133,7 +135,15 @@ def test_submit_form_creates_submission(owner_session, base_url, owner_establish
 
         # Public endpoint — no auth required
         import requests
+        # Телефон без согласия на ПД не принимается.
         r = requests.post(f"{base_url}/api/forms/{fid}/submit", json={"values": values})
+        assert r.status_code == 400, r.text
+        assert "согласие" in r.json()["error"]
+
+        r = requests.post(
+            f"{base_url}/api/forms/{fid}/submit",
+            json={"values": values, "pdConsentGiven": True},
+        )
         assert r.status_code == 200, r.text
         assert r.json()["ok"] is True
         assert "successMessage" in r.json()
@@ -208,7 +218,11 @@ def test_list_submissions_by_establishment(
         values = {f["id"]: "Тест" for f in form["fields"]}
         import requests
 
-        requests.post(f"{base_url}/api/forms/{fid}/submit", json={"values": values})
+        sent = requests.post(
+            f"{base_url}/api/forms/{fid}/submit",
+            json={"values": values, "pdConsentGiven": True},
+        )
+        assert sent.status_code == 200, sent.text
 
         r = owner_session.get(
             f"{base_url}/api/establishments/{owner_establishment_id}/form-submissions"
@@ -235,4 +249,5 @@ def test_demo_form_renders():
     wait_for_app(BASE_URL)
     r = requests.get(f"{BASE_URL}/scan/demo-form")
     assert r.status_code == 200
-    assert "Записаться" in r.text or "Имя" in r.text
+    # По умолчанию демо показывает «Опрос гостей», шаблон меняется через ?t=.
+    assert "Как вам у нас?" in r.text

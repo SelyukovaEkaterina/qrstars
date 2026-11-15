@@ -44,7 +44,14 @@ import {
   demo3WorkingHours,
 } from "@/lib/demo-qrcodes";
 
-export async function renderDemoScan(code: string) {
+export interface DemoScanOptions {
+  /** `/q/demo-form?t=guest_survey` — какой шаблон формы показать. */
+  formTemplate?: string;
+  /** `?bar=0` — без панели переключения шаблонов (для iframe на лендинге). */
+  hideBar?: boolean;
+}
+
+export async function renderDemoScan(code: string, options: DemoScanOptions = {}) {
   if (!isDemoQrCode(code)) {
     return null;
   }
@@ -129,14 +136,14 @@ export async function renderDemoScan(code: string) {
 
     case "demo-form": {
       const FormView = (await import("@/components/scan/FormView")).default;
-      const { FORM_PRESETS } = await import("@/lib/form-config");
-      const preset = FORM_PRESETS.find((p) => p.id === "service_appointment") ?? FORM_PRESETS[0];
-      return (
+      const { FORM_PRESETS, getPreset } = await import("@/lib/form-config");
+      const preset = getPreset(options.formTemplate) ?? getPreset("guest_survey") ?? FORM_PRESETS[0];
+      const form = (
         <FormView
           form={{
             id: "demo-form",
             title: preset.title,
-            description: "Демо: ваша заявка никуда не отправится.",
+            description: "Демо: ответ никуда не отправится.",
             submitLabel: preset.submitLabel,
             successMessage: preset.successMessage,
             enabled: true,
@@ -144,7 +151,7 @@ export async function renderDemoScan(code: string) {
               id: `demo-${i}`,
               label: f.label,
               placeholder: f.placeholder ?? null,
-              helpText: null,
+              helpText: f.helpText ?? null,
               type: f.type,
               required: f.required,
               options: f.options ?? null,
@@ -155,6 +162,31 @@ export async function renderDemoScan(code: string) {
           brandColor="#4f46e5"
           pageAppearance="light"
         />
+      );
+      if (options.hideBar) return form;
+      return (
+        <div>
+          <nav
+            aria-label="Шаблоны форм"
+            className="sticky top-0 z-10 flex gap-2 overflow-x-auto border-b border-gray-200 bg-white/95 px-3 py-2 backdrop-blur"
+          >
+            {FORM_PRESETS.filter((p) => p.id !== "blank").map((p) => (
+              <a
+                key={p.id}
+                href={`/q/demo-form?t=${p.id}`}
+                aria-current={p.id === preset.id ? "page" : undefined}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium ${
+                  p.id === preset.id
+                    ? "border-indigo-600 bg-indigo-600 text-white"
+                    : "border-gray-200 bg-white text-gray-700 hover:border-indigo-300"
+                }`}
+              >
+                {p.emoji} {p.name}
+              </a>
+            ))}
+          </nav>
+          {form}
+        </div>
       );
     }
 

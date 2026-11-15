@@ -55,6 +55,12 @@ export function projectCardPath(projectId: string): string {
   return `/dashboard/projects/${projectId}/card`;
 }
 
+/** Формы и анкеты проекта; `formId` — сразу открыть редактор этой формы. */
+export function projectFormsPath(projectId: string, formId?: string): string {
+  const path = `/dashboard/projects/${projectId}/forms`;
+  return formId ? `${path}?form=${encodeURIComponent(formId)}` : path;
+}
+
 export function projectQrcodesPath(projectId: string): string {
   return `/dashboard/projects/${projectId}/qrcodes`;
 }

@@ -11,7 +11,7 @@ import { establishmentAccessWhere } from "@/lib/establishment-access";
  * доступ, или создан им самим / владельцем проекта (`ownerUserIds`) — так
  * участник команды может привязать legacy-объект владельца.
  */
-export type LinkedContentKind = "menu" | "businessCard" | "wifiConfig" | "fileAsset" | "customPage";
+export type LinkedContentKind = "menu" | "businessCard" | "wifiConfig" | "fileAsset" | "customPage" | "form";
 
 export async function accessibleEstablishmentIds(userId: string): Promise<string[]> {
   const rows = await prisma.establishment.findMany({
@@ -83,6 +83,11 @@ export async function canLinkContent(
         where: { id, establishmentId: { in: estIds } },
         select: { id: true },
       }));
+    case "form":
+      return !!(await prisma.form.findFirst({
+        where: { id, establishmentId: { in: estIds } },
+        select: { id: true },
+      }));
   }
 }
 
@@ -92,4 +97,5 @@ export const LINKED_CONTENT_NOT_FOUND: Record<LinkedContentKind, string> = {
   wifiConfig: "Настройки Wi‑Fi не найдены",
   fileAsset: "Файл не найден",
   customPage: "Страница не найдена",
+  form: "Форма не найдена",
 };

@@ -308,6 +308,7 @@ export type PrintScenario =
   | "LANDING"
   | "FILE"
   | "TIPS"
+  | "FORM"
   | "LINK";
 
 export function scenarioForMode(mode: string | null | undefined): PrintScenario {
@@ -319,6 +320,7 @@ export function scenarioForMode(mode: string | null | undefined): PrintScenario 
     case "LANDING":
     case "FILE":
     case "TIPS":
+    case "FORM":
       return mode;
     default:
       return "LINK";
@@ -364,6 +366,12 @@ export const PRINT_TEXT_PRESETS: Record<PrintScenario, PrintTexts[]> = {
   TIPS: [
     { title: "Чаевые", subtitle: "Спасибо, что цените нашу работу", footer: "" },
     { title: "Поблагодарить", subtitle: "Оставьте чаевые по QR-коду", footer: "Спасибо!" },
+  ],
+  FORM: [
+    { title: "Расскажите о нас", subtitle: "Короткая анкета — займёт минуту", footer: "Спасибо!" },
+    { title: "Участвуйте в розыгрыше", subtitle: "Заполните форму — и вы в списке участников", footer: "" },
+    { title: "Регистрация", subtitle: "Запишитесь на мероприятие по QR-коду", footer: "" },
+    { title: "Запись онлайн", subtitle: "Оставьте заявку — мы перезвоним", footer: "" },
   ],
   LINK: [
     { title: "Отсканируйте", subtitle: "Ссылка откроется за секунду", footer: "" },

@@ -36,6 +36,7 @@ import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card"
 
 interface ScanPageProps {
   params: Promise<{ code: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
 
 function scanMetaTitle(mode: string | null, estName: string): string {
@@ -304,10 +305,15 @@ async function computeLandingExtras(qrCode: any) {
   return { menus, businessCards, wifis };
 }
 
-export default async function ScanPage({ params }: ScanPageProps) {
+export default async function ScanPage({ params, searchParams }: ScanPageProps) {
   const { code } = await params;
+  const query = (await searchParams) ?? {};
+  const queryValue = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
 
-  const demoPage = await renderDemoScan(code);
+  const demoPage = await renderDemoScan(code, {
+    formTemplate: queryValue("t"),
+    hideBar: queryValue("bar") === "0",
+  });
   if (demoPage) {
     return demoPage;
   }
@@ -681,6 +687,7 @@ export default async function ScanPage({ params }: ScanPageProps) {
         form={JSON.parse(JSON.stringify(qrCode.form))}
         qrCodeId={qrCode.id}
         pdConsent={pdConsent}
+        watermarkEnabled={reviewProps.watermarkEnabled}
         {...brandProps}
       />
     );

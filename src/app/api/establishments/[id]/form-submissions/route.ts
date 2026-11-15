@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
+import { formQuotaForOwner, lockedSubmissionIds, maskLockedSubmission } from "@/lib/form-limits";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -18,7 +19,7 @@ export async function GET(request: Request, context: RouteContext) {
 
   const est = await prisma.establishment.findFirst({
     where: { id: establishmentId, ...establishmentAccessWhere(userId) },
-    select: { id: true, name: true },
+    select: { id: true, name: true, userId: true },
   });
   if (!est) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -78,7 +79,8 @@ export async function GET(request: Request, context: RouteContext) {
           select: {
             id: true,
             title: true,
-            fields: { orderBy: { order: "asc" }, select: { id: true, label: true } },
+            preset: true,
+            fields: { orderBy: { order: "asc" }, select: { id: true, label: true, type: true } },
           },
         },
         qrCode: { select: { id: true, code: true, label: true } },
@@ -95,9 +97,18 @@ export async function GET(request: Request, context: RouteContext) {
     }),
   ]);
 
+  const [locked, quota] = await Promise.all([
+    lockedSubmissionIds(
+      est.userId,
+      submissions.map((s) => ({ id: s.id, createdAt: s.createdAt, formPreset: s.form.preset }))
+    ),
+    formQuotaForOwner(est.userId),
+  ]);
+
   const page = pageParam;
   return NextResponse.json({
-    submissions,
+    submissions: submissions.map((s) => maskLockedSubmission(s, locked)),
+    quota,
     total,
     unreadCount,
     page,

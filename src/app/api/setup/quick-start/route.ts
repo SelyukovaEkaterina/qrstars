@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getPreset } from "@/lib/form-config";
+import { formCreateFromPreset } from "@/lib/form-create";
 import { logUserEvent } from "@/lib/user-events-server";
 import { PLAN_LIMIT_HIT_EVENT } from "@/lib/user-events";
 import prisma from "@/lib/prisma";
@@ -53,7 +55,7 @@ function resolveYandexMapsUrl(raw: string | undefined): {
   return { normalized: normalizeYandexMapsUrl(trimmed)!, error: null };
 }
 
-export type SetupIntent = "reviews" | "landing" | "redirect" | "menu" | "card";
+export type SetupIntent = "reviews" | "landing" | "redirect" | "menu" | "card" | "form";
 
 const CONTACT_PROVIDER_PRIORITY = ["TELEGRAM", "MAX", "EMAIL"] as const;
 
@@ -132,6 +134,8 @@ export async function POST(request: Request) {
     industry?: string;
     intent?: string;
     establishmentId?: string;
+    formPresetId?: string;
+    formTitle?: string;
     profession?: string;
     whatsapp?: string;
     telegram?: string;
@@ -150,7 +154,9 @@ export async function POST(request: Request) {
           ? "menu"
           : rawIntent === "card"
             ? "card"
-            : "reviews";
+            : rawIntent === "form"
+              ? "form"
+              : "reviews";
   const trimmedName = name?.trim();
   const yandexResolved = resolveYandexMapsUrl(yandexMapsUrl);
   const trimmedYandex = yandexResolved.normalized;
@@ -256,6 +262,9 @@ export async function POST(request: Request) {
     }
   }
 
+  const formPreset = getPreset(body.formPresetId) ?? getPreset("blank")!;
+  const formTitle = typeof body.formTitle === "string" ? body.formTitle : null;
+
   const qrMode =
     intent === "reviews"
       ? "REVIEW"
@@ -265,7 +274,9 @@ export async function POST(request: Request) {
           ? "MENU"
           : intent === "card"
             ? "BUSINESS_CARD"
-            : "LANDING";
+            : intent === "form"
+              ? "FORM"
+              : "LANDING";
   const qrLabel =
     trimmedQrLabel ||
     (intent === "reviews"
@@ -276,7 +287,9 @@ export async function POST(request: Request) {
           ? "Меню"
           : intent === "card"
             ? "Визитка"
-            : "Основной");
+            : intent === "form"
+              ? formPreset.name
+              : "Основной");
 
   const ownedCount = await prisma.establishment.count({ where: { userId } });
   const subscription = await findActiveSubscription(userId);
@@ -460,6 +473,19 @@ export async function POST(request: Request) {
         }
       }
 
+      const formId =
+        intent === "form"
+          ? (
+              await tx.form.create({
+                data: {
+                  establishment: { connect: { id: establishmentId } },
+                  ...formCreateFromPreset(formPreset, { title: formTitle, enabled: true }),
+                },
+                select: { id: true },
+              })
+            ).id
+          : undefined;
+
       const qr = await tx.qRCode.create({
         data: {
           code,
@@ -469,6 +495,7 @@ export async function POST(request: Request) {
           source: "DASHBOARD",
           user: { connect: { id: userId } },
           establishment: { connect: { id: establishmentId } },
+          ...(formId ? { form: { connect: { id: formId } } } : {}),
           qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
           ...(intent === "redirect" ? { redirectUrl: trimmedRedirect } : {}),
           ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
@@ -497,6 +524,7 @@ export async function POST(request: Request) {
         code: qrcode.code,
         mode: qrcode.mode,
         label: qrcode.label,
+        formId: qrcode.formId,
         qrStyleTemplateId,
         qrStyleTemplate,
       },
@@ -545,6 +573,19 @@ export async function POST(request: Request) {
       });
     }
 
+    const formId =
+      intent === "form"
+        ? (
+            await tx.form.create({
+              data: {
+                establishment: { connect: { id: establishment.id } },
+                ...formCreateFromPreset(formPreset, { title: formTitle, enabled: true }),
+              },
+              select: { id: true },
+            })
+          ).id
+        : undefined;
+
     const qrcode = await tx.qRCode.create({
       data: {
         code,
@@ -554,6 +595,7 @@ export async function POST(request: Request) {
         source: "DASHBOARD",
         user: { connect: { id: userId } },
         establishment: { connect: { id: establishment.id } },
+        ...(formId ? { form: { connect: { id: formId } } } : {}),
         qrStyleTemplate: { connect: { id: qrStyleTemplateId } },
         ...(intent === "redirect" ? { redirectUrl: trimmedRedirect } : {}),
         ...(menuId ? { menu: { connect: { id: menuId } } } : {}),
@@ -580,6 +622,7 @@ export async function POST(request: Request) {
         code: qrcode.code,
         mode: qrcode.mode,
         label: qrcode.label,
+        formId: qrcode.formId,
         qrStyleTemplateId,
         qrStyleTemplate,
       },

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { establishmentAccessWhere } from "@/lib/establishment-access";
+import { lockedSubmissionIds, maskLockedSubmission } from "@/lib/form-limits";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -19,7 +20,10 @@ export async function GET(request: Request, context: RouteContext) {
 
   const form = await prisma.form.findFirst({
     where: { id, establishment: establishmentAccessWhere(userId) },
-    include: { fields: { orderBy: { order: "asc" } } },
+    include: {
+      fields: { orderBy: { order: "asc" } },
+      establishment: { select: { userId: true } },
+    },
   });
   if (!form) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -32,5 +36,15 @@ export async function GET(request: Request, context: RouteContext) {
     include: { qrCode: { select: { id: true, code: true, label: true } } },
   });
 
-  return NextResponse.json({ form, submissions });
+  const locked = await lockedSubmissionIds(
+    form.establishment.userId,
+    submissions.map((s) => ({ id: s.id, createdAt: s.createdAt, formPreset: form.preset }))
+  );
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { establishment, ...formPublic } = form;
+
+  return NextResponse.json({
+    form: formPublic,
+    submissions: submissions.map((s) => maskLockedSubmission(s, locked)),
+  });
 }
