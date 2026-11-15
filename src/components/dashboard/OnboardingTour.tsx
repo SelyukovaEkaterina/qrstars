@@ -191,7 +191,7 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
       popover: {
         title: "Тариф и оплата",
         description:
-          "Текущий план FREE / PRO / «Сеть», смена тарифа и оплата. PRO — умная ротация площадок, Telegram/MAX для жалоб, white-label и расширенная аналитика. «Сеть» — несколько проектов.",
+          "Текущий план FREE / PRO / «Сеть», смена тарифа и оплата. PRO — умная ротация площадок, микросайт, анкеты без лимита, white-label и расширенная аналитика. «Сеть» — несколько проектов.",
         ...popoverRight,
       },
     },

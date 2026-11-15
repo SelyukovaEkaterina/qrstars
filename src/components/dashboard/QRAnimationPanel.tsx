@@ -257,7 +257,7 @@ export default function QRAnimationPanel({
             <Lock size={14} /> Анимированный QR — в тарифе PRO
           </p>
           <p className="mt-1 text-xs text-indigo-800">
-            Посмотреть можно бесплатно, скачать GIF — на PRO, {proPrice} за полгода. Там же White Label, микросайт и уведомления в Telegram.
+            Посмотреть можно бесплатно, скачать GIF — на PRO, {proPrice} за полгода. Там же White Label, микросайт и анкеты без лимита.
           </p>
           <Link
             href="/dashboard/subscription"

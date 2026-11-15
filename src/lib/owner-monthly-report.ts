@@ -837,7 +837,7 @@ function buildPromoBlocks(m: OwnerReportMetrics): PromoBlock[] {
   if (!m.isPro) {
     out.push({
       title: "⚡ Расширенная аналитика на PRO",
-      text: `Конверсия в отзыв, динамика по дням и устройствам, умная ротация площадок и жалобы в Telegram. ${
+      text: `Конверсия в отзыв, динамика по дням и устройствам, умная ротация площадок и микросайт. ${
         base ? `<a href="${base}/dashboard/subscription" style="color:#6366f1;text-decoration:none;">Перейти на PRO →</a>` : ""
       }`,
     });

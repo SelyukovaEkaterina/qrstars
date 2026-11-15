@@ -183,7 +183,9 @@ describe("PRO intro offer email", () => {
     const redirectHtml = renderProOfferD14Email(redirectState);
     const contentHtml = renderProOfferD14Email(contentState);
 
-    assert.match(reviewHtml, /Жалобы в Telegram и MAX за секунду/);
+    assert.match(reviewHtml, /Аналитика, которая показывает, где теряются отзывы/);
+    // Telegram / MAX бесплатны на всех тарифах — в PRO-оффере их не продаём.
+    assert.doesNotMatch(reviewHtml, /Telegram/);
     assert.match(redirectHtml, /Мгновенный переход без промежуточного экрана QrStars/);
     assert.match(contentHtml, /Все разделы в одном QR и ваш бренд/);
 
@@ -191,12 +193,13 @@ describe("PRO intro offer email", () => {
     const redirectReminder = renderProOfferReminderEmail(redirectState);
     const contentReminder = renderProOfferReminderEmail(contentState);
 
-    assert.match(reviewReminder, /Перехват негатива в моменте/);
+    assert.match(reviewReminder, /Свой сценарий для каждой оценки/);
+    assert.doesNotMatch(contentReminder, /Telegram/);
     assert.match(redirectReminder, /Прямой переход без задержки/);
     assert.match(contentReminder, /Микросайт в одном QR-коде/);
 
     const subjectFn = LIFECYCLE_EMAIL_SUBJECTS.pro_offer_d14 as (s: LifecycleUserState) => string;
-    assert.match(subjectFn(reviewState), /жалобы в Telegram/);
+    assert.match(subjectFn(reviewState), /ротация отзывов и микросайт/);
     assert.match(subjectFn(redirectState), /Прямой переход по QR без экрана QrStars/);
     assert.match(subjectFn(contentState), /Микросайт и ваш бренд/);
   });
