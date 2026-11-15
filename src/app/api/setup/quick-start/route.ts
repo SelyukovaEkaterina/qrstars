@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     serviceArea?: string;
   };
 
-  const establishmentId = rawEstablishmentId?.trim() || undefined;
+  let establishmentId = rawEstablishmentId?.trim() || undefined;
 
   const intent: SetupIntent =
     rawIntent === "redirect"
@@ -293,21 +293,41 @@ export async function POST(request: Request) {
     );
   }
 
+  let attachedToExisting = false;
   if (establishmentId) {
     const access = await requireEstablishmentAccess(userId, establishmentId);
     if (!access.ok) {
       return NextResponse.json({ error: "Заведение не найдено" }, { status: 404 });
     }
   } else if (!canAddEstablishment(plan, ownedCount)) {
-    const hint = getUpgradeHint(plan, ownedCount);
-    logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "projects", plan, via: "wizard", intent });
-    return NextResponse.json(
-      {
-        error: hint?.message || "Достигнут лимит заведений на текущем тарифе",
-        upgradeRequired: hint?.requiredPlan,
-      },
-      { status: 403 }
-    );
+    // Мастер открылся из кэша браузера в режиме «первый запуск», хотя проект уже есть
+    // (вернулись кнопкой «назад»). Новый QR бесплатный — кладём его в единственный проект,
+    // а не отказываем после заполненной формы.
+    const onlyProject =
+      ownedCount === 1
+        ? await prisma.establishment.findFirst({
+            where: { userId },
+            select: { id: true, businessCardId: true },
+          })
+        : null;
+    if (onlyProject && intent !== "card") {
+      establishmentId = onlyProject.id;
+      attachedToExisting = true;
+    } else {
+      const hint = getUpgradeHint(plan, ownedCount);
+      logUserEvent(userId, PLAN_LIMIT_HIT_EVENT, { limit: "projects", plan, via: "wizard", intent });
+      const hasCard = intent === "card" && !!onlyProject?.businessCardId;
+      return NextResponse.json(
+        {
+          error: hasCard
+            ? "Визитка у вас уже есть — её можно изменить в редакторе. Вторая визитка — это второй проект, он доступен на тарифе «Сеть»."
+            : hint?.message || "Достигнут лимит заведений на текущем тарифе",
+          upgradeRequired: hint?.requiredPlan,
+          ...(hasCard ? { cardEditorProjectId: onlyProject.id } : {}),
+        },
+        { status: 403 }
+      );
+    }
   }
 
   let code: string | undefined;
@@ -467,6 +487,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       intent,
       ...(intent === "menu" ? { menuReused } : {}),
+      ...(attachedToExisting ? { attachedToExisting: true } : {}),
       establishment: {
         id: establishment.id,
         name: establishment.name,
