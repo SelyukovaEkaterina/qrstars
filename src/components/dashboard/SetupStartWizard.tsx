@@ -451,6 +451,8 @@ export default function SetupStartWizard({
   const [intent, setIntent] = useState<SetupIntent | null>(() => autoSelectedIntent);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  /** Сервер отказал во второй визитке: проект с уже созданной визиткой — ведём в её редактор. */
+  const [cardEditorProjectId, setCardEditorProjectId] = useState<string | null>(null);
   const [yandexUrlFieldError, setYandexUrlFieldError] = useState("");
   // Площадка для 4–5★ на FREE: одна, Яндекс или 2GIS. Со статей/рекламы про 2GIS — сразу 2GIS.
   const [reviewPlatform, setReviewPlatform] = useState<"yandex" | "2gis">(() =>
@@ -517,6 +519,28 @@ export default function SetupStartWizard({
     trackEvent("setup.intent_viewed");
   }, []);
 
+  // Мастер мог открыться из кэша браузера (кнопка «назад» после создания проекта) в режиме
+  // «первый запуск», хотя проект уже есть: шаг выбора проекта пропускался, и форма
+  // заканчивалась отказом по лимиту тарифа. Сверяемся с сервером и перезагружаем страницу.
+  useEffect(() => {
+    if (rerun || existingEstablishments.length > 0) return;
+    let cancelled = false;
+    fetch("/api/establishments")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { establishments?: unknown[] } | null) => {
+        if (cancelled || !data?.establishments?.length) return;
+        // Проект создан только что в этом же мастере — это не устаревшая страница.
+        if (creatingRef.current) return;
+        window.location.reload();
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // Проверка один раз при открытии мастера.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const changeStep = (next: Step) => {
     if (next !== "form") setYandexPreviewReady(false);
     setStepState(next);
@@ -526,6 +550,7 @@ export default function SetupStartWizard({
     ? existingEstablishments.find((e) => e.id === selectedEstablishmentId) ?? null
     : null;
   const usingExistingOrg = orgMode === "existing" && !!selectedEstablishment;
+  const existingCardProject = existingEstablishments.find((e) => e.businessCardId) ?? null;
   const existingHasReviewPlatform = Boolean(
     selectedEstablishment?.yandexMapsUrl || selectedEstablishment?.twoGisUrl
   );
@@ -629,6 +654,7 @@ export default function SetupStartWizard({
     creatingRef.current = true;
     setLoading(true);
     setError("");
+    setCardEditorProjectId(null);
     setYandexUrlFieldError("");
     setTwoGisFieldError("");
 
@@ -705,6 +731,9 @@ export default function SetupStartWizard({
             ? data.error || "Сессия устарела. Выйдите и войдите снова."
             : data.error || "Не удалось создать проект";
         setError(msg);
+        setCardEditorProjectId(
+          typeof data.cardEditorProjectId === "string" ? data.cardEditorProjectId : null
+        );
         reportFormFailure(
           intent,
           "server",
@@ -1574,6 +1603,19 @@ export default function SetupStartWizard({
               </div>
             </button>
 
+            {!canAddNewEstablishment && existingCardProject && (
+              <p className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                Хотите поправить визитку?{" "}
+                <Link
+                  href={`/dashboard/projects/${existingCardProject.id}/card`}
+                  className="font-medium text-indigo-600 hover:text-indigo-800"
+                >
+                  Изменить мою визитку
+                </Link>{" "}
+                — новый QR для этого не нужен.
+              </p>
+            )}
+
             <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row">
               <Button
                 type="button"
@@ -1847,7 +1889,25 @@ export default function SetupStartWizard({
 
           <form onSubmit={handleSubmit} noValidate className="space-y-4">
             {error && (
-              <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">{error}</div>
+              <div className="bg-red-50 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+                {cardEditorProjectId && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Link
+                      href={`/dashboard/projects/${cardEditorProjectId}/card`}
+                      className="inline-flex h-10 items-center rounded-xl bg-indigo-600 px-4 text-sm font-semibold text-white hover:bg-indigo-700"
+                    >
+                      Изменить мою визитку
+                    </Link>
+                    <Link
+                      href="/dashboard/subscription"
+                      className="inline-flex h-10 items-center rounded-xl border border-indigo-200 bg-white px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-50"
+                    >
+                      Тариф «Сеть»
+                    </Link>
+                  </div>
+                )}
+              </div>
             )}
 
             {isCard && (

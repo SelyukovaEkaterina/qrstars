@@ -679,3 +679,40 @@ def test_quick_start_redirect_rejects_plain_words(base_url):
         assert r.status_code == 400, (bad, r.text)
         assert "ссылка" in r.json()["error"].lower()
     assert session.get(f"{base_url}/api/establishments").json()["establishments"] == []
+
+
+def test_quick_start_at_project_limit_adds_qr_to_the_only_project(base_url):
+    """Мастер из кэша браузера шлёт форму без establishmentId — QR идёт в существующий проект."""
+    session = _new_session(base_url, "qs-limit-redir")
+    first = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "redirect", "name": "Первый", "redirectUrl": "https://example.com/one"},
+    )
+    assert first.status_code == 200, first.text
+    second = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "redirect", "name": "Второй", "redirectUrl": "https://example.com/two"},
+    )
+    assert second.status_code == 200, second.text
+    data = second.json()
+    assert data["attachedToExisting"] is True
+    assert data["establishment"]["id"] == first.json()["establishment"]["id"]
+
+    ests = session.get(f"{base_url}/api/establishments").json()["establishments"]
+    assert len(ests) == 1 and ests[0]["name"] == "Первый"
+    qr = session.get(f"{base_url}/api/qrcodes", params={"id": data["qrcode"]["id"]}).json()["qrcode"]
+    assert qr["redirectUrl"] == "https://example.com/two"
+
+
+def test_quick_start_second_card_on_free_points_to_card_editor(base_url):
+    session = _new_session(base_url, "qs-limit-card")
+    card = {"intent": "card", "name": "Иван Петров", "phone": "+79991234567", "profession": "Электрик"}
+    first = session.post(f"{base_url}/api/setup/quick-start", json=card)
+    assert first.status_code == 200, first.text
+    second = session.post(f"{base_url}/api/setup/quick-start", json={**card, "name": "Пётр Иванов"})
+    assert second.status_code == 403, second.text
+    body = second.json()
+    assert body["cardEditorProjectId"] == first.json()["establishment"]["id"]
+    assert body["upgradeRequired"] == "NETWORK"
+    assert "изменить" in body["error"]
+    assert len(session.get(f"{base_url}/api/establishments").json()["establishments"]) == 1
