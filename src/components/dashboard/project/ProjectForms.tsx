@@ -10,6 +10,7 @@ import {
   Loader2,
   Pencil,
   Plus,
+  BarChart3,
   QrCode,
   Trash2,
   X,
@@ -17,6 +18,7 @@ import {
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import FormEditor, { type FormEditState } from "@/components/dashboard/FormEditor";
+import FormStatsPanel from "@/components/dashboard/project/FormStatsPanel";
 import { FORM_PRESETS, type FormFieldType } from "@/lib/form-config";
 import { FORM_FREE_MONTHLY_SUBMISSIONS } from "@/lib/plans";
 import { projectInboxPath, projectQrPath } from "@/lib/project-routes";
@@ -90,6 +92,7 @@ export default function ProjectForms({ projectId }: { projectId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingId, setEditingId] = useState<string | null>(() => searchParams.get("form"));
+  const [statsId, setStatsId] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -275,6 +278,7 @@ export default function ProjectForms({ projectId }: { projectId: string }) {
           {forms.map((f) => {
             const linkedQrs = qrcodes.filter((q) => q.formId === f.id);
             const isEditing = f.id === editingId;
+            const showStats = f.id === statsId;
             return (
               <Card key={f.id} className={isEditing ? "ring-2 ring-indigo-200" : undefined}>
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -310,6 +314,10 @@ export default function ProjectForms({ projectId }: { projectId: string }) {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
+                    <Button variant="outline" size="sm" onClick={() => setStatsId(showStats ? null : f.id)}>
+                      <BarChart3 className="mr-1 h-4 w-4" />
+                      {showStats ? "Скрыть сводку" : "Сводка"}
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => setEditingId(isEditing ? null : f.id)}>
                       <Pencil className="mr-1 h-4 w-4" />
                       {isEditing ? "Свернуть" : "Вопросы"}
@@ -352,6 +360,12 @@ export default function ProjectForms({ projectId }: { projectId: string }) {
                     </button>
                   </div>
                 </div>
+
+                {showStats && (
+                  <div className="mt-4 border-t border-gray-100 pt-4">
+                    <FormStatsPanel formId={f.id} />
+                  </div>
+                )}
 
                 {isEditing && editing && (
                   <div className="mt-4 border-t border-gray-100 pt-4">

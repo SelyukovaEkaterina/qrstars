@@ -234,3 +234,47 @@ def test_demo_form_templates():
     assert bare.status_code == 200
     assert "Как вам у нас?" in bare.text
     assert "Шаблоны форм" not in bare.text
+
+
+def test_form_stats_free_and_pro(base_url, admin_session):
+    session, email = _new_user(base_url, "forms-stats")
+    data = _quick_start_form(session, base_url, preset="guest_survey")
+    est_id = data["establishment"]["id"]
+    form = _form(session, base_url, data["qrcode"]["formId"], est_id)
+    rating, multi, nps = _field(form, "rating"), _field(form, "multi"), _field(form, "nps")
+
+    for values in (
+        {rating["id"]: 5, multi["id"]: ["Еда и напитки", "Атмосфера"], nps["id"]: 10},
+        {rating["id"]: 4, multi["id"]: ["Еда и напитки"], nps["id"]: 6},
+    ):
+        r = req_lib.post(f"{base_url}/api/forms/{form['id']}/submit", json={"values": values})
+        assert r.status_code == 200, r.text
+    # Скан QR формы — для конверсии.
+    assert req_lib.get(f"{base_url}/q/{data['qrcode']['code']}").status_code == 200
+
+    free = session.get(f"{base_url}/api/forms/{form['id']}/stats", params={"days": 7}).json()
+    assert free["days"] == 7
+    assert free["total"] == 2 and free["current"] == 2 and free["previous"] == 0
+    assert free["qrCount"] == 1
+    assert free["unlimited"] is False
+    assert free["fields"] is None and free["byDay"] is None
+
+    set_user_plan(admin_session, base_url, "PRO", email=email)
+    pro = session.get(f"{base_url}/api/forms/{form['id']}/stats", params={"days": 30}).json()
+    assert pro["unlimited"] is True
+    assert len(pro["byDay"]) == 30 and sum(d["count"] for d in pro["byDay"]) == 2
+    by_id = {f["fieldId"]: f for f in pro["fields"]}
+    assert by_id[rating["id"]]["average"] == 4.5
+    # 1 промоутер (10), 1 критик (6) → 0.
+    assert by_id[nps["id"]]["nps"] == 0
+    food = next(d for d in by_id[multi["id"]]["distribution"] if d["label"] == "Еда и напитки")
+    assert food["count"] == 2
+
+
+def test_form_stats_requires_access(base_url):
+    owner, _ = _new_user(base_url, "forms-stats-own")
+    other, _ = _new_user(base_url, "forms-stats-other")
+    data = _quick_start_form(owner, base_url)
+    fid = data["qrcode"]["formId"]
+    assert other.get(f"{base_url}/api/forms/{fid}/stats").status_code == 404
+    assert req_lib.get(f"{base_url}/api/forms/{fid}/stats").status_code == 401

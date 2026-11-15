@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { parseMessengerLinkCode } from "@/lib/messenger-linking";
-import { enableReviewNotificationsForProvider } from "@/lib/owner-messenger-notify";
-import { pluralize } from "@/lib/utils";
+import { enableMessengerNotificationsForProvider, messengerLinkedHint } from "@/lib/owner-messenger-notify";
 
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -221,14 +220,9 @@ async function linkMcContact(
     update: { label },
   });
 
-  const enabledCount = await enableReviewNotificationsForProvider(userId, "TELEGRAM");
+  const enabledCount = await enableMessengerNotificationsForProvider(userId, "TELEGRAM");
 
-  const reviewHint =
-    enabledCount > 0
-      ? `Жалобы 1–3★ включены для ${enabledCount === 1 ? "вашего заведения" : `всех ${enabledCount} ${pluralize(enabledCount, "заведения", "заведений", "заведений")}`}.\n` +
-        `Отключить — «Моя страница» → вкладка «Отзывы».`
-      : `Когда появится заведение, жалобы 1–3★ будут приходить сюда.\n` +
-        `Отключить — «Моя страница» → «Отзывы».`;
+  const reviewHint = messengerLinkedHint(enabledCount);
 
   await sendMessage(
     chatId,

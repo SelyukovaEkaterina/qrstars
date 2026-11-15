@@ -116,24 +116,42 @@ export async function ownerHasMessengerProvider(
   return !!contact;
 }
 
-const REVIEW_NOTIFY_FIELD: Record<
+const MESSENGER_NOTIFY_FIELDS: Record<
   Extract<MessengerProvider, "TELEGRAM" | "MAX">,
-  "notificationTelegramEnabled" | "notificationMaxEnabled"
+  { reviews: "notificationTelegramEnabled" | "notificationMaxEnabled"; requests: "notificationTelegramRequestsEnabled" | "notificationMaxRequestsEnabled" }
 > = {
-  TELEGRAM: "notificationTelegramEnabled",
-  MAX: "notificationMaxEnabled",
+  TELEGRAM: { reviews: "notificationTelegramEnabled", requests: "notificationTelegramRequestsEnabled" },
+  MAX: { reviews: "notificationMaxEnabled", requests: "notificationMaxRequestsEnabled" },
 };
 
-/** Включить приём жалоб 1–3★ во всех заведениях владельца для канала. */
-export async function enableReviewNotificationsForProvider(
+/**
+ * Включить канал во всех проектах владельца: жалобы 1–3★ и заявки (формы, заказы
+ * из меню, заявки с визитки). До 2026-11-15 включались только жалобы — ответы анкет
+ * уходили лишь на почту, хотя в мастере обещаны «сразу в Telegram».
+ */
+export async function enableMessengerNotificationsForProvider(
   userId: string,
   provider: Extract<MessengerProvider, "TELEGRAM" | "MAX">
 ): Promise<number> {
+  const fields = MESSENGER_NOTIFY_FIELDS[provider];
   const result = await prisma.establishment.updateMany({
     where: { userId },
-    data: { [REVIEW_NOTIFY_FIELD[provider]]: true },
+    data: { [fields.reviews]: true, [fields.requests]: true },
   });
   return result.count;
+}
+
+/** Текст бота после привязки канала: что включили и где выключить. */
+export function messengerLinkedHint(enabledCount: number): string {
+  if (enabledCount === 0) {
+    return "Когда появится проект, сюда будут приходить жалобы 1–3★ и заявки.";
+  }
+  // «всех N проектов» — после «всех» всегда родительный падеж множественного числа.
+  const where = enabledCount === 1 ? "вашего проекта" : `всех ${enabledCount} проектов`;
+  return (
+    `Жалобы 1–3★ и заявки (формы, заказы, визитка) включены для ${where}.\n` +
+    `Выключить — «Настройки проекта» → «Уведомления».`
+  );
 }
 
 /** Включить email-уведомления (отзывы + заявки) во всех заведениях владельца. */

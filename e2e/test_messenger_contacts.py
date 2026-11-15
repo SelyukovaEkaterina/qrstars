@@ -42,6 +42,8 @@ def test_create_messenger_contact_telegram(owner_session, base_url, owner_establ
     assert settings_r.status_code == 200
     est = settings_r.json()["establishment"]
     assert est["notificationTelegramEnabled"] is True
+    # С 2026-11-15 привязка включает и заявки (формы, заказы, визитка).
+    assert est["notificationTelegramRequestsEnabled"] is True
 
 
 def test_create_multiple_messenger_contacts(owner_session, base_url):
@@ -101,3 +103,37 @@ def test_business_card_rejects_foreign_messenger_contact(owner_session, base_url
         },
     )
     assert invalid.status_code == 400
+
+
+def test_linking_max_enables_reviews_and_requests(base_url):
+    import uuid
+    import requests as req_lib
+    from conftest import login
+
+    email = f"mc-max-{uuid.uuid4().hex[:8]}@test.example.com"
+    reg = req_lib.post(
+        f"{base_url}/api/auth/register",
+        json={"email": email, "password": "secure123", "consentPd": True},
+    )
+    assert reg.status_code == 200, reg.text
+    session = req_lib.Session()
+    login(session, base_url, email, "secure123")
+    qs = session.post(
+        f"{base_url}/api/setup/quick-start",
+        json={"intent": "form", "name": "Проект MAX", "formPresetId": "feedback"},
+    )
+    assert qs.status_code == 200, qs.text
+    est_id = qs.json()["establishment"]["id"]
+
+    before = session.get(f"{base_url}/api/settings?id={est_id}").json()["establishment"]
+    assert before["notificationMaxRequestsEnabled"] is False
+
+    r = session.post(
+        f"{base_url}/api/messenger-contacts",
+        json={"provider": "MAX", "externalId": "555001", "label": "MAX"},
+    )
+    assert r.status_code == 200, r.text
+
+    est = session.get(f"{base_url}/api/settings?id={est_id}").json()["establishment"]
+    assert est["notificationMaxEnabled"] is True
+    assert est["notificationMaxRequestsEnabled"] is True

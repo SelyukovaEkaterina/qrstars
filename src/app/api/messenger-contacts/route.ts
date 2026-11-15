@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import {
   enableEmailNotificationsForOwner,
-  enableReviewNotificationsForProvider,
+  enableMessengerNotificationsForProvider,
   ensureDefaultEmailContact,
 } from "@/lib/owner-messenger-notify";
 import { normalizeInviteEmail } from "@/lib/establishment-access";
@@ -115,7 +115,7 @@ export async function POST(request: Request) {
 
   let reviewNotificationsEnabled = 0;
   if (provider === "TELEGRAM" || provider === "MAX") {
-    reviewNotificationsEnabled = await enableReviewNotificationsForProvider(userId, provider);
+    reviewNotificationsEnabled = await enableMessengerNotificationsForProvider(userId, provider);
   } else if (provider === "EMAIL" && !hadEmailBefore) {
     reviewNotificationsEnabled = await enableEmailNotificationsForOwner(userId);
   }
