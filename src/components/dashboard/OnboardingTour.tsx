@@ -57,7 +57,7 @@ function buildMobileSteps(profile: SetupProfile | null): MobileStep[] {
     {
       title: "Аккаунт",
       description:
-        "Ниже в меню: «Тариф и оплата», «Аккаунт и уведомления» (Telegram / MAX / email для жалоб и заявок), шаблоны оформления QR, партнёрская программа и поддержка.",
+        "Ниже в меню: «Тариф и оплата», «Аккаунт и уведомления» (Telegram / MAX / email для жалоб и заявок), шаблоны оформления QR, «Приведи друга» (месяц PRO за приглашённого) и поддержка.",
       showMenuButton: true,
     },
     {
@@ -171,9 +171,9 @@ function buildSteps(profile: SetupProfile | null): DriveStep[] {
     {
       element: "#tour-nav-partner",
       popover: {
-        title: "Партнёрская программа",
+        title: "Приведи друга",
         description:
-          "Реферальная ссылка и статистика: 15% с оплат PRO рефералов через 30 дней.",
+          "Поделитесь ссылкой: когда друг подключит PRO, месяц PRO получите и вы, и он.",
         ...popoverRight,
       },
     },

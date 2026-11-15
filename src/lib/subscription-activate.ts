@@ -3,46 +3,12 @@ import type { BillingPeriod, PlanId } from "@/lib/plans";
 import { markProIntroOfferUsed } from "@/lib/subscription-intro-offer";
 import { notifyPaymentSuccess } from "@/lib/telegram-support";
 import { invalidateEstablishmentScans } from "@/lib/content-cache";
-
-const PARTNER_COMMISSION_RATE = 0.15;
-const HOLD_DAYS = 30;
+import { giftRemainingMs, grantReferralRewards } from "@/lib/referral";
 
 export function subscriptionPeriodMs(billing: BillingPeriod | string | undefined): number {
   if (billing === "yearly") return 365 * 24 * 60 * 60 * 1000;
   if (billing === "halfyear") return 183 * 24 * 60 * 60 * 1000;
   return 30 * 24 * 60 * 60 * 1000;
-}
-
-export async function createPartnerEarning(params: {
-  userId: string;
-  plan: PlanId;
-  paymentAmount: number;
-  paymentId: string;
-}) {
-  const payingUser = await prisma.user.findUnique({
-    where: { id: params.userId },
-    select: { referredById: true },
-  });
-
-  if (!payingUser?.referredById) return;
-
-  const commissionAmount =
-    Math.round(params.paymentAmount * PARTNER_COMMISSION_RATE * 100) / 100;
-  const availableAt = new Date(Date.now() + HOLD_DAYS * 24 * 60 * 60 * 1000);
-  const planLabel = params.plan === "NETWORK" ? "Сеть" : "PRO";
-
-  await prisma.partnerEarning.create({
-    data: {
-      amount: commissionAmount,
-      paymentAmount: params.paymentAmount,
-      status: "PENDING",
-      availableAt,
-      paymentId: params.paymentId,
-      description: `15% от оплаты подписки ${planLabel} (${params.paymentAmount} ₽)`,
-      partner: { connect: { id: payingUser.referredById } },
-      referralUser: { connect: { id: params.userId } },
-    },
-  });
 }
 
 /**
@@ -62,8 +28,12 @@ export async function activateSubscription(params: {
   billing: BillingPeriod;
   invoiceId: number;
   amount: number;
+  /** Остаток подарочного PRO, который переносится в оплаченный период. */
+  carryOverMs?: number;
 }) {
-  const periodEnd = new Date(Date.now() + subscriptionPeriodMs(params.billing));
+  const periodEnd = new Date(
+    Date.now() + subscriptionPeriodMs(params.billing) + (params.carryOverMs ?? 0)
+  );
 
   await prisma.subscription.create({
     data: {
@@ -83,13 +53,6 @@ export async function activateSubscription(params: {
   });
 
   await markFirstPaidAccess(params.userId);
-
-  await createPartnerEarning({
-    userId: params.userId,
-    plan: params.plan,
-    paymentAmount: params.amount,
-    paymentId: String(params.invoiceId),
-  });
 
   // PRO меняет вид скана (без вотермарки, мгновенный редирект) — не ждём 60 с кэша.
   void invalidateUserScans(params.userId);
@@ -134,13 +97,6 @@ export async function renewSubscription(params: {
       priceChangeNoticeSentAt: null,
     },
   });
-
-  await createPartnerEarning({
-    userId: params.userId,
-    plan: params.plan,
-    paymentAmount: params.amount,
-    paymentId: String(params.invoiceId),
-  });
 }
 
 export async function handlePaidPaymentOrder(invId: number) {
@@ -162,6 +118,8 @@ export async function handlePaidPaymentOrder(invId: number) {
     const existing = await prisma.subscription.findFirst({
       where: { userId: order.userId, status: "ACTIVE", plan: { not: "FREE" } },
     });
+    // Подарочные дни («Приведи друга») не сгорают при оплате — переносятся.
+    const carryOverMs = giftRemainingMs(existing);
     if (existing) {
       await prisma.subscription.update({
         where: { id: existing.id },
@@ -174,10 +132,12 @@ export async function handlePaidPaymentOrder(invId: number) {
       billing,
       invoiceId: invId,
       amount,
+      carryOverMs,
     });
     if (plan === "PRO" && billing === "yearly") {
       await markProIntroOfferUsed(order.userId, amount, order.id);
     }
+    await grantReferralRewards({ friendId: order.userId, plan, invId });
   } else {
     const sub = await prisma.subscription.findFirst({
       where: {

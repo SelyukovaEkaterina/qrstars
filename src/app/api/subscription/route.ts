@@ -28,6 +28,7 @@ import {
   markProIntroOfferUsed,
   resolveProIntroOfferAmount,
 } from "@/lib/subscription-intro-offer";
+import { REFERRAL_BONUS_DAYS } from "@/lib/referral";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -45,12 +46,16 @@ export async function GET() {
 
   const ctx = buildSubscriptionContext(activeSubscription, establishmentCount);
 
-  const [renewalPriceChange, platformTariffChange, introOffer] = await Promise.all([
+  const [renewalPriceChange, platformTariffChange, introOffer, referralInfo] = await Promise.all([
     activeSubscription
       ? buildRenewalPriceChangeNotice(activeSubscription)
       : Promise.resolve(null),
     getPlatformTariffChangeBanner(),
     findActiveProIntroOffer(userId),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { referredById: true, referralRewardReceived: { select: { id: true } } },
+    }),
   ]);
 
   return NextResponse.json({
@@ -61,6 +66,15 @@ export async function GET() {
     platformTariffChange,
     introOffer:
       introOffer && !hasPaidFeatures(ctx.plan) ? introOfferPublicView(introOffer) : null,
+    // «Приведи друга»: пришёл по приглашению — при первой оплате +N дней.
+    referral: referralInfo?.referredById
+      ? {
+          invited: true,
+          bonusDays: REFERRAL_BONUS_DAYS,
+          bonusGranted: Boolean(referralInfo.referralRewardReceived),
+        }
+      : null,
+    referralBonusDays: REFERRAL_BONUS_DAYS,
   });
 }
 
@@ -106,7 +120,8 @@ export async function POST(request: Request) {
     const existing = await findActiveSubscription(userId);
     if (existing && hasPaidFeatures(existing.plan)) {
       const isUpgrade = existing.plan === "PRO" && plan === "NETWORK";
-      if (!isUpgrade && !existing.isTrial) {
+      // Подарочный PRO («Приведи друга») оплатить можно: остаток дней перенесётся.
+      if (!isUpgrade && !existing.isTrial && !existing.giftReason) {
         return NextResponse.json(
           { error: "У вас уже есть активная платная подписка" },
           { status: 400 }

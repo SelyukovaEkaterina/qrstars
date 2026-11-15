@@ -31,12 +31,15 @@ import {
 } from "@/lib/plans";
 import { LEGAL_OFFER_URL } from "@/lib/legal-urls";
 import { trackEvent } from "@/lib/track-event";
+import ReferralInviteCard from "@/components/dashboard/ReferralInviteCard";
 
 interface SubscriptionState {
   plan: string;
   status: string;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  /** "referral" — подарочный PRO за приглашённого друга, без автосписаний. */
+  giftReason?: string | null;
 }
 
 interface SubscriptionResponse {
@@ -59,6 +62,7 @@ interface SubscriptionResponse {
     message: string | null;
     daysUntilEffective: number;
   } | null;
+  referral?: { invited: boolean; bonusDays: number; bonusGranted: boolean } | null;
   introOffer?: {
     code: string;
     amountRub: number;
@@ -259,6 +263,9 @@ export default function SubscriptionPage() {
     data.hasPaidFeatures && subscription?.status === "ACTIVE";
   const estCount = data.establishmentCount;
   const networkActive = currentPlan === "NETWORK" && isPaidActive;
+  // Подарочный PRO не мешает оплате: карточка PRO остаётся доступной, остаток дней перенесётся.
+  const isGift = isPaidActive && Boolean(subscription?.giftReason);
+  const planCardPaidActive = isPaidActive && !isGift;
 
   const introOffer = data.introOffer;
   const priceFor = (planId: "PRO" | "NETWORK") => {
@@ -354,7 +361,9 @@ export default function SubscriptionPage() {
                 <p className="text-sm text-gray-500">Ваш текущий тариф</p>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1">
                   <PlanBadge plan={currentPlan} />
-                  {isPaidActive && <Badge variant="success">Активна</Badge>}
+                  {isPaidActive && (
+                    <Badge variant="success">{isGift ? "Подарок за друга" : "Активна"}</Badge>
+                  )}
                   {subscription?.cancelAtPeriodEnd && (
                     <Badge variant="default">Отмена в конце периода</Badge>
                   )}
@@ -372,8 +381,14 @@ export default function SubscriptionPage() {
                     {new Date(subscription.currentPeriodEnd).toLocaleDateString("ru-RU")}
                   </p>
                 )}
+                {isGift && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Подарочный PRO не продлевается сам и ничего не списывает. Оплатите PRO —
+                    оставшиеся дни добавятся к оплаченному периоду.
+                  </p>
+                )}
               </div>
-              {isPaidActive && !subscription?.cancelAtPeriodEnd && (
+              {isPaidActive && !isGift && !subscription?.cancelAtPeriodEnd && (
                 <Button variant="outline" size="sm" className="min-h-10 self-start sm:self-auto" onClick={handleCancel}>
                   Отменить подписку
                 </Button>
@@ -434,6 +449,18 @@ export default function SubscriptionPage() {
             </div>
           )}
 
+          {data.referral && !data.referral.bonusGranted && !planCardPaidActive && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+              <p className="font-medium">
+                Вы пришли по приглашению: +{data.referral.bonusDays} дней PRO в подарок
+              </p>
+              <p className="mt-1">
+                Оплатите PRO или «Сеть» — к оплаченному периоду добавим ещё{" "}
+                {data.referral.bonusDays} дней. Пригласившему вас тоже подарим месяц PRO.
+              </p>
+            </div>
+          )}
+
           {introOffer && (
             <div className="rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm text-indigo-950">
               <p className="font-medium">
@@ -457,7 +484,7 @@ export default function SubscriptionPage() {
             <PlanCard
               planId="FREE"
               currentPlan={currentPlan}
-              isPaidActive={isPaidActive}
+              isPaidActive={planCardPaidActive}
               price={{ main: 0, suffix: "", note: "навсегда" }}
               onSubscribe={() => {}}
               subscribing={null}
@@ -466,12 +493,12 @@ export default function SubscriptionPage() {
             <PlanCard
               planId="PRO"
               currentPlan={currentPlan}
-              isPaidActive={isPaidActive}
+              isPaidActive={planCardPaidActive}
               price={priceFor("PRO")}
               periodSwitch={proPeriodSwitch}
               onSubscribe={() => handleSubscribe("PRO")}
               subscribing={subscribing}
-              disabled={(currentPlan === "PRO" && isPaidActive) || networkActive}
+              disabled={(currentPlan === "PRO" && planCardPaidActive) || networkActive}
               disabledReason={
                 networkActive
                   ? "У вас активен тариф «Сеть» — в нём уже есть всё из PRO."
@@ -488,7 +515,7 @@ export default function SubscriptionPage() {
             <PlanCard
               planId="NETWORK"
               currentPlan={currentPlan}
-              isPaidActive={isPaidActive}
+              isPaidActive={planCardPaidActive}
               price={priceFor("NETWORK")}
               onSubscribe={() => handleSubscribe("NETWORK")}
               subscribing={subscribing}
@@ -513,6 +540,8 @@ export default function SubscriptionPage() {
               Написать в поддержку
             </Link>
           </p>
+
+          <ReferralInviteCard place="subscription" />
 
           {historyLoading ? (
             <div className="flex justify-center py-8">

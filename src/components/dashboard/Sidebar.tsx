@@ -12,7 +12,7 @@ import {
   LogOut,
   Star,
   Layout,
-  Users,
+  Gift,
   HelpCircle,
   Headphones,
   CreditCard,
@@ -53,7 +53,7 @@ type NavLink = {
   label: string;
   icon: LucideIcon;
   tourId?: string;
-  badgeKey?: "submissions" | "support";
+  badgeKey?: "submissions" | "support" | "referral";
   isActive?: (pathname: string, search?: string) => boolean;
 };
 
@@ -323,9 +323,10 @@ export default function Sidebar({
     },
     {
       href: "/dashboard/partner",
-      label: "Партнёрская программа",
-      icon: Users,
+      label: "Приведи друга",
+      icon: Gift,
       tourId: "tour-nav-partner",
+      badgeKey: "referral",
     },
     {
       href: "/dashboard/support",
@@ -348,6 +349,13 @@ export default function Sidebar({
       return (
         <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-indigo-600 text-white text-xs font-semibold flex items-center justify-center">
           {supportUnread > 99 ? "99+" : supportUnread}
+        </span>
+      );
+    }
+    if (item.badgeKey === "referral") {
+      return (
+        <span className="h-5 px-1.5 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-semibold flex items-center whitespace-nowrap">
+          +1 мес PRO
         </span>
       );
     }

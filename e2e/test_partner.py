@@ -1,315 +1,208 @@
-import pytest
+"""«Приведи друга»: первая оплата приглашённого даёт +30 дней PRO ему и пригласившему.
+
+Заменила денежную партнёрку (15%, вывод на ИП/ООО) 2026-11-15.
+"""
+
 import uuid
+from datetime import datetime, timedelta, timezone
+
+import pytest
 import requests as req_lib
 
 from robokassa_helpers import robokassa_result_url
 
+BONUS_DAYS = 30
+DAY = timedelta(days=1)
 
-def _pay_subscription(session, base_url, plan="PRO", billing="monthly"):
-    sub_r = session.post(
-        f"{base_url}/api/subscription",
-        json={
-            "action": "subscribe",
-            "plan": plan,
-            "billing": billing,
-            "recurringConsent": True,
-        },
+
+def _register(base_url, prefix, ref=None):
+    s = req_lib.Session()
+    email = f"{prefix}-{uuid.uuid4().hex[:8]}@test.com"
+    payload = {"email": email, "password": "test123456", "name": "Ref Test", "consentPd": True}
+    if ref:
+        payload["ref"] = ref
+    r = s.post(f"{base_url}/api/auth/register", json=payload)
+    assert r.status_code == 200, f"Register failed: {r.status_code} {r.text}"
+    csrf = s.get(f"{base_url}/api/auth/csrf").json()["csrfToken"]
+    s.post(
+        f"{base_url}/api/auth/callback/credentials",
+        data={"email": email, "password": "test123456", "csrfToken": csrf, "json": "true"},
+        allow_redirects=False,
     )
-    assert sub_r.status_code == 200, sub_r.text
-    data = sub_r.json()
+    return s, email
+
+
+def _pay(session, base_url, plan="PRO", billing="yearly"):
+    r = session.post(
+        f"{base_url}/api/subscription",
+        json={"action": "subscribe", "plan": plan, "billing": billing, "recurringConsent": True},
+    )
+    assert r.status_code == 200, r.text
+    data = r.json()
     if data.get("mode") == "mock":
         pytest.skip("Robokassa not configured")
-    inv_id = data["paymentId"]
-    out_sum = f"{data['amount']:.2f}"
-    wh = req_lib.get(robokassa_result_url(base_url, inv_id, out_sum))
-    assert wh.status_code == 200
-    return inv_id, data["amount"]
+    wh = req_lib.get(robokassa_result_url(base_url, data["paymentId"], f"{data['amount']:.2f}"))
+    assert wh.status_code == 200, wh.text
+    return data["paymentId"]
+
+
+def _subscription(session, base_url):
+    r = session.get(f"{base_url}/api/subscription")
+    assert r.status_code == 200, r.text
+    return r.json()
+
+
+def _period_end(sub_data):
+    return datetime.fromisoformat(sub_data["subscription"]["currentPeriodEnd"].replace("Z", "+00:00"))
+
+
+def _assert_close(actual, expected, tolerance=DAY):
+    assert abs(actual - expected) < tolerance, f"{actual} != {expected}"
+
+
+def _now():
+    return datetime.now(timezone.utc)
 
 
 @pytest.fixture
-def partner_session(base_url):
-    s = req_lib.Session()
-    email = f"partner-{uuid.uuid4().hex[:8]}@test.com"
-    password = "test123456"
-
-    r = s.post(
-        f"{base_url}/api/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "name": "Partner Test",
-            "consentPd": True,
-        },
-    )
-    assert r.status_code == 200, f"Register failed: {r.status_code} {r.text}"
-
-    csrf_resp = s.get(f"{base_url}/api/auth/csrf")
-    csrf_token = csrf_resp.json()["csrfToken"]
-    s.post(
-        f"{base_url}/api/auth/callback/credentials",
-        data={
-            "email": email,
-            "password": password,
-            "csrfToken": csrf_token,
-            "json": "true",
-        },
-        allow_redirects=False,
-    )
-    yield s, email
-    s.cookies.clear()
+def referrer(base_url):
+    s, email = _register(base_url, "referrer")
+    code = s.get(f"{base_url}/api/partner").json()["referralCode"]
+    return s, email, code
 
 
-@pytest.fixture
-def referral_session(base_url, partner_session):
-    partner_s, _ = partner_session
-
-    r = partner_s.get(f"{base_url}/api/partner")
-    assert r.status_code == 200
-    ref_code = r.json()["referralCode"]
-    assert ref_code is not None
-
-    s = req_lib.Session()
-    email = f"ref-{uuid.uuid4().hex[:8]}@test.com"
-    password = "test123456"
-
-    r = s.post(
-        f"{base_url}/api/auth/register",
-        json={
-            "email": email,
-            "password": password,
-            "name": "Referred User",
-            "consentPd": True,
-            "ref": ref_code,
-        },
-    )
-    assert r.status_code == 200, f"Ref register failed: {r.status_code} {r.text}"
-
-    csrf_resp = s.get(f"{base_url}/api/auth/csrf")
-    csrf_token = csrf_resp.json()["csrfToken"]
-    s.post(
-        f"{base_url}/api/auth/callback/credentials",
-        data={
-            "email": email,
-            "password": password,
-            "csrfToken": csrf_token,
-            "json": "true",
-        },
-        allow_redirects=False,
-    )
-    yield s, email, ref_code
-    s.cookies.clear()
+# ── Ссылка и список приглашённых ───────────────────────────────────
 
 
 def test_partner_requires_auth(base_url):
-    s = req_lib.Session()
+    assert req_lib.get(f"{base_url}/api/partner").status_code == 401
+
+
+def test_referral_code_generated_and_stable(referrer, base_url):
+    s, _, code = referrer
+    data = s.get(f"{base_url}/api/partner").json()
+    assert len(code) == 8
+    assert data["referralCode"] == code
+    assert data["referralLink"].endswith(f"/register?ref={code}")
+    assert data["bonusDays"] == BONUS_DAYS
+    assert data["stats"] == {"totalReferrals": 0, "paidReferrals": 0, "bonusDaysEarned": 0}
+    # Денежной партнёрки больше нет.
+    assert "earnings" not in data and "withdrawals" not in data
+
+
+def test_referred_user_shown_with_masked_email(referrer, base_url):
+    s, _, code = referrer
+    _, friend_email = _register(base_url, "friend", ref=code)
+
     r = s.get(f"{base_url}/api/partner")
-    assert r.status_code == 401
-
-
-def test_partner_generates_referral_code(partner_session, base_url):
-    s, _ = partner_session
-    r = s.get(f"{base_url}/api/partner")
-    assert r.status_code == 200
-    data = r.json()
-
-    assert data["referralCode"] is not None
-    assert len(data["referralCode"]) == 8
-    assert "referralLink" in data
-    assert data["referralCode"] in data["referralLink"]
-    assert "stats" in data
-    assert data["stats"]["totalReferrals"] == 0
-    assert data["stats"]["totalEarned"] == 0
-    assert data["stats"]["availableBalance"] == 0
-
-
-def test_partner_code_stable(partner_session, base_url):
-    s, _ = partner_session
-    r1 = s.get(f"{base_url}/api/partner")
-    code1 = r1.json()["referralCode"]
-
-    r2 = s.get(f"{base_url}/api/partner")
-    code2 = r2.json()["referralCode"]
-
-    assert code1 == code2
-
-
-def test_register_with_referral_code_links_user(base_url, referral_session):
-    _, _, ref_code = referral_session
-    assert ref_code is not None
-
-
-def test_partner_sees_referred_user(partner_session, referral_session, base_url):
-    partner_s, _ = partner_session
-    ref_email = referral_session[1]
-
-    r = partner_s.get(f"{base_url}/api/partner")
-    assert r.status_code == 200
-    data = r.json()
-
-    assert data["stats"]["totalReferrals"] >= 1
-    referred_emails = [u["email"] for u in data["referredUsers"]]
-    assert ref_email in referred_emails
+    assert friend_email not in r.text, "полный email приглашённого не должен уходить пригласившему"
+    users = r.json()["referredUsers"]
+    assert len(users) == 1
+    masked = users[0]["emailMasked"]
+    assert masked == f"{friend_email[0]}***@test.com"
+    assert users[0]["paid"] is False
+    assert "id" not in users[0]
 
 
 def test_register_with_invalid_ref_code_still_works(base_url):
-    s = req_lib.Session()
-    email = f"noref-{uuid.uuid4().hex[:8]}@test.com"
-    r = s.post(
+    s, _ = _register(base_url, "noref", ref="INVALIDCODE")
+    assert _subscription(s, base_url)["referral"] is None
+
+
+def test_register_with_own_ref_code_conflicts(referrer, base_url):
+    _, email, code = referrer
+    r = req_lib.post(
         f"{base_url}/api/auth/register",
-        json={
-            "email": email,
-            "password": "test123456",
-            "name": "No Ref User",
-            "consentPd": True,
-            "ref": "INVALIDCODE",
-        },
+        json={"email": email, "password": "test123456", "consentPd": True, "ref": code},
     )
-    assert r.status_code == 200
+    assert r.status_code == 409
 
 
-def test_webhook_creates_partner_earning(base_url, referral_session):
-    ref_s, ref_email, _ = referral_session
-
-    session_r = ref_s.get(f"{base_url}/api/auth/session")
-    ref_user_id = session_r.json()["user"]["id"]
-
-    inv_id, amount = _pay_subscription(ref_s, base_url)
-    assert inv_id is not None
-    assert amount > 0
-
-
-def test_webhook_partner_earning_appears(base_url, partner_session):
-    partner_s, partner_email = partner_session
-
-    r = partner_s.get(f"{base_url}/api/partner")
-    ref_code = r.json()["referralCode"]
-
-    s = req_lib.Session()
-    ref_email = f"earn-{uuid.uuid4().hex[:8]}@test.com"
-    reg_r = s.post(
-        f"{base_url}/api/auth/register",
-        json={
-            "email": ref_email,
-            "password": "test123456",
-            "consentPd": True,
-            "ref": ref_code,
-        },
-    )
-    assert reg_r.status_code == 200
-
-    csrf_resp = s.get(f"{base_url}/api/auth/csrf")
-    csrf_token = csrf_resp.json()["csrfToken"]
-    s.post(
-        f"{base_url}/api/auth/callback/credentials",
-        data={
-            "email": ref_email,
-            "password": "test123456",
-            "csrfToken": csrf_token,
-            "json": "true",
-        },
-        allow_redirects=False,
-    )
-
-    session_r = s.get(f"{base_url}/api/auth/session")
-    ref_user_id = session_r.json()["user"]["id"]
-
-    inv_id, amount = _pay_subscription(s, base_url)
-
-    partner_r = partner_s.get(f"{base_url}/api/partner")
-    data = partner_r.json()
-
-    assert len(data["earnings"]) >= 1
-    earning = data["earnings"][0]
-    expected_commission = round(amount * 0.15, 2)
-    assert earning["amount"] == expected_commission
-    assert earning["paymentAmount"] == amount
-    assert earning["status"] == "PENDING"
-    assert earning["description"] is not None
-    assert "15%" in earning["description"]
-
-
-def test_webhook_no_earning_without_referrer(base_url):
-    s = req_lib.Session()
-    email = f"norefer-{uuid.uuid4().hex[:8]}@test.com"
-    s.post(
-        f"{base_url}/api/auth/register",
-        json={
-            "email": email,
-            "password": "test123456",
-            "consentPd": True,
-        },
-    )
-
-    csrf_resp = s.get(f"{base_url}/api/auth/csrf")
-    csrf_token = csrf_resp.json()["csrfToken"]
-    s.post(
-        f"{base_url}/api/auth/callback/credentials",
-        data={
-            "email": email,
-            "password": "test123456",
-            "csrfToken": csrf_token,
-            "json": "true",
-        },
-        allow_redirects=False,
-    )
-
-    session_r = s.get(f"{base_url}/api/auth/session")
-    user_id = session_r.json()["user"]["id"]
-
-    _pay_subscription(s, base_url)
-
-
-def test_withdraw_requires_auth(base_url):
-    s = req_lib.Session()
+def test_withdraw_endpoint_removed(referrer, base_url):
+    s, _, _ = referrer
     r = s.post(
         f"{base_url}/api/partner/withdraw",
-        json={"amount": 10000, "recepientName": "Test", "recepientInn": "1234567890", "recepientType": "IP"},
+        json={"recepientName": "Test", "recepientInn": "1234567890", "recepientType": "IP"},
     )
-    assert r.status_code == 401
+    assert r.status_code in (404, 405)
 
 
-def test_withdraw_minimum_amount(partner_session, base_url):
-    s, _ = partner_session
-    r = s.post(
-        f"{base_url}/api/partner/withdraw",
-        json={"amount": 5000, "recepientName": "Test", "recepientInn": "1234567890", "recepientType": "IP"},
-    )
-    assert r.status_code == 400
-    assert "10 000" in r.json()["error"]
+# ── Награды ────────────────────────────────────────────────────────
 
 
-def test_withdraw_insufficient_funds(partner_session, base_url):
-    s, _ = partner_session
-    r = s.post(
-        f"{base_url}/api/partner/withdraw",
-        json={"amount": 10000, "recepientName": "Test", "recepientInn": "1234567890", "recepientType": "IP"},
-    )
-    assert r.status_code == 400
+def test_friend_sees_pending_bonus_before_payment(referrer, base_url):
+    _, _, code = referrer
+    friend, _ = _register(base_url, "friend", ref=code)
+    referral = _subscription(friend, base_url)["referral"]
+    assert referral == {"invited": True, "bonusDays": BONUS_DAYS, "bonusGranted": False}
 
 
-def test_withdraw_missing_fields(partner_session, base_url):
-    s, _ = partner_session
-    r = s.post(
-        f"{base_url}/api/partner/withdraw",
-        json={"amount": 10000},
-    )
-    assert r.status_code == 400
+def test_friend_payment_rewards_both_free_referrer_gets_gift(referrer, base_url):
+    ref_s, _, code = referrer
+    friend, _ = _register(base_url, "friend", ref=code)
+
+    _pay(friend, base_url, "PRO", "yearly")
+
+    friend_sub = _subscription(friend, base_url)
+    assert friend_sub["plan"] == "PRO"
+    assert friend_sub["referral"]["bonusGranted"] is True
+    _assert_close(_period_end(friend_sub), _now() + timedelta(days=365 + BONUS_DAYS))
+
+    ref_sub = _subscription(ref_s, base_url)
+    assert ref_sub["plan"] == "PRO"
+    assert ref_sub["hasPaidFeatures"] is True
+    assert ref_sub["subscription"]["giftReason"] == "referral"
+    _assert_close(_period_end(ref_sub), _now() + timedelta(days=BONUS_DAYS))
+
+    stats = ref_s.get(f"{base_url}/api/partner").json()
+    assert stats["stats"]["paidReferrals"] == 1
+    assert stats["stats"]["bonusDaysEarned"] == BONUS_DAYS
+    assert stats["referredUsers"][0]["paid"] is True
 
 
-def test_register_with_own_ref_code(base_url, partner_session):
-    partner_s, partner_email = partner_session
+def test_reward_is_granted_once_per_friend(referrer, base_url):
+    ref_s, _, code = referrer
+    friend, _ = _register(base_url, "friend", ref=code)
 
-    r = partner_s.get(f"{base_url}/api/partner")
-    ref_code = r.json()["referralCode"]
+    _pay(friend, base_url, "PRO", "yearly")
+    # Апгрейд до «Сети» — тоже первая оплата (INITIAL), но награда уже выдана.
+    _pay(friend, base_url, "NETWORK", "yearly")
 
-    s = req_lib.Session()
-    reg_r = s.post(
-        f"{base_url}/api/auth/register",
-        json={
-            "email": partner_email,
-            "password": "test123456",
-            "consentPd": True,
-            "ref": ref_code,
-        },
-    )
-    assert reg_r.status_code == 409
+    stats = ref_s.get(f"{base_url}/api/partner").json()["stats"]
+    assert stats["paidReferrals"] == 1
+    assert stats["bonusDaysEarned"] == BONUS_DAYS
+    _assert_close(_period_end(_subscription(ref_s, base_url)), _now() + timedelta(days=BONUS_DAYS))
+
+
+def test_paid_referrer_gets_period_extended(referrer, base_url):
+    ref_s, _, code = referrer
+    _pay(ref_s, base_url, "PRO", "yearly")
+    before = _period_end(_subscription(ref_s, base_url))
+
+    friend, _ = _register(base_url, "friend", ref=code)
+    _pay(friend, base_url, "PRO", "halfyear")
+
+    ref_sub = _subscription(ref_s, base_url)
+    assert ref_sub["subscription"]["giftReason"] is None
+    _assert_close(_period_end(ref_sub), before + timedelta(days=BONUS_DAYS), tolerance=timedelta(minutes=5))
+
+
+def test_gift_referrer_can_buy_pro_and_keeps_gift_days(referrer, base_url):
+    ref_s, _, code = referrer
+    friend, _ = _register(base_url, "friend", ref=code)
+    _pay(friend, base_url, "PRO", "yearly")
+    assert _subscription(ref_s, base_url)["subscription"]["giftReason"] == "referral"
+
+    # Подарочный PRO не блокирует оплату, остаток дней переносится.
+    _pay(ref_s, base_url, "PRO", "yearly")
+    ref_sub = _subscription(ref_s, base_url)
+    assert ref_sub["subscription"]["giftReason"] is None
+    _assert_close(_period_end(ref_sub), _now() + timedelta(days=365 + BONUS_DAYS))
+
+
+def test_payment_without_referrer_has_no_bonus(base_url):
+    s, _ = _register(base_url, "norefer")
+    _pay(s, base_url, "PRO", "yearly")
+    sub = _subscription(s, base_url)
+    assert sub["referral"] is None
+    _assert_close(_period_end(sub), _now() + timedelta(days=365))

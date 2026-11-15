@@ -57,6 +57,8 @@ model User {
   partnerEarnings  PartnerEarning[]
   earningsAsReferral PartnerEarning[]  @relation("EarningReferral")
   withdrawals      PartnerWithdrawal[]
+  referralRewardsGiven  ReferralReward[] @relation("ReferralRewardReferrer")
+  referralRewardReceived ReferralReward? @relation("ReferralRewardFriend")
   passwordResetTokens PasswordResetToken[]
   userEvents         UserEvent[]
   lifecycleEmails    UserLifecycleEmail[]
@@ -366,6 +368,9 @@ model Subscription {
   renewalAttempts    Int          @default(0)
   renewalNoticeSentAt DateTime?
   priceChangeNoticeSentAt DateTime?
+  /// Подарочная подписка без списаний: "referral" — месяц PRO за приглашённого друга.
+  /// Не мешает оплатить PRO: остаток дней переносится в оплаченный период.
+  giftReason      String?
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -669,6 +674,25 @@ model QRMenuItem {
   updatedAt   DateTime @updatedAt
 }
 
+/// «Приведи друга»: первая оплата приглашённого даёт +N дней ему и пригласившему.
+/// Одна запись на друга (friendId unique) — повторный вебхук награду не задвоит.
+model ReferralReward {
+  id             String   @id @default(cuid())
+  referrerId     String
+  referrer       User     @relation("ReferralRewardReferrer", fields: [referrerId], references: [id], onDelete: Cascade)
+  friendId       String   @unique
+  friend         User     @relation("ReferralRewardFriend", fields: [friendId], references: [id], onDelete: Cascade)
+  /// InvId первой оплаты друга.
+  invId          Int
+  plan           Plan
+  referrerDays   Int
+  friendDays     Int
+  createdAt      DateTime @default(now())
+
+  @@index([referrerId])
+}
+
+/// LEGACY: денежная партнёрка (15%) заменена на «Приведи друга» 2026-11-15; новых записей нет.
 model PartnerEarning {
   id            String   @id @default(cuid())
   amount        Float

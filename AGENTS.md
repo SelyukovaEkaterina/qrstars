@@ -179,14 +179,14 @@ QR-кодов внутри заведения — **без лимита** на �
 - **Для ИИ / SEO**: `https://qrstars.ru/api.html` (документация, JSON-LD `WebAPI` + `FAQPage`), `/llms.txt` (карта сайта по llmstxt.org, SEO-страницы и блог подтягиваются из content collections), `/llms-full.txt` (продукт, тарифы из `src/lib/plans.ts`, API, подсказки агенту). Тексты — `landing/src/lib/ai-docs.ts`. `robots.txt` явно открывает сайт ИИ-ботам (GPTBot, ClaudeBot, PerplexityBot, YandexAdditional…).
 - **E2E**: `e2e/test_public_api.py`; юнит: `src/lib/public-api/keys.test.ts`.
 
-## Партнёрская программа
+## «Приведи друга» (с 2026-11-15, вместо денежной партнёрки)
 
-- **Страница**: `/dashboard/partner` — партнёрская ссылка, статистика, рефералы, история начислений, заявки на вывод
-- **Регистрация по рефке**: `/register?ref=CODE` — реферальный код передаётся в API регистрации, пользователь привязывается к партнёру навсегда (`referredById`). При входе через VK / Яндекс код переживает OAuth в cookie `qrstars_reg_ref` (как UTM). Лендинг пробрасывает `?ref=` в ссылки `/register` и помнит его 30 дней (`localStorage`, скрипт в `landing/src/layouts/Layout.astro`), так что блогер может давать ссылку на любую страницу qrstars.ru
-- **Комиссия**: 15% от каждого платежа реферала (подписка PRO). Начисление через 30 дней после оплаты (холд). API: `GET /api/partner`, `POST /api/partner/withdraw`
-- **Вывод средств**: от 10 000 ₽ на расчётный счёт ИП/ООО, выводится **весь** доступный баланс одной транзакцией (начисления неделимы); начисления помнят заявку (`PartnerEarning.withdrawalId`), при `REJECTED` возвращаются в `AVAILABLE`. `REJECTED`/`PAID` — финальные статусы. Заявка на вывод (`PartnerWithdrawal`) отправляет email админам. Админы обрабатывают вручную.
-- **Модели БД**: `PartnerEarning` (начисления, статусы: PENDING → AVAILABLE → WITHDRAWN), `PartnerWithdrawal` (заявки на вывод, статусы: PENDING → APPROVED/REJECTED → PAID). Поля `referralCode` и `referredById` в модели `User`.
-- **Webhook Robokassa** (`GET /api/webhook/robokassa/result`): при успешной оплате активирует/продлевает подписку; проверяется `referredById` → `PartnerEarning` (15%, холд 30 дней)
+- **Решение владельца 2026-11-15**: денежная партнёрка (15%, вывод от 10 000 ₽ на ИП/ООО) убрана — за всё время 0 приглашённых и 0 начислений. Вместо денег — месяцы PRO. Таблицы `PartnerEarning` / `PartnerWithdrawal` и `/admin/partner-withdrawals` оставлены как legacy (пустые), `POST /api/partner/withdraw` удалён.
+- **Механика** (`src/lib/referral.ts`, `grantReferralRewards`): первая оплата PRO или «Сети» приглашённым (`handlePaidPaymentOrder`, kind `INITIAL`) даёт **другу** +30 дней к оплаченному периоду, **пригласившему** +30 дней PRO: действующая платная подписка продлевается (дата автосписания сдвигается, напоминания сбрасываются), иначе создаётся подарочная `Subscription` с `giftReason: "referral"` без `parentInvoiceId` (крон её не списывает и гасит по `currentPeriodEnd`) и ставится `firstPaidAccessAt`. Награда одна на друга — `ReferralReward.friendId` unique, повторный вебхук и апгрейд PRO → «Сеть» её не задваивают. Пригласившему уходит письмо, события `dash.referral_rewarded` (`role`: referrer | friend). Сбой бонуса логируется и не роняет вебхук. Срок — `REFERRAL_BONUS_DAYS` в `src/lib/referral-shared.ts` (чистые функции и константа для клиента, юнит-тест `referral-shared.test.ts`).
+- **Подарочный PRO не мешает оплате**: `POST /api/subscription` пускает в чекаут при `giftReason`, оплата переносит остаток подарочных дней в новый период (`giftRemainingMs` → `activateSubscription({carryOverMs})`). На «Тариф и оплата» такая подписка — бейдж «Подарок за друга», без кнопки «Отменить», карточка PRO остаётся доступной.
+- **Регистрация по ссылке**: `/register?ref=CODE` привязывает навсегда (`referredById`, себя пригласить нельзя). При входе через VK / Яндекс код переживает OAuth в cookie `qrstars_reg_ref` (`findReferrerId`). Лендинг пробрасывает `?ref=` в ссылки `/register` и помнит его 30 дней (`localStorage`, `landing/src/layouts/Layout.astro`). На `/register?ref=` — плашка «+30 дней PRO в подарок».
+- **Кабинет**: `/dashboard/partner` «Приведи друга» (ссылка, «Копировать / Telegram / WhatsApp / Поделиться», статистика, приглашённые). `GET /api/partner` отдаёт приглашённых **только с маской email** (`maskEmail`: `i***@mail.ru`, без id) — чужие ПД пригласившему не раскрываем. Реклама: пункт сайдбара с меткой «+1 мес PRO», блок `ReferralInviteCard` на `/dashboard/subscription`, шаг онбординг-тура; приглашённому до оплаты `GET /api/subscription` отдаёт `referral` — плашка про бонус на странице тарифов. Клиентское событие `dash.referral_link_shared` (`place`, `via`). Условия — раздел 7 оферты.
+- **E2E**: `e2e/test_partner.py`. Гипотеза — `knowledge/hypotheses/H-009-refer-a-friend.md`.
 
 ## Поддержка (Support)
 
@@ -428,7 +428,7 @@ public/               # Статика (изображения, стандарт
 
 ## Полный список моделей Prisma
 
-`User` · `Establishment` · `EstablishmentMember` · `QRCode` · `Review` · `BusinessCard` · `CustomPage` · `FileAsset` · `QRMenu` · `QRMenuItem` · `WifiConfig` · `Template` · `MessengerContact` · `Subscription` · `PromoCode` · `PartnerEarning` · `PartnerWithdrawal` · `PasswordResetToken` · `DailyScanStat` · `ApiKey`
+`User` · `Establishment` · `EstablishmentMember` · `QRCode` · `Review` · `BusinessCard` · `CustomPage` · `FileAsset` · `QRMenu` · `QRMenuItem` · `WifiConfig` · `Template` · `MessengerContact` · `Subscription` · `PromoCode` · `ReferralReward` · `PartnerEarning` (legacy) · `PartnerWithdrawal` (legacy) · `PasswordResetToken` · `DailyScanStat` · `ApiKey`
 
 > Центральная сущность — `Establishment` (не `Business`, как в старых комментариях). Весь контент (меню, визитка, Wi-Fi, сценарии отзывов, брендинг) принадлежит заведению.
 

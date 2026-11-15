@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getAppBaseUrl } from "@/lib/utils";
+import { REFERRAL_BONUS_DAYS, maskEmail } from "@/lib/referral";
 
 function generateReferralCode(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -13,6 +14,7 @@ function generateReferralCode(): string {
   return code;
 }
 
+/** «Приведи друга»: ссылка, приглашённые (email замаскирован) и полученные месяцы PRO. */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -44,57 +46,41 @@ export async function GET() {
     user = { ...user, referralCode: code };
   }
 
-  const [referredUsers, earnings, withdrawals] = await Promise.all([
+  const [referredUsers, rewards] = await Promise.all([
     prisma.user.findMany({
       where: { referredById: userId },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        createdAt: true,
-        subscriptions: {
-          where: { status: "ACTIVE", plan: { in: ["PRO", "NETWORK"] } },
-          take: 1,
-          orderBy: { createdAt: "desc" },
-          select: { plan: true, status: true },
-        },
-      },
+      select: { id: true, email: true, createdAt: true },
       orderBy: { createdAt: "desc" },
+      take: 200,
     }),
-    prisma.partnerEarning.findMany({
-      where: { partnerId: userId },
-      orderBy: { createdAt: "desc" },
-    }),
-    prisma.partnerWithdrawal.findMany({
-      where: { userId },
-      orderBy: { createdAt: "desc" },
+    prisma.referralReward.findMany({
+      where: { referrerId: userId },
+      select: { friendId: true, referrerDays: true, createdAt: true },
     }),
   ]);
 
-  const now = new Date();
-  const totalEarned = earnings.reduce((sum, e) => sum + e.amount, 0);
-  const availableBalance = earnings
-    .filter((e) => e.status === "AVAILABLE" || (e.status === "PENDING" && e.availableAt <= now))
-    .reduce((sum, e) => sum + e.amount, 0);
-  const pendingBalance = earnings
-    .filter((e) => e.status === "PENDING" && e.availableAt > now)
-    .reduce((sum, e) => sum + e.amount, 0);
-  const withdrawnTotal = withdrawals
-    .filter((w) => w.status === "PAID")
-    .reduce((sum, w) => sum + w.amount, 0);
+  const rewardByFriend = new Map(rewards.map((r) => [r.friendId, r]));
+  const bonusDaysEarned = rewards.reduce((sum, r) => sum + r.referrerDays, 0);
 
   return NextResponse.json({
     referralCode: user.referralCode,
     referralLink: `${getAppBaseUrl()}/register?ref=${user.referralCode}`,
+    bonusDays: REFERRAL_BONUS_DAYS,
     stats: {
       totalReferrals: referredUsers.length,
-      totalEarned,
-      availableBalance,
-      pendingBalance,
-      withdrawnTotal,
+      paidReferrals: rewards.length,
+      bonusDaysEarned,
     },
-    referredUsers,
-    earnings,
-    withdrawals,
+    // Пригласивший видит только маску email: чужие ПД не раскрываем.
+    referredUsers: referredUsers.map((u) => {
+      const reward = rewardByFriend.get(u.id);
+      return {
+        emailMasked: maskEmail(u.email),
+        createdAt: u.createdAt,
+        paid: Boolean(reward),
+        rewardedAt: reward?.createdAt ?? null,
+        bonusDays: reward?.referrerDays ?? 0,
+      };
+    }),
   });
 }

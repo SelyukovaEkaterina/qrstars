@@ -15,6 +15,7 @@ import {
 import VkIdLogin from "@/components/auth/VkIdLogin";
 import { rememberGeneratorStyle } from "@/components/dashboard/GeneratorStyleImporter";
 import YandexIdLogin from "@/components/auth/YandexIdLogin";
+import { REFERRAL_BONUS_DAYS } from "@/lib/referral-shared";
 
 function RegisterForm() {
   const router = useRouter();
@@ -162,6 +163,13 @@ function RegisterForm() {
             <strong>{invitePreview.inviterName}</strong> приглашает вас в заведение{" "}
             <strong>{invitePreview.establishmentName}</strong>. Зарегистрируйтесь с email{" "}
             <strong>{invitePreview.email}</strong>.
+          </div>
+        )}
+
+        {refCode && !invitePreview && (
+          <div className="bg-emerald-50 text-emerald-900 px-4 py-3 rounded-lg text-sm">
+            🎁 Вас пригласил друг: если подключите PRO, получите{" "}
+            <strong>{REFERRAL_BONUS_DAYS} дней PRO в подарок</strong> сверх оплаченного.
           </div>
         )}
 

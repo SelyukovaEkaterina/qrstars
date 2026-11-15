@@ -20,7 +20,7 @@ const ACCOUNT_TITLES: Array<[string, string]> = [
   ["/dashboard/subscription", "Тариф и оплата"],
   ["/dashboard/settings/templates", "Шаблоны оформления"],
   ["/dashboard/settings", "Аккаунт и уведомления"],
-  ["/dashboard/partner", "Партнёрская программа"],
+  ["/dashboard/partner", "Приведи друга"],
   ["/dashboard/support", "Поддержка"],
   ["/dashboard/network", "Сеть: сводка"],
 ];

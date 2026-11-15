@@ -30,6 +30,8 @@ export const DASH_CLIENT_EVENTS = [
   "dash.paywall_viewed",
   /** Нажата кнопка оплаты: props.plan, billing, consent (стояла ли галочка автосписаний). */
   "dash.checkout_clicked",
+  /** «Приведи друга»: скопирована ссылка или нажато «Поделиться». props.place, via (copy | telegram | whatsapp | share). */
+  "dash.referral_link_shared",
 ] as const;
 
 export type DashClientEvent = (typeof DASH_CLIENT_EVENTS)[number];

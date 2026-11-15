@@ -404,8 +404,8 @@ def test_vk_signup_keeps_referral_code_from_cookie(base_url):
     )
     assert response.status_code == 200, response.text
 
-    referred = [u["email"] for u in partner.get(f"{base_url}/api/partner").json()["referredUsers"]]
-    assert email in referred
+    referred = [u["emailMasked"] for u in partner.get(f"{base_url}/api/partner").json()["referredUsers"]]
+    assert "v***@test.example.com" in referred
 
 
 # --- Короткий адрес визитки ({slug}.qrstars.ru → /a/{slug}) ---
