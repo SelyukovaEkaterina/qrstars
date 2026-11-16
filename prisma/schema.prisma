@@ -189,6 +189,8 @@ model Establishment {
   pageAppearance  String   @default("light")
   landingSubtitle String?
   shortSlug       String?  @unique
+  /// Шаблон сайта для компьютера (`src/lib/site-templates.ts`), пусто — по отрасли
+  siteTemplate    String?
 
   legalName       String?
   inn             String?

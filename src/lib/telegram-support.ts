@@ -1,7 +1,8 @@
 import prisma from "@/lib/prisma";
 import type { SupportTicket, User } from "@/generated/prisma/client";
 import { sendMaxMessage } from "@/lib/max";
-import { sendSupportStaffReplyEmail } from "@/lib/mailer";
+import { sendSupportMailReply, sendSupportStaffReplyEmail } from "@/lib/mailer";
+import { MAIL_TOPIC_NAME, mailTopicMessageText, parseMailTopicMessage } from "@/lib/inbound-email";
 import { billingPeriodLabel, type BillingPeriod } from "@/lib/plans";
 import {
   isSupportImageMime,
@@ -167,6 +168,8 @@ export async function createSupportForumTopic(
 export type TelegramSupportOutbound = {
   body: string;
   attachment?: SupportAttachmentMeta;
+  /** Откуда пришло: чат в кабинете (по умолчанию) или ответ на письмо. */
+  source?: "dashboard" | "email";
 };
 
 async function ensureSupportTopicId(
@@ -202,9 +205,12 @@ export async function postUserMessageToTelegram(
 
   const groupId = GROUP_ID()!;
   const { body, attachment } = payload;
+  const fromEmail = payload.source === "email";
   const caption = body.trim()
-    ? `💬 <b>Из личного кабинета</b>\n\n${escapeHtml(body.trim())}`
-    : `💬 <b>Файл из личного кабинета</b>`;
+    ? `${fromEmail ? "✉️ <b>Ответ на письмо</b>" : "💬 <b>Из личного кабинета</b>"}\n\n${escapeHtml(body.trim())}`
+    : fromEmail
+      ? `✉️ <b>Файл из письма</b>`
+      : `💬 <b>Файл из личного кабинета</b>`;
 
   if (attachment) {
     const common = {
@@ -235,7 +241,7 @@ export async function postUserMessageToTelegram(
     chat_id: groupId,
     message_thread_id: topicId,
     parse_mode: "HTML",
-    text: `💬 <b>Сообщение из личного кабинета</b>\n\n${escapeHtml(body)}`,
+    text: `${fromEmail ? "✉️ <b>Ответ на письмо</b>" : "💬 <b>Сообщение из личного кабинета</b>"}\n\n${escapeHtml(body)}`,
   });
 
   return ok !== null;
@@ -722,6 +728,7 @@ export async function handleTelegramSupportGroupMessage(message: {
   voice?: { file_id: string; mime_type?: string };
   audio?: { file_id: string; file_name?: string; mime_type?: string };
   sticker?: { file_id: string; mime_type?: string; is_animated?: boolean };
+  reply_to_message?: { message_id: number; text?: string; from?: { is_bot?: boolean } };
 }): Promise<void> {
   if (!GROUP_ID()) return;
 
@@ -736,6 +743,11 @@ export async function handleTelegramSupportGroupMessage(message: {
 
   const textBody = (message.text || message.caption || "").trim();
   if (textBody.startsWith("/")) return;
+
+  if (threadId === (await getMailTopicId())) {
+    await handleMailTopicMessage(message);
+    return;
+  }
 
   const incomingFile = extractTelegramAttachment(message);
   if (!textBody && !incomingFile) return;
@@ -802,4 +814,114 @@ export async function handleTelegramSupportGroupMessage(message: {
       attachmentName,
     });
   }
+}
+
+const MAIL_TOPIC_META_KEY = "support_mail_topic_id";
+let mailTopicCache: number | null = null;
+
+/**
+ * Тема «📬 Почта» в support-форуме: письма на любой адрес @qrstars.ru от тех, у кого нет аккаунта.
+ * id темы — в `PlatformMeta` (`support_mail_topic_id`) или `TELEGRAM_SUPPORT_MAIL_TOPIC_ID`;
+ * если нет — тема создаётся при первом письме.
+ */
+async function getMailTopicId(): Promise<number | null> {
+  const fromEnv = Number(process.env.TELEGRAM_SUPPORT_MAIL_TOPIC_ID);
+  if (Number.isInteger(fromEnv) && fromEnv > 0) return fromEnv;
+  if (mailTopicCache) return mailTopicCache;
+  const row = await prisma.platformMeta.findUnique({ where: { key: MAIL_TOPIC_META_KEY } });
+  const saved = Number(row?.value);
+  if (Number.isInteger(saved) && saved > 0) {
+    mailTopicCache = saved;
+    return saved;
+  }
+  if (!shouldNotifySupportTelegram()) return null;
+  const created = await tgApi<{ message_thread_id: number }>("createForumTopic", {
+    chat_id: GROUP_ID()!,
+    name: MAIL_TOPIC_NAME,
+  });
+  const threadId = created?.message_thread_id;
+  if (!threadId) return null;
+  await prisma.platformMeta.upsert({
+    where: { key: MAIL_TOPIC_META_KEY },
+    create: { key: MAIL_TOPIC_META_KEY, value: String(threadId) },
+    update: { value: String(threadId) },
+  });
+  mailTopicCache = threadId;
+  await tgApi("sendMessage", {
+    chat_id: GROUP_ID()!,
+    message_thread_id: threadId,
+    parse_mode: "HTML",
+    text:
+      `📬 <b>Почта @qrstars.ru</b>\n\n` +
+      `Сюда приходят письма на любой адрес домена от тех, у кого нет аккаунта. ` +
+      `Письма наших пользователей попадают в их темы.\n\n` +
+      `<i>Чтобы ответить, сделайте реплай на письмо — ответ уйдёт отправителю от QrStars.</i>`,
+  });
+  return threadId;
+}
+
+/** Письмо от адреса, которого нет среди пользователей → тема «Почта» (иначе — общий чат группы). */
+export async function notifyInboundEmailFromUnknown(email: {
+  from: string;
+  fromName?: string | null;
+  to?: string | null;
+  subject?: string | null;
+  text: string;
+  attachments: number;
+}): Promise<boolean> {
+  if (!shouldNotifySupportTelegram()) return false;
+  const text = mailTopicMessageText(email, email.text, escapeHtml);
+  const topicId = await getMailTopicId();
+  if (topicId) {
+    const ok = await tgApi("sendMessage", {
+      chat_id: GROUP_ID()!,
+      message_thread_id: topicId,
+      parse_mode: "HTML",
+      text,
+      disable_web_page_preview: true,
+    });
+    if (ok) return true;
+  }
+  return sendSupportTelegramMessage(GROUP_ID()!, text);
+}
+
+/** Сообщение оператора в теме «Почта»: реплай на письмо → ответ письмом отправителю. */
+async function handleMailTopicMessage(message: {
+  message_id: number;
+  message_thread_id?: number;
+  text?: string;
+  caption?: string;
+  reply_to_message?: { message_id: number; text?: string; from?: { is_bot?: boolean } };
+}): Promise<void> {
+  const groupId = GROUP_ID()!;
+  const say = (text: string) =>
+    tgApi("sendMessage", {
+      chat_id: groupId,
+      message_thread_id: message.message_thread_id,
+      reply_to_message_id: message.message_id,
+      parse_mode: "HTML",
+      text,
+    });
+
+  const original = message.reply_to_message;
+  // Реплай на «шапку» темы Telegram подставляет сам — это не ответ на письмо.
+  const parsed =
+    original && original.message_id !== message.message_thread_id && original.from?.is_bot
+      ? parseMailTopicMessage(original.text || "")
+      : null;
+  if (!parsed) {
+    await say("ℹ️ Чтобы ответить отправителю, сделайте <b>реплай</b> на его письмо.");
+    return;
+  }
+  const body = (message.text || message.caption || "").trim();
+  if (!body) {
+    await say("⚠️ Письмом уходит только текст — файлы приложите ссылкой.");
+    return;
+  }
+  const sent = await sendSupportMailReply(parsed.from, parsed.subject, body, parsed.body);
+  await say(
+    sent
+      ? `✅ Ответ отправлен на ${escapeHtml(parsed.from)}`
+      : `❌ Не удалось отправить письмо на ${escapeHtml(parsed.from)} — посмотрите логи приложения.`
+  );
 }

@@ -1,0 +1,327 @@
+---
+/**
+ * Лендинг для селлеров маркетплейсов (гипотеза H-008): QR на вкладыш под каждый товар.
+ * Демо — https://app.qrstars.ru/q/demo-seller. Регистрация — utm_campaign=seller_landing.
+ */
+import Layout from '../layouts/Layout.astro';
+import { generateBrandedQrDataUrl } from '../lib/brandedQr';
+import { appendAttributionParams, registerUrl } from '../lib/utm';
+import { PRO_HALFYEAR, PRO_YEARLY } from '../lib/prices';
+
+const params = Astro.url.searchParams;
+const DEMO_URL = 'https://app.qrstars.ru/q/demo-seller';
+const DEMO_LINK = appendAttributionParams(DEMO_URL, params);
+const HERO_CTA = registerUrl('seller_hero', params, { campaign: 'seller_landing' });
+const BOTTOM_CTA = registerUrl('seller_bottom', params, { campaign: 'seller_landing' });
+const qrDataUrl = await generateBrandedQrDataUrl(DEMO_URL);
+
+const benefits = [
+  { icon: 'fa-shield-heart', title: 'Меньше плохих отзывов', text: 'Покупатель с проблемой пишет вам через «Проблема с товаром?», а не в отзыв. Заявка сразу приходит вам.' },
+  { icon: 'fa-book-open', title: 'Меньше возвратов', text: 'Инструкция, видео и ответы на частые вопросы — по QR. «Непонятно, как собрать» перестаёт быть причиной возврата.' },
+  { icon: 'fa-star', title: 'Больше честных отзывов', text: 'Кнопка «Оставить отзыв» ведёт прямо на карточку товара на Wildberries или Ozon — без поиска заказа в кабинете.' },
+  { icon: 'fa-bag-shopping', title: 'Повторные покупки', text: 'Каталог других ваших товаров с ценами и артикулами: покупатель находит их на той же площадке.' },
+];
+
+const blocks = [
+  { icon: 'fa-book', title: 'Инструкция', text: 'Текст с шагами, PDF или ссылка на видео. Поменяли — вкладыши перепечатывать не нужно.' },
+  { icon: 'fa-headset', title: 'Проблема с товаром?', text: 'Форма с номером заказа и описанием, заявка приходит вам в кабинет и уведомлением.' },
+  { icon: 'fa-star-half-stroke', title: 'Оставить отзыв', text: 'Кнопки на карточку товара на Wildberries и Ozon — видны всем, без фильтра оценок.' },
+  { icon: 'fa-store', title: 'Наш магазин', text: 'Ссылка на магазин продавца и каталог других товаров с фото и ценами.' },
+  { icon: 'fa-file-shield', title: 'Гарантия', text: 'Условия гарантии и возврата — покупатель знает, что делать, ещё до претензии.' },
+  { icon: 'fa-chart-line', title: 'Статистика по товару', text: 'Сколько покупателей открыли инструкцию — по каждому QR и каждому дню.' },
+];
+
+const faq = [
+  {
+    q: 'Можно ли класть во вкладыш QR-код со ссылкой?',
+    a: 'Да, вкладыши с инструкцией, контактами поддержки и просьбой оставить отзыв — обычная практика на Wildberries и Ozon. Нельзя обещать вознаграждение за отзыв, просить только высокую оценку и уводить покупателя покупать мимо площадки. Правила меняются — сверяйтесь с офертой своей площадки.',
+  },
+  {
+    q: 'Почему в QrStars нет фильтра «плохие оценки — продавцу, хорошие — на площадку»?',
+    a: 'Для отзывов на картах такой сценарий есть, но на маркетплейсах фильтрация отзывов считается манипуляцией. Для селлеров страница работает по принципу «сначала поддержка»: кнопка «Проблема с товаром?» и кнопка отзыва видны всем покупателям.',
+  },
+  {
+    q: 'Нужен ли отдельный QR на каждый товар?',
+    a: 'Лучше да: у каждого товара своя инструкция и своя ссылка на отзыв. На тарифе PRO количество QR-кодов не ограничено, а статистика считается по каждому коду отдельно.',
+  },
+  {
+    q: 'Что, если инструкция изменится после печати вкладышей?',
+    a: 'QR-код динамический: вы меняете инструкцию в кабинете, а напечатанный код ведёт на обновлённую страницу. Перепечатывать тираж не нужно.',
+  },
+  {
+    q: 'Сколько это стоит?',
+    a: `Бесплатно: QR-код на PDF-инструкцию или на любую ссылку. Страница товара со всеми разделами (инструкция, поддержка, отзывы, каталог) — на тарифе PRO: ${PRO_HALFYEAR} за полгода или ${PRO_YEARLY} за год, QR-кодов — без лимита.`,
+  },
+  {
+    q: 'Как сделать сам вкладыш?',
+    a: 'Скачайте QR в PNG или SVG для своего макета или соберите табличку прямо в кабинете: форматы от стикера 5 см до A4, PDF для печати.',
+  },
+];
+
+const faqJsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faq.map((item) => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
+};
+
+const related = [
+  { href: '/qr-kod-na-vkladysh-wildberries.html', label: 'QR на вкладыш для Wildberries' },
+  { href: '/qr-kod-na-vkladysh-ozon.html', label: 'QR на вкладыш для Ozon' },
+  { href: '/qr-kod-instrukciya-k-tovaru.html', label: 'QR-код с инструкцией к товару' },
+  { href: '/dynamic-qr.html', label: 'Динамические QR-коды' },
+  { href: '/file-sharing.html', label: 'QR на PDF-файл' },
+];
+---
+
+<Layout
+  title="QR-код на вкладыш для селлеров Wildberries и Ozon — инструкция, поддержка, отзывы"
+  description="QR-код на вкладыш для товаров на Wildberries и Ozon: инструкция, помощь продавца, кнопка отзыва и каталог ваших товаров. Динамический QR — меняйте инструкцию без перепечатки. Бесплатный старт."
+>
+  <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
+
+  <section class="pt-24 pb-16 sm:pt-32 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
+    <div class="pointer-events-none absolute -top-32 -right-32 w-[480px] h-[480px] rounded-full bg-teal-200/40 blur-3xl"></div>
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div class="z-10">
+          <div class="flex flex-wrap items-center gap-2 mb-6">
+            <div class="inline-block bg-teal-50 text-teal-700 font-semibold px-4 py-1.5 rounded-full text-sm border border-teal-200">
+              📦 Для селлеров Wildberries и Ozon
+            </div>
+          </div>
+          <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+            QR-код на вкладыш: покупатель с проблемой пишет <span class="text-teal-600">вам</span>, а не в отзыв
+          </h1>
+          <p class="text-lg md:text-xl text-slate-600 mb-8 max-w-xl leading-relaxed">
+            Один QR на каждый товар: инструкция, помощь продавца, кнопка отзыва на Wildberries и Ozon и другие ваши товары. Поменяли инструкцию — вкладыши перепечатывать не нужно.
+          </p>
+          <div class="flex flex-col sm:flex-row gap-4">
+            <a href={HERO_CTA} data-goal="seller_register" data-goal-params='{"place":"hero"}' class="inline-flex items-center justify-center bg-teal-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-teal-700 transition shadow-lg shadow-teal-600/30">
+              Сделать QR бесплатно
+            </a>
+            <a href={DEMO_LINK} target="_blank" rel="noopener" data-goal="seller_demo_open" class="inline-flex items-center justify-center bg-slate-100 text-slate-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-200 transition">
+              Открыть пример страницы
+            </a>
+          </div>
+          <p class="mt-4 text-sm text-slate-500">Пример можно открыть и с компьютера — там он выглядит как сайт.</p>
+        </div>
+
+        <!-- Макет вкладыша с настоящим QR на демо -->
+        <div class="relative flex justify-center lg:justify-end">
+          <div class="relative w-full max-w-[460px]">
+            <div class="absolute inset-0 translate-x-4 translate-y-4 rounded-3xl bg-teal-600/15"></div>
+            <div class="relative rounded-3xl bg-white shadow-2xl ring-1 ring-slate-200 overflow-hidden">
+              <div class="h-2 bg-gradient-to-r from-teal-500 to-emerald-400"></div>
+              <div class="p-7 sm:p-8 flex gap-6 items-center">
+                <div class="flex-1 min-w-0">
+                  <div class="flex items-center gap-2 mb-4">
+                    <img src="/images/seller/logo.svg" alt="" width="36" height="36" class="w-9 h-9 rounded-lg" loading="lazy" />
+                    <span class="font-bold text-slate-900 leading-tight">Лучик<br /><span class="text-xs font-medium text-slate-500">свет для дома</span></span>
+                  </div>
+                  <p class="text-xl font-extrabold text-slate-900 leading-snug">Спасибо за покупку!</p>
+                  <p class="mt-2 text-sm text-slate-600 leading-relaxed">Инструкция, гарантия и помощь продавца — по QR-коду.</p>
+                  <p class="mt-3 text-xs text-slate-400">Что-то не так с товаром? Напишите нам — решим быстрее, чем возврат.</p>
+                </div>
+                <div class="shrink-0 text-center">
+                  <img src={qrDataUrl} alt="QR-код: пример страницы товара" width="148" height="148" class="w-32 h-32 sm:w-[148px] sm:h-[148px] rounded-xl" loading="eager" />
+                  <p class="mt-1 text-[11px] text-slate-400">Наведите камеру</p>
+                </div>
+              </div>
+            </div>
+            <p class="mt-6 text-center text-sm text-slate-500">Это настоящий QR: отсканируйте телефоном — откроется пример.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-12 text-center">Зачем селлеру QR на вкладыше</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {benefits.map((b) => (
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+            <div class="w-11 h-11 bg-teal-50 text-teal-600 rounded-xl flex items-center justify-center text-lg mb-4">
+              <i class={`fa-solid ${b.icon}`}></i>
+            </div>
+            <h3 class="font-bold text-lg mb-2">{b.title}</h3>
+            <p class="text-slate-600 text-sm leading-relaxed">{b.text}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-white">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-12 items-center">
+        <div>
+          <h2 class="text-3xl font-bold mb-4">Что увидит покупатель</h2>
+          <p class="text-slate-600 mb-10 max-w-2xl">Страница товара открывается за секунду, без приложений. Вы сами выбираете, какие разделы показать и в каком порядке.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            {blocks.map((b) => (
+              <div class="flex items-start gap-4">
+                <div class="w-10 h-10 shrink-0 bg-teal-50 text-teal-600 rounded-lg flex items-center justify-center">
+                  <i class={`fa-solid ${b.icon}`}></i>
+                </div>
+                <div>
+                  <h3 class="font-bold mb-1">{b.title}</h3>
+                  <p class="text-slate-600 text-sm leading-relaxed">{b.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div class="flex justify-center">
+          <div class="phone-shell relative w-full max-w-[320px] aspect-[390/844] bg-slate-900 rounded-[2.5rem] shadow-2xl p-[9px] overflow-hidden">
+            <div class="absolute top-[9px] left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-900 rounded-b-2xl z-10 pointer-events-none"></div>
+            <div data-seller-screen class="relative w-full h-full bg-white overflow-hidden" style="border-radius: 1.9rem;">
+              <iframe
+                data-seller-iframe
+                data-src={DEMO_LINK}
+                title="Пример страницы товара для селлера"
+                loading="lazy"
+                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+                class="absolute top-0 left-0 border-0 bg-white"
+                style="width: 390px; height: 844px; transform-origin: top left;"
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-amber-50 border-y border-amber-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-4 text-center">По правилам площадок</h2>
+      <p class="text-slate-700 text-center max-w-3xl mx-auto mb-10">
+        За «5 звёзд за кешбэк» маркетплейсы штрафуют и скрывают отзывы. Поэтому страница товара в QrStars построена так, чтобы помогать покупателю, а не давить на оценку.
+      </p>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl border border-emerald-200 p-6">
+          <h3 class="font-bold text-emerald-700 mb-3"><i class="fa-solid fa-check mr-2"></i>Можно</h3>
+          <ul class="space-y-2 text-slate-700 text-sm">
+            <li>Инструкция, видео и ответы на вопросы по товару</li>
+            <li>Контакт поддержки продавца и форма «Проблема с товаром?»</li>
+            <li>Просьба оставить честный отзыв — любой оценкой</li>
+            <li>Ссылки на ваши товары на той же площадке</li>
+          </ul>
+        </div>
+        <div class="bg-white rounded-2xl border border-rose-200 p-6">
+          <h3 class="font-bold text-rose-700 mb-3"><i class="fa-solid fa-xmark mr-2"></i>Нельзя</h3>
+          <ul class="space-y-2 text-slate-700 text-sm">
+            <li>Обещать деньги, кешбэк или подарок за отзыв</li>
+            <li>Просить поставить только 5 звёзд</li>
+            <li>Показывать кнопку отзыва только довольным покупателям</li>
+            <li>Звать покупать мимо маркетплейса</li>
+          </ul>
+        </div>
+      </div>
+      <p class="mt-6 text-center text-xs text-slate-500">Правила площадок меняются — перед печатью тиража сверяйтесь с офертой Wildberries или Ozon.</p>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-white">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-12 text-center">Как запустить</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+          <div class="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold mb-4">1</div>
+          <h3 class="font-bold text-lg mb-2">Страница товара</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">Добавьте инструкцию, форму поддержки, ссылки на отзыв и магазин — как в примере выше.</p>
+        </div>
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+          <div class="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold mb-4">2</div>
+          <h3 class="font-bold text-lg mb-2">QR на каждый товар</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">Отдельный код на артикул — своя инструкция и своя статистика. На PRO QR-кодов без лимита.</p>
+        </div>
+        <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
+          <div class="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold mb-4">3</div>
+          <h3 class="font-bold text-lg mb-2">Вкладыш</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">Скачайте QR в PNG или SVG для своего макета или соберите табличку в кабинете и распечатайте PDF.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
+    <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-10 text-center">Сколько стоит</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl border border-slate-200 p-7">
+          <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">FREE</p>
+          <p class="mt-2 text-3xl font-extrabold">0 ₽</p>
+          <ul class="mt-5 space-y-2 text-slate-700 text-sm">
+            <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>QR на PDF-инструкцию</li>
+            <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>QR на любую ссылку, в том числе на карточку товара (на FREE — через экран QrStars на 3 секунды)</li>
+            <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>Меняйте файл и ссылку после печати</li>
+          </ul>
+        </div>
+        <div class="bg-slate-900 text-white rounded-2xl p-7 shadow-xl">
+          <p class="text-sm font-semibold text-teal-300 uppercase tracking-wider">PRO</p>
+          <p class="mt-2 text-3xl font-extrabold">{PRO_HALFYEAR} <span class="text-base font-medium text-slate-300">/ полгода</span></p>
+          <p class="text-sm text-slate-400">или {PRO_YEARLY} за год</p>
+          <ul class="mt-5 space-y-2 text-slate-200 text-sm">
+            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Страница товара со всеми разделами</li>
+            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>QR-кодов без лимита — на каждый артикул</li>
+            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Переход по QR сразу, без экрана QrStars</li>
+            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Статистика по дням и устройствам, можно без логотипа QrStars</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 lg:py-20 bg-white">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+      <h2 class="text-3xl font-bold mb-10 text-center">Частые вопросы</h2>
+      <div class="space-y-4">
+        {faq.map((item) => (
+          <details class="group rounded-xl border border-slate-200 bg-white p-5">
+            <summary class="flex cursor-pointer list-none items-center justify-between gap-4 font-semibold text-slate-900">
+              {item.q}
+              <i class="fa-solid fa-chevron-down text-slate-400 transition group-open:rotate-180"></i>
+            </summary>
+            <p class="mt-3 text-slate-600 leading-relaxed">{item.a}</p>
+          </details>
+        ))}
+      </div>
+      <div class="mt-12 flex flex-wrap justify-center gap-2">
+        {related.map((r) => (
+          <a href={r.href} class="rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-700 hover:border-teal-400 hover:text-teal-700 transition">{r.label}</a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <section class="py-16 bg-teal-700 text-white">
+    <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+      <h2 class="text-3xl font-bold mb-4">Сделайте QR для первого товара</h2>
+      <p class="text-teal-100 mb-8">Бесплатно и без карты. Страницу товара можно показать покупателям, когда будете готовы.</p>
+      <a href={BOTTOM_CTA} data-goal="seller_register" data-goal-params='{"place":"bottom"}' class="inline-flex items-center justify-center bg-white text-teal-800 px-8 py-4 rounded-xl font-bold text-lg hover:bg-teal-50 transition">
+        Начать бесплатно
+      </a>
+    </div>
+  </section>
+
+  <script>
+    const screen = document.querySelector<HTMLElement>('[data-seller-screen]');
+    const frame = document.querySelector<HTMLIFrameElement>('[data-seller-iframe]');
+    if (screen && frame) {
+      const fit = () => {
+        const w = screen.clientWidth;
+        if (w) frame.style.transform = `scale(${w / 390})`;
+      };
+      fit();
+      window.addEventListener('resize', fit);
+      const io = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          frame.src = frame.dataset.src || '';
+          io.disconnect();
+        }
+      }, { rootMargin: '300px' });
+      io.observe(screen);
+    }
+  </script>
+</Layout>

@@ -58,6 +58,8 @@ import {
   type PageAppearance,
 } from "@/lib/brand-theme";
 import { STANDARD_COVERS } from "@/lib/standard-covers";
+import SiteTemplatePicker from "@/components/dashboard/project/SiteTemplatePicker";
+import { isSiteTemplateId, DEFAULT_SITE_TEMPLATE, type SiteTemplateId } from "@/lib/site-templates";
 import {
   Loader2,
   Layout,
@@ -276,6 +278,7 @@ function MyPageDashboardContent() {
   const [customColorOpen, setCustomColorOpen] = useState(false);
   const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [siteTemplate, setSiteTemplate] = useState<SiteTemplateId>(DEFAULT_SITE_TEMPLATE);
   const [landingSubtitle, setLandingSubtitle] = useState("");
   const [estAddress, setEstAddress] = useState<string | null>(null);
   const [estPhone, setEstPhone] = useState<string | null>(null);
@@ -436,6 +439,7 @@ function MyPageDashboardContent() {
     setCustomColorOpen(!BRAND_COLOR_PRESETS.some((p) => p.hex === loadedColor));
     setLogoUrl(est.logoUrl || null);
     setCoverUrl(est.coverUrl || null);
+    setSiteTemplate(isSiteTemplateId(est.siteTemplateResolved) ? est.siteTemplateResolved : DEFAULT_SITE_TEMPLATE);
     if (!est.logoUrl && !est.coverUrl) setAppearanceOpen(true);
     setLandingSubtitle(est.landingSubtitle || "");
     setEstAddress(est.address || null);
@@ -743,6 +747,16 @@ function MyPageDashboardContent() {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ coverUrl: url }),
+    }));
+  };
+
+  const saveSiteTemplate = async (id: SiteTemplateId) => {
+    if (micrositeFrozen) return;
+    setSiteTemplate(id);
+    await trackSave(fetch(`/api/establishments/${establishmentId}/page`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ siteTemplate: id }),
     }));
   };
 
@@ -1788,6 +1802,16 @@ function MyPageDashboardContent() {
             </>
             )}
             {/* APPEARANCE_END */}
+
+            <SiteTemplatePicker
+              establishmentId={establishmentId}
+              value={siteTemplate}
+              onChange={saveSiteTemplate}
+              brandColor={brandColor}
+              pageAppearance={pageAppearance}
+              disabled={micrositeFrozen}
+              isPro={isPro}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2 space-y-4">

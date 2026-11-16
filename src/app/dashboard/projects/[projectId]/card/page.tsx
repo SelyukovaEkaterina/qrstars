@@ -4,7 +4,9 @@ import { resolveBrandSettings } from "@/lib/brand-theme";
 import { isUnassignedProjectId, projectQrcodesPath } from "@/lib/project-routes";
 import { normalizeCardServices, parseCardSocialLinks } from "@/lib/business-card";
 import ProjectCardEditor from "@/components/dashboard/project/ProjectCardEditor";
-import { establishmentHasPaidFeatures } from "@/lib/establishment-access";
+import { establishmentHasPaidFeatures, establishmentMicrositeAccess } from "@/lib/establishment-access";
+import { isMicrositeFrozen } from "@/lib/qr-mode-access";
+import { resolveSiteTemplate } from "@/lib/site-templates";
 import { suggestMicrositeSlug } from "@/lib/microsite-host";
 
 /** Доступ к проекту проверяет layout `projects/[projectId]`. */
@@ -29,6 +31,8 @@ export default async function ProjectCardPage({
       pageAppearance: true,
       landingTheme: true,
       shortSlug: true,
+      siteTemplate: true,
+      industry: true,
       _count: { select: { qrcodes: { where: { mode: "LANDING" } } } },
       businessCard: { include: { contactMessenger: true } },
       qrcodes: {
@@ -62,6 +66,15 @@ export default async function ProjectCardPage({
           pageAppearance={brand.pageAppearance}
           cardQrcodes={est.qrcodes}
           welcome={welcome === "1"}
+          cardSite={
+            est._count.qrcodes === 0
+              ? {
+                  template: resolveSiteTemplate(est.siteTemplate, est.industry ?? "SERVICES"),
+                  hasPaidFeatures,
+                  frozen: isMicrositeFrozen(await establishmentMicrositeAccess(est.id)),
+                }
+              : null
+          }
           shortAddress={
             // С микросайтом короткий адрес открывает его, а не визитку — тогда блок не показываем.
             est._count.qrcodes === 0

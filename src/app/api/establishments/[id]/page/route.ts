@@ -23,6 +23,7 @@ import { MICROSITE_FROZEN_ERROR, isMicrositeFrozen } from "@/lib/qr-mode-access"
 import { isMicrositeSlug, isReservedMicrositeSlug } from "@/lib/microsite-host";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { canLinkContent, LINKED_CONTENT_NOT_FOUND } from "@/lib/linked-content-access";
+import { parseSiteTemplateInput, resolveSiteTemplate } from "@/lib/site-templates";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -40,6 +41,7 @@ const MICROSITE_SETTING_FIELDS = [
   "landingTheme",
   "landingSubtitle",
   "shortSlug",
+  "siteTemplate",
 ] as const;
 
 async function getAccessibleEstablishment(userId: string, establishmentId: string) {
@@ -136,6 +138,8 @@ export async function GET(_request: Request, context: RouteContext) {
       coverUrl: establishment.coverUrl,
       landingSubtitle: establishment.landingSubtitle,
       shortSlug: establishment.shortSlug,
+      siteTemplate: establishment.siteTemplate,
+      siteTemplateResolved: resolveSiteTemplate(establishment.siteTemplate, establishment.industry),
       menu: establishment.menu ? sanitizeMenuForClient(establishment.menu) : null,
       businessCard: establishment.businessCard,
       wifiConfig: establishment.wifiConfig,
@@ -271,6 +275,13 @@ export async function PUT(request: Request, context: RouteContext) {
       );
     }
   }
+  if (body.siteTemplate !== undefined) {
+    const template = parseSiteTemplateInput(body.siteTemplate);
+    if (template === undefined) {
+      return NextResponse.json({ error: "Неизвестный шаблон сайта" }, { status: 400 });
+    }
+    data.siteTemplate = template;
+  }
   if (body.landingTipsType !== undefined) data.landingTipsType = body.landingTipsType || null;
   if (body.landingTipsPhone !== undefined) data.landingTipsPhone = body.landingTipsPhone || null;
   if (body.landingTipsBankName !== undefined) data.landingTipsBankName = body.landingTipsBankName || null;
@@ -352,6 +363,8 @@ export async function PUT(request: Request, context: RouteContext) {
       coverUrl: updated.coverUrl,
       landingSubtitle: updated.landingSubtitle,
       shortSlug: updated.shortSlug,
+      siteTemplate: updated.siteTemplate,
+      siteTemplateResolved: resolveSiteTemplate(updated.siteTemplate, updated.industry),
       menu: updated.menu,
       businessCard: updated.businessCard,
       wifiConfig: updated.wifiConfig,

@@ -32,14 +32,14 @@ const scenariosCoffee: DemoScenario[] = [
     name: 'Сбор отзывов',
     path: '/q/demo-review',
     badge: 'Оценки и отзывы на картах',
-    button: 'Оценить заведение',
+    button: 'Оценить кофейню',
     showDisclaimer: true,
   },
   {
-    name: 'Микросайт со всеми разделами',
+    name: 'Единая страница (микросайт)',
     path: '/q/demo-landing',
-    badge: 'Микросайт · PRO',
-    button: 'Открыть микросайт',
+    badge: 'Меню, контакты и отзывы · PRO',
+    button: 'Открыть страницу',
   },
 ];
 
@@ -65,10 +65,10 @@ const scenariosTire: DemoScenario[] = [
     showDisclaimer: true,
   },
   {
-    name: 'Микросайт со всеми разделами',
+    name: 'Единая страница (микросайт)',
     path: '/q/demo2-landing',
-    badge: 'Микросайт · PRO',
-    button: 'Открыть микросайт',
+    badge: 'Услуги, цены и отзывы · PRO',
+    button: 'Открыть страницу',
   },
 ];
 
@@ -94,10 +94,10 @@ const scenariosClinic: DemoScenario[] = [
     showDisclaimer: true,
   },
   {
-    name: 'Микросайт со всеми разделами',
+    name: 'Единая страница (микросайт)',
     path: '/q/demo3-landing',
-    badge: 'Микросайт · PRO',
-    button: 'Открыть микросайт',
+    badge: 'Прайс, врачи и отзывы · PRO',
+    button: 'Открыть страницу',
   },
 ];
 
@@ -164,11 +164,11 @@ const qrByPath = Object.fromEntries(
     <div class="text-center mb-12 lg:mb-16">
       <div class="inline-flex items-center gap-2 bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-5 border border-primary/20">
         <i class="fa-solid fa-mobile-screen-button"></i>
-        Один QR — разные задачи
+        Один QR, разные задачи
       </div>
-      <h2 class="text-3xl md:text-4xl font-bold mb-4">Попробуйте динамический QR в деле</h2>
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Посмотрите, как это работает у клиента</h2>
       <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
-        Отсканируйте QR смартфоном или выберите сценарий. Ссылку можно изменить в личном кабинете за 10 секунд без перепечатки полиграфии, а один и тот же код может вести на сбор отзывов, электронную визитку мастера, меню или микросайт филиала.
+        Отсканируйте код камерой телефона или переключайте вкладки слева. Вы увидите, что именно откроется после сканирования: внешняя ссылка, визитка, форма оценки или единая страница компании.
       </p>
 
       <p class="mt-8 mb-3 text-sm text-slate-500">Выберите пример:</p>
@@ -319,14 +319,14 @@ const qrByPath = Object.fromEntries(
                   <div class="mx-auto w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center text-2xl mb-4">
                     <i class="fa-solid fa-link"></i>
                   </div>
-                  <p class="font-bold text-lg text-slate-900 leading-snug mb-1">Гость попадает на&nbsp;вашу ссылку</p>
-                  <p class="text-sm text-slate-500 mb-7">На PRO — сразу; на FREE — через экран QrStars (3&nbsp;сек). Приложение не нужно.</p>
+                  <p class="font-bold text-lg text-slate-900 leading-snug mb-1">Человек открывает вашу&nbsp;ссылку</p>
+                  <p class="text-sm text-slate-500 mb-7">На PRO сразу, на бесплатном тарифе после заставки QrStars (3&nbsp;сек). Приложение не нужно.</p>
                   <p class="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Куда ведёт этот QR сейчас</p>
                   <div class="rounded-xl border border-primary/20 bg-white shadow-sm px-3 py-3 text-sm font-semibold text-slate-800">
                     <span data-redirect-cycle class="inline-block transition-opacity duration-300">yandex.ru/maps · карточка</span>
                   </div>
                   <p class="text-xs text-slate-500 mt-5 leading-relaxed">
-                    Сменили ссылку в кабинете — тот же напечатанный QR ведёт на новую.
+                    Сменили ссылку в кабинете, и тот же напечатанный код открывает новую.
                   </p>
                   <div class="mt-auto text-xs text-slate-400">Отсканируйте QR или нажмите «Открыть ссылку»</div>
                 </div>
@@ -336,7 +336,7 @@ const qrByPath = Object.fromEntries(
               <span class="font-medium" data-phone-caption={v.id}>Динамическая ссылка</span>
             </div>
             <p class="mt-2 text-xs text-slate-400 text-center max-w-[300px]">
-              Яндекс Карты и 2ГИС откроются в новой вкладке — их нельзя показать внутри демо-экрана.
+              Яндекс Карты и 2ГИС откроются в новой вкладке: их нельзя показать внутри демо-экрана.
             </p>
           </div>
         </div>
@@ -344,7 +344,7 @@ const qrByPath = Object.fromEntries(
     ))}
 
     <div class="text-center mt-12 text-slate-500 text-sm">
-      <p>Таким же QR можно открыть Wi-Fi, PDF-файл или меню — всё меняется в кабинете.</p>
+      <p>Через такой же код можно делиться Wi‑Fi, PDF-файлом или прайс-листом, всё меняется в кабинете.</p>
     </div>
   </div>
 </section>

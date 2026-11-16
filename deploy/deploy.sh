@@ -15,6 +15,7 @@ rsync -az --delete \
   --exclude /videos \
   --exclude 'test_*' \
   --exclude /landing \
+  --exclude /mobile \
   --exclude .env \
   --exclude e2e/__pycache__ \
   --exclude deploy/.active_app \

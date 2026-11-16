@@ -42,6 +42,15 @@ import {
   demoWorkingHours,
   demo2WorkingHours,
   demo3WorkingHours,
+  demoSellerName,
+  demoSellerMenu,
+  demoSellerForm,
+  demoSellerCustomPages,
+  demoSellerPageModules,
+  demoSellerModuleIcons,
+  demoSellerModuleTypes,
+  demoSellerModuleOrder,
+  demoSellerWorkingHours,
 } from "@/lib/demo-qrcodes";
 
 export interface DemoScanOptions {
@@ -67,6 +76,11 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
           establishmentName={demoReviewScan.establishmentName}
           establishmentId={demoReviewScan.establishmentId}
           qrCodeId="demo-landing"
+          industry="HORECA"
+          siteTemplate="showcase"
+          siteCoverUrl={"/covers/coffee.jpg"}
+          sitePublicUrl="https://app.qrstars.ru/q/demo-landing"
+          siteTemplateSwitcher
           pageModules={demoPageModules}
           moduleOrder={null}
           moduleIcons={demoModuleIcons}
@@ -99,7 +113,7 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
 
     case "demo-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-      return <BusinessCardView card={demoBusinessCard} brandColor="#4f46e5" pageAppearance="light" />;
+      return <BusinessCardView card={demoBusinessCard} brandColor="#4f46e5" pageAppearance="light" site={{ template: "showcase", watermark: "none", publicUrl: "https://app.qrstars.ru/q/demo-business-card", switcher: true }} />;
     }
 
     case "demo-master": {
@@ -109,8 +123,10 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
           card={demoMasterCard}
           qrCode="demo-master"
           shareUrl="https://app.qrstars.ru/q/demo-master"
+          showContactForm
           brandColor="#0369a1"
           pageAppearance="light"
+          site={{ template: "classic", watermark: "none", publicUrl: "https://app.qrstars.ru/q/demo-master", switcher: true }}
         />
       );
     }
@@ -240,6 +256,11 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
           establishmentName={demo2ReviewScan.establishmentName}
           establishmentId={demo2ReviewScan.establishmentId}
           qrCodeId="demo2-landing"
+          industry="AUTO"
+          siteTemplate="bold"
+          siteCoverUrl={"/covers/auto.jpg"}
+          sitePublicUrl="https://app.qrstars.ru/q/demo2-landing"
+          siteTemplateSwitcher
           pageModules={demo2PageModules}
           moduleOrder={null}
           moduleIcons={demo2ModuleIcons}
@@ -271,7 +292,7 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
 
     case "demo2-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-      return <BusinessCardView card={demo2BusinessCard} brandColor="#ea580c" pageAppearance="light" />;
+      return <BusinessCardView card={demo2BusinessCard} brandColor="#ea580c" pageAppearance="light" site={{ template: "bold", watermark: "none", publicUrl: "https://app.qrstars.ru/q/demo2-business-card", switcher: true }} />;
     }
 
     case "demo2-wifi": {
@@ -323,6 +344,10 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
           establishmentName={demo3ReviewScan.establishmentName}
           establishmentId={demo3ReviewScan.establishmentId}
           qrCodeId="demo3-landing"
+          industry="CLINIC"
+          siteTemplate="classic"
+          sitePublicUrl="https://app.qrstars.ru/q/demo3-landing"
+          siteTemplateSwitcher
           pageModules={demo3PageModules}
           moduleOrder={null}
           moduleIcons={demo3ModuleIcons}
@@ -354,7 +379,7 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
 
     case "demo3-business-card": {
       const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
-      return <BusinessCardView card={demo3BusinessCard} brandColor="#0369a1" pageAppearance="light" />;
+      return <BusinessCardView card={demo3BusinessCard} brandColor="#0369a1" pageAppearance="light" site={{ template: "classic", watermark: "none", publicUrl: "https://app.qrstars.ru/q/demo3-business-card", switcher: true }} />;
     }
 
     case "demo3-wifi": {
@@ -392,6 +417,41 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
           isDemo
           brandColor="#0369a1"
           pageAppearance="light"
+        />
+      );
+    }
+
+    case "demo-seller": {
+      const MicroLandingView = (await import("@/components/scan/MicroLandingView")).default;
+      const { parseReviewRouting } = await import("@/lib/review-routing");
+      return (
+        <MicroLandingView
+          establishmentName={demoSellerName}
+          establishmentId="demo-seller"
+          qrCodeId="demo-seller"
+          industry="OTHER"
+          pageModules={demoSellerPageModules}
+          moduleOrder={[...demoSellerModuleOrder]}
+          moduleIcons={demoSellerModuleIcons}
+          moduleTypes={demoSellerModuleTypes}
+          forms={[demoSellerForm]}
+          menu={demoSellerMenu}
+          businessCard={null}
+          wifiConfig={null}
+          reviewRouting={parseReviewRouting(null)}
+          customPages={demoSellerCustomPages}
+          platformUrls={{ yandexMapsUrl: null, twoGisUrl: null, avitoUrl: null }}
+          watermarkEnabled={false}
+          isDemo
+          brandColor="#0d9488"
+          pageAppearance="light"
+          logoUrl="/demo/seller/logo.svg"
+          landingSubtitle="Лампа Лучик Pro: инструкция, гарантия и помощь продавца"
+          workingHours={demoSellerWorkingHours}
+          siteTemplate="showcase"
+          siteCoverUrl="/demo/seller/hero.svg"
+          sitePublicUrl="https://app.qrstars.ru/q/demo-seller"
+          siteTemplateSwitcher
         />
       );
     }

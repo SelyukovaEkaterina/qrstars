@@ -4,6 +4,10 @@ import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
 import { recordQrScan } from "@/lib/record-qr-scan";
 import { renderDemoScan } from "@/lib/render-demo-scan";
+import { micrositePublicUrl } from "@/lib/project-routes";
+import { resolveCardSiteTemplate } from "@/lib/site-templates";
+import { businessCardJsonLd, micrositeJsonLd } from "@/lib/site-seo";
+import JsonLd from "@/components/scan/site/JsonLd";
 import {
   isDemoQrCode,
   type DemoQrSlug,
@@ -38,6 +42,9 @@ interface ScanPageProps {
   params: Promise<{ code: string }>;
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }
+
+/** Владелец открыл свой QR из письма или кабинета (`?owner=1`) — это не скан гостя. */
+const OWNER_VIEW_PARAM = "owner";
 
 function scanMetaTitle(mode: string | null, estName: string): string {
   switch (mode) {
@@ -308,6 +315,7 @@ async function computeLandingExtras(qrCode: any) {
 export default async function ScanPage({ params, searchParams }: ScanPageProps) {
   const { code } = await params;
   const query = (await searchParams) ?? {};
+  const ownerView = query[OWNER_VIEW_PARAM] === "1";
   const queryValue = (key: string) => (typeof query[key] === "string" ? (query[key] as string) : undefined);
 
   const demoPage = await renderDemoScan(code, {
@@ -379,6 +387,7 @@ export default async function ScanPage({ params, searchParams }: ScanPageProps) 
   const scanHeaders = await headers();
 
   const incrementScan = () => {
+    if (ownerView) return;
     recordQrScan({
       qrCodeId: qrCode.id,
       establishmentId: qrCode.establishmentId,
@@ -508,7 +517,21 @@ export default async function ScanPage({ params, searchParams }: ScanPageProps) 
       ? JSON.parse(JSON.stringify(sanitizeMenuForClient(rawMenu)))
       : null;
 
+    const siteUrl = micrositePublicUrl(est.shortSlug) ?? `https://app.qrstars.ru/q/${code}`;
     return (
+      <>
+      <JsonLd
+        data={micrositeJsonLd({
+          name: est.name,
+          url: siteUrl,
+          description: est.landingSubtitle,
+          image: absolutePublicUrl(est.coverUrl || est.logoUrl),
+          address: est.address,
+          telephone: est.phone,
+          workingHours: est.workingHours,
+          sameAs: [est.yandexMapsUrl, est.twoGisUrl],
+        })}
+      />
       <MicroLandingView
         establishmentName={est.name}
         industry={est.industry}
@@ -548,6 +571,8 @@ export default async function ScanPage({ params, searchParams }: ScanPageProps) 
         phone={est.phone}
         yandexMapsUrl={est.yandexMapsUrl}
         workingHours={est.workingHours}
+        siteTemplate={est.siteTemplate}
+        sitePublicUrl={siteUrl}
         tipsConfig={(() => {
           const tips = resolveTipsConfig(est, qrCode);
           if (!tips) return undefined;
@@ -563,6 +588,7 @@ export default async function ScanPage({ params, searchParams }: ScanPageProps) 
           };
         })()}
       />
+      </>
     );
   }
 
@@ -573,16 +599,40 @@ export default async function ScanPage({ params, searchParams }: ScanPageProps) 
     incrementScan();
     const bc = businessCard;
     const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
+    const publicCard = toPublicBusinessCard(bc);
+    const cardUrl = micrositePublicUrl(est.shortSlug) ?? `https://app.qrstars.ru/q/${code}`;
     return (
+      <>
+      <JsonLd
+        data={businessCardJsonLd({
+          fullName: publicCard.fullName,
+          url: cardUrl,
+          title: publicCard.title,
+          about: publicCard.about,
+          image: absolutePublicUrl(publicCard.avatarUrl),
+          telephone: publicCard.phone,
+          email: publicCard.email,
+          address: publicCard.address,
+          serviceArea: publicCard.serviceArea,
+          services: publicCard.services,
+          sameAs: [publicCard.website, publicCard.reviewsUrl, ...publicCard.socialLinks.map((l) => l.url)],
+        })}
+      />
       <BusinessCardView
-        card={toPublicBusinessCard(bc)}
+        card={publicCard}
         shareUrl={`${process.env.NEXT_PUBLIC_BASE_URL || "https://app.qrstars.ru"}/q/${code}`}
         qrCode={code}
         showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
         pdConsent={pdConsent}
         watermarkEnabled={reviewProps.watermarkEnabled}
+        site={{
+          template: resolveCardSiteTemplate(est.siteTemplate, est.industry, isPro),
+          watermark: reviewProps.watermarkEnabled ? "promo" : "none",
+          publicUrl: cardUrl,
+        }}
         {...brandProps}
       />
+      </>
     );
   }
 

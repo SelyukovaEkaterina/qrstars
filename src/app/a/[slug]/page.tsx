@@ -1,149 +1,51 @@
 import { notFound } from "next/navigation";
-import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
+import { toPublicBusinessCard } from "@/lib/business-card";
 import prisma from "@/lib/prisma";
-import { effectiveReviewRouting } from "@/lib/review-routing";
-import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons, parseModuleTypes } from "@/lib/page-modules";
-import { resolveMenu, resolveBusinessCard, resolveWifiConfig } from "@/lib/establishment-content";
 import { resolveBrandSettings } from "@/lib/brand-theme";
-import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { getSlugPageCache, setSlugPageCache } from "@/lib/cache";
 import type { Metadata } from "next";
-import type { ComponentProps } from "react";
-import type MicroLandingView from "@/components/scan/MicroLandingView";
 import LandingLockedState from "@/components/scan/LandingLockedState";
 import { establishmentCanShowPublicLanding } from "@/lib/qr-mode-access";
 import { MICROSITE_HOST_SUFFIX } from "@/lib/microsite-host";
+import { resolveCardSiteTemplate } from "@/lib/site-templates";
+import { businessCardJsonLd, micrositeJsonLd } from "@/lib/site-seo";
+import { absolutePublicUrl } from "@/lib/utils";
+import JsonLd from "@/components/scan/site/JsonLd";
+import { buildMicrositeLandingProps, type MicrositeLandingProps } from "@/lib/microsite-landing-props";
 
 interface SlugPageProps {
   params: Promise<{ slug: string }>;
 }
 
-type SlugLandingProps = ComponentProps<typeof MicroLandingView>;
-
-const establishmentContentInclude = {
-  menu: { include: { items: { orderBy: { order: "asc" as const } } } },
-  businessCard: true,
-  wifiConfig: true,
-  customPages: {
-    where: { enabled: true },
-    orderBy: { createdAt: "asc" as const },
-    include: { fileAsset: true },
-  },
-  forms: { include: { fields: { orderBy: { order: "asc" as const } } }, orderBy: { createdAt: "asc" as const } },
-  promocodes: { where: { isActive: true }, take: 1 },
-  user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
-} as const;
+type SlugLandingProps = MicrositeLandingProps;
 
 export async function generateMetadata({ params }: SlugPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const cached = await getSlugPageCache<{ establishmentName: string }>(slug);
-  if (cached?.establishmentName) {
-    return { title: cached.establishmentName };
-  }
   const est = await prisma.establishment.findUnique({
     where: { shortSlug: slug },
-    select: { name: true },
+    select: {
+      name: true,
+      landingSubtitle: true,
+      coverUrl: true,
+      logoUrl: true,
+      address: true,
+      businessCard: { select: { fullName: true, title: true, avatarUrl: true, serviceArea: true } },
+      _count: { select: { qrcodes: { where: { isActive: true, mode: "LANDING" } } } },
+    },
   });
-  return { title: est?.name ?? "Страница заведения" };
-}
-
-async function buildSlugLandingProps(slug: string): Promise<SlugLandingProps | null> {
-  const est = await prisma.establishment.findUnique({
-    where: { shortSlug: slug },
-    include: establishmentContentInclude,
-  });
-
-  if (!est) return null;
-
-  const brand = resolveBrandSettings(est);
-  const brandProps = { brandColor: brand.brandColor, pageAppearance: brand.pageAppearance };
-
-  const sub = est.user.subscriptions[0];
-  const isPro = sub?.plan === "PRO" || sub?.plan === "NETWORK";
-  let promoCode: string | undefined;
-  if (isPro && est.promocodes.length > 0) {
-    promoCode = est.promocodes[0].code;
-  }
-
-  const reviewRouting = effectiveReviewRouting(isPro, est.reviewRouting, est);
-  const platformUrls = {
-    yandexMapsUrl: est.yandexMapsUrl,
-    twoGisUrl: est.twoGisUrl,
-    avitoUrl: est.avitoUrl,
-  };
-
-  const pageModules = parsePageModules(est.pageModules);
-  const moduleOrder = parseModuleOrder(est.moduleOrder);
-  const moduleLabels = parseModuleLabels(est.moduleLabels);
-  const moduleIcons = parseModuleIcons(est.moduleIcons);
-  const moduleTypes = parseModuleTypes(est.moduleTypes);
-
-  const rawMenu = resolveMenu(est, null);
-  const businessCard = resolveBusinessCard(est, null);
-  const wifiConfig = resolveWifiConfig(est, null);
-
-  const safeCard = businessCard ? toPublicBusinessCard(businessCard) : null;
-
-  const extraMenuIds = Object.values(moduleTypes).filter(m => m.type === "menu").map(m => m.instanceId);
-  const extraBcIds = Object.values(moduleTypes).filter(m => m.type === "businessCard").map(m => m.instanceId);
-  const extraWifiIds = Object.values(moduleTypes).filter(m => m.type === "wifi").map(m => m.instanceId);
-
-  const [extraMenusRaw, extraBusinessCards, extraWifiConfigs] = await Promise.all([
-    extraMenuIds.length > 0
-      ? prisma.qRMenu.findMany({ where: { id: { in: extraMenuIds } }, include: { items: { orderBy: { order: "asc" } } } })
-      : Promise.resolve([]),
-    extraBcIds.length > 0
-      ? prisma.businessCard.findMany({ where: { id: { in: extraBcIds } } })
-      : Promise.resolve([]),
-    extraWifiIds.length > 0
-      ? prisma.wifiConfig.findMany({ where: { id: { in: extraWifiIds } } })
-      : Promise.resolve([]),
-  ]);
-
-  const menuForClient = rawMenu
-    ? JSON.parse(JSON.stringify(sanitizeMenuForClient(rawMenu)))
-    : null;
-  const extraMenus = extraMenusRaw.map((m) =>
-    JSON.parse(JSON.stringify(sanitizeMenuForClient(m)))
-  );
-
+  if (!est) return { title: "Страница заведения" };
+  const url = `https://${slug}${MICROSITE_HOST_SUFFIX}`;
+  const card = est._count.qrcodes === 0 ? est.businessCard : null;
+  const title = card ? [card.fullName, card.title].filter(Boolean).join(" — ") : est.name;
+  const description = card
+    ? [card.title ? `${card.title}: телефон, услуги и цены, заявка онлайн` : "Контакты, услуги и цены", card.serviceArea].filter(Boolean).join(" · ")
+    : [est.landingSubtitle?.trim() || `${est.name}: меню, контакты, часы работы и отзывы`, est.address].filter(Boolean).join(" · ");
+  const image = absolutePublicUrl(card?.avatarUrl || est.coverUrl || est.logoUrl);
   return {
-    establishmentName: est.name,
-    industry: est.industry,
-    establishmentId: est.id,
-    qrCodeId: "",
-    pageModules,
-    moduleOrder,
-    moduleLabels,
-    moduleIcons,
-    moduleTypes,
-    menu: menuForClient,
-    businessCard: safeCard,
-    wifiConfig: wifiConfig ? JSON.parse(JSON.stringify(wifiConfig)) : null,
-    reviewRouting,
-    customPages: JSON.parse(JSON.stringify(est.customPages || [])),
-    extraMenus,
-    extraBusinessCards: JSON.parse(
-      JSON.stringify(
-        extraBusinessCards.map((bc: Record<string, unknown>) =>
-          toPublicBusinessCard(bc as unknown as BusinessCardRow),
-        ),
-      ),
-    ),
-    extraWifiConfigs: JSON.parse(JSON.stringify(extraWifiConfigs)),
-    forms: JSON.parse(JSON.stringify(est.forms || [])),
-    platformUrls,
-    watermarkEnabled: isPro ? !est.watermarkEnabled : true,
-    showPromo: isPro && !!promoCode,
-    promoCode,
-    ...brandProps,
-    logoUrl: est.logoUrl,
-    coverUrl: est.coverUrl,
-    landingSubtitle: est.landingSubtitle,
-    address: est.address,
-    phone: est.phone,
-    yandexMapsUrl: est.yandexMapsUrl,
-    workingHours: est.workingHours,
+    title,
+    description,
+    alternates: { canonical: url },
+    openGraph: { title, description, url, type: card ? "profile" : "website", ...(image ? { images: [image] } : {}) },
   };
 }
 
@@ -173,7 +75,7 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
 
   let landingProps = await getSlugPageCache<SlugLandingProps>(slug);
   if (!landingProps) {
-    landingProps = await buildSlugLandingProps(slug);
+    landingProps = await buildMicrositeLandingProps({ shortSlug: slug });
     if (!landingProps) {
       notFound();
     }
@@ -182,7 +84,23 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
 
   const MicroLandingView = (await import("@/components/scan/MicroLandingView")).default;
 
-  return <MicroLandingView {...landingProps} />;
+  return (
+    <>
+      <JsonLd
+        data={micrositeJsonLd({
+          name: landingProps.establishmentName,
+          url: `https://${slug}${MICROSITE_HOST_SUFFIX}`,
+          description: landingProps.landingSubtitle,
+          image: absolutePublicUrl(landingProps.coverUrl || landingProps.logoUrl),
+          address: landingProps.address,
+          telephone: landingProps.phone,
+          workingHours: landingProps.workingHours,
+          sameAs: [landingProps.platformUrls.yandexMapsUrl, landingProps.platformUrls.twoGisUrl],
+        })}
+      />
+      <MicroLandingView {...landingProps} />
+    </>
+  );
 }
 
 async function renderBusinessCardForSlug(slug: string, isPro: boolean) {
@@ -205,9 +123,26 @@ async function renderBusinessCardForSlug(slug: string, isPro: boolean) {
   const bc = est.businessCard;
   const brand = resolveBrandSettings(est);
   const BusinessCardView = (await import("@/components/scan/BusinessCardView")).default;
+  const publicCard = toPublicBusinessCard(bc);
   return (
+    <>
+    <JsonLd
+      data={businessCardJsonLd({
+        fullName: publicCard.fullName,
+        url: `https://${slug}${MICROSITE_HOST_SUFFIX}`,
+        title: publicCard.title,
+        about: publicCard.about,
+        image: absolutePublicUrl(publicCard.avatarUrl),
+        telephone: publicCard.phone,
+        email: publicCard.email,
+        address: publicCard.address,
+        serviceArea: publicCard.serviceArea,
+        services: publicCard.services,
+        sameAs: [publicCard.website, publicCard.reviewsUrl, ...publicCard.socialLinks.map((l) => l.url)],
+      })}
+    />
     <BusinessCardView
-      card={toPublicBusinessCard(bc)}
+      card={publicCard}
       shareUrl={`https://${slug}${MICROSITE_HOST_SUFFIX}`}
       qrCode={cardQr.code}
       showContactForm={bc.contactEnabled && !!bc.contactMessengerId}
@@ -215,6 +150,12 @@ async function renderBusinessCardForSlug(slug: string, isPro: boolean) {
       watermarkEnabled={isPro ? !est.watermarkEnabled : true}
       brandColor={brand.brandColor}
       pageAppearance={brand.pageAppearance}
+      site={{
+        template: resolveCardSiteTemplate(est.siteTemplate, est.industry, isPro),
+        watermark: isPro && est.watermarkEnabled ? "none" : "promo",
+        publicUrl: `https://${slug}${MICROSITE_HOST_SUFFIX}`,
+      }}
     />
+    </>
   );
 }

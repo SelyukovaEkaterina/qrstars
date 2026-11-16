@@ -41,7 +41,7 @@ const dynamicUrl = registerUrl('home_gallery', Astro.url.searchParams);
       </div>
       <h2 class="text-3xl font-bold mb-4 max-w-2xl mx-auto">QR-код может быть красивым</h2>
       <p class="text-slate-600 max-w-2xl mx-auto leading-relaxed">
-        Сердце для цветочного, машина для такси, крест для клиники — {ART_PRESETS.length} готовых арт-стилей с вашим логотипом и цветами. Все коды на этой странице настоящие: наведите камеру телефона.
+        Сердце для цветочного, машина для такси, крест для клиники. Доступно {ART_PRESETS.length} готовых стилей, в любой можно поставить ваш логотип и цвета. Коды ниже настоящие: наведите камеру телефона, и откроется наш сайт.
       </p>
     </div>
 
@@ -51,7 +51,7 @@ const dynamicUrl = registerUrl('home_gallery', Astro.url.searchParams);
           href={`/free-qr-generator.html?art=${item.id}`}
           data-goal="qr_gallery_click"
           data-goal-params={JSON.stringify({ preset: item.id })}
-          title={`${item.name} — ${item.description}`}
+          title={`${item.name}: ${item.description}`}
           class="qr-gallery-card group flex flex-col rounded-2xl border border-slate-200 bg-white hover:border-primary/40 hover:shadow-lg hover:-translate-y-0.5 transition"
         >
           <span class="flex aspect-square items-center justify-center p-2.5 sm:p-4">

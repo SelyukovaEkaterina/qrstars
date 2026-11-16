@@ -35,7 +35,8 @@ export type DemoQrSlug =
   | "demo3-file"
   | "demo3-menu"
   | "demo-tips"
-  | "demo-master";
+  | "demo-master"
+  | "demo-seller";
 
 export interface DemoQrCatalogItem {
   slug: DemoQrSlug;
@@ -122,6 +123,13 @@ export const DEMO_QR_CATALOG: DemoQrCatalogItem[] = [
     title: "Визитка мастера",
     description: "Позвонить, WhatsApp, услуги и цены, сохранить контакт",
     emoji: "🔧",
+  },
+  {
+    slug: "demo-seller",
+    mode: "LANDING",
+    title: "Страница товара для селлера",
+    description: "QR на вкладыш: инструкция, поддержка, отзыв на WB и Ozon, другие товары",
+    emoji: "📦",
   },
   {
     slug: "demo2-landing",
@@ -519,6 +527,14 @@ export const demo2BusinessCard = {
     { type: "vk", url: "https://vk.com" },
   ],
   accentColor: "#dc2626",
+  services: [
+    { name: "Шиномонтаж R13–R16, комплект", price: "от 1 600 ₽" },
+    { name: "Шиномонтаж R17–R19, комплект", price: "от 2 400 ₽" },
+    { name: "Балансировка колеса", price: "от 250 ₽" },
+    { name: "Ремонт прокола", price: "от 400 ₽" },
+    { name: "Сезонное хранение, 4 колеса", price: "3 500 ₽ / сезон" },
+    { name: "Правка литого диска", price: "от 1 500 ₽" },
+  ],
 };
 
 export const demo2WifiConfig = {
@@ -636,6 +652,14 @@ export const demo3BusinessCard = {
     { type: "vk", url: "https://vk.com" },
   ],
   accentColor: "#0891b2",
+  services: [
+    { name: "Консультация и план лечения", price: "бесплатно" },
+    { name: "Профессиональная гигиена", price: "4 900 ₽" },
+    { name: "Лечение кариеса", price: "от 5 500 ₽" },
+    { name: "Отбеливание ZOOM 4", price: "18 000 ₽" },
+    { name: "Имплант под ключ", price: "от 45 000 ₽" },
+    { name: "Детская стоматология", price: "от 2 500 ₽" },
+  ],
 };
 
 export const demo3WifiConfig = {
@@ -777,4 +801,137 @@ export const demo2ModuleTypes: ModuleTypes = {
 
 export const demo3ModuleTypes: ModuleTypes = {
   [`form-${demo3Form.id}`]: { type: "form", instanceId: demo3Form.id },
+};
+
+
+// ── Демо для селлеров маркетплейсов (H-008): страница товара по QR на вкладыше ──
+// Без фильтра отзывов и без бонусов за отзыв: на WB и Ozon это запрещено.
+
+const sellerImage = (file: string) => `/demo/seller/${file}`;
+
+export const demoSellerName = "Лучик — свет для дома";
+
+export const demoSellerMenu = {
+  id: "demo-seller-catalog",
+  title: "Другие наши товары",
+  description: "Найдите по артикулу на Wildberries или Ozon",
+  cartEnabled: false,
+  askPhone: false,
+  askEmail: false,
+  askAddress: false,
+  items: [
+    { id: "ds-1", name: "Лампа Лучик Pro с беспроводной зарядкой", category: "Свет", weight: "Арт. 184522371", price: "2 490 ₽", description: "Три режима света, зарядка телефона прямо на подставке.", imageUrl: sellerImage("lamp.svg"), order: 0 },
+    { id: "ds-2", name: "Ночник «Луна» с таймером", category: "Свет", weight: "Арт. 184522372", price: "1 190 ₽", description: "Мягкий свет для детской, выключается сам через 30 минут.", imageUrl: sellerImage("nightlight.svg"), order: 1 },
+    { id: "ds-3", name: "Органайзер для стола «Порядок»", category: "Для дома", weight: "Арт. 184522373", price: "890 ₽", description: "Три отсека для ручек, зарядок и мелочей.", imageUrl: sellerImage("organizer.svg"), order: 2 },
+    { id: "ds-4", name: "Увлажнитель «Облачко»", category: "Для дома", weight: "Арт. 184522374", price: "2 190 ₽", description: "Тихий, 12 часов работы, ночная подсветка.", imageUrl: sellerImage("humidifier.svg"), order: 3 },
+    { id: "ds-5", name: "Термокружка 450 мл", category: "Для дома", weight: "Арт. 184522375", price: "990 ₽", description: "Держит тепло 6 часов, не протекает в сумке.", imageUrl: sellerImage("mug.svg"), order: 4 },
+  ],
+};
+
+export const demoSellerForm: FormViewData = {
+  id: "demo-seller-support",
+  title: "Проблема с товаром?",
+  description: "Напишите нам — решим быстрее, чем возврат. Демо: заявка никуда не отправится.",
+  submitLabel: "Написать продавцу",
+  successMessage: "Спасибо! Мы ответим в течение рабочего дня и поможем разобраться.",
+  enabled: true,
+  fields: [
+    { id: "dsf-1", label: "Имя", placeholder: "Как к вам обращаться", helpText: null, type: "text", required: true, options: null, order: 0 },
+    { id: "dsf-2", label: "Телефон или Telegram", placeholder: "+7 999 123-45-67 или @username", helpText: null, type: "text", required: true, options: null, order: 1 },
+    { id: "dsf-3", label: "Номер заказа", placeholder: "Необязательно", helpText: "Есть в личном кабинете маркетплейса", type: "text", required: false, options: null, order: 2 },
+    { id: "dsf-4", label: "Что случилось", placeholder: null, helpText: null, type: "select", required: true, options: ["Не включается", "Не заряжает телефон", "Не хватает деталей", "Повреждение при доставке", "Вопрос по работе", "Другое"], order: 3 },
+    { id: "dsf-5", label: "Подробнее", placeholder: "Опишите, что происходит", helpText: null, type: "textarea", required: false, options: null, order: 4 },
+  ],
+};
+
+export const demoSellerCustomPages = [
+  {
+    id: "demo-seller-guide",
+    menuItemLabel: "Инструкция",
+    title: "Как пользоваться лампой Лучик Pro",
+    content:
+      "<h2>Подключение</h2><ol><li>Вставьте кабель USB-C в разъём на задней стороне основания.</li><li>Подключите блок питания 18 Вт или мощнее — слабый блок не потянет зарядку телефона.</li><li>Коснитесь сенсора на основании — лампа включится.</li></ol><h2>Режимы света</h2><ul><li>Короткое касание — включить и выключить.</li><li>Двойное касание — сменить оттенок: тёплый, нейтральный, холодный.</li><li>Удерживайте палец — плавно меняется яркость.</li></ul><h2>Беспроводная зарядка</h2><p>Положите телефон на подставку логотипом вниз, по центру. Индикатор загорится зелёным. Чехол толще 5 мм и магнитные держатели мешают зарядке.</p><h2>Если что-то не работает</h2><p>Проверьте блок питания и кабель из комплекта. Не помогло — нажмите «Проблема с товаром?» на этой странице, мы ответим в течение рабочего дня.</p>",
+    type: "HTML",
+    url: null,
+    icon: "📘",
+    enabled: true,
+  },
+  {
+    id: "demo-seller-review-wb",
+    menuItemLabel: "Оставить отзыв на Wildberries",
+    title: "Оставить отзыв на Wildberries",
+    content: "",
+    type: "LINK",
+    url: "https://www.wildberries.ru/",
+    icon: "⭐",
+    enabled: true,
+  },
+  {
+    id: "demo-seller-review-ozon",
+    menuItemLabel: "Оставить отзыв на Ozon",
+    title: "Оставить отзыв на Ozon",
+    content: "",
+    type: "LINK",
+    url: "https://www.ozon.ru/",
+    icon: "⭐",
+    enabled: true,
+  },
+  {
+    id: "demo-seller-warranty",
+    menuItemLabel: "Гарантия и возврат",
+    title: "Гарантия 12 месяцев",
+    content:
+      "<p>На лампу действует гарантия 12 месяцев с даты получения заказа.</p><ul><li>Если лампа сломалась — напишите нам через «Проблема с товаром?», приложите номер заказа.</li><li>Заменим или вернём деньги через маркетплейс, сам товар везти никуда не нужно, пока мы не ответим.</li><li>Возврат в первые 14 дней — по правилам Wildberries и Ozon.</li></ul>",
+    type: "HTML",
+    url: null,
+    icon: "🛡️",
+    enabled: true,
+  },
+  {
+    id: "demo-seller-store",
+    menuItemLabel: "Наш магазин на Wildberries",
+    title: "Наш магазин на Wildberries",
+    content: "",
+    type: "LINK",
+    url: "https://www.wildberries.ru/",
+    icon: "🛍️",
+    enabled: true,
+  },
+];
+
+export const demoSellerPageModules: PageModules = {
+  menu: true,
+  review: false,
+  businessCard: false,
+  wifi: false,
+  tips: false,
+};
+
+export const demoSellerModuleIcons: ModuleIcons = {
+  menu: "🛍️",
+};
+
+export const demoSellerModuleTypes: ModuleTypes = {
+  [`form-${demoSellerForm.id}`]: { type: "form", instanceId: demoSellerForm.id },
+};
+
+export const demoSellerModuleOrder = [
+  "custom-demo-seller-guide",
+  `form-${demoSellerForm.id}`,
+  "custom-demo-seller-review-wb",
+  "custom-demo-seller-review-ozon",
+  "menu",
+  "custom-demo-seller-warranty",
+  "custom-demo-seller-store",
+] as const;
+
+/** Часы работы поддержки продавца. */
+export const demoSellerWorkingHours = {
+  mon: { open: "10:00", close: "19:00" },
+  tue: { open: "10:00", close: "19:00" },
+  wed: { open: "10:00", close: "19:00" },
+  thu: { open: "10:00", close: "19:00" },
+  fri: { open: "10:00", close: "19:00" },
+  sat: null,
+  sun: null,
 };

@@ -14,8 +14,12 @@ import {
 } from "@/lib/brand-theme-ui";
 import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/brand-theme-props";
 import ConsentCheckbox from "@/components/scan/ConsentCheckbox";
-import { useConsentGate } from "@/components/scan/use-consent-gate";
-import { guestPdPolicyUrl, type PdConsent } from "@/lib/pd-consent";
+import { useCardContactForm } from "@/components/scan/use-card-contact-form";
+import DesktopCardSite from "@/components/scan/site/DesktopCardSite";
+import SiteTemplateSwitcher from "@/components/scan/site/SiteTemplateSwitcher";
+import { useInitialSearch, useWideScreen } from "@/components/scan/site/use-wide-screen";
+import { isSiteTemplateId, type SiteTemplateId } from "@/lib/site-templates";
+import type { PdConsent } from "@/lib/pd-consent";
 import {
   buildBusinessCardVCard,
   cardChipLinks,
@@ -59,9 +63,100 @@ interface BusinessCardViewProps extends BrandThemeScanProps {
   isBg?: boolean;
   pdConsent?: PdConsent;
   watermarkEnabled?: boolean;
+  /**
+   * Сайт-визитка для компьютера. Только на самостоятельных страницах визитки
+   * (`/q/{code}`, короткий адрес, демо, превью) — внутри микросайта и в редакторе не передаём.
+   */
+  site?: CardSiteOptions;
 }
 
-export default function BusinessCardView({
+export interface CardSiteOptions {
+  template: SiteTemplateId;
+  /** FREE — плашка «сделать такую же визитку». */
+  watermark: "none" | "promo";
+  /** Адрес для QR «Контакт на телефон»; undefined — текущая страница, null — без QR. */
+  publicUrl?: string | null;
+  /** auto — по ширине экрана; desktop — принудительно (превью). */
+  mode?: "auto" | "desktop";
+  /** Демо: панель выбора шаблона и `?t=` / `?theme=` / `?bar=0`. */
+  switcher?: boolean;
+}
+
+export default function BusinessCardView(props: BusinessCardViewProps) {
+  const { site, card, shareUrl, brandColor, pageAppearance } = props;
+  const wide = useWideScreen();
+  const initialSearch = useInitialSearch();
+  const { theme } = useBrandThemeScan({ brandColor, pageAppearance });
+  const [templateChoice, setTemplateChoice] = useState<SiteTemplateId | null>(null);
+  const [appearanceChoice, setAppearanceChoice] = useState<"light" | "dark" | null>(null);
+  const vcardUrl = useMemo(
+    () => `data:text/vcard;charset=utf-8,${encodeURIComponent(buildBusinessCardVCard(card, { cardUrl: shareUrl }))}`,
+    [card, shareUrl]
+  );
+
+  if (!site) return <MobileBusinessCard {...props} />;
+
+  const urlParams = site.switcher ? new URLSearchParams(initialSearch) : null;
+  const urlTemplate = urlParams?.get("t");
+  const urlTheme = urlParams?.get("theme");
+  const template: SiteTemplateId = templateChoice ?? (isSiteTemplateId(urlTemplate) ? urlTemplate : site.template);
+  const appearance: "light" | "dark" =
+    appearanceChoice ?? (urlTheme === "dark" ? "dark" : urlTheme === "light" ? "light" : pageAppearance === "dark" ? "dark" : "light");
+  const showBar = !!site.switcher && urlParams?.get("bar") !== "0";
+
+  const setParam = (key: string, value: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set(key, value);
+    history.replaceState(null, "", url.toString());
+  };
+
+  const desktop = (
+    <DesktopCardSite
+      template={template}
+      appearance={appearance}
+      brandColor={theme.accentHex}
+      card={card}
+      qrCode={props.qrCode}
+      showContactForm={!!props.showContactForm}
+      pdConsent={props.pdConsent}
+      vcardUrl={vcardUrl}
+      watermark={site.watermark}
+      publicUrl={site.publicUrl}
+      overlay={
+        showBar ? (
+          <SiteTemplateSwitcher
+            template={template}
+            appearance={appearance}
+            onTemplate={(id) => {
+              setTemplateChoice(id);
+              setParam("t", id);
+            }}
+            onAppearance={(a) => {
+              setAppearanceChoice(a);
+              setParam("theme", a);
+            }}
+            ctaHref="https://app.qrstars.ru/register?intent=card&utm_source=qrstars&utm_medium=demo&utm_campaign=master_card&utm_content=card_site"
+            ctaLabel="Хочу такую визитку"
+          />
+        ) : null
+      }
+    />
+  );
+
+  if (site.mode === "desktop" || wide === true) return desktop;
+  if (wide === false) return <MobileBusinessCard {...props} />;
+  // До гидрации — обе версии, лишнюю прячет CSS.
+  return (
+    <>
+      <div className="flex min-h-screen flex-col lg:hidden">
+        <MobileBusinessCard {...props} />
+      </div>
+      <div className="hidden lg:block">{desktop}</div>
+    </>
+  );
+}
+
+function MobileBusinessCard({
   card,
   qrCode,
   shareUrl,
@@ -85,19 +180,23 @@ export default function BusinessCardView({
   const tipsHref = safeHttpUrl(card.tipsUrl);
 
   const [contactOpen, setContactOpen] = useState(false);
-  const [guestName, setGuestName] = useState("");
-  const [guestPhone, setGuestPhone] = useState("");
-  const [message, setMessage] = useState("");
-  const [sending, setSending] = useState(false);
-  const [contactError, setContactError] = useState("");
-  const [contactSuccess, setContactSuccess] = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-
-  // Согласие — когда гость оставляет телефон или у владельца опубликована своя политика.
-  const needsConsent = !!pdConsent?.ready || guestPhone.trim() !== "";
-  const policyUrl = guestPdPolicyUrl(pdConsent);
-  const { consentChecked, setConsentChecked, consentHighlight, consentRef, ensureConsent } =
-    useConsentGate(needsConsent);
+  const form = useCardContactForm(qrCode, pdConsent);
+  const {
+    guestName,
+    setGuestName,
+    guestPhone,
+    setGuestPhone,
+    message,
+    setMessage,
+    sending,
+    error: contactError,
+    success: contactSuccess,
+    setSuccess: setContactSuccess,
+    needsConsent,
+    policyUrl,
+  } = form;
+  const { consentChecked, setConsentChecked, consentHighlight, consentRef } = form.consent;
 
   const initials = card.fullName
     .split(" ")
@@ -128,52 +227,7 @@ export default function BusinessCardView({
     }
   };
 
-  const handleSendContact = async () => {
-    if (!qrCode) return;
-
-    if (!guestName.trim()) {
-      setContactError("Укажите ваше имя");
-      return;
-    }
-    if (!message.trim() || message.trim().length < 2) {
-      setContactError("Напишите сообщение (минимум 2 символа)");
-      return;
-    }
-    if (!ensureConsent()) return;
-
-    setSending(true);
-    setContactError("");
-
-    try {
-      const res = await fetch("/api/business-cards/contact", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          qrCode,
-          guestName: guestName.trim(),
-          guestPhone: guestPhone.trim() || undefined,
-          message: message.trim(),
-          pdConsentGiven: consentChecked,
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setContactError(data.error || "Не удалось отправить");
-        return;
-      }
-
-      setContactSuccess(true);
-      setGuestName("");
-      setGuestPhone("");
-      setMessage("");
-    } catch {
-      setContactError("Ошибка соединения");
-    } finally {
-      setSending(false);
-    }
-  };
+  const handleSendContact = form.send;
 
   const rowClass = "flex items-center gap-3 p-3 rounded-xl border transition-colors hover:opacity-90";
 
@@ -547,14 +601,14 @@ export default function BusinessCardView({
             href="https://qrstars.ru/qr-business-cards.html?utm_source=qrstars&utm_medium=watermark&utm_campaign=business_card"
             target="_blank"
             rel="noopener noreferrer"
-            className="relative z-10 mx-auto mt-6 flex w-fit items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium shadow-sm"
+            className="relative z-10 mx-auto mt-6 flex w-fit max-w-full items-center gap-2 rounded-full border px-4 py-2 text-xs sm:text-sm font-medium shadow-sm"
             style={{
               ...rowSurfaceStyle(isBg),
               color: headingColor(isBg),
             }}
           >
-            <img src="/logo-mark.svg" alt="" className="h-5 w-5" />
-            <span className="whitespace-nowrap">
+            <img src="/logo-mark.svg" alt="" className="h-5 w-5 shrink-0" />
+            <span className="min-w-0 text-center leading-snug">
               Сделано в QrStars ·{" "}
               <span className="underline underline-offset-2">создать бесплатно</span>
             </span>

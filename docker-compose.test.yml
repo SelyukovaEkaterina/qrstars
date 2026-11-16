@@ -77,6 +77,8 @@ services:
       E2E_TESTING: "true"
       DISABLE_REGISTER_RATE_LIMIT: "true"
       CRON_SECRET: "test-cron-secret-for-e2e"
+      INSIGHTS_DATA_SECRET: "test-insights-secret-for-e2e"
+      INBOUND_EMAIL_SECRET: "test-inbound-email-secret-for-e2e"
       ROBOKASSA_MERCHANT_LOGIN: "QrStars"
       ROBOKASSA_PASSWORD_1: "test-password-1"
       ROBOKASSA_PASSWORD_2: "test-password-2"
@@ -108,6 +110,8 @@ services:
       BASE_URL: "http://app:3000"
       S3_PUBLIC_BASE: "http://minio-test:9000/qrwin-test"
       CRON_SECRET: "test-cron-secret-for-e2e"
+      INSIGHTS_DATA_SECRET: "test-insights-secret-for-e2e"
+      INBOUND_EMAIL_SECRET: "test-inbound-email-secret-for-e2e"
       ROBOKASSA_PASSWORD_2: "test-password-2"
     depends_on:
       app:

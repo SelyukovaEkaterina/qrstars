@@ -11,6 +11,8 @@ import BusinessCardConstructor, {
 } from "@/components/dashboard/BusinessCardConstructor";
 import BusinessCardView from "@/components/scan/BusinessCardView";
 import CardShortAddress from "@/components/dashboard/project/CardShortAddress";
+import SiteTemplatePicker from "@/components/dashboard/project/SiteTemplatePicker";
+import type { SiteTemplateId } from "@/lib/site-templates";
 import { scanUrlForCode } from "@/lib/utils";
 import { projectQrNewPath, projectQrPath } from "@/lib/project-routes";
 import type { PageAppearance } from "@/lib/brand-theme";
@@ -23,6 +25,8 @@ interface ProjectCardEditorProps {
   cardQrcodes: Array<{ id: string; code: string; label: string | null }>;
   welcome?: boolean;
   shortAddress?: { hasPaidFeatures: boolean; slug: string | null; suggestion: string } | null;
+  /** Сайт-визитка для компьютера; null — у проекта микросайт, сайт строится из него. */
+  cardSite?: { template: SiteTemplateId; hasPaidFeatures: boolean; frozen: boolean } | null;
 }
 
 export default function ProjectCardEditor({
@@ -33,7 +37,18 @@ export default function ProjectCardEditor({
   cardQrcodes,
   welcome = false,
   shortAddress = null,
+  cardSite = null,
 }: ProjectCardEditorProps) {
+  const [siteTemplate, setSiteTemplate] = useState<SiteTemplateId | null>(cardSite?.template ?? null);
+  const saveSiteTemplate = async (id: SiteTemplateId) => {
+    setSiteTemplate(id);
+    const res = await fetch(`/api/establishments/${projectId}/page`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ siteTemplate: id }),
+    }).catch(() => null);
+    if (!res?.ok) setError("Не удалось сохранить шаблон сайта");
+  };
   const router = useRouter();
   const [preview, setPreview] = useState<BusinessCardFormData | null>(initialCard);
   const [saving, setSaving] = useState(false);
@@ -155,6 +170,19 @@ export default function ProjectCardEditor({
         />
       )}
 
+      {cardSite && siteTemplate && initialCard && (
+        <SiteTemplatePicker
+          kind="card"
+          establishmentId={projectId}
+          value={siteTemplate}
+          onChange={saveSiteTemplate}
+          brandColor={brandColor}
+          pageAppearance={pageAppearance}
+          disabled={cardSite.frozen}
+          isPro={cardSite.hasPaidFeatures}
+        />
+      )}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-start">
         <div className="min-w-0 space-y-3">
           {/* Кнопка «Сохранить» внизу длинной формы — статус показываем у нижнего края экрана, иначе его не видно. */}
@@ -178,7 +206,7 @@ export default function ProjectCardEditor({
 
         <div className="hidden lg:block lg:sticky lg:top-6">
           <p className="mb-2 text-center text-xs font-medium text-gray-500">Так видит клиент</p>
-          <div className="mx-auto h-[680px] w-[360px] overflow-y-auto rounded-[2.5rem] border-[10px] border-gray-900 bg-white shadow-xl flex flex-col">
+          <div className="mx-auto h-[680px] w-[360px] overflow-y-auto overflow-x-hidden rounded-[2.5rem] border-[10px] border-gray-900 bg-white shadow-xl flex flex-col">
             {preview?.fullName.trim() ? (
               <BusinessCardView
                 card={{

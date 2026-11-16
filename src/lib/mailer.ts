@@ -34,7 +34,12 @@ export async function sendMail(
   to: string,
   subject: string,
   html: string,
-  options?: { kind?: EmailKind; text?: string }
+  options?: {
+    kind?: EmailKind;
+    text?: string;
+    /** Ссылка отписки для заголовков List-Unsubscribe (кнопка «Отписаться» в Gmail / Яндекс). */
+    listUnsubscribeUrl?: string;
+  }
 ) {
   const kind = options?.kind ?? "other";
   if (process.env.E2E_TESTING === "true") {
@@ -49,6 +54,15 @@ export async function sendMail(
       html,
       text: options?.text || htmlToText(html),
       replyTo: process.env.SMTP_REPLY_TO || from,
+      ...(options?.listUnsubscribeUrl
+        ? {
+            headers: {
+              "List-Unsubscribe": `<${options.listUnsubscribeUrl}>`,
+              // POST /api/unsubscribe обрабатывает отписку в один клик (RFC 8058).
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          }
+        : {}),
     });
     console.info("Email sent", {
       to,
@@ -245,10 +259,39 @@ export function sendSupportStaffReplyEmail(
          style="display:inline-block;padding:12px 24px;background:#4f46e5;color:white;text-decoration:none;border-radius:8px;margin-top:8px;">
         Открыть чат в кабинете
       </a>
-      <p style="color:#666;margin-top:24px;font-size:12px;">Ответить можно в личном кабинете → Поддержка.</p>
+      <p style="color:#666;margin-top:24px;font-size:12px;">Ответить можно прямо на это письмо или в личном кабинете → Поддержка.</p>
     </div>
     `
   );
+}
+
+/**
+ * Ответ оператора из темы «Почта» в Telegram человеку без аккаунта:
+ * простое письмо с цитатой исходного (Reply-To — support@, переписку можно продолжать).
+ */
+export async function sendSupportMailReply(
+  to: string,
+  subject: string | null,
+  body: string,
+  quoted: string
+): Promise<boolean> {
+  const cleanSubject = (subject || "").replace(/^\s*((re|fwd?)\s*:\s*)+/i, "").trim();
+  const quoteHtml = quoted.trim()
+    ? `<blockquote style="margin:24px 0 0;padding:0 0 0 12px;border-left:3px solid #e5e7eb;color:#6b7280;">${escapeHtml(quoted.trim().slice(0, 2000)).replace(/\n/g, "<br>")}</blockquote>`
+    : "";
+  const ok = await sendMail(
+    to,
+    cleanSubject ? `Re: ${cleanSubject}` : "Ответ QrStars",
+    `
+    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color:#1f2937; line-height:1.6;">
+      <div>${escapeHtml(body).replace(/\n/g, "<br>")}</div>
+      <p style="margin-top:24px;color:#6b7280;">—<br>Команда QrStars · <a href="https://qrstars.ru" style="color:#4f46e5;">qrstars.ru</a></p>
+      ${quoteHtml}
+    </div>
+    `,
+    { kind: "other" }
+  );
+  return ok !== false;
 }
 
 export function sendPromoSurveyEmail(to: string, surveyUrl: string) {

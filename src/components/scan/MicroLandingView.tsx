@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import NextImage from "next/image";
 import {
   Coffee,
@@ -59,6 +59,11 @@ import { useBrandThemeScan, type BrandThemeScanProps } from "@/components/scan/b
 import OpenStatusIndicator from "@/components/scan/OpenStatusIndicator";
 import { parseWorkingHours } from "@/lib/working-hours";
 import { menuHasLandingContent } from "@/lib/menu-content";
+import DesktopSite, { type SiteAction, type SiteModuleLink } from "@/components/scan/site/DesktopSite";
+import SiteTemplateSwitcher from "@/components/scan/site/SiteTemplateSwitcher";
+import { useInitialSearch, useWideScreen } from "@/components/scan/site/use-wide-screen";
+import { isSiteTemplateId, resolveSiteTemplate, type SiteTemplateId } from "@/lib/site-templates";
+import { cardMessengerButtons } from "@/lib/business-card";
 
 export interface CustomPageFileAsset {
   id: string;
@@ -142,7 +147,21 @@ interface MicroLandingViewProps {
   phone?: string | null;
   yandexMapsUrl?: string | null;
   workingHours?: unknown;
+  /** Шаблон сайта для компьютера (`Establishment.siteTemplate`), пусто — по отрасли. */
+  siteTemplate?: string | null;
+  /** Фото первого экрана сайта, если отличается от обложки (демо). */
+  siteCoverUrl?: string | null;
+  /**
+   * auto — на экране ≥1024 px сайт, на телефоне микросайт; desktop/mobile — принудительно
+   * (превью в кабинете). При `embedded` всегда микросайт.
+   */
+  siteMode?: "auto" | "desktop" | "mobile";
+  /** Адрес для QR «Сайт на телефоне»; undefined — текущий адрес, null — без QR. */
+  sitePublicUrl?: string | null;
+  /** Демо: плавающая панель выбора шаблона (и `?t=` / `?theme=` в адресе). */
+  siteTemplateSwitcher?: boolean;
 }
+
 
 const BUILTIN_ICONS: Record<BuiltinModuleKey, typeof Coffee> = {
   menu: Coffee,
@@ -198,8 +217,39 @@ export default function MicroLandingView({
   phone,
   yandexMapsUrl,
   workingHours,
+  siteTemplate,
+  siteCoverUrl,
+  siteMode = "auto",
+  sitePublicUrl,
+  siteTemplateSwitcher = false,
 }: MicroLandingViewProps) {
   const parsedHours = parseWorkingHours(workingHours);
+  const wideScreen = useWideScreen();
+  const initialSearch = useInitialSearch();
+  const demoFromUrl = useMemo(() => {
+    type DemoUrl = { template: SiteTemplateId | null; appearance: "light" | "dark" | null; bar: boolean };
+    if (!siteTemplateSwitcher) return { template: null, appearance: null, bar: false } as DemoUrl;
+    const params = new URLSearchParams(initialSearch);
+    const tpl = params.get("t");
+    const theme = params.get("theme");
+    const result: DemoUrl = {
+      template: isSiteTemplateId(tpl) ? tpl : null,
+      appearance: theme === "dark" ? "dark" : theme === "light" ? "light" : null,
+      bar: params.get("bar") !== "0",
+    };
+    return result;
+  }, [siteTemplateSwitcher, initialSearch]);
+  const [demoTemplateChoice, setDemoTemplate] = useState<SiteTemplateId | null>(null);
+  const [demoAppearanceChoice, setDemoAppearance] = useState<"light" | "dark" | null>(null);
+  const demoTemplate = demoTemplateChoice ?? demoFromUrl.template;
+  const demoAppearance = demoAppearanceChoice ?? demoFromUrl.appearance;
+  const demoBar = demoFromUrl.bar;
+
+  const updateDemoParam = (key: string, value: string) => {
+    const url = new URL(window.location.href);
+    url.searchParams.set(key, value);
+    history.replaceState(null, "", url.toString());
+  };
   const [section, setSectionState] = useState<string>(
     syncSection ?? initialSection ?? "home"
   );
@@ -495,37 +545,6 @@ export default function MicroLandingView({
     return null;
   })();
 
-  if (sectionContent) {
-    return (
-      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
-        {sectionContent}
-      </LandingSectionShell>
-    );
-  }
-
-  if (showEmptySectionPlaceholder && section !== "home") {
-    return (
-      <div
-        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center min-h-[inherit]"
-        style={scanRootStyle(theme, { isBg: !!coverUrl, embedded })}
-      >
-        <div
-          className="w-12 h-12 rounded-2xl flex items-center justify-center"
-          style={iconBoxStyle(!!coverUrl)}
-        >
-          <Pencil className="w-5 h-5" />
-        </div>
-        <p className="text-sm font-semibold" style={{ color: headingColor(!!coverUrl) }}>
-          Раздел «{getLabel(section)}» не заполнен
-        </p>
-        <p className="text-xs leading-relaxed" style={{ color: mutedColor(!!coverUrl) }}>
-          Заполните его в редакторе слева — тогда раздел появится здесь и на микросайте.
-          Пока он пуст, гость его не увидит.
-        </p>
-      </div>
-    );
-  }
-
   const enabledModules = resolveEnabledModuleOrder(
     pageModules,
     customPages,
@@ -564,6 +583,38 @@ export default function MicroLandingView({
     if (!cId) return null;
     return customPageMap.get(cId)?.icon ?? null;
   };
+
+  const renderMobile = (): React.ReactNode => {
+  if (sectionContent) {
+    return (
+      <LandingSectionShell showBack={showBackToHome} onBack={goHome} embedded={embedded} theme={theme} dark={dark} coverUrl={coverUrl}>
+        {sectionContent}
+      </LandingSectionShell>
+    );
+  }
+
+  if (showEmptySectionPlaceholder && section !== "home") {
+    return (
+      <div
+        className="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-10 text-center min-h-[inherit]"
+        style={scanRootStyle(theme, { isBg: !!coverUrl, embedded })}
+      >
+        <div
+          className="w-12 h-12 rounded-2xl flex items-center justify-center"
+          style={iconBoxStyle(!!coverUrl)}
+        >
+          <Pencil className="w-5 h-5" />
+        </div>
+        <p className="text-sm font-semibold" style={{ color: headingColor(!!coverUrl) }}>
+          Раздел «{getLabel(section)}» не заполнен
+        </p>
+        <p className="text-xs leading-relaxed" style={{ color: mutedColor(!!coverUrl) }}>
+          Заполните его в редакторе слева — тогда раздел появится здесь и на микросайте.
+          Пока он пуст, гость его не увидит.
+        </p>
+      </div>
+    );
+  }
 
   const wrapperClass = embedded
     ? "overflow-hidden relative flex flex-col flex-1 min-h-full"
@@ -773,6 +824,158 @@ export default function MicroLandingView({
         )}
       </div>
     </div>
+  );
+
+  };
+
+  if (embedded || siteMode === "mobile") {
+    return renderMobile();
+  }
+
+  // ── Сайт для компьютера ──────────────────────────────────────────────
+  const template: SiteTemplateId = demoTemplate ?? resolveSiteTemplate(siteTemplate, industry);
+  const appearance: "light" | "dark" = demoAppearance ?? (pageAppearance === "dark" ? "dark" : "light");
+
+  const menuInline =
+    visibleModules.includes("menu") && menu && menuHasLandingContent(menu) && !menuNeedsDeferredLoad(menu)
+      ? menu
+      : null;
+  const cardVisible = visibleModules.includes("businessCard") && businessCard ? businessCard : null;
+  const aboutPage = customPages.find(
+    (p) =>
+      visibleModules.includes(`custom-${p.id}`) &&
+      p.type !== "LINK" &&
+      p.type !== "FILE" &&
+      !!p.content?.trim()
+  );
+  const aboutKey = aboutPage ? `custom-${aboutPage.id}` : null;
+  const about = aboutPage
+    ? {
+        title: aboutPage.title || aboutPage.menuItemLabel || "О нас",
+        html: aboutPage.content,
+        text: null,
+        kicker: aboutPage.menuItemLabel || undefined,
+      }
+    : cardVisible?.about
+      ? { title: "О нас", html: null, text: cardVisible.about }
+      : null;
+
+  const linkUrlFor = (key: string): string | null => {
+    const cId = customModuleKeyToId(key);
+    if (!cId) return null;
+    const page = customPageMap.get(cId);
+    return page?.type === "LINK" ? page.url ?? null : null;
+  };
+
+  const siteModules: SiteModuleLink[] = visibleModules
+    .filter((key) => {
+      if (key === "review") return false;
+      if (key === "businessCard") return false;
+      if (key === "menu" && menuInline) return false;
+      if (key === aboutKey) return false;
+      return true;
+    })
+    .map((key, idx) => ({
+      key,
+      label: getLabel(key),
+      emoji: getEmoji(key),
+      Icon: getIcon(key, idx),
+      href: linkUrlFor(key),
+    }));
+
+  const firstKey = visibleModules[0] ?? null;
+  const primaryAction: SiteAction | null = (() => {
+    if (!firstKey) return null;
+    if (firstKey === "menu") return menuInline ? { label: "Смотреть меню", anchor: "site-menu" } : { label: getLabel("menu"), section: "menu" };
+    if (firstKey === "review") return { label: "Оставить отзыв", anchor: "site-reviews" };
+    if (firstKey === "businessCard") return { label: "Контакты", anchor: "site-contacts" };
+    if (firstKey === aboutKey) return { label: getLabel(firstKey), anchor: "site-about" };
+    const href = linkUrlFor(firstKey);
+    if (href) return { label: getLabel(firstKey), href };
+    return { label: getLabel(firstKey), section: firstKey };
+  })();
+
+  const platformLinks = [
+    platformUrls.yandexMapsUrl ? { label: "Яндекс Картах", href: platformUrls.yandexMapsUrl } : null,
+    platformUrls.twoGisUrl ? { label: "2ГИС", href: platformUrls.twoGisUrl } : null,
+  ].filter((l): l is { label: string; href: string } => !!l && /^https?:\/\//i.test(l.href));
+
+  const rawSubtitle = landingSubtitle?.trim() || null;
+  const isBgSection = !!coverUrl;
+
+  const desktopNode = (
+    <DesktopSite
+      template={template}
+      appearance={appearance}
+      brandColor={theme.accentHex}
+      name={establishmentName}
+      subtitle={rawSubtitle}
+      logoUrl={logoUrl}
+      heroImageUrl={siteCoverUrl ?? coverUrl}
+      address={address || cardVisible?.address || null}
+      phone={phone || cardVisible?.phone || null}
+      email={cardVisible?.email || null}
+      mapsUrl={yandexMapsUrl}
+      workingHours={parsedHours}
+      platformLinks={platformLinks}
+      menu={
+        menuInline
+          ? {
+              title: menuInline.title,
+              description: menuInline.description,
+              cartEnabled: !!menuInline.cartEnabled,
+              items: menuInline.items.filter((i) => !i.hidden),
+            }
+          : null
+      }
+      menuKey={menuInline ? "menu" : null}
+      services={cardVisible?.services ?? []}
+      about={about}
+      messengers={cardVisible ? cardMessengerButtons(cardVisible) : []}
+      primaryAction={primaryAction}
+      modules={siteModules}
+      reviewKey={visibleModules.includes("review") ? "review" : null}
+      onOpenSection={setSection}
+      onHome={goHome}
+      section={section !== "home" && sectionContent ? { label: getLabel(section), node: sectionContent } : null}
+      sectionFrame={{
+        style: scanRootStyle(theme, { isBg: isBgSection }),
+        coverUrl: coverUrl ?? null,
+        overlayStyle: coverOverlayStyle(),
+      }}
+      watermark={isDemo || !watermarkEnabled ? "none" : micrositePromo ? "promo" : "small"}
+      publicUrl={sitePublicUrl}
+      overlay={
+        siteTemplateSwitcher && demoBar ? (
+          <SiteTemplateSwitcher
+            template={template}
+            appearance={appearance}
+            onTemplate={(id) => {
+              setDemoTemplate(id);
+              updateDemoParam("t", id);
+            }}
+            onAppearance={(a) => {
+              setDemoAppearance(a);
+              updateDemoParam("theme", a);
+            }}
+            ctaHref="https://app.qrstars.ru/register?plan=pro&utm_source=qrstars&utm_medium=demo&utm_campaign=desktop_site"
+          />
+        ) : null
+      }
+    />
+  );
+
+  if (siteMode === "desktop") return desktopNode;
+
+  // До гидрации рендерим обе версии и прячем лишнюю CSS-ом (сервер не знает ширину экрана),
+  // после — только нужную, чтобы разделы не монтировались дважды.
+  if (wideScreen === true) return desktopNode;
+  if (wideScreen === false) return renderMobile();
+  return (
+    <>
+      <div className="lg:hidden">{renderMobile()}</div>
+      <div className="hidden lg:block">{desktopNode}</div>
+    </>
   );
 }
 

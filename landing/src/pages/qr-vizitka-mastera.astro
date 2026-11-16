@@ -1,11 +1,13 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import DemoQrScan from '../components/DemoQrScan.astro';
+import DesktopSitePromo from '../components/DesktopSitePromo.astro';
 import { cardRegisterUrl } from '../lib/utm';
 
 const DEMO_SCAN_URL = 'https://app.qrstars.ru/q/demo-master';
 const HERO_CTA_URL = cardRegisterUrl('master_hero', Astro.url.searchParams, 'master_card');
 const BOTTOM_CTA_URL = cardRegisterUrl('master_bottom', Astro.url.searchParams, 'master_card');
+const SITE_CTA_URL = cardRegisterUrl('master_card_site', Astro.url.searchParams, 'master_card');
 
 const places = [
   { icon: 'fa-bolt', title: 'Электрощиток', text: 'Рядом с автоматами — первое место, куда смотрят, когда выбило свет.' },
@@ -176,6 +178,22 @@ const faqJsonLd = {
     modeLabel="Визитка мастера"
     title="Отсканируйте пример визитки"
     subtitle="Так визитку увидит ваш клиент: звонок, мессенджеры, услуги с ценами и сохранение контакта"
+  />
+
+  <DesktopSitePromo
+    variant="card"
+    badge="Бесплатно · своя страница мастера"
+    title="С компьютера визитка — это уже ваш сайт"
+    text="Ссылку из Авито, ВК или Профи.ру часто открывают с компьютера. Там клиент увидит не маленькую карточку, а сайт мастера: фото, услуги с ценами, район, отзывы и форма заявки. Собирается сам из визитки — ничего заполнять не нужно."
+    bullets={[
+      'Работает сразу и бесплатно — на тарифе FREE шаблон «Классика»',
+      'Заявки с сайта приходят в Telegram, MAX или на почту и сохраняются в кабинете',
+      'Телефон и мессенджеры — крупными кнопками, контакт сохраняется в один клик',
+      'На PRO — 4 шаблона, свой адрес вида <span class="font-mono text-indigo-200">ivan-elektrik.qrstars.ru</span> и без плашки QrStars',
+    ]}
+    examples={[{ id: 'master', code: 'demo-master', label: 'Электрик', icon: 'fa-bolt', template: 'classic', address: 'ivan-elektrik.qrstars.ru' }]}
+    ctaLabel="Сделать визитку бесплатно"
+    ctaUrl={SITE_CTA_URL}
   />
 
   <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">

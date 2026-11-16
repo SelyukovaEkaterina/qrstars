@@ -1,0 +1,261 @@
+---
+/**
+ * Блок «Сайт для компьютера»: живое демо (iframe 1280×800, уменьшенный под ширину),
+ * выбор примера и шаблона. Сайт собирается из данных микросайта/визитки.
+ * Цели Метрики: desktop_site_demo (шаблон / пример), desktop_site_open, desktop_site_register.
+ */
+import { appendAttributionParams, registerUrl, withPlan, withSetupIntent } from '../lib/utm';
+
+interface Example {
+  id: string;
+  code: string;
+  label: string;
+  icon: string;
+  template: string;
+  address: string;
+}
+
+interface Props {
+  badge?: string;
+  title?: string;
+  text?: string;
+  bullets?: string[];
+  examples?: Example[];
+  ctaLabel?: string;
+  ctaUrl?: string;
+  /** Метка блока в целях Метрики. */
+  variant?: 'microsite' | 'card';
+}
+
+const params = Astro.url.searchParams;
+
+const {
+  badge = 'Новое · входит в PRO',
+  title = 'Страница с QR-кода работает и как обычный сайт на компьютере',
+  text = 'С телефона человек видит мобильную страницу со всеми разделами. Если открыть ту же ссылку с компьютера, загрузится полноценный сайт вашей компании. Вторую версию делать не нужно: меню, услуги, цены, часы работы и отзывы подтянутся сами.',
+  bullets = [
+    '4 шаблона оформления («Витрина», «Классика», «Журнал», «Контраст») переключаются одним нажатием',
+    'Автоматически подстраивается под цвета вашего бренда, есть светлая и тёмная тема',
+    'Ссылку можно указать в графе «Сайт» на Яндекс Картах и в 2ГИС',
+    'Короткий адрес вида <span class="font-mono text-indigo-200">vashe-kafe.qrstars.ru</span> без доплат к PRO',
+  ],
+  examples = [
+    { id: 'coffee', code: 'demo-landing', label: 'Кофейня', icon: 'fa-mug-hot', template: 'showcase', address: 'bobr-coffee.qrstars.ru' },
+    { id: 'tire', code: 'demo2-landing', label: 'Шиномонтаж', icon: 'fa-car', template: 'bold', address: 'koleso-service.qrstars.ru' },
+    { id: 'clinic', code: 'demo3-landing', label: 'Стоматология', icon: 'fa-tooth', template: 'classic', address: 'dentalux.qrstars.ru' },
+  ],
+  ctaLabel = 'Сделать свой сайт',
+  ctaUrl = withPlan(withSetupIntent(registerUrl('desktop_site', params), 'landing'), 'pro'),
+  variant = 'microsite',
+} = Astro.props;
+
+const demoUrl = (code: string, template: string) =>
+  appendAttributionParams(`https://app.qrstars.ru/q/${code}?t=${template}&bar=0`, params);
+const openUrl = (code: string, template: string) =>
+  appendAttributionParams(`https://app.qrstars.ru/q/${code}?t=${template}`, params);
+
+const templates = [
+  { id: 'showcase', name: 'Витрина' },
+  { id: 'classic', name: 'Классика' },
+  { id: 'editorial', name: 'Журнал' },
+  { id: 'bold', name: 'Контраст' },
+];
+
+const first = examples[0];
+const sectionId = variant === 'card' ? 'desktop-card-site' : 'desktop-site';
+---
+
+<section id={sectionId} data-desktop-site-promo data-first={JSON.stringify(first)} class="py-20 bg-slate-950 text-white relative overflow-hidden">
+  <div class="pointer-events-none absolute -top-40 -right-40 w-[520px] h-[520px] rounded-full bg-indigo-600/30 blur-3xl"></div>
+  <div class="pointer-events-none absolute -bottom-48 -left-40 w-[480px] h-[480px] rounded-full bg-fuchsia-600/20 blur-3xl"></div>
+
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="grid lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-10 lg:gap-14 items-center">
+      <div>
+        <div class="inline-flex items-center gap-2 bg-white/10 text-indigo-200 font-semibold px-4 py-1.5 rounded-full text-sm mb-5 border border-white/15">
+          <i class="fa-solid fa-display"></i> {badge}
+        </div>
+        <h2 class="text-3xl sm:text-4xl font-bold leading-tight mb-5">{title}</h2>
+        <p class="text-slate-300 text-lg leading-relaxed mb-7">{text}</p>
+        <ul class="space-y-3 text-slate-200 mb-8">
+          {bullets.map((b) => (
+            <li class="flex gap-3"><i class="fa-solid fa-check text-indigo-400 mt-1 shrink-0"></i> <span set:html={b} /></li>
+          ))}
+        </ul>
+        <div class="flex flex-wrap gap-3">
+          <a
+            href={ctaUrl}
+            data-goal="desktop_site_register"
+            data-goal-params={JSON.stringify({ variant })}
+            class="inline-flex items-center gap-2 bg-indigo-500 text-white px-6 py-3.5 rounded-xl font-bold hover:bg-indigo-400 transition shadow-lg shadow-indigo-500/30"
+          >
+            {ctaLabel} <i class="fa-solid fa-arrow-right text-sm"></i>
+          </a>
+          <a
+            href={openUrl(first.code, first.template)}
+            data-desktop-open
+            data-goal="desktop_site_open"
+            data-goal-params={JSON.stringify({ variant })}
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-2 bg-white/10 border border-white/20 text-white px-6 py-3.5 rounded-xl font-semibold hover:bg-white/15 transition"
+          >
+            Открыть демо целиком <i class="fa-solid fa-arrow-up-right-from-square text-sm"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="min-w-0">
+        {examples.length > 1 && (
+          <div class="flex flex-wrap items-center gap-2 mb-4">
+            {examples.map((ex, i) => (
+              <button
+                type="button"
+                data-site-example={ex.id}
+                data-code={ex.code}
+                data-template={ex.template}
+                data-address={ex.address}
+                data-goal="desktop_site_demo"
+                data-goal-params={JSON.stringify({ variant, example: ex.id })}
+                class:list={[
+                  'site-example-btn inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition border',
+                  i === 0 ? 'bg-white text-slate-900 border-white' : 'bg-white/5 text-slate-200 border-white/15 hover:bg-white/10',
+                ]}
+              >
+                <i class:list={['fa-solid', ex.icon]}></i> {ex.label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div class="rounded-2xl overflow-hidden bg-slate-800 shadow-2xl ring-1 ring-white/10">
+          <div class="flex items-center gap-3 px-4 h-10 bg-slate-800 border-b border-white/5">
+            <span class="flex gap-1.5">
+              <span class="w-3 h-3 rounded-full bg-red-400/80"></span>
+              <span class="w-3 h-3 rounded-full bg-amber-400/80"></span>
+              <span class="w-3 h-3 rounded-full bg-emerald-400/80"></span>
+            </span>
+            <span class="flex-1 truncate rounded-md bg-slate-900/70 px-3 py-1 text-xs text-slate-400 font-mono" data-site-address>
+              {first.address}
+            </span>
+          </div>
+          <div data-site-viewport class="relative w-full bg-white overflow-hidden" style="height: 420px;">
+            <iframe
+              data-site-iframe
+              data-src={demoUrl(first.code, first.template)}
+              title="Демо: сайт для компьютера"
+              loading="lazy"
+              sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+              class="absolute top-0 left-0 border-0 bg-white"
+              style="width: 1280px; height: 800px; transform-origin: top left;"
+            ></iframe>
+          </div>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <span class="text-sm text-slate-400 mr-1">Шаблон:</span>
+          {templates.map((t) => (
+            <button
+              type="button"
+              data-site-template={t.id}
+              data-goal="desktop_site_demo"
+              data-goal-params={JSON.stringify({ variant, template: t.id })}
+              class:list={[
+                'site-template-btn px-3.5 py-1.5 rounded-full text-sm font-semibold transition border',
+                t.id === first.template ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-transparent text-slate-300 border-white/15 hover:border-white/40',
+              ]}
+            >
+              {t.name}
+            </button>
+          ))}
+        </div>
+        <p class="mt-3 text-xs text-slate-500">Демо живое: прокручивайте, нажимайте кнопки и разделы.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  const DEMO_BASE = 'https://app.qrstars.ru/q/';
+  const ATTR_KEYS = ['yclid', 'ymclid', 'utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'utm_term', 'ref'];
+
+  function withSearch(url: string, extra: Record<string, string>): string {
+    const u = new URL(url);
+    const page = new URLSearchParams(window.location.search);
+    for (const k of ATTR_KEYS) {
+      const v = page.get(k);
+      if (v && !u.searchParams.has(k)) u.searchParams.set(k, v);
+    }
+    for (const [k, v] of Object.entries(extra)) u.searchParams.set(k, v);
+    return u.toString();
+  }
+
+  function toggle(el: Element, on: boolean, onCls: string[], offCls: string[]) {
+    onCls.forEach((c) => el.classList.toggle(c, on));
+    offCls.forEach((c) => el.classList.toggle(c, !on));
+  }
+
+  document.querySelectorAll<HTMLElement>('[data-desktop-site-promo]').forEach((section) => {
+    const iframe = section.querySelector<HTMLIFrameElement>('[data-site-iframe]');
+    const viewport = section.querySelector<HTMLElement>('[data-site-viewport]');
+    const address = section.querySelector<HTMLElement>('[data-site-address]');
+    const openLink = section.querySelector<HTMLAnchorElement>('[data-desktop-open]');
+    if (!iframe || !viewport) return;
+    const first = JSON.parse(section.dataset.first || '{}');
+    const state = { example: first.id, code: first.code, template: first.template, address: first.address };
+    let loaded = false;
+
+    const fit = () => {
+      const w = viewport.clientWidth;
+      if (!w) return;
+      const scale = w / 1280;
+      iframe.style.transform = `scale(${scale})`;
+      viewport.style.height = `${Math.round(800 * scale)}px`;
+    };
+
+    const render = () => {
+      const src = withSearch(DEMO_BASE + state.code, { t: state.template, bar: '0' });
+      if (loaded) iframe.src = src;
+      else iframe.dataset.src = src;
+      if (openLink) openLink.href = withSearch(DEMO_BASE + state.code, { t: state.template });
+      if (address) address.textContent = state.address;
+      section.querySelectorAll('.site-example-btn').forEach((b) =>
+        toggle(b, b.getAttribute('data-site-example') === state.example, ['bg-white', 'text-slate-900', 'border-white'], ['bg-white/5', 'text-slate-200', 'border-white/15'])
+      );
+      section.querySelectorAll('.site-template-btn').forEach((b) =>
+        toggle(b, b.getAttribute('data-site-template') === state.template, ['bg-indigo-500', 'text-white', 'border-indigo-500'], ['bg-transparent', 'text-slate-300', 'border-white/15'])
+      );
+    };
+
+    section.querySelectorAll<HTMLElement>('.site-example-btn').forEach((b) =>
+      b.addEventListener('click', () => {
+        state.example = b.dataset.siteExample || state.example;
+        state.code = b.dataset.code || state.code;
+        state.template = b.dataset.template || state.template;
+        state.address = b.dataset.address || state.address;
+        render();
+      })
+    );
+    section.querySelectorAll<HTMLElement>('.site-template-btn').forEach((b) =>
+      b.addEventListener('click', () => {
+        state.template = b.dataset.siteTemplate || state.template;
+        render();
+      })
+    );
+
+    fit();
+    window.addEventListener('resize', fit);
+    // Грузим демо, только когда блок рядом с экраном.
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          loaded = true;
+          iframe.src = iframe.dataset.src || '';
+          io.disconnect();
+        }
+      },
+      { rootMargin: '400px' }
+    );
+    io.observe(section);
+  });
+</script>

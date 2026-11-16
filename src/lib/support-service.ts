@@ -5,6 +5,8 @@ import { uploadSupportAttachment, type SupportAttachmentMeta } from "@/lib/suppo
 export type SupportMessagePayload = {
   body: string;
   attachment?: SupportAttachmentMeta;
+  /** `email` — ответ на наше письмо (пришёл через Postfix → /api/inbound-email). */
+  source?: "dashboard" | "email";
 };
 
 export function formatSupportMessageResponse(m: {
@@ -102,6 +104,7 @@ export async function sendUserSupportMessage(
   await postUserMessageToTelegram(ticketWithUser, {
     body: trimmed,
     attachment,
+    source: payload.source,
   });
 
   await mirrorSupportToMax(ticket.id, ticketWithUser.user, displayBody);

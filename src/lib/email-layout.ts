@@ -13,9 +13,14 @@ export interface EmailLayoutOptions {
   unsubscribe?: { url: string; label: string };
 }
 
+/** Ссылка отписки от подсказок — та же, что в подвале письма; нужна и для заголовка List-Unsubscribe. */
+export function marketingUnsubscribeUrl(userId: string): string {
+  return `${getBaseUrl()}/api/unsubscribe?token=${createSignedUserToken(userId, "unsubscribe", 90 * 24 * 60 * 60 * 1000)}`;
+}
+
 export function renderEmailLayout(options: EmailLayoutOptions): string {
   const base = getBaseUrl();
-  const unsubscribeUrl = `${base}/api/unsubscribe?token=${createSignedUserToken(options.userId, "unsubscribe", 90 * 24 * 60 * 60 * 1000)}`;
+  const unsubscribeUrl = marketingUnsubscribeUrl(options.userId);
   const preheader = options.preheader ?? "";
   const ctaBlock = options.cta
     ? `<p style="margin:28px 0 0;">

@@ -1,0 +1,135 @@
+/**
+ * Пропсы микросайта по проекту — общие для короткого адреса (`/a/{slug}`,
+ * `{slug}.qrstars.ru`) и превью сайта в кабинете (`/site-preview/{id}`).
+ */
+import type { ComponentProps } from "react";
+import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
+import prisma from "@/lib/prisma";
+import { effectiveReviewRouting } from "@/lib/review-routing";
+import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons, parseModuleTypes } from "@/lib/page-modules";
+import { resolveMenu, resolveBusinessCard, resolveWifiConfig } from "@/lib/establishment-content";
+import { resolveBrandSettings } from "@/lib/brand-theme";
+import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
+import { MICROSITE_HOST_SUFFIX } from "@/lib/microsite-host";
+import type MicroLandingView from "@/components/scan/MicroLandingView";
+
+export type MicrositeLandingProps = ComponentProps<typeof MicroLandingView>;
+
+const establishmentContentInclude = {
+  menu: { include: { items: { orderBy: { order: "asc" as const } } } },
+  businessCard: true,
+  wifiConfig: true,
+  customPages: {
+    where: { enabled: true },
+    orderBy: { createdAt: "asc" as const },
+    include: { fileAsset: true },
+  },
+  forms: { include: { fields: { orderBy: { order: "asc" as const } } }, orderBy: { createdAt: "asc" as const } },
+  promocodes: { where: { isActive: true }, take: 1 },
+  user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
+} as const;
+
+export async function buildMicrositeLandingProps(
+  where: { shortSlug: string } | { id: string }
+): Promise<MicrositeLandingProps | null> {
+  const est = await prisma.establishment.findUnique({
+    where,
+    include: establishmentContentInclude,
+  });
+
+  if (!est) return null;
+
+  const brand = resolveBrandSettings(est);
+  const brandProps = { brandColor: brand.brandColor, pageAppearance: brand.pageAppearance };
+
+  const sub = est.user.subscriptions[0];
+  const isPro = sub?.plan === "PRO" || sub?.plan === "NETWORK";
+  let promoCode: string | undefined;
+  if (isPro && est.promocodes.length > 0) {
+    promoCode = est.promocodes[0].code;
+  }
+
+  const reviewRouting = effectiveReviewRouting(isPro, est.reviewRouting, est);
+  const platformUrls = {
+    yandexMapsUrl: est.yandexMapsUrl,
+    twoGisUrl: est.twoGisUrl,
+    avitoUrl: est.avitoUrl,
+  };
+
+  const pageModules = parsePageModules(est.pageModules);
+  const moduleOrder = parseModuleOrder(est.moduleOrder);
+  const moduleLabels = parseModuleLabels(est.moduleLabels);
+  const moduleIcons = parseModuleIcons(est.moduleIcons);
+  const moduleTypes = parseModuleTypes(est.moduleTypes);
+
+  const rawMenu = resolveMenu(est, null);
+  const businessCard = resolveBusinessCard(est, null);
+  const wifiConfig = resolveWifiConfig(est, null);
+
+  const safeCard = businessCard ? toPublicBusinessCard(businessCard) : null;
+
+  const extraMenuIds = Object.values(moduleTypes).filter(m => m.type === "menu").map(m => m.instanceId);
+  const extraBcIds = Object.values(moduleTypes).filter(m => m.type === "businessCard").map(m => m.instanceId);
+  const extraWifiIds = Object.values(moduleTypes).filter(m => m.type === "wifi").map(m => m.instanceId);
+
+  const [extraMenusRaw, extraBusinessCards, extraWifiConfigs] = await Promise.all([
+    extraMenuIds.length > 0
+      ? prisma.qRMenu.findMany({ where: { id: { in: extraMenuIds } }, include: { items: { orderBy: { order: "asc" } } } })
+      : Promise.resolve([]),
+    extraBcIds.length > 0
+      ? prisma.businessCard.findMany({ where: { id: { in: extraBcIds } } })
+      : Promise.resolve([]),
+    extraWifiIds.length > 0
+      ? prisma.wifiConfig.findMany({ where: { id: { in: extraWifiIds } } })
+      : Promise.resolve([]),
+  ]);
+
+  const menuForClient = rawMenu
+    ? JSON.parse(JSON.stringify(sanitizeMenuForClient(rawMenu)))
+    : null;
+  const extraMenus = extraMenusRaw.map((m) =>
+    JSON.parse(JSON.stringify(sanitizeMenuForClient(m)))
+  );
+
+  return {
+    establishmentName: est.name,
+    industry: est.industry,
+    establishmentId: est.id,
+    qrCodeId: "",
+    pageModules,
+    moduleOrder,
+    moduleLabels,
+    moduleIcons,
+    moduleTypes,
+    menu: menuForClient,
+    businessCard: safeCard,
+    wifiConfig: wifiConfig ? JSON.parse(JSON.stringify(wifiConfig)) : null,
+    reviewRouting,
+    customPages: JSON.parse(JSON.stringify(est.customPages || [])),
+    extraMenus,
+    extraBusinessCards: JSON.parse(
+      JSON.stringify(
+        extraBusinessCards.map((bc: Record<string, unknown>) =>
+          toPublicBusinessCard(bc as unknown as BusinessCardRow),
+        ),
+      ),
+    ),
+    extraWifiConfigs: JSON.parse(JSON.stringify(extraWifiConfigs)),
+    forms: JSON.parse(JSON.stringify(est.forms || [])),
+    platformUrls,
+    watermarkEnabled: isPro ? !est.watermarkEnabled : true,
+    showPromo: isPro && !!promoCode,
+    promoCode,
+    ...brandProps,
+    logoUrl: est.logoUrl,
+    coverUrl: est.coverUrl,
+    landingSubtitle: est.landingSubtitle,
+    address: est.address,
+    phone: est.phone,
+    yandexMapsUrl: est.yandexMapsUrl,
+    workingHours: est.workingHours,
+    siteTemplate: est.siteTemplate,
+    sitePublicUrl: est.shortSlug ? `https://${est.shortSlug}${MICROSITE_HOST_SUFFIX}` : null,
+  };
+}
+

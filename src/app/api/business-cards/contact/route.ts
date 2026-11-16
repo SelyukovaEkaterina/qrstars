@@ -4,6 +4,7 @@ import { sendBusinessCardContactNotification } from "@/lib/messenger-contact-not
 import prisma from "@/lib/prisma";
 import { saveBusinessCardLead } from "@/lib/business-card-leads";
 import { rateLimit, getClientIp } from "@/lib/rate-limit";
+import { isDemoQrCode } from "@/lib/demo-qrcodes";
 
 export async function POST(request: Request) {
   // Rate limit: 5 сообщений в 10 минут с одного IP
@@ -43,6 +44,11 @@ export async function POST(request: Request) {
 
   if (text.length > 2000) {
     return NextResponse.json({ error: "Сообщение слишком длинное (макс. 2000 символов)" }, { status: 400 });
+  }
+
+  // Демо-визитки (лендинг, сайт-визитка): заявка нигде не сохраняется и никуда не уходит.
+  if (isDemoQrCode(qrCode.trim())) {
+    return NextResponse.json({ success: true, demo: true });
   }
 
   const qr = await prisma.qRCode.findUnique({
