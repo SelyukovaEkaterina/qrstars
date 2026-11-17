@@ -1,0 +1,90 @@
+<template id="v03-template">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+<style>
+
+  #root { position:absolute; inset:0; overflow:hidden; background:#EEF1F6;
+          font-family:Inter, sans-serif; color:#0F172A; }
+  #root * { box-sizing:border-box; }
+  .kick { position:absolute; left:120px; top:250px; font-weight:700; font-size:28px; letter-spacing:0.08em;
+           text-transform:uppercase; color:#4F46E5; opacity:0; }
+  .title { position:absolute; left:120px; top:298px; width:640px; font-weight:800; font-size:76px; line-height:1.02;
+            letter-spacing:-0.035em; opacity:0; }
+  .title em { font-style:normal; color:#4F46E5; }
+  .cap { position:absolute; left:120px; width:600px; font-weight:500; font-size:34px; line-height:1.3; color:#475569; opacity:0; }
+  .card { position:absolute; background:#fff; border-radius:28px; overflow:hidden; isolation:isolate;
+           box-shadow:0 30px 70px rgba(15,23,42,.16), 0 4px 14px rgba(15,23,42,.06); }
+  .card img { position:absolute; display:block; object-fit:contain; }
+  .chip { position:absolute; height:58px; padding:0 26px; border-radius:29px; background:#fff; font-weight:700; font-size:28px;
+           line-height:58px; color:#0F172A; white-space:nowrap; box-shadow:0 12px 30px rgba(15,23,42,.12); opacity:0; }
+  .chip.acc { background:#4F46E5; color:#fff; }
+  .phone { position:absolute; width:404px; height:846px; border-radius:56px; background:#0B1220; padding:12px;
+           box-shadow:0 50px 100px rgba(15,23,42,.30), 0 8px 24px rgba(15,23,42,.16); }
+  .screen { position:absolute; left:12px; top:12px; width:380px; height:822px; border-radius:44px; overflow:hidden; background:#EEF0FF; }
+  .mshot { position:absolute; left:0; top:0; width:380px; height:822px; }
+  .notch { position:absolute; left:142px; top:22px; width:120px; height:30px; border-radius:15px; background:#0B1220; z-index:5; }
+  .mhl { position:absolute; border:4px solid #F59E0B; border-radius:16px; opacity:0; box-shadow:0 0 0 4px rgba(245,158,11,.25); }
+  .tg { position:absolute; width:500px; border-radius:24px; background:#fff; padding:26px 28px 28px 98px; opacity:0;
+         box-shadow:0 30px 70px rgba(15,23,42,.20), 0 4px 14px rgba(15,23,42,.06); }
+  .tg .ava { position:absolute; left:26px; top:26px; width:54px; height:54px; border-radius:27px; background:#2AABEE; }
+  .tg .ava svg { position:absolute; left:13px; top:15px; width:28px; height:26px; }
+  .tg .from { font-weight:700; font-size:22px; color:#2AABEE; }
+  .tg .head { margin-top:6px; font-weight:800; font-size:27px; line-height:1.2; }
+  .tg .body { margin-top:10px; font-weight:500; font-size:23px; line-height:1.35; color:#334155; }
+  .tg .meta { margin-top:12px; font-weight:500; font-size:19px; color:#94A3B8; }
+  .tap { position:absolute; width:56px; height:56px; border-radius:28px; background:rgba(79,70,229,.28);
+          border:3px solid rgba(79,70,229,.7); opacity:0; }
+
+
+  .stage { position:absolute; left:930px; top:150px; width:760px; height:760px; perspective:1600px; }
+  .big { left:80px; top:80px; width:600px; height:600px; }
+  .big img { left:40px; top:40px; width:520px; height:520px; }
+  .shine { position:absolute; left:-260px; top:-200px; width:180px; height:1000px; mix-blend-mode:screen;
+            background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.95), rgba(255,255,255,0)); }
+  .shrot { position:absolute; inset:0; transform:rotate(20deg); }
+  .print { position:absolute; left:130px; top:120px; width:500px; height:500px; transform-style:preserve-3d; opacity:0; }
+  .lay { position:absolute; left:0; top:0; width:500px; height:500px; }
+  .lay img { position:absolute; left:40px; top:40px; width:420px; height:420px; }
+  .plate { position:absolute; left:0; top:0; width:500px; height:500px; border-radius:26px; }
+  .lbl { position:absolute; left:930px; width:760px; top:900px; text-align:center; font-weight:700; font-size:30px; color:#334155; opacity:0; }
+
+</style>
+<div id="root" data-composition-id="v03" data-start="0" data-duration="10.98" data-width="1920" data-height="1080">
+<div id="v03-out" style="position:absolute; inset:0"><div id="v03-k" class="kick">Анимация и 3D</div><div id="v03-t" class="title">Код, который <em>двигается</em></div><div id="v03-c0" class="chip" style="left:120px; top:520px">Блик</div><div id="v03-c1" class="chip" style="left:420px; top:520px">Перелив</div><div id="v03-c2" class="chip" style="left:120px; top:604px">Сердцебиение</div><div id="v03-c3" class="chip" style="left:420px; top:604px">3D-поворот</div><div id="v03-c4" class="chip acc" style="left:120px; top:772px">GIF для соцсетей</div><div id="v03-c5" class="chip acc" style="left:120px; top:856px">STL для 3D-печати</div></div><div id="v03-stage" class="stage"><div id="v03-big" class="card big"><img id="v03-img" src="assets/qr/art-heart.webp" alt=""><div class="shrot"><div id="v03-sh" class="shine"></div></div></div><div id="v03-print" class="print"><div class="plate" style="background:rgb(226,229,234); transform:translateZ(0.0px)"></div><div class="plate" style="background:rgb(223,226,231); transform:translateZ(2.4px)"></div><div class="plate" style="background:rgb(220,223,228); transform:translateZ(4.8px)"></div><div class="plate" style="background:rgb(217,220,225); transform:translateZ(7.199999999999999px)"></div><div class="plate" style="background:rgb(214,217,222); transform:translateZ(9.6px)"></div><div class="plate" style="background:rgb(211,214,219); transform:translateZ(12.0px)"></div><div class="plate" style="background:rgb(208,211,216); transform:translateZ(14.399999999999999px)"></div><div class="plate" style="background:rgb(205,208,213); transform:translateZ(16.8px)"></div><div class="plate" style="background:rgb(202,205,210); transform:translateZ(19.2px)"></div><div class="plate" style="background:rgb(255,258,263); transform:translateZ(21.599999999999998px)"></div><div class="lay" style="transform:translateZ(24.0px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(0.55); mix-blend-mode:multiply"></div><div class="lay" style="transform:translateZ(26.6px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(0.61); mix-blend-mode:multiply"></div><div class="lay" style="transform:translateZ(29.2px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(0.67); mix-blend-mode:multiply"></div><div class="lay" style="transform:translateZ(31.8px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(0.73); mix-blend-mode:multiply"></div><div class="lay" style="transform:translateZ(34.4px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(0.79); mix-blend-mode:multiply"></div><div class="lay" style="transform:translateZ(37.0px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(0.85); mix-blend-mode:multiply"></div><div class="lay" style="transform:translateZ(39.6px)"><img src="assets/qr/art-heart.webp" alt="" style="filter:brightness(1.00); mix-blend-mode:multiply"></div></div></div><div id="v03-lbl" class="lbl">Модель для 3D-печати · STL</div>
+</div>
+<script>
+  window.__timelines = window.__timelines || {};
+  const tl = gsap.timeline({ paused: true });
+  tl.fromTo("#v03-k", {opacity:0, y:16}, {opacity:1, y:0, duration:0.5, ease:"expo.out"}, 0.05);
+  tl.fromTo("#v03-t", {opacity:0, y:28, filter:"blur(8px)"}, {opacity:1, y:0, filter:"blur(0px)", duration:0.7, ease:"expo.out"}, 0.13);
+  tl.to("#v03-out", {opacity:0, y:-24, duration:0.32, ease:"power3.in"}, 10.62);
+  tl.fromTo("#v03-c0", {opacity:0, x:-20, scale:0.9}, {opacity:1, x:0, scale:1, duration:0.45, ease:"back.out(2)"}, 1.73);
+  tl.fromTo("#v03-c1", {opacity:0, x:-20, scale:0.9}, {opacity:1, x:0, scale:1, duration:0.45, ease:"back.out(2)"}, 2.1);
+  tl.fromTo("#v03-c2", {opacity:0, x:-20, scale:0.9}, {opacity:1, x:0, scale:1, duration:0.45, ease:"back.out(2)"}, 2.7);
+  tl.fromTo("#v03-c3", {opacity:0, x:-20, scale:0.9}, {opacity:1, x:0, scale:1, duration:0.45, ease:"back.out(2)"}, 4.19);
+  tl.fromTo("#v03-c4", {opacity:0, x:-20, scale:0.9}, {opacity:1, x:0, scale:1, duration:0.45, ease:"back.out(2)"}, 5.89);
+  tl.fromTo("#v03-c5", {opacity:0, x:-20, scale:0.9}, {opacity:1, x:0, scale:1, duration:0.45, ease:"back.out(2)"}, 8.59);
+  tl.fromTo("#v03-big", {opacity:0, scale:0.8, y:40}, {opacity:1, scale:1, y:0, duration:0.8, ease:"expo.out"}, 0.15);
+  tl.fromTo("#v03-sh", {x:0}, {x:1100, duration:0.75, ease:"power2.inOut"}, 1.63);
+  tl.fromTo("#v03-sh", {x:0}, {x:1100, duration:0.75, ease:"power2.inOut", immediateRender:false}, 5.1);
+  tl.fromTo("#v03-img", {filter:"hue-rotate(0deg) saturate(1)"}, {filter:"hue-rotate(200deg) saturate(1.3)", duration:0.55, ease:"sine.inOut"}, 2.1);
+  tl.to("#v03-img", {filter:"hue-rotate(0deg) saturate(1)", duration:0.4, ease:"sine.inOut"}, 2.6500000000000004);
+  tl.to("#v03-big", {scale:1.07, duration:0.11, ease:"power2.out"}, 2.7);
+  tl.to("#v03-big", {scale:1, duration:0.16, ease:"power2.in"}, 2.81);
+  tl.to("#v03-big", {scale:1.09, duration:0.11, ease:"power2.out"}, 3.0);
+  tl.to("#v03-big", {scale:1, duration:0.2, ease:"power2.in"}, 3.11);
+  tl.to("#v03-big", {scale:1.07, duration:0.11, ease:"power2.out"}, 3.45);
+  tl.to("#v03-big", {scale:1, duration:0.16, ease:"power2.in"}, 3.56);
+  tl.to("#v03-big", {scale:1.09, duration:0.11, ease:"power2.out"}, 3.75);
+  tl.to("#v03-big", {scale:1, duration:0.2, ease:"power2.in"}, 3.86);
+  tl.to("#v03-big", {rotationY:32, duration:0.7, ease:"sine.inOut"}, 4.090000000000001);
+  tl.to("#v03-big", {rotationY:-32, duration:1.3, ease:"sine.inOut"}, 4.79);
+  tl.to("#v03-big", {rotationY:0, duration:0.8, ease:"sine.inOut"}, 6.09);
+  tl.to("#v03-big", {opacity:0, scale:0.85, duration:0.35, ease:"power3.in"}, 8.14);
+  tl.set("#v03-print", {rotationX:56, rotationZ:-28, opacity:0, scale:0.8}, 0);
+  tl.to("#v03-print", {opacity:1, scale:1, duration:0.7, ease:"expo.out"}, 8.44);
+  tl.to("#v03-print", {rotationZ:-8, duration:2.09, ease:"sine.inOut"}, 8.44);
+  tl.fromTo("#v03-lbl", {opacity:0, y:12}, {opacity:1, y:0, duration:0.45, ease:"expo.out"}, 8.89);
+  tl.to(["#v03-stage", "#v03-lbl"], {opacity:0, duration:0.32, ease:"power3.in"}, 10.62);
+  window.__timelines["v03"] = tl;
+</script>
+</template>

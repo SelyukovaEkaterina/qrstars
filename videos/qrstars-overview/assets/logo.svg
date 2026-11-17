@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  QrStars wordmark — официальный логотип.
+  Звезда — superscript над «Stars».
+  Совпадает по духу с тем, что отрисовывается на QR-стикерах
+  (см. src/lib/premium-a4-sheet.ts → drawLogo).
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 175 50" role="img" aria-label="QrStars">
+  <title>QrStars</title>
+  <style>
+    .qrstars-text {
+      font-family: "Inter", "Helvetica Neue", Arial, system-ui, sans-serif;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+    }
+  </style>
+  <text x="0" y="38" class="qrstars-text" font-size="38" fill="#1a1a1a">QrStars<tspan dx="1" dy="-15" font-size="20" fill="#e89a0c">★</tspan></text>
+</svg>

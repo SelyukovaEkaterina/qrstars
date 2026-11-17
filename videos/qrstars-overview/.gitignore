@@ -1,0 +1,16 @@
+renders/
+.hyperframes/
+.thumbnails/
+.waveform-cache/
+node_modules/
+work/cand/
+work/clean/
+work/dist/
+work/mg/*.wav
+work/*.log
+work/mg/*.log
+*.t/
+assets/bgm-long.mp3
+work/clean-soft/*.mp3
+work/mg/*.mp3
+work/rnn/cb.rnnn

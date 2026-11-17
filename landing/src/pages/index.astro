@@ -3,6 +3,7 @@ import Layout from '../layouts/Layout.astro';
 import TryDemoSection from '../components/TryDemoSection.astro';
 import QrGallery from '../components/QrGallery.astro';
 import DesktopSitePromo from '../components/DesktopSitePromo.astro';
+import VideoOverview from '../components/VideoOverview.astro';
 import { registerUrl, withPlan } from '../lib/utm';
 import {
   NETWORK_INCLUDED,
@@ -174,6 +175,14 @@ const softwareSchema = {
           <span>Посмотреть примеры</span>
         </a>
       </div>
+      <a
+        href="#video"
+        data-goal="hero_video"
+        class="mt-5 inline-flex items-center gap-2 text-primary font-semibold hover:underline"
+      >
+        <i class="fa-solid fa-circle-play text-lg"></i>
+        Смотреть видео — 1 минута
+      </a>
       <p class="mt-4 text-sm text-slate-500">
         Бесплатный тариф навсегда · Оплата по счёту для юрлиц (54-ФЗ) · Серверы в РФ (152-ФЗ) · PRO от {PRO_HALFYEAR} за полгода
       </p>
@@ -214,6 +223,9 @@ const softwareSchema = {
       </div>
     </div>
   </section>
+
+  <!-- ───────────── Видео «QrStars за минуту» ───────────── -->
+  <VideoOverview />
 
   <!-- ───────────── Галерея красивых QR ───────────── -->
   <QrGallery />
