@@ -115,7 +115,7 @@ export async function POST(request: Request) {
 
   let reviewNotificationsEnabled = 0;
   if (provider === "TELEGRAM" || provider === "MAX") {
-    reviewNotificationsEnabled = await enableMessengerNotificationsForProvider(userId, provider);
+    reviewNotificationsEnabled = await enableMessengerNotificationsForProvider(userId, provider, contact.id);
   } else if (provider === "EMAIL" && !hadEmailBefore) {
     reviewNotificationsEnabled = await enableEmailNotificationsForOwner(userId);
   }

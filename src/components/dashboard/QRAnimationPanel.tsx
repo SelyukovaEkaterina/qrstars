@@ -7,8 +7,10 @@ import {
   QR_ANIMATIONS,
   QR_BASE_SIZE,
   createQrAnimation,
+  isLogoAnimation,
   isSocialAnimation,
   playQrAnimation,
+  QR_TRANSFORM_ANIMATIONS,
   SOCIAL_HANDLE_MAX,
   qrCenterBox,
   type QrAnimationId,
@@ -147,7 +149,7 @@ export default function QRAnimationPanel({
       const { default: jsQR } = await import("jsqr");
       // Силу эффекта подбираем на превью 600 px: там декодер работает быстро.
       const check = social ? await renderBase(base.layout.canvasW, base.layout) : { canvas: opaqueCopy(base.canvas, bg), layout: base.layout };
-      const { intensity, unreadable, baseUnreadable } = await pickReadableIntensity(
+      const { intensity, unreadable, checked, baseUnreadable } = await pickReadableIntensity(
         check.canvas,
         { id: anim, design, layout: check.layout, centerBox: centerBoxFor(check.layout), handle },
         jsQR,
@@ -173,7 +175,7 @@ export default function QRAnimationPanel({
       } else if (unreadable > 0) {
         setMessage({
           kind: "warn",
-          text: `GIF готов (${mb} МБ), но ${unreadable} из 40 кадров читаются плохо. Добавьте контраста или выберите другую анимацию и проверьте камерой.`,
+          text: `GIF готов (${mb} МБ), но ${unreadable} из ${checked} кадров читаются плохо. Добавьте контраста или выберите другую анимацию и проверьте камерой.`,
         });
       } else {
         setMessage({
@@ -193,7 +195,7 @@ export default function QRAnimationPanel({
   return (
     <div className="space-y-3">
       <p className="text-xs text-gray-500">
-        Для экранов, сторис, сайта и писем. Каждый кадр проверяется декодером. Для печати скачайте обычный PNG или SVG.
+        Для экранов, сторис, сайта и писем. Кадры проверяются декодером. Для печати скачайте обычный PNG или SVG.
       </p>
       <div className="flex flex-wrap gap-1.5">
         {QR_ANIMATIONS.map((a) => (
@@ -242,6 +244,19 @@ export default function QRAnimationPanel({
             </span>
           )}
         </label>
+      )}
+      {isLogoAnimation(anim) && !hasCenter && (
+        <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          {anim === "logoFlip"
+            ? "В центре нет логотипа — без него код делает сальто целиком."
+            : "В центре нет логотипа — без него прыгает весь код."}{" "}
+          Добавьте логотип или надпись в разделе «Логотип или текст в центре», чтобы анимировать их.
+        </p>
+      )}
+      {QR_TRANSFORM_ANIMATIONS.includes(anim) && (
+        <p className="text-xs text-gray-500">
+          Код на миг разбирается и собирается обратно — камера читает его в фазе покоя (больше половины времени).
+        </p>
       )}
       <div className="flex justify-center rounded-xl bg-gray-50 p-3">
         {payload ? (

@@ -434,6 +434,7 @@ export async function renderDemoScan(code: string, options: DemoScanOptions = {}
           moduleOrder={[...demoSellerModuleOrder]}
           moduleIcons={demoSellerModuleIcons}
           moduleTypes={demoSellerModuleTypes}
+          moduleLabels={{ menu: "Другие наши товары" }}
           forms={[demoSellerForm]}
           menu={demoSellerMenu}
           businessCard={null}

@@ -12,6 +12,9 @@ import { businessCardJsonLd, micrositeJsonLd } from "@/lib/site-seo";
 import { absolutePublicUrl } from "@/lib/utils";
 import JsonLd from "@/components/scan/site/JsonLd";
 import { buildMicrositeLandingProps, type MicrositeLandingProps } from "@/lib/microsite-landing-props";
+import { isMetrikaCounterId } from "@/lib/owner-metrika";
+import OwnerMetrika from "@/components/scan/OwnerMetrika";
+import SiteVisitBeacon from "@/components/scan/SiteVisitBeacon";
 
 interface SlugPageProps {
   params: Promise<{ slug: string }>;
@@ -56,6 +59,7 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
     where: { shortSlug: slug },
     select: {
       id: true,
+      metrikaCounterId: true,
       user: { include: { subscriptions: { where: { status: "ACTIVE" }, take: 1 } } },
     },
   });
@@ -69,9 +73,25 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
     return <LandingLockedState />;
   }
 
+  // Заходы по короткому адресу: свой счётчик в «Статистике» + Метрика владельца (PRO).
+  const counterId = isPro && isMetrikaCounterId(estAccess.metrikaCounterId) ? estAccess.metrikaCounterId : null;
+  const tracking = (
+    <>
+      <SiteVisitBeacon slug={slug} />
+      {counterId && <OwnerMetrika counterId={counterId} source="direct" />}
+    </>
+  );
+
   // Проект-визитка (визитка есть, микросайта нет): короткий адрес открывает саму визитку.
   const cardPage = await renderBusinessCardForSlug(slug, isPro);
-  if (cardPage) return cardPage;
+  if (cardPage) {
+    return (
+      <>
+        {cardPage}
+        {tracking}
+      </>
+    );
+  }
 
   let landingProps = await getSlugPageCache<SlugLandingProps>(slug);
   if (!landingProps) {
@@ -99,6 +119,7 @@ export default async function ShortSlugPage({ params }: SlugPageProps) {
         })}
       />
       <MicroLandingView {...landingProps} />
+      {tracking}
     </>
   );
 }

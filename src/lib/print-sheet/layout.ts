@@ -25,7 +25,7 @@ export const PRINT_FORMATS: PrintFormat[] = [
   { id: "a3", kind: "sign", label: "A3", hint: "297 × 420 мм · плакат", wMm: 297, hMm: 420 },
   { id: "tent-a5", kind: "tent", label: "Домик A5", hint: "лист A4 складывается пополам", wMm: 210, hMm: 148.5 },
   { id: "tent-a6", kind: "tent", label: "Домик A6", hint: "2 домика с листа A4", wMm: 148.5, hMm: 105 },
-  { id: "sticker-50", kind: "stickers", label: "Стикер 5 см", hint: "на стол, кассу, чек", wMm: 50, hMm: 50 },
+  { id: "sticker-50", kind: "stickers", label: "Стикер 5 см", hint: "на стол, кассу, щиток, оборудование", wMm: 50, hMm: 50 },
   { id: "sticker-60", kind: "stickers", label: "Стикер 6 см", hint: "на стол, дверь, витрину", wMm: 60, hMm: 60 },
   { id: "sticker-90", kind: "stickers", label: "Стикер 9 см", hint: "на витрину, стену", wMm: 90, hMm: 90 },
 ];
@@ -342,9 +342,9 @@ export const PRINT_TEXT_PRESETS: Record<PrintScenario, PrintTexts[]> = {
     { title: "ОТЗЫВЫ", subtitle: "Поделитесь впечатлениями — это займёт минуту", footer: "" },
   ],
   MENU: [
-    { title: "Меню", subtitle: "Блюда, цены и фото — в вашем телефоне", footer: "Приятного аппетита!" },
+    { title: "Меню", subtitle: "Блюда и цены — в вашем телефоне", footer: "Приятного аппетита!" },
     { title: "Меню и цены", subtitle: "Блюда, напитки и цены — в телефоне", footer: "" },
-    { title: "Заказ по QR", subtitle: "Откройте меню и выберите блюда", footer: "Приятного аппетита!" },
+    { title: "Наше меню", subtitle: "Откройте меню и выберите блюда", footer: "Приятного аппетита!" },
   ],
   WIFI: [
     { title: "Бесплатный Wi-Fi", subtitle: "Телефон подключится сам — без ввода пароля", footer: "" },
@@ -405,7 +405,8 @@ export function defaultPrintSettings(
 ): PrintSettings {
   const texts = PRINT_TEXT_PRESETS[scenario][0];
   return {
-    formatId: "a6",
+    // Визитку мастера клеят на щиток или оборудование — стикер, остальное — табличка на стол.
+    formatId: scenario === "BUSINESS_CARD" ? "sticker-60" : "a6",
     orientation: "portrait",
     output: "sheet",
     design: "classic",

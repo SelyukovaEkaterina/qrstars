@@ -32,7 +32,6 @@ import {
   Check,
   Trash2,
   MoreHorizontal,
-  ScanLine,
   Printer,
 } from "lucide-react";
 import { qrPreviewDataUrl } from "@/lib/qr-preview";
@@ -644,7 +643,7 @@ function QRCodesPageContent() {
               <h2 className="text-xl font-semibold">Нет QR-кодов</h2>
               <p className="text-gray-500 mt-2">
                 {canCreateQr
-                  ? "Создайте QR-код или активируйте купленный набор табличек"
+                  ? "Создайте первый QR-код — скачайте его и распечатайте или покажите на экране"
                   : "Здесь появятся старые коды без проекта"}
               </p>
               <div className="mt-6 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
@@ -654,13 +653,6 @@ function QRCodesPageContent() {
                     Создать QR-код
                   </Button>
                 )}
-                <Link
-                  href="/dashboard/activate"
-                  className="inline-flex h-10 items-center justify-center rounded-lg border-2 border-gray-300 px-4 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
-                >
-                  <ScanLine className="w-4 h-4 mr-2" />
-                  Активировать набор табличек
-                </Link>
               </div>
             </Card>
           ) : (

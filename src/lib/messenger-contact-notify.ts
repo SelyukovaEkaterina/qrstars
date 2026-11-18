@@ -10,10 +10,12 @@ export interface ContactNotificationPayload {
   guestPhone?: string;
   message: string;
   client: ClientInfo;
+  /** Ссылка «Открыть в кабинете» — заявка уже сохранена в «Обратной связи». */
+  inboxUrl?: string;
 }
 
 function buildContactText(payload: ContactNotificationPayload): string {
-  const { qrLabel, guestName, guestPhone, message, client } = payload;
+  const { qrLabel, guestName, guestPhone, message, client, inboxUrl } = payload;
   return [
     `<b>📩 Новое сообщение с визитки</b>`,
     "",
@@ -28,6 +30,7 @@ function buildContactText(payload: ContactNotificationPayload): string {
     `<b>Регион:</b> ${escapeHtml(client.region)}`,
     `<b>Браузер:</b> ${escapeHtml(client.browser)}`,
     `<b>Устройство:</b> ${escapeHtml(client.device)}`,
+    ...(inboxUrl ? ["", `<a href="${escapeHtml(inboxUrl)}">Открыть в кабинете</a>`] : []),
   ].join("\n");
 }
 

@@ -6,6 +6,7 @@ import {
   readOAuthRegistrationAttribution,
   REGISTRATION_REF_COOKIE,
   REGISTRATION_UTM_COOKIE,
+  readRegistrationStartPath,
 } from "./registration-utm";
 
 describe("parseRegistrationUtmCookie", () => {
@@ -74,5 +75,18 @@ describe("parseRegistrationUtm: клик по рекламе Директа", ()
     assert.deepEqual(parseRegistrationUtm(direct), direct);
     const seo = { utm_source: "qrstars", utm_medium: "seo" };
     assert.deepEqual(parseRegistrationUtm(seo), seo);
+  });
+});
+
+describe("readRegistrationStartPath", () => {
+  it("accepts the wizard path with intent and utm", () => {
+    const path = "/dashboard/start?utm_campaign=master_card&intent=card";
+    assert.equal(readRegistrationStartPath(encodeURIComponent(path)), path);
+  });
+  it("rejects foreign and protocol-relative targets", () => {
+    assert.equal(readRegistrationStartPath("https://evil.example/"), null);
+    assert.equal(readRegistrationStartPath("//evil.example/dashboard/start"), null);
+    assert.equal(readRegistrationStartPath("/dashboard/settings"), null);
+    assert.equal(readRegistrationStartPath(undefined), null);
   });
 });

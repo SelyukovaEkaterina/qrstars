@@ -13,6 +13,11 @@ import {
   countLine,
   valueLine,
 } from "@/lib/report-formatting";
+import {
+  collectSiteReportStats,
+  type MetrikaPeriod,
+  type SiteReportResult,
+} from "@/lib/insights/metrika-report";
 
 export interface WeeklyReportRange {
   from: Date;
@@ -456,7 +461,142 @@ export async function collectWeeklyReportMetrics(
   };
 }
 
-export function formatWeeklyReportTelegram(metrics: WeeklyReportMetrics): string {
+/** YYYY-MM-DD дня по Москве для момента `date`. */
+function mskDateString(date: Date): string {
+  return new Date(date.getTime() + MSK_OFFSET_MS).toISOString().slice(0, 10);
+}
+
+function metrikaPeriod(from: Date, to: Date): MetrikaPeriod {
+  return { date1: mskDateString(from), date2: mskDateString(to) };
+}
+
+export interface MicrositeVisitReport {
+  visits: { current: number; previous: number };
+  sitesWithVisits: number;
+  top: { name: string; slug: string | null; visits: number; qrScans: number }[];
+}
+
+/**
+ * Заходы на микросайты и визитки по короткому адресу (`{slug}.qrstars.ru`, `/a/{slug}`) —
+ * `SiteVisitStat`, без сканов QR. В топе рядом — сканы QR того же проекта за период.
+ */
+export async function collectMicrositeVisitReport(
+  from: Date,
+  to: Date,
+  prevFrom: Date,
+  prevTo: Date
+): Promise<MicrositeVisitReport> {
+  const day = { gte: startOfMskDay(from), lte: startOfMskDay(to) };
+  const prevDay = { gte: startOfMskDay(prevFrom), lte: startOfMskDay(prevTo) };
+  const [current, previous, groups] = await Promise.all([
+    prisma.siteVisitStat.aggregate({ where: { date: day }, _sum: { count: true } }),
+    prisma.siteVisitStat.aggregate({ where: { date: prevDay }, _sum: { count: true } }),
+    prisma.siteVisitStat.groupBy({
+      by: ["establishmentId"],
+      where: { date: day, count: { gt: 0 } },
+      _sum: { count: true },
+      orderBy: { _sum: { count: "desc" } },
+    }),
+  ]);
+  const topGroups = groups.slice(0, 5);
+  const ids = topGroups.map((g) => g.establishmentId);
+  const [ests, scans] = ids.length
+    ? await Promise.all([
+        prisma.establishment.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true, shortSlug: true },
+        }),
+        prisma.dailyScanStat.groupBy({
+          by: ["establishmentId"],
+          where: { date: day, establishmentId: { in: ids } },
+          _sum: { count: true },
+        }),
+      ])
+    : [[], []];
+  const estMap = new Map(ests.map((e) => [e.id, e]));
+  const scanMap = new Map(scans.map((g) => [g.establishmentId, g._sum.count ?? 0]));
+  return {
+    visits: { current: current._sum.count ?? 0, previous: previous._sum.count ?? 0 },
+    sitesWithVisits: groups.length,
+    top: topGroups.map((g) => ({
+      name: estMap.get(g.establishmentId)?.name ?? "—",
+      slug: estMap.get(g.establishmentId)?.shortSlug ?? null,
+      visits: g._sum.count ?? 0,
+      qrScans: scanMap.get(g.establishmentId) ?? 0,
+    })),
+  };
+}
+
+/** Блок «Микросайты: заходы по прямой ссылке». */
+export function formatMicrositeVisitsTelegram(
+  report: MicrositeVisitReport | null | undefined
+): string[] {
+  if (!report) return [];
+  const fmt = (n: number) => n.toLocaleString("ru-RU");
+  const lines = [
+    "",
+    "<b>🔗 Микросайты: заходы по прямой ссылке</b>",
+    countLine("Заходы (не через QR)", report.visits.current, report.visits.previous),
+    `  ↳ сайтов с заходами: ${fmt(report.sitesWithVisits)}`,
+  ];
+  report.top.forEach((t, i) => {
+    const addr = t.slug ? ` · ${escapeHtml(t.slug)}.qrstars.ru` : "";
+    lines.push(
+      `${i + 1}. ${escapeHtml(t.name)}${addr} — ${fmt(t.visits)} · QR ${fmt(t.qrScans)}`
+    );
+  });
+  return lines;
+}
+
+/** Блок «Сайт (Метрика)» для Telegram-отчёта. Пусто, если токена Метрики нет. */
+export function formatSiteStatsTelegram(site: SiteReportResult | null | undefined): string[] {
+  if (!site) return [];
+  if (!site.ok) {
+    if (site.skipped) return [];
+    return ["", "<b>🌐 Сайт</b>", `⚠️ Метрика недоступна: ${escapeHtml(site.error)}`];
+  }
+  const fmt = (n: number) => n.toLocaleString("ru-RU");
+  const { landing } = site;
+  const lines: string[] = [
+    "",
+    "<b>🌐 Сайт qrstars.ru (Метрика)</b>",
+    countLine("Визиты", landing.current.visits, landing.previous.visits),
+    countLine("Посетители", landing.current.users, landing.previous.users),
+    `<b>Отказы:</b> ${landing.current.bounceRate}% (было ${landing.previous.bounceRate}%)`,
+  ];
+  for (const g of site.goals) {
+    if (g.current > 0 || g.previous > 0) lines.push(countLine(g.label, g.current, g.previous));
+  }
+  if (site.sources.length > 0) {
+    lines.push("", "<b>Источники</b> <i>(визиты · до регистрации)</i>");
+    site.sources.forEach((s) =>
+      lines.push(`• ${escapeHtml(s.name)} — ${fmt(s.visits)} · ${fmt(s.register)}`)
+    );
+  }
+  if (site.campaigns.length > 0) {
+    lines.push("", "<b>Кампании (UTM)</b>");
+    site.campaigns.forEach((c) =>
+      lines.push(`• ${escapeHtml(c.name)} — ${fmt(c.visits)} · ${fmt(c.register)}`)
+    );
+  }
+  if (site.landingPages.length > 0) {
+    lines.push("", "<b>Страницы входа</b> <i>(визиты · отказы)</i>");
+    site.landingPages.forEach((p) =>
+      lines.push(`• ${escapeHtml(p.path)} — ${fmt(p.visits)} · ${p.bounceRate}%`)
+    );
+  }
+  return lines;
+}
+
+interface ReportExtras {
+  site?: SiteReportResult | null;
+  microsites?: MicrositeVisitReport | null;
+}
+
+export function formatWeeklyReportTelegram(
+  metrics: WeeklyReportMetrics,
+  extras: ReportExtras = {}
+): string {
   const { range } = metrics;
   const adminUrl = process.env.NEXT_PUBLIC_BASE_URL
     ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin`
@@ -536,6 +676,11 @@ export function formatWeeklyReportTelegram(metrics: WeeklyReportMetrics): string
   }
 
   lines.push(
+    ...formatMicrositeVisitsTelegram(extras.microsites),
+    ...formatSiteStatsTelegram(extras.site)
+  );
+
+  lines.push(
     "",
     "<b>📦 Всего на платформе</b>",
     `Пользователей: ${metrics.totals.users.toLocaleString("ru-RU")}`,
@@ -551,7 +696,10 @@ export function formatWeeklyReportTelegram(metrics: WeeklyReportMetrics): string
   return lines.join("\n");
 }
 
-export function formatDailyReportTelegram(metrics: WeeklyReportMetrics): string {
+export function formatDailyReportTelegram(
+  metrics: WeeklyReportMetrics,
+  extras: ReportExtras = {}
+): string {
   const label = metrics.range.labelFrom;
   const adminUrl = process.env.NEXT_PUBLIC_BASE_URL
     ? `${process.env.NEXT_PUBLIC_BASE_URL}/admin`
@@ -618,6 +766,11 @@ export function formatDailyReportTelegram(metrics: WeeklyReportMetrics): string 
     });
   }
 
+  lines.push(
+    ...formatMicrositeVisitsTelegram(extras.microsites),
+    ...formatSiteStatsTelegram(extras.site)
+  );
+
   if (adminUrl) {
     lines.push("", `<a href="${escapeHtml(adminUrl)}">Открыть админку</a>`);
   }
@@ -661,8 +814,17 @@ export async function sendWeeklyReport(options?: {
   }
 
   const range = getPreviousMskWeekRange(options?.referenceDate);
-  const metrics = await collectWeeklyReportMetrics(range);
-  const text = formatWeeklyReportTelegram(metrics);
+  const [metrics, site, microsites] = await Promise.all([
+    collectWeeklyReportMetrics(range),
+    collectSiteReportStats(
+      metrikaPeriod(range.from, range.to),
+      metrikaPeriod(range.prevFrom, range.prevTo)
+    ),
+    collectMicrositeVisitReport(range.from, range.to, range.prevFrom, range.prevTo).catch(
+      () => null
+    ),
+  ]);
+  const text = formatWeeklyReportTelegram(metrics, { site, microsites });
   const sent = await sendSupportTelegramMessage(chatId, text);
 
   if (!sent) {
@@ -688,8 +850,16 @@ export async function sendDailyReport(options?: {
     options?.period === "today"
       ? getCurrentMskDayRange(ref)
       : getPreviousMskDayRange(ref);
-  const metrics = await collectDailyReportMetrics(range);
-  const text = formatDailyReportTelegram(metrics);
+  const dayBefore = new Date(range.from.getTime() - 86_400_000);
+  const [metrics, site, microsites] = await Promise.all([
+    collectDailyReportMetrics(range),
+    collectSiteReportStats(
+      metrikaPeriod(range.from, range.to),
+      metrikaPeriod(dayBefore, dayBefore)
+    ),
+    collectMicrositeVisitReport(range.from, range.to, dayBefore, dayBefore).catch(() => null),
+  ]);
+  const text = formatDailyReportTelegram(metrics, { site, microsites });
   const sent = await sendSupportTelegramMessage(chatId, text);
 
   if (!sent) {

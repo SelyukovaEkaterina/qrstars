@@ -170,3 +170,15 @@ describe("resolveYandexMapsPreview", () => {
     assert.equal(result.ok, false);
   });
 });
+
+describe("pasted share text", () => {
+  it("extracts the link from «Поделиться» text with name and address", () => {
+    const text = "Кофейня Ромашка, ул. Баумана, 5 https://yandex.ru/maps/org/romashka/1043674692/";
+    assert.equal(yandexMapsUrlError(text), null);
+    assert.equal(normalizeYandexMapsUrl(text), normalizeYandexMapsUrl("https://yandex.ru/maps/org/romashka/1043674692/"));
+  });
+
+  it("still rejects plain text without a link", () => {
+    assert.notEqual(yandexMapsUrlError("Кофейня Ромашка Казань"), null);
+  });
+});

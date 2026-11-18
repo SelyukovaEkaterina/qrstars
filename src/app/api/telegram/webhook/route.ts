@@ -220,7 +220,7 @@ async function linkMcContact(
     update: { label },
   });
 
-  const enabledCount = await enableMessengerNotificationsForProvider(userId, "TELEGRAM");
+  const enabledCount = await enableMessengerNotificationsForProvider(userId, "TELEGRAM", contact.id);
 
   const reviewHint = messengerLinkedHint(enabledCount);
 

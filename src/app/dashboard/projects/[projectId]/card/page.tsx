@@ -32,6 +32,7 @@ export default async function ProjectCardPage({
       landingTheme: true,
       shortSlug: true,
       siteTemplate: true,
+      metrikaCounterId: true,
       industry: true,
       _count: { select: { qrcodes: { where: { mode: "LANDING" } } } },
       businessCard: { include: { contactMessenger: true } },
@@ -83,6 +84,11 @@ export default async function ProjectCardPage({
                   slug: est.shortSlug,
                   suggestion: suggestMicrositeSlug(est.businessCard?.fullName),
                 }
+              : null
+          }
+          metrika={
+            est._count.qrcodes === 0
+              ? { hasPaidFeatures, counterId: est.metrikaCounterId, slug: est.shortSlug }
               : null
           }
         />

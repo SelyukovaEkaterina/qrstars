@@ -91,6 +91,26 @@ def test_quick_start_card_creates_card_and_qr(base_url):
     assert "Оставить заявку" in page.text
 
 
+def test_card_switches_from_email_to_telegram_after_linking(base_url):
+    """Мастер создал визитку до привязки Telegram: заявки шли на email.
+    После привязки Telegram визитка переключается на него, иначе заявки так и уходят на почту."""
+    session, _ = new_user_session(base_url, "card-tg")
+    r = quick_start_card(session, base_url)
+    assert r.status_code == 200, r.text
+    card = session.get(f"{base_url}/api/business-cards").json()["businessCards"][0]
+    assert card["contactMessenger"]["provider"] == "EMAIL"
+
+    link = session.post(
+        f"{base_url}/api/messenger-contacts",
+        json={"provider": "TELEGRAM", "externalId": str(uuid.uuid4().int % 10**9), "label": "Мой Telegram"},
+    )
+    assert link.status_code == 200, link.text
+
+    card = session.get(f"{base_url}/api/business-cards").json()["businessCards"][0]
+    assert card["contactEnabled"] is True
+    assert card["contactMessenger"]["provider"] == "TELEGRAM"
+
+
 def test_quick_start_card_requires_phone(base_url):
     session, _ = new_user_session(base_url)
     r = quick_start_card(session, base_url, phone="", whatsapp="")

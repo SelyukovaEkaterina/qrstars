@@ -11,6 +11,7 @@ import BusinessCardConstructor, {
 } from "@/components/dashboard/BusinessCardConstructor";
 import BusinessCardView from "@/components/scan/BusinessCardView";
 import CardShortAddress from "@/components/dashboard/project/CardShortAddress";
+import MetrikaCounterSettings from "@/components/dashboard/project/MetrikaCounterSettings";
 import SiteTemplatePicker from "@/components/dashboard/project/SiteTemplatePicker";
 import type { SiteTemplateId } from "@/lib/site-templates";
 import { scanUrlForCode } from "@/lib/utils";
@@ -27,6 +28,8 @@ interface ProjectCardEditorProps {
   shortAddress?: { hasPaidFeatures: boolean; slug: string | null; suggestion: string } | null;
   /** Сайт-визитка для компьютера; null — у проекта микросайт, сайт строится из него. */
   cardSite?: { template: SiteTemplateId; hasPaidFeatures: boolean; frozen: boolean } | null;
+  /** Своя Яндекс Метрика (PRO); null — у проекта микросайт, счётчик настраивается там. */
+  metrika?: { hasPaidFeatures: boolean; counterId: string | null; slug: string | null } | null;
 }
 
 export default function ProjectCardEditor({
@@ -38,6 +41,7 @@ export default function ProjectCardEditor({
   welcome = false,
   shortAddress = null,
   cardSite = null,
+  metrika = null,
 }: ProjectCardEditorProps) {
   const [siteTemplate, setSiteTemplate] = useState<SiteTemplateId | null>(cardSite?.template ?? null);
   const saveSiteTemplate = async (id: SiteTemplateId) => {
@@ -167,6 +171,16 @@ export default function ProjectCardEditor({
           hasPaidFeatures={shortAddress.hasPaidFeatures}
           initialSlug={shortAddress.slug}
           suggestion={shortAddress.suggestion}
+        />
+      )}
+
+      {metrika && initialCard && primaryQr && (
+        <MetrikaCounterSettings
+          projectId={projectId}
+          hasPaidFeatures={metrika.hasPaidFeatures}
+          initialCounterId={metrika.counterId}
+          shortSlug={metrika.slug}
+          kind="card"
         />
       )}
 

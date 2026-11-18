@@ -108,7 +108,7 @@ export function renderNoQrD4Email(state: LifecycleUserState): string {
       ])}
       <p style="font-size:16px;color:#374151;">Вы можете создать несколько разных QR-кодов — ограничений по их количеству нет даже на бесплатном тарифе FREE.</p>
     `,
-    cta: { label: "Выбрать тип QR-кода", href: `${base}/dashboard/start?rerun=1` },
+    cta: { label: "Выбрать тип QR-кода", href: `${base}/dashboard/start` },
   });
 }
 

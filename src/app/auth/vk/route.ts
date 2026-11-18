@@ -5,7 +5,9 @@ import { authenticateWithVk, VkAuthError } from "@/lib/vk-auth";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import {
   readOAuthRegistrationAttribution,
+  REGISTRATION_START_COOKIE,
   REGISTRATION_UTM_COOKIE,
+  readRegistrationStartPath,
 } from "@/lib/registration-utm";
 
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
@@ -117,7 +119,9 @@ export async function POST(request: Request) {
     const secure =
       process.env.NEXTAUTH_URL?.startsWith("https://") ??
       process.env.NODE_ENV === "production";
-    const response = NextResponse.json({ success: true });
+    const redirectTo =
+      readRegistrationStartPath(cookieStore.get(REGISTRATION_START_COOKIE)?.value) ?? "/dashboard";
+    const response = NextResponse.json({ success: true, redirectTo });
     response.cookies.set({
       name: `${secure ? "__Secure-" : ""}next-auth.session-token`,
       value: sessionToken,
@@ -128,6 +132,7 @@ export async function POST(request: Request) {
       maxAge: SESSION_MAX_AGE,
     });
     response.cookies.set({ name: REGISTRATION_UTM_COOKIE, value: "", path: "/", maxAge: 0 });
+    response.cookies.set({ name: REGISTRATION_START_COOKIE, value: "", path: "/", maxAge: 0 });
     return response;
   } catch (error) {
     if (error instanceof VkAuthError) {

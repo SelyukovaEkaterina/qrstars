@@ -1,3 +1,4 @@
+import { getAppBaseUrl } from "@/lib/utils";
 import { NextResponse } from "next/server";
 import { collectClientInfo } from "@/lib/client-info";
 import { sendBusinessCardContactNotification } from "@/lib/messenger-contact-notify";
@@ -107,6 +108,9 @@ export async function POST(request: Request) {
     guestPhone: phone || undefined,
     message: text,
     client,
+    inboxUrl: savedLeadId && qr.establishment?.id
+      ? `${getAppBaseUrl()}/dashboard/projects/${qr.establishment.id}/inbox`
+      : undefined,
   });
 
   if (!sent) {

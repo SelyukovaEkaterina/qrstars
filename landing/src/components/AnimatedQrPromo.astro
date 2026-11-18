@@ -18,7 +18,7 @@ interface Props {
 const {
   content,
   title = 'Анимированный QR-код — заметнее на экране',
-  subtitle = 'В ролике, на экране в зале, в сторис и на сайте живой код ловит взгляд лучше статичного. Каждый кадр читается камерой — наведите телефон на любой пример.',
+  subtitle = 'В ролике, на экране в зале, в сторис и на сайте живой код ловит взгляд лучше статичного. Код читается камерой — наведите телефон на любой пример (сборка и сальто — в фазе покоя).',
 } = Astro.props;
 
 const proUrl = withPlan(generatorRegisterUrl(`${content}-animation`, Astro.url.searchParams), 'pro');
@@ -91,6 +91,16 @@ const proFrom = `${PLAN_PRICING.PRO.halfYearRub.toLocaleString('ru-RU')} ₽`;
     float: { ...BASE, dotStyle: 'dots', eyeStyle: 'circle', fg: '#fde68a', bg: '#111827' },
     youtube: { ...BASE, dotStyle: 'classic', eyeStyle: 'rounded', fg: '#0f0f0f', margin: 3 },
     telegram: { ...BASE, dotStyle: 'dots', eyeStyle: 'rounded', fg: '#0c4a6e', margin: 3 },
+    shake: { ...BASE, dotStyle: 'classic', eyeStyle: 'rounded', fg: '#0f172a', centerMode: 'text', centerText: 'NEW' },
+    jelly: { ...BASE, dotStyle: 'dots', eyeStyle: 'circle', fg: '#db2777' },
+    logoBounce: { ...BASE, dotStyle: 'dots', eyeStyle: 'circle', fg: '#7c3aed', centerMode: 'text', centerText: 'SALE' },
+    logoFlip: { ...BASE, dotStyle: 'classic', eyeStyle: 'rounded', fg: '#b45309', centerMode: 'text', centerText: '−50%' },
+    glitch: { ...BASE, dotStyle: 'classic', eyeStyle: 'square', fg: '#e2e8f0', bg: '#0f172a' },
+    confetti: { ...BASE, dotStyle: 'classic', eyeStyle: 'rounded', fg: '#6d28d9', centerMode: 'text', centerText: 'ХИТ' },
+    assemble: { ...BASE, dotStyle: 'diamond', fg: '#1d4ed8' },
+    print: { ...BASE, dotStyle: 'classic', fg: '#0f766e', frame: true, frameText: 'Наведите камеру', frameStyle: 'bottom' },
+    tiles: { ...BASE, dotStyle: 'dots', eyeStyle: 'circle', fg: '#be123c' },
+    spin: { ...BASE, dotStyle: 'classic', eyeStyle: 'rounded', fg: '#4338ca', centerMode: 'text', centerText: 'QR' },
   };
 
   const URL_DEMO = 'https://qrstars.ru';

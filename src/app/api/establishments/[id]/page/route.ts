@@ -17,6 +17,7 @@ import {
 } from "@/lib/brand-theme";
 import {
   establishmentAccessWhere,
+  establishmentHasPaidFeatures,
   establishmentMicrositeAccess,
 } from "@/lib/establishment-access";
 import { MICROSITE_FROZEN_ERROR, isMicrositeFrozen } from "@/lib/qr-mode-access";
@@ -24,6 +25,7 @@ import { isMicrositeSlug, isReservedMicrositeSlug } from "@/lib/microsite-host";
 import { sanitizeMenuForClient } from "@/lib/iiko/sanitize-menu";
 import { canLinkContent, LINKED_CONTENT_NOT_FOUND } from "@/lib/linked-content-access";
 import { parseSiteTemplateInput, resolveSiteTemplate } from "@/lib/site-templates";
+import { METRIKA_COUNTER_INPUT_ERROR, parseMetrikaCounterInput } from "@/lib/owner-metrika";
 
 type RouteContext = { params: Promise<{ id: string }> };
 
@@ -140,6 +142,7 @@ export async function GET(_request: Request, context: RouteContext) {
       shortSlug: establishment.shortSlug,
       siteTemplate: establishment.siteTemplate,
       siteTemplateResolved: resolveSiteTemplate(establishment.siteTemplate, establishment.industry),
+      metrikaCounterId: establishment.metrikaCounterId,
       menu: establishment.menu ? sanitizeMenuForClient(establishment.menu) : null,
       businessCard: establishment.businessCard,
       wifiConfig: establishment.wifiConfig,
@@ -282,6 +285,20 @@ export async function PUT(request: Request, context: RouteContext) {
     }
     data.siteTemplate = template;
   }
+  if (body.metrikaCounterId !== undefined) {
+    const counterId = parseMetrikaCounterInput(body.metrikaCounterId);
+    if (counterId === undefined) {
+      return NextResponse.json({ error: METRIKA_COUNTER_INPUT_ERROR }, { status: 400 });
+    }
+    // Подключить свою Метрику — PRO / «Сеть» владельца проекта; отключить можно всегда.
+    if (counterId && counterId !== establishment.metrikaCounterId && !(await establishmentHasPaidFeatures(id))) {
+      return NextResponse.json(
+        { error: "Своя Яндекс Метрика доступна на тарифах PRO и «Сеть»", upgradeRequired: "PRO" },
+        { status: 403 }
+      );
+    }
+    data.metrikaCounterId = counterId;
+  }
   if (body.landingTipsType !== undefined) data.landingTipsType = body.landingTipsType || null;
   if (body.landingTipsPhone !== undefined) data.landingTipsPhone = body.landingTipsPhone || null;
   if (body.landingTipsBankName !== undefined) data.landingTipsBankName = body.landingTipsBankName || null;
@@ -365,6 +382,7 @@ export async function PUT(request: Request, context: RouteContext) {
       shortSlug: updated.shortSlug,
       siteTemplate: updated.siteTemplate,
       siteTemplateResolved: resolveSiteTemplate(updated.siteTemplate, updated.industry),
+      metrikaCounterId: updated.metrikaCounterId,
       menu: updated.menu,
       businessCard: updated.businessCard,
       wifiConfig: updated.wifiConfig,

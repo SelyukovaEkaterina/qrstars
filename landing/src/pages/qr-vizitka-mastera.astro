@@ -8,6 +8,7 @@ const DEMO_SCAN_URL = 'https://app.qrstars.ru/q/demo-master';
 const HERO_CTA_URL = cardRegisterUrl('master_hero', Astro.url.searchParams, 'master_card');
 const BOTTOM_CTA_URL = cardRegisterUrl('master_bottom', Astro.url.searchParams, 'master_card');
 const SITE_CTA_URL = cardRegisterUrl('master_card_site', Astro.url.searchParams, 'master_card');
+const NAV_CTA_URL = cardRegisterUrl('master_nav', Astro.url.searchParams, 'master_card');
 
 const places = [
   { icon: 'fa-bolt', title: 'Электрощиток', text: 'Рядом с автоматами — первое место, куда смотрят, когда выбило свет.' },
@@ -30,7 +31,7 @@ const features = [
 const faq = [
   {
     q: 'Сколько это стоит?',
-    a: 'Визитка и QR-код бесплатны, без ограничения по сроку. Внизу визитки будет небольшая подпись QrStars — убрать её можно на тарифе PRO.',
+    a: 'Визитка и QR-код бесплатны, без ограничения по сроку. Внизу визитки будет плашка QrStars, убрать её можно на тарифе PRO.',
   },
   {
     q: 'Нужен ли сайт или знания компьютера?',
@@ -42,7 +43,7 @@ const faq = [
   },
   {
     q: 'Как напечатать наклейки?',
-    a: 'Скачайте QR-код в PNG или SVG и отдайте в любую типографию или копицентр. Подойдут виниловые наклейки или магниты размером от 3×3 см.',
+    a: 'В кабинете можно сразу скачать лист стикеров 5, 6 или 9 см на A4 и распечатать на своём принтере. Или скачайте QR-код в PNG или SVG и отдайте в любую типографию или копицентр. Подойдут виниловые наклейки или магниты размером от 3×3 см.',
   },
   {
     q: 'Клиент увидит рекламу других мастеров?',
@@ -63,6 +64,7 @@ const faqJsonLd = {
 
 <Layout
   title="QR-визитка для мастера: электрика, сантехника, мастера на час"
+  navRegisterUrl={NAV_CTA_URL}
   description="Бесплатная QR-визитка для мастера: клиент сканирует наклейку на щитке или котле и сразу звонит вам или пишет в WhatsApp. Услуги и цены, сохранение контакта, заявки. Сделать за минуту с телефона."
 >
   <script type="application/ld+json" set:html={JSON.stringify(faqJsonLd)} />
@@ -213,7 +215,7 @@ const faqJsonLd = {
         <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
           <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center font-bold mb-4">3</div>
           <h3 class="font-bold text-lg mb-2">Наклейки</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">Скачайте QR-код и закажите наклейки в любой типографии. Или просто отправляйте ссылку клиентам.</p>
+          <p class="text-slate-600 text-sm leading-relaxed">Скачайте лист стикеров 5, 6 или 9 см на A4 и распечатайте на своём принтере или закажите наклейки в типографии. Или просто отправляйте ссылку клиентам.</p>
         </div>
       </div>
     </div>

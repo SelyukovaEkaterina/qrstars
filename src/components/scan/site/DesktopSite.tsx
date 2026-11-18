@@ -247,6 +247,26 @@ export function Logo({ t, name, logoUrl, size }: { t: SiteTokens; name: string; 
   return <Monogram t={t} name={name} size={size} radius={radius} />;
 }
 
+/**
+ * Логотип вместо обложки на первом экране: у мастеров это обычно их фото, поэтому
+ * показываем крупно (≈80% высоты панели), а не маленьким значком посередине.
+ */
+function HeroLogo({ t, logoUrl }: { t: SiteTokens; logoUrl: string }) {
+  return (
+    <img
+      src={logoUrl}
+      alt=""
+      className="relative aspect-square h-[80%] max-w-[80%] bg-white object-cover shadow-2xl shadow-black/20"
+      style={{ borderRadius: t.radiusLg, border: `1px solid ${t.border}` }}
+    />
+  );
+}
+
+function sameText(a: string | null | undefined, b: string | null | undefined): boolean {
+  const norm = (v: string | null | undefined) => (v ?? "").toLowerCase().replace(/[«»"'.,!\s]+/g, " ").trim();
+  return !!norm(a) && norm(a) === norm(b);
+}
+
 /** «Открыто до 22:00» — считаем после монтирования: время сервера и гостя различается. */
 function StatusPill({ t, hours, onImage }: { t: SiteTokens; hours: WorkingHours | null; onImage?: boolean }) {
   const [status, setStatus] = useState<{ open: boolean; text: string } | null>(null);
@@ -456,7 +476,7 @@ function HeroClassic({ t, p, primary, secondary, onAction }: HeroProps) {
           >
             <div className="absolute -right-16 -top-16 h-64 w-64 rounded-full" style={{ background: t.accent, opacity: 0.12 }} />
             <div className="absolute -bottom-20 -left-10 h-72 w-72 rounded-full" style={{ background: t.accent, opacity: 0.08 }} />
-            <Logo t={t} name={p.name} logoUrl={p.logoUrl} size={140} />
+            {p.logoUrl ? <HeroLogo t={t} logoUrl={p.logoUrl} /> : <Logo t={t} name={p.name} size={140} />}
           </div>
         )}
       </div>
@@ -578,7 +598,7 @@ function HeroBold({ t, p, primary, secondary, onAction }: HeroProps) {
               style={{ borderRadius: t.radiusLg, background: `linear-gradient(160deg, ${t.accent}, ${mix(t.accent, "#000000", 0.55)})` }}
             >
               {p.logoUrl ? (
-                <Logo t={t} name={p.name} logoUrl={p.logoUrl} size={150} />
+                <HeroLogo t={t} logoUrl={p.logoUrl} />
               ) : (
                 <span
                   className="select-none"
@@ -1082,7 +1102,9 @@ function ContactsBlock({ t, p, band }: { t: SiteTokens; p: DesktopSiteProps; ban
 
 /* ────────────────────────────── page ────────────────────────────── */
 
-export default function DesktopSite(p: DesktopSiteProps) {
+export default function DesktopSite(props: DesktopSiteProps) {
+  // Подзаголовок, который повторяет название, на первом экране выглядит как опечатка.
+  const p = sameText(props.subtitle, props.name) ? { ...props, subtitle: null } : props;
   const t = useMemo(() => buildSiteTokens(p.template, p.brandColor, p.appearance), [p.template, p.brandColor, p.appearance]);
 
   const goAnchor = (id: string) => {
@@ -1105,11 +1127,16 @@ export default function DesktopSite(p: DesktopSiteProps) {
     else if (a.anchor) goAnchor(a.anchor);
   };
 
-  const secondary: SiteAction | null = p.phone
-    ? { label: "Позвонить", href: telHref(p.phone) }
-    : p.address
-      ? { label: "Как добраться", href: p.mapsUrl || `https://yandex.ru/maps/?text=${encodeURIComponent(p.address)}` }
-      : null;
+  // Вторая кнопка — звонок или маршрут, но не копия первой (первым разделом часто ставят «Позвонить»).
+  const primaryIsCall =
+    !!p.primaryAction &&
+    (p.primaryAction.href?.startsWith("tel:") || sameText(p.primaryAction.label, "Позвонить"));
+  const secondary: SiteAction | null =
+    p.phone && !primaryIsCall
+      ? { label: "Позвонить", href: telHref(p.phone) }
+      : p.address
+        ? { label: "Как добраться", href: p.mapsUrl || `https://yandex.ru/maps/?text=${encodeURIComponent(p.address)}` }
+        : null;
 
   const hasContactsBlock = !!(p.address || p.phone || p.email || p.messengers.length || p.workingHours || p.publicUrl !== null);
   const nav: { label: string; anchor: string }[] = [];

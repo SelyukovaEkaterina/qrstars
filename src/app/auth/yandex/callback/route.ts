@@ -8,7 +8,9 @@ import {
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import {
   readOAuthRegistrationAttribution,
+  REGISTRATION_START_COOKIE,
   REGISTRATION_UTM_COOKIE,
+  readRegistrationStartPath,
 } from "@/lib/registration-utm";
 
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
@@ -106,7 +108,8 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const response = NextResponse.redirect(appUrl("/dashboard", request));
+    const startPath = readRegistrationStartPath(request.cookies.get(REGISTRATION_START_COOKIE)?.value);
+    const response = NextResponse.redirect(appUrl(startPath ?? "/dashboard", request));
     const secure =
       process.env.NEXTAUTH_URL?.startsWith("https://") ??
       process.env.NODE_ENV === "production";
@@ -120,6 +123,7 @@ export async function GET(request: NextRequest) {
       maxAge: SESSION_MAX_AGE,
     });
     response.cookies.set({ name: REGISTRATION_UTM_COOKIE, value: "", path: "/", maxAge: 0 });
+    response.cookies.set({ name: REGISTRATION_START_COOKIE, value: "", path: "/", maxAge: 0 });
     return clearStateCookie(response);
   } catch (error) {
     if (error instanceof YandexAuthError) {

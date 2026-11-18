@@ -837,7 +837,7 @@ export const demoSellerForm: FormViewData = {
   enabled: true,
   fields: [
     { id: "dsf-1", label: "Имя", placeholder: "Как к вам обращаться", helpText: null, type: "text", required: true, options: null, order: 0 },
-    { id: "dsf-2", label: "Телефон или Telegram", placeholder: "+7 999 123-45-67 или @username", helpText: null, type: "text", required: true, options: null, order: 1 },
+    { id: "dsf-2", label: "Телефон", placeholder: "+7 999 123-45-67", helpText: "Перезвоним или напишем в мессенджер", type: "phone", required: true, options: null, order: 1 },
     { id: "dsf-3", label: "Номер заказа", placeholder: "Необязательно", helpText: "Есть в личном кабинете маркетплейса", type: "text", required: false, options: null, order: 2 },
     { id: "dsf-4", label: "Что случилось", placeholder: null, helpText: null, type: "select", required: true, options: ["Не включается", "Не заряжает телефон", "Не хватает деталей", "Повреждение при доставке", "Вопрос по работе", "Другое"], order: 3 },
     { id: "dsf-5", label: "Подробнее", placeholder: "Опишите, что происходит", helpText: null, type: "textarea", required: false, options: null, order: 4 },

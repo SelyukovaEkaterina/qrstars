@@ -58,7 +58,7 @@ import {
   projectPagePath,
   projectQrPath,
 } from "@/lib/project-routes";
-import { MASTER_PROFESSION_SUGGESTIONS } from "@/lib/business-card";
+import { MASTER_PROFESSION_SUGGESTIONS, telegramInputError } from "@/lib/business-card";
 import { TEMPLATE_ROUTES } from "@/lib/template-routes";
 import {
   Store,
@@ -497,6 +497,7 @@ export default function SetupStartWizard({
     legalName: "",
     inn: "",
   });
+  const [telegramTouched, setTelegramTouched] = useState(false);
   const [cardForm, setCardForm] = useState({
     profession: "",
     whatsappSame: true,
@@ -653,6 +654,12 @@ export default function SetupStartWizard({
       if (form.phone.replace(/\D/g, "").length < 10) {
         setError("Укажите телефон — по нему клиенты будут звонить");
         reportFormFailure(intent, "client", "Укажите телефон — по нему клиенты будут звонить");
+        return;
+      }
+      const tgError = telegramInputError(cardForm.telegram);
+      if (tgError) {
+        setError(tgError);
+        reportFormFailure(intent, "client", tgError);
         return;
       }
     } else if (!usingExistingOrg && !form.name.trim()) {
@@ -1070,6 +1077,27 @@ export default function SetupStartWizard({
               Наклейте QR на щиток, котёл или бойлер после работы. Через полгода клиент отсканирует его и позвонит вам, а не будет искать нового мастера.
             </p>
           </Card>
+
+          {!rerun && (
+            <Card className="p-4 space-y-3 border-slate-200 bg-white/90">
+              <p className="font-semibold text-gray-950 flex items-center gap-2">
+                Заявки клиентов — сразу в Telegram
+                <Bell className="w-4 h-4 text-indigo-600" />
+              </p>
+              <p className="text-xs text-gray-600 leading-relaxed">
+                Пока заявки с визитки приходят на почту и в кабинет. Подключите Telegram или MAX — и они будут приходить в мессенджер.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => goNextStep("notification-settings", "/dashboard/settings#notification-channels")}
+              >
+                <MessageCircle className="w-4 h-4 mr-1 text-blue-500" />
+                Подключить Telegram или MAX
+              </Button>
+            </Card>
+          )}
 
           {rerun ? (
             <p className="text-center text-sm text-gray-500">
@@ -2009,6 +2037,8 @@ export default function SetupStartWizard({
                   className="max-sm:text-base"
                   value={cardForm.telegram}
                   onChange={(e) => setCardForm({ ...cardForm, telegram: e.target.value })}
+                  onBlur={() => setTelegramTouched(true)}
+                  error={telegramTouched ? telegramInputError(cardForm.telegram) ?? undefined : undefined}
                   placeholder="@username"
                 />
                 <Input

@@ -221,6 +221,12 @@ export function telegramHref(raw: string | null | undefined): string | null {
   return digits.length >= 10 ? `https://t.me/+${digits}` : null;
 }
 
+/** Подсказка, если Telegram не превратится в ссылку: иначе кнопка молча пропадает с визитки. */
+export function telegramInputError(raw: string | null | undefined): string | null {
+  if (!raw?.trim() || telegramHref(raw)) return null;
+  return "Укажите ник латиницей, например @sergey_master, или ссылку t.me/…";
+}
+
 /** MAX не открывает чат по номеру — нужна ссылка на профиль или канал. */
 export function maxHref(raw: string | null | undefined): string | null {
   return safeHttpUrl(raw);

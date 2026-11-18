@@ -15,7 +15,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
 
 <Layout
   title="QR-меню для ресторана и кафе — электронное меню по QR-коду | QrStars"
-  description="Создайте электронное QR-меню для ресторана или кафе за 2 минуты. Актуальные цены, фото блюд, наклейки на столики. Попробуйте QrStars бесплатно."
+  description="Создайте электронное QR-меню для ресторана или кафе за 2 минуты. Актуальные цены и категории бесплатно, фото блюд на PRO. Таблички и наклейки печатаете сами. Попробуйте QrStars бесплатно."
   fullTitle={true}
 >
     <section class="pt-24 pb-16 sm:pt-32 lg:pt-40 lg:pb-20 overflow-hidden bg-white relative">
@@ -27,7 +27,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                             🍔 Меню всегда актуально
                         </div>
                         <div class="inline-block bg-emerald-100 text-emerald-800 font-semibold px-3 py-1.5 rounded-full text-xs border border-emerald-200">
-                            Бесплатно на FREE
+                            Меню и цены — бесплатно
                         </div>
                     </div>
                     <h1 class="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
@@ -39,9 +39,9 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                     </p>
                     
                     <ul class="space-y-4 mb-8">
-                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Гибкий конструктор страниц: блоки, фото, категории</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Категории, блюда и цены бесплатно, фото блюд на PRO</span></li>
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Моментальное обновление цен и стоп-листов</span></li>
-                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Идеально для наклеек на столики и тейбл-тентов</span></li>
+                        <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Скачайте QR и распечатайте сами: наклейка на столик или табличка</span></li>
                         <li class="flex items-start gap-3"><i class="fa-solid fa-check-circle text-green-500 mt-1"></i> <span class="text-slate-700 font-medium">Аналитика просмотров по каждому столику (при разных метках)</span></li>
                     </ul>
 
@@ -89,21 +89,21 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
         scanUrl={DEMO_SCAN_URL}
         modeLabel="QR-меню"
         title="Отсканируйте демо меню"
-        subtitle="Электронное меню в браузере: категории, фото блюд и актуальные цены — как на столике в зале"
+        subtitle="Электронное меню в браузере: категории, блюда и актуальные цены, как на столике в зале"
     />
 
     <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12 max-w-2xl mx-auto">
                 <h2 class="text-3xl font-bold mb-4">Почему это удобно</h2>
-                <p class="text-slate-600">Экономьте на полиграфии и повышайте средний чек за счёт красочных фотографий блюд в смартфоне гостя.</p>
+                <p class="text-slate-600">Экономьте на полиграфии: меню и цены бесплатно, а на PRO можно добавить фото блюд, чтобы гостю было проще выбрать.</p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
                 <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                     <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-paintbrush"></i></div>
                     <h3 class="font-bold text-lg mb-2">Простой конструктор</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">Собирайте страницу меню из готовых блоков: заголовки, списки блюд, галереи изображений и кнопки.</p>
+                    <p class="text-slate-600 text-sm leading-relaxed">Добавьте категории, блюда, описания и цены. Фото блюд можно подключить на PRO.</p>
                 </div>
                 <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
                     <div class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center text-xl mb-4"><i class="fa-solid fa-rotate"></i></div>
@@ -134,14 +134,14 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
                 </div>
                 <div>
                     <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm border border-primary/20 mb-4">
-                        🏷️ Готовая наклейка
+                        🏷️ Распечатайте сами
                     </div>
                     <h2 class="text-3xl md:text-4xl font-bold mb-4">Наклейте на столик — <span class="text-primary">готово</span></h2>
                     <p class="text-lg text-slate-600 mb-6 leading-relaxed">
-                        Распечатайте наклейку с QR-кодом и разместите на каждом столике. Гости сканируют код и мгновенно видят меню — без приложений, без ожидания.
+                        Скачайте QR из кабинета и распечатайте на своём принтере: табличку A6–A3, домик на стол или лист стикеров 5, 6 или 9 см на A4. Гости сканируют код и мгновенно видят меню — без приложений, без ожидания.
                     </p>
                     <ul class="space-y-3 mb-8">
-                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Печать на самоклеящейся плёнке</span></li>
+                        <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Готовый макет для печати: табличка, домик или стикеры</span></li>
                         <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Индивидуальный дизайн под ваш бренд</span></li>
                         <li class="flex items-center gap-3"><i class="fa-solid fa-check-circle text-green-500"></i> <span class="text-slate-700">Один QR на все столики или свой на каждый — без лимита</span></li>
                     </ul>
@@ -177,7 +177,7 @@ const STICKY_REGISTER_URL = menuRegisterUrl('qr-menu-sticky', Astro.url.searchPa
     <section class="py-16 bg-slate-50 border-t border-slate-200">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 class="text-2xl font-bold mb-4">Быстрый и бесплатный старт</h2>
-            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты наклеек на столы. Тариф PRO (от {PRO_HALFYEAR} за полгода) можно подключить в любой момент: микросайт со всеми разделами в одном QR, корзина и приём заказов, White Label и расширенная аналитика.</p>
+            <p class="text-slate-600 mb-8">Начните работу с электронным меню абсолютно бесплатно: настройте дизайн под ваш бренд, загрузите позиции и скачайте макеты табличек и стикеров, чтобы распечатать их самим. Тариф PRO (от {PRO_HALFYEAR} за полгода) можно подключить в любой момент: микросайт со всеми разделами в одном QR, корзина и приём заказов, White Label и расширенная аналитика.</p>
             <a href={BOTTOM_REGISTER_URL} data-goal="bottom_cta" class="inline-block bg-slate-900 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-slate-800 transition shadow-lg">
                 Создать меню бесплатно
             </a>

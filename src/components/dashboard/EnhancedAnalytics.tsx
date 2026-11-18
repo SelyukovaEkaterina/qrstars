@@ -64,7 +64,9 @@ interface AnalyticsData {
     negative: number;
     avgRating: number;
   }[];
-  dailyScans: { date: string; count: number }[];
+  dailyScans: { date: string; count: number; direct?: number }[];
+  /** Заходы на короткий адрес проекта (не со скана QR); null — короткого адреса нет. */
+  siteVisits?: { total: number; previousTotal: number; addresses: string[] } | null;
   scanDayOfWeekStats: { day: string; count: number }[];
   scanHourStats: { hour: number; label: string; count: number }[];
   ratingDistribution: { rating: number; count: number }[];
@@ -396,6 +398,7 @@ export default function EnhancedAnalytics({
     previousPeriod,
     dailyReviews,
     dailyScans,
+    siteVisits,
     scanDayOfWeekStats,
     scanHourStats,
     ratingDistribution,
@@ -965,12 +968,42 @@ export default function EnhancedAnalytics({
             </Card>
           </div>
 
+          {siteVisits && (
+            <Card>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
+                  <p className="text-sm text-gray-500 flex items-center gap-1.5">
+                    <Globe className="w-4 h-4 text-teal-600" />
+                    Заходы по прямой ссылке
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900 mt-1">
+                    {siteVisits.total}
+                    {siteVisits.previousTotal > 0 && (
+                      <span
+                        className={`ml-2 text-sm font-medium ${
+                          siteVisits.total >= siteVisits.previousTotal ? "text-green-600" : "text-red-500"
+                        }`}
+                      >
+                        {siteVisits.total >= siteVisits.previousTotal ? "+" : ""}
+                        {Math.round(((siteVisits.total - siteVisits.previousTotal) / siteVisits.previousTotal) * 100)}%
+                      </span>
+                    )}
+                  </p>
+                </div>
+                <p className="text-xs text-gray-500 sm:max-w-sm sm:text-right">
+                  Открыли {siteVisits.addresses.join(", ")} без QR-кода: из соцсетей, мессенджеров, поиска. Сканы QR
+                  считаются отдельно. Один визит — одна вкладка браузера.
+                </p>
+              </div>
+            </Card>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-2">
               <h3 className="font-semibold text-gray-900 mb-4">
                 Сканирования по дням
               </h3>
-              {(dailyScans || []).some((d) => d.count > 0) ? (
+              {(dailyScans || []).some((d) => d.count > 0 || (d.direct ?? 0) > 0) ? (
                 <ResponsiveContainer width="100%" height={300}>
                   <AreaChart data={dailyScans || []}>
                     <defs>
@@ -1000,6 +1033,16 @@ export default function EnhancedAnalytics({
                       strokeWidth={2}
                       name="Сканирования"
                     />
+                    {siteVisits && (
+                      <Area
+                        type="monotone"
+                        dataKey="direct"
+                        stroke="#0d9488"
+                        fill="none"
+                        strokeWidth={2}
+                        name="По прямой ссылке"
+                      />
+                    )}
                   </AreaChart>
                 </ResponsiveContainer>
               ) : (

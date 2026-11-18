@@ -98,6 +98,23 @@ export function rememberRegistrationUtm(search: string): void {
       `${REGISTRATION_REF_COOKIE}=${ref}` +
       `; Path=/; Max-Age=${REGISTRATION_UTM_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
   }
+  // Сценарий (`intent`, `plan`) — чтобы после VK / Яндекс открылся нужный мастер,
+  // а не общий выбор из шести карточек.
+  if (params.get("intent") || params.get("plan")) {
+    document.cookie =
+      `${REGISTRATION_START_COOKIE}=${encodeURIComponent(buildDashboardStartUrl(params))}` +
+      `; Path=/; Max-Age=${REGISTRATION_UTM_COOKIE_MAX_AGE}; SameSite=Lax${secure}`;
+  }
+}
+
+/** Куда вести после OAuth: адрес мастера со сценарием из `/register?intent=…`. */
+export const REGISTRATION_START_COOKIE = "qrstars_reg_start";
+
+export function readRegistrationStartPath(raw: string | null | undefined): string | null {
+  if (!raw) return null;
+  const value = safeDecode(raw) ?? raw;
+  // Только свой мастер: никаких внешних адресов и `//host`.
+  return /^\/dashboard\/start(\?[A-Za-z0-9_\-.=&%]*)?$/.test(value) ? value : null;
 }
 
 /** Атрибуция нового OAuth-пользователя: UTM и ref из cookie, Metrika ClientID из `_ym_uid`. */

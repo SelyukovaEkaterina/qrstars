@@ -454,7 +454,7 @@ const QR_TABS = [
                                 <details class="qr-acc" data-acc="animation">
                                     <summary><i class="fa-solid fa-film text-primary"></i>Анимация<span class="qr-acc-value"><span class="qr-pro-badge">PRO</span></span><i class="fa-solid fa-chevron-down qr-acc-chevron"></i></summary>
                                     <div class="qr-acc-body">
-                                        <p class="text-sm text-slate-600 mb-3">Живой QR для экранов, сторис и сайта: блик, перелив, 3D-поворот, YouTube и Telegram. Нажмите — покажем на вашем оформлении.</p>
+                                        <p class="text-sm text-slate-600 mb-3">Живой QR для экранов, сторис и сайта: блик, 3D-поворот, вибрация, прыгающий логотип, сборка из модулей, конфетти, YouTube и Telegram. Нажмите — покажем на вашем оформлении.</p>
                                         <div class="flex flex-wrap gap-2" id="anim-chips">
                                             {QR_ANIMATIONS.map(a => (
                                                 <button type="button" class="anim-chip" data-anim={a.id} title={a.hint}>{a.label}</button>
@@ -740,7 +740,7 @@ const QR_TABS = [
             <div class="flex justify-center rounded-2xl bg-slate-50 p-4">
                 <canvas id="anim-canvas" class="w-full max-w-[20rem] h-auto" aria-label="Пример анимированного QR-кода"></canvas>
             </div>
-            <p class="mt-2 text-xs text-slate-400 text-center">Пример: код ведёт на qrstars.ru — наведите камеру, он читается в каждом кадре.</p>
+            <p class="mt-2 text-xs text-slate-400 text-center">Пример: код ведёт на qrstars.ru — наведите камеру, он читается.</p>
             <div class="mt-4 rounded-2xl border border-indigo-100 bg-indigo-50 p-4">
                 <p class="font-bold text-slate-900">Хотите такой со своей ссылкой?</p>
                 <p class="mt-1 text-sm text-slate-600">В кабинете на тарифе PRO ({PRO_FROM} за полгода) — GIF для экранов, сторис, сайта и писем. Ссылку внутри кода можно менять без перевыпуска.</p>
@@ -757,7 +757,7 @@ const QR_TABS = [
             <span id="qr-after-cta-text">Сделать такой же динамический — бесплатно</span>
             <i class="fa-solid fa-arrow-right text-xs"></i>
         </a>
-        <p class="mt-2 text-xs text-slate-400 text-center">Дизайн перенесём в кабинет автоматически</p>
+        <p class="mt-2 text-xs text-slate-400 text-center">Цвета, формы, рамку и логотип из набора перенесём в кабинет сами. Загруженные логотип, фото и фигура не переносятся.</p>
     </div>
 
     <section class="py-16 bg-slate-50">

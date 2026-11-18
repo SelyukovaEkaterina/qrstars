@@ -31,16 +31,16 @@ function VkCallbackContent() {
       }
 
       try {
-        await finishVkIdLogin({ code, device_id: deviceId, state }, codeVerifier);
+        const target = await finishVkIdLogin({ code, device_id: deviceId, state }, codeVerifier);
         if (cancelled) return;
         sessionStorage.removeItem(VK_STATE_STORAGE_KEY);
         sessionStorage.removeItem(VK_PKCE_STORAGE_KEY);
         if (window.opener && !window.opener.closed) {
-          window.opener.location.href = "/dashboard";
+          window.opener.location.href = target;
           window.close();
           return;
         }
-        window.location.replace("/dashboard");
+        window.location.replace(target);
       } catch (loginError) {
         if (!cancelled) {
           setError(

@@ -24,7 +24,7 @@ function randomString(length: number): string {
 export async function finishVkIdLogin(
   auth: Pick<AuthResponse, "code" | "device_id" | "state">,
   codeVerifier: string
-): Promise<void> {
+): Promise<string> {
   const response = await fetch("/auth/vk", {
     method: "POST",
     credentials: "include",
@@ -37,12 +37,14 @@ export async function finishVkIdLogin(
     }),
   });
   const data = (await response.json().catch(() => null)) as
-    | { success?: boolean; error?: string }
+    | { success?: boolean; error?: string; redirectTo?: string }
     | null;
 
   if (!response.ok || !data?.success) {
     throw new Error(data?.error || "Не удалось войти через VK");
   }
+  const target = data.redirectTo;
+  return target && target.startsWith("/dashboard") && !target.startsWith("//") ? target : "/dashboard";
 }
 
 export { VK_PKCE_STORAGE_KEY, VK_STATE_STORAGE_KEY };
@@ -118,11 +120,11 @@ export default function VkIdLogin() {
       setLoading(true);
       setError("");
       try {
-        await finishVkIdLogin(payload, codeVerifier);
+        const target = await finishVkIdLogin(payload, codeVerifier);
         sessionStorage.removeItem(VK_STATE_STORAGE_KEY);
         sessionStorage.removeItem(VK_PKCE_STORAGE_KEY);
         // Полная перезагрузка: иначе клиентский кэш NextAuth остаётся на прежнем аккаунте.
-        window.location.assign("/dashboard");
+        window.location.assign(target);
       } catch (loginError) {
         setError(
           loginError instanceof Error

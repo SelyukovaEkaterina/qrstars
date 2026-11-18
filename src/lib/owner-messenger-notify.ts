@@ -131,13 +131,33 @@ const MESSENGER_NOTIFY_FIELDS: Record<
  */
 export async function enableMessengerNotificationsForProvider(
   userId: string,
-  provider: Extract<MessengerProvider, "TELEGRAM" | "MAX">
+  provider: Extract<MessengerProvider, "TELEGRAM" | "MAX">,
+  contactId?: string
 ): Promise<number> {
   const fields = MESSENGER_NOTIFY_FIELDS[provider];
   const result = await prisma.establishment.updateMany({
     where: { userId },
     data: { [fields.reviews]: true, [fields.requests]: true },
   });
+  if (contactId) {
+    // Заявки с визитки идут в канал самой визитки. Мастер ставит туда email регистрации,
+    // если мессенджер ещё не привязан, — после привязки переводим такие визитки на него,
+    // иначе заявки так и уходят на почту, которую мастер не читает.
+    await prisma.businessCard.updateMany({
+      where: {
+        OR: [{ userId }, { establishment: { is: { userId } } }],
+        AND: [
+          {
+            OR: [
+              { contactMessengerId: null },
+              { contactMessenger: { provider: "EMAIL" } },
+            ],
+          },
+        ],
+      },
+      data: { contactMessengerId: contactId },
+    }).catch((err) => console.error("Business card channel switch failed", err));
+  }
   return result.count;
 }
 

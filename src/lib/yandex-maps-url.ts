@@ -1,3 +1,5 @@
+import { extractPastedUrl } from "./two-gis-url";
+
 const ALLOWED_HOSTS = new Set([
   "yandex.ru",
   "yandex.com",
@@ -41,7 +43,9 @@ export function isYandexMapsShortPath(pathname: string): boolean {
 }
 
 export function parseYandexMapsInput(raw: string): URL | null {
-  const trimmed = raw.trim();
+  // «Поделиться» в приложении копирует название и адрес вместе со ссылкой — достаём саму ссылку.
+  const trimmed = extractPastedUrl(raw);
+  if (/\s/.test(trimmed)) return null;
   if (!trimmed) return null;
 
   let href = trimmed;

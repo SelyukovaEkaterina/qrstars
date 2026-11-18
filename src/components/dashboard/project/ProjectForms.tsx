@@ -22,7 +22,7 @@ import FormStatsPanel from "@/components/dashboard/project/FormStatsPanel";
 import { FORM_PRESETS, type FormFieldType } from "@/lib/form-config";
 import { FORM_FREE_MONTHLY_SUBMISSIONS } from "@/lib/plans";
 import { projectInboxPath, projectQrPath } from "@/lib/project-routes";
-import { scanUrlForCode } from "@/lib/utils";
+import { scanUrlForCode, pluralize } from "@/lib/utils";
 
 interface ApiField {
   id: string;
@@ -295,7 +295,7 @@ export default function ProjectForms({ projectId }: { projectId: string }) {
                       </span>
                     </div>
                     <p className="mt-1 text-xs text-gray-500">
-                      {f.fields.length} {f.fields.length === 1 ? "вопрос" : "вопросов"} · ответов:{" "}
+                      {f.fields.length} {pluralize(f.fields.length, "вопрос", "вопроса", "вопросов")} · ответов:{" "}
                       {f._count?.submissions ?? 0}
                       {linkedQrs.length > 0 && (
                         <>

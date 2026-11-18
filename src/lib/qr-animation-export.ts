@@ -33,6 +33,8 @@ export async function findUnreadableFrames(anim: QrAnimation, L: QrLayout, jsQR:
   const ctx = c.getContext("2d", { willReadFrequently: true })!;
   const bad: number[] = [];
   for (let i = 0; i < anim.frames; i++) {
+    // Трансформации (сборка, сальто…) читаются только в фазе покоя — остальные кадры не проверяем.
+    if (anim.readable && !anim.readable(i)) continue;
     anim.draw(ctx, i);
     if (checkScanLevel(c, L, jsQR) === "screen") bad.push(i);
     if (i % 5 === 4) await nextTick();
@@ -48,14 +50,17 @@ export async function pickReadableIntensity(
   base: HTMLCanvasElement,
   opts: Omit<QrAnimationOptions, "intensity">,
   jsQR: JsQrDecoder,
-): Promise<{ intensity: number; unreadable: number; baseUnreadable: boolean }> {
+): Promise<{ intensity: number; unreadable: number; checked: number; baseUnreadable: boolean }> {
   // Сам статичный код не читается — анимация тут ни при чём, ослаблять бессмысленно.
-  if (checkScanLevel(base, opts.layout, jsQR) === "screen") return { intensity: 1, unreadable: 0, baseUnreadable: true };
-  let last = { intensity: INTENSITY_STEPS[INTENSITY_STEPS.length - 1], unreadable: 0 };
+  if (checkScanLevel(base, opts.layout, jsQR) === "screen") return { intensity: 1, unreadable: 0, checked: 0, baseUnreadable: true };
+  let last = { intensity: INTENSITY_STEPS[INTENSITY_STEPS.length - 1], unreadable: 0, checked: 0 };
   for (const intensity of INTENSITY_STEPS) {
-    const bad = await findUnreadableFrames(createQrAnimation(base, { ...opts, intensity }), opts.layout, jsQR);
-    if (bad.length === 0) return { intensity, unreadable: 0, baseUnreadable: false };
-    last = { intensity, unreadable: bad.length };
+    const anim = createQrAnimation(base, { ...opts, intensity });
+    let checked = 0;
+    for (let i = 0; i < anim.frames; i++) if (!anim.readable || anim.readable(i)) checked++;
+    const bad = await findUnreadableFrames(anim, opts.layout, jsQR);
+    if (bad.length === 0) return { intensity, unreadable: 0, checked, baseUnreadable: false };
+    last = { intensity, unreadable: bad.length, checked };
   }
   return { ...last, baseUnreadable: false };
 }

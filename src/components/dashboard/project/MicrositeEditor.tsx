@@ -1,6 +1,7 @@
 "use client";
 
 import { isMicrositeSlug, isReservedMicrositeSlug } from "@/lib/microsite-host";
+import MetrikaCounterSettings from "@/components/dashboard/project/MetrikaCounterSettings";
 import { Suspense, useState, useEffect, useCallback, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -289,6 +290,7 @@ function MyPageDashboardContent() {
   const [shortSlug, setShortSlug] = useState("");
   const [shortSlugSaving, setShortSlugSaving] = useState(false);
   const [shortSlugError, setShortSlugError] = useState("");
+  const [metrikaCounterId, setMetrikaCounterId] = useState<string | null>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
 
@@ -450,6 +452,7 @@ function MyPageDashboardContent() {
     setAvitoUrl(est.avitoUrl || null);
     setShortSlug(est.shortSlug || "");
     setShortSlugError("");
+    setMetrikaCounterId(est.metrikaCounterId ?? null);
     setExtraMenus(est.extraMenus || []);
     setExtraBusinessCards(est.extraBusinessCards || []);
     setExtraWifiConfigs(est.extraWifiConfigs || []);
@@ -1590,6 +1593,18 @@ function MyPageDashboardContent() {
                   </p>
                 )}
               </div>
+
+              {!loading && (
+                <div className="mb-6 max-w-2xl">
+                  <MetrikaCounterSettings
+                    key={`${establishmentId}:${metrikaCounterId ?? ""}:${isPro}`}
+                    projectId={establishmentId}
+                    hasPaidFeatures={isPro}
+                    initialCounterId={metrikaCounterId}
+                    shortSlug={shortSlug || null}
+                  />
+                </div>
+              )}
 
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-700 mb-2">

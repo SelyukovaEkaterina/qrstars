@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { cache } from "react";
 import { headers } from "next/headers";
 import type { Metadata } from "next";
 import prisma from "@/lib/prisma";
@@ -15,6 +16,7 @@ import {
   demoReviewScan,
   demo2ReviewScan,
   demo3ReviewScan,
+  demoSellerName,
 } from "@/lib/demo-qrcodes";
 import { effectiveReviewRouting } from "@/lib/review-routing";
 import { parsePageModules, parseModuleOrder, parseModuleLabels, parseModuleIcons, parseModuleTypes } from "@/lib/page-modules";
@@ -37,6 +39,8 @@ import RedirectInterstitial from "@/components/scan/RedirectInterstitial";
 import { canViewLandingPage } from "@/lib/qr-mode-access";
 import LandingLockedState from "@/components/scan/LandingLockedState";
 import { toPublicBusinessCard, type BusinessCardRow } from "@/lib/business-card";
+import { isMetrikaCounterId } from "@/lib/owner-metrika";
+import OwnerMetrika from "@/components/scan/OwnerMetrika";
 
 interface ScanPageProps {
   params: Promise<{ code: string }>;
@@ -77,6 +81,7 @@ function scanMetaDescription(mode: string | null, estName: string, subtitle?: st
 }
 
 function demoEstName(slug: DemoQrSlug): string {
+  if (slug === "demo-seller") return demoSellerName;
   if (slug.startsWith("demo3")) return demo3ReviewScan.establishmentName;
   if (slug.startsWith("demo2")) return demo2ReviewScan.establishmentName;
   return demoReviewScan.establishmentName;
@@ -91,6 +96,12 @@ export async function generateMetadata({ params }: ScanPageProps): Promise<Metad
     const title = "Сергей Петров — Электрик";
     const description = "Электрик: телефон, мессенджеры и услуги · демо QR-визитки QrStars";
     return { title, description, openGraph: { title, description, type: "profile", url } };
+  }
+
+  if (code === "demo-form") {
+    const title = "Анкета по QR-коду — демо QrStars";
+    const description = "Опрос, запись или заявка по QR: гость заполняет форму с телефона";
+    return { title, description, openGraph: { title, description, type: "website", url } };
   }
 
   if (isDemoQrCode(code)) {
@@ -312,7 +323,26 @@ async function computeLandingExtras(qrCode: any) {
   return { menus, businessCards, wifis };
 }
 
-export default async function ScanPage({ params, searchParams }: ScanPageProps) {
+/**
+ * Счётчик Метрики владельца для текущего запроса: `renderScanPage` заполняет его,
+ * когда проект известен, а `ScanPage` дорисовывает `OwnerMetrika` к любому экрану.
+ */
+const scanOwnerMetrika = cache(() => ({ counterId: null as string | null }));
+
+export default async function ScanPage(props: ScanPageProps) {
+  const page = await renderScanPage(props);
+  const { counterId } = scanOwnerMetrika();
+  if (!counterId) return page;
+  const { code } = await props.params;
+  return (
+    <>
+      {page}
+      <OwnerMetrika counterId={counterId} source="qr" qrCode={code} />
+    </>
+  );
+}
+
+async function renderScanPage({ params, searchParams }: ScanPageProps) {
   const { code } = await params;
   const query = (await searchParams) ?? {};
   const ownerView = query[OWNER_VIEW_PARAM] === "1";
@@ -450,6 +480,10 @@ export default async function ScanPage({ params, searchParams }: ScanPageProps) 
 
   const sub = est.user.subscriptions[0];
   const isPro = sub?.plan === "PRO" || sub?.plan === "NETWORK";
+  // Своя Метрика владельца (PRO / «Сеть»); владелец, открывший свой QR из кабинета, не считается.
+  if (isPro && !ownerView && isMetrikaCounterId(est.metrikaCounterId)) {
+    scanOwnerMetrika().counterId = est.metrikaCounterId;
+  }
   let promoCode: string | undefined;
   if (isPro && est.promocodes.length > 0) {
     promoCode = est.promocodes[0].code;

@@ -28,6 +28,8 @@ interface Props {
   /** Schema.org type for structured data. 'WebSite' on homepage, 'WebPage' elsewhere */
   pageType?: 'WebSite' | 'WebPage';
   yandexVerification?: string;
+  /** Свой URL регистрации для кнопки в шапке. По умолчанию шапка выбирает его сама. */
+  navRegisterUrl?: string;
 }
 
 const {
@@ -38,6 +40,7 @@ const {
   noindex = false,
   ogImage = 'https://qrstars.ru/og-default.jpg',
   yandexVerification,
+  navRegisterUrl,
 } = Astro.props;
 
 const pageTitle = fullTitle ? title : `${title} | QrStars`;
@@ -252,7 +255,7 @@ const websiteSchema = {
     </style>
   </head>
   <body class="font-sans text-slate-800 bg-slate-50 antialiased flex flex-col min-h-screen">
-    <Nav />
+    <Nav registerUrl={navRegisterUrl} />
     <main class="flex-grow">
       <slot />
     </main>

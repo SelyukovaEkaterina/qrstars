@@ -191,6 +191,8 @@ model Establishment {
   shortSlug       String?  @unique
   /// Шаблон сайта для компьютера (`src/lib/site-templates.ts`), пусто — по отрасли
   siteTemplate    String?
+  /// Номер счётчика Яндекс Метрики владельца (PRO/«Сеть», `src/lib/owner-metrika.ts`)
+  metrikaCounterId String?
 
   legalName       String?
   inn             String?
@@ -203,6 +205,7 @@ model Establishment {
   userId     String
   user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   qrcodes    QRCode[]
+  siteVisitStats SiteVisitStat[]
   reviews    Review[]
   promocodes PromoCode[]
   customPages CustomPage[]
@@ -301,6 +304,20 @@ model QRScan {
 /// FREE-сканы не пишут detail-лог в QRScan, поэтому агрегаты берутся отсюда).
 /// `date` — полночь МСК дня. `count` — дельта сканов за день,
 /// `snapshot` — абсолютное scansCount на конец дня (для расчёта следующей дельты).
+/// Заходы на короткий адрес проекта (`{slug}.qrstars.ru`, `/a/{slug}`) — не со скана QR.
+/// Один визит = одна вкладка браузера (sessionStorage), бота не считаем.
+model SiteVisitStat {
+  id              String        @id @default(cuid())
+  establishmentId String
+  establishment   Establishment @relation(fields: [establishmentId], references: [id], onDelete: Cascade)
+  /// Полночь МСК дня
+  date            DateTime
+  count           Int           @default(0)
+
+  @@unique([establishmentId, date])
+  @@index([date])
+}
+
 model DailyScanStat {
   id              String   @id @default(cuid())
   qrCodeId        String

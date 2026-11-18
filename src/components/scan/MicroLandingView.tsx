@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { OWNER_METRIKA_SECTION_EVENT } from "@/lib/owner-metrika";
 import NextImage from "next/image";
 import {
   Coffee,
@@ -319,6 +320,8 @@ export default function MicroLandingView({
         url.searchParams.set("s", key);
       }
       history.replaceState(null, "", url.toString());
+      // Метрика владельца засчитывает раздел как просмотр страницы (`OwnerMetrika`).
+      window.dispatchEvent(new Event(OWNER_METRIKA_SECTION_EVENT));
     }
   }, [embedded, initialSection]);
 

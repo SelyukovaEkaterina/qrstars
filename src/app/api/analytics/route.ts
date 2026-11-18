@@ -11,6 +11,7 @@ import {
   ORPHAN_ESTABLISHMENT_LABEL,
 } from "@/lib/establishment-access";
 import { collectScanPeriodStats } from "@/lib/scan-period-stats";
+import { MICROSITE_HOST_SUFFIX } from "@/lib/microsite-host";
 import { mskDateKey, startOfMskDay } from "@/lib/report-formatting";
 
 /** Ключ даты YYYY-MM-DD в локальной TZ сервера (совпадает с графиками в UI). */
@@ -251,9 +252,44 @@ export async function GET(request: Request) {
   scanStats.daily.forEach((count, day) => {
     dailyScanMap[day] = (dailyScanMap[day] ?? 0) + count;
   });
+  // Заходы на короткий адрес ({slug}.qrstars.ru) — не со скана QR. Фильтр по одному QR их не касается.
+  const siteEstablishments = qrCodeId ? [] : filteredEstablishments.filter((e) => e.shortSlug);
+  const siteEstIds = siteEstablishments.map((e) => e.id);
+  const [siteVisitRows, prevSiteVisits] = siteEstIds.length
+    ? await Promise.all([
+        prisma.siteVisitStat.findMany({
+          where: { establishmentId: { in: siteEstIds }, date: { gte: firstScanDay, lte: lastScanDay } },
+          select: { date: true, count: true },
+        }),
+        prisma.siteVisitStat.aggregate({
+          where: {
+            establishmentId: { in: siteEstIds },
+            date: { gte: startOfMskDay(prevPeriodStart), lte: startOfMskDay(prevPeriodEnd) },
+          },
+          _sum: { count: true },
+        }),
+      ])
+    : [[], null];
+  const dailySiteVisitMap: Record<string, number> = {};
+  for (const row of siteVisitRows) {
+    const key = mskDateKey(row.date);
+    dailySiteVisitMap[key] = (dailySiteVisitMap[key] ?? 0) + row.count;
+  }
+  const siteVisits = siteEstIds.length
+    ? {
+        total: siteVisitRows.reduce((sum, r) => sum + r.count, 0),
+        previousTotal: prevSiteVisits?._sum.count ?? 0,
+        addresses: siteEstablishments.map((e) => `${e.shortSlug}${MICROSITE_HOST_SUFFIX}`),
+      }
+    : null;
+
   const dailyScans = Object.entries(dailyScanMap)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, count]) => ({ date, count }));
+    .map(([date, count]) => ({
+      date,
+      count,
+      ...(siteVisits ? { direct: dailySiteVisitMap[date] ?? 0 } : {}),
+    }));
 
   const scanDayNames = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"];
   const scanDowMap: Record<number, number> = {};
@@ -492,6 +528,7 @@ export async function GET(request: Request) {
     },
     dailyReviews,
     dailyScans,
+    siteVisits,
     scanDayOfWeekStats,
     scanHourStats,
     ratingDistribution,

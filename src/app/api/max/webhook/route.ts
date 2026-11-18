@@ -107,7 +107,7 @@ async function linkMcContact(maxUserId: string, accountUserId: string) {
     update: {},
   });
 
-  const enabledCount = await enableMessengerNotificationsForProvider(accountUserId, "MAX");
+  const enabledCount = await enableMessengerNotificationsForProvider(accountUserId, "MAX", contact.id);
 
   const reviewHint = messengerLinkedHint(enabledCount);
 

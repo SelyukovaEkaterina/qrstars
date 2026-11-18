@@ -151,7 +151,7 @@ async function getVkProfile(input: VkLoginInput): Promise<{
   const email = user.email ? normalizeInviteEmail(user.email) : "";
   if (!email || !email.includes("@")) {
     throw new VkAuthError(
-      "VK не передал email. Разрешите доступ к email и попробуйте снова",
+      "VK не передал email: к аккаунту не привязана почта или доступ к ней не разрешён. Войдите через Яндекс ID или зарегистрируйтесь по email",
       401
     );
   }

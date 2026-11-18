@@ -15,6 +15,7 @@ import type { MessengerContactItem } from "@/components/dashboard/MessengerConta
 import {
   MASTER_PROFESSION_SUGGESTIONS,
   MAX_CARD_SERVICES,
+  telegramInputError,
   type CardService,
 } from "@/lib/business-card";
 
@@ -367,6 +368,7 @@ export default function BusinessCardConstructor({
             label="Telegram"
             value={card.telegram || ""}
             onChange={(e) => updateField("telegram", e.target.value || null)}
+            error={telegramInputError(card.telegram) ?? undefined}
             placeholder="@username или номер"
           />
           <Input

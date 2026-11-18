@@ -298,3 +298,134 @@ export async function collectMetrikaInsights(
 
 /** Ключи целей в строках `campaigns` / `landingPages` / `trafficSources`. */
 export const METRIKA_KEY_GOALS = KEY_GOALS;
+
+/* ───────────── Короткая сводка сайта для дневного / недельного отчёта в Telegram ───────────── */
+
+const LANDING_HOSTS = new Set(["qrstars.ru", "www.qrstars.ru"]);
+const LANDING_FILTER = "ym:s:startURLDomain=.('qrstars.ru','www.qrstars.ru')";
+
+/** Подписи ключевых целей в отчёте (порядок как в `KEY_GOALS`). */
+const KEY_GOAL_LABELS: Record<string, string> = {
+  goal_visits_reached_register_page: "Дошли до регистрации",
+  goal_visits_onboarding_completed: "Прошли мастер",
+  goal_visits_project_created: "Создали проект",
+  goal_visits_payment: "Оплатили",
+};
+
+export interface SiteReportHostStats {
+  visits: number;
+  users: number;
+  bounceRate: number;
+}
+
+export interface SiteReportStats {
+  ok: true;
+  landing: { current: SiteReportHostStats; previous: SiteReportHostStats };
+  goals: { key: string; label: string; current: number; previous: number }[];
+  sources: { name: string; visits: number; register: number }[];
+  campaigns: { name: string; visits: number; register: number }[];
+  landingPages: { path: string; visits: number; bounceRate: number }[];
+}
+
+export type SiteReportResult = SiteReportStats | { ok: false; skipped?: boolean; error: string };
+
+const SITE_METRICS = ["ym:s:visits", "ym:s:users", "ym:s:bounceRate", ...GOAL_METRICS];
+
+function splitByHost(body: StatResponse) {
+  let visits = 0;
+  let users = 0;
+  let bounced = 0;
+  for (const row of body.data ?? []) {
+    const host = row.dimensions[0]?.name ?? "";
+    const v = row.metrics[0] ?? 0;
+    if (LANDING_HOSTS.has(host)) {
+      visits += v;
+      users += row.metrics[1] ?? 0;
+      bounced += (v * (row.metrics[2] ?? 0)) / 100;
+    }
+  }
+  const goals = GOAL_NAMES.map((_, i) => round(body.totals?.[3 + i], 0));
+  return {
+    landing: {
+      visits: round(visits, 0),
+      users: round(users, 0),
+      bounceRate: visits > 0 ? round((bounced / visits) * 100) : 0,
+    },
+    goals,
+  };
+}
+
+/** Сводка Метрики по нашему сайту за период и сравнение с предыдущим. Никогда не бросает. */
+export async function collectSiteReportStats(
+  period: MetrikaPeriod,
+  previousPeriod: MetrikaPeriod
+): Promise<SiteReportResult> {
+  const token = process.env.YANDEX_METRIKA_OAUTH_TOKEN?.trim();
+  if (!token) {
+    return { ok: false, skipped: true, error: "YANDEX_METRIKA_OAUTH_TOKEN not set" };
+  }
+
+  try {
+    const byHostParams = {
+      metrics: SITE_METRICS.join(","),
+      dimensions: "ym:s:startURLDomain",
+      filters: OWN_TRAFFIC_FILTER,
+      limit: "20",
+    };
+    const registerMetric = `ym:s:goal${KEY_GOALS[0].id}visits`;
+    const [cur, prev, sources, campaigns, pages] = await Promise.all([
+      stat(token, period, byHostParams),
+      stat(token, previousPeriod, byHostParams),
+      stat(token, period, {
+        metrics: `ym:s:visits,${registerMetric}`,
+        dimensions: "ym:s:lastsignTrafficSource",
+        filters: OWN_TRAFFIC_FILTER,
+        sort: "-ym:s:visits",
+        limit: "5",
+      }),
+      stat(token, period, {
+        metrics: `ym:s:visits,${registerMetric}`,
+        dimensions: "ym:s:lastsignUTMSource,ym:s:lastsignUTMCampaign",
+        filters: `${OWN_TRAFFIC_FILTER} AND ym:s:lastsignUTMCampaign!n`,
+        sort: "-ym:s:visits",
+        limit: "5",
+      }),
+      stat(token, period, {
+        metrics: "ym:s:visits,ym:s:bounceRate",
+        dimensions: "ym:s:startURLPath",
+        filters: LANDING_FILTER,
+        sort: "-ym:s:visits",
+        limit: "5",
+      }),
+    ]);
+
+    const current = splitByHost(cur);
+    const previous = splitByHost(prev);
+    const named = (body: StatResponse) =>
+      (body.data ?? []).map((row) => ({
+        name: row.dimensions.map((d) => d.name ?? "(не задано)").join(" / "),
+        visits: round(row.metrics[0], 0),
+        register: round(row.metrics[1], 0),
+      }));
+
+    return {
+      ok: true,
+      landing: { current: current.landing, previous: previous.landing },
+      goals: GOAL_NAMES.map((key, i) => ({
+        key,
+        label: KEY_GOAL_LABELS[key] ?? key,
+        current: current.goals[i],
+        previous: previous.goals[i],
+      })),
+      sources: named(sources),
+      campaigns: named(campaigns),
+      landingPages: (pages.data ?? []).map((row) => ({
+        path: row.dimensions[0]?.name ?? "/",
+        visits: round(row.metrics[0], 0),
+        bounceRate: round(row.metrics[1], 0),
+      })),
+    };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : String(error) };
+  }
+}

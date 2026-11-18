@@ -6,7 +6,7 @@
 import Layout from '../layouts/Layout.astro';
 import { generateBrandedQrDataUrl } from '../lib/brandedQr';
 import { appendAttributionParams, registerUrl } from '../lib/utm';
-import { PRO_HALFYEAR, PRO_YEARLY } from '../lib/prices';
+import { FORM_FREE_LIMIT, PRO_HALFYEAR, PRO_YEARLY } from '../lib/prices';
 
 const params = Astro.url.searchParams;
 const DEMO_URL = 'https://app.qrstars.ru/q/demo-seller';
@@ -18,17 +18,17 @@ const qrDataUrl = await generateBrandedQrDataUrl(DEMO_URL);
 const benefits = [
   { icon: 'fa-shield-heart', title: 'Меньше плохих отзывов', text: 'Покупатель с проблемой пишет вам через «Проблема с товаром?», а не в отзыв. Заявка сразу приходит вам.' },
   { icon: 'fa-book-open', title: 'Меньше возвратов', text: 'Инструкция, видео и ответы на частые вопросы — по QR. «Непонятно, как собрать» перестаёт быть причиной возврата.' },
-  { icon: 'fa-star', title: 'Больше честных отзывов', text: 'Кнопка «Оставить отзыв» ведёт прямо на карточку товара на Wildberries или Ozon — без поиска заказа в кабинете.' },
+  { icon: 'fa-star', title: 'Больше честных отзывов', text: 'Кнопка «Оставить отзыв» открывает карточку товара на Wildberries или Ozon. Сам отзыв покупатель оставляет из покупки в своём кабинете площадки.' },
   { icon: 'fa-bag-shopping', title: 'Повторные покупки', text: 'Каталог других ваших товаров с ценами и артикулами: покупатель находит их на той же площадке.' },
 ];
 
 const blocks = [
   { icon: 'fa-book', title: 'Инструкция', text: 'Текст с шагами, PDF или ссылка на видео. Поменяли — вкладыши перепечатывать не нужно.' },
   { icon: 'fa-headset', title: 'Проблема с товаром?', text: 'Форма с номером заказа и описанием, заявка приходит вам в кабинет и уведомлением.' },
-  { icon: 'fa-star-half-stroke', title: 'Оставить отзыв', text: 'Кнопки на карточку товара на Wildberries и Ozon — видны всем, без фильтра оценок.' },
+  { icon: 'fa-star-half-stroke', title: 'Оставить отзыв', text: 'Кнопки на карточку товара на Wildberries и Ozon видны всем: мы не фильтруем оценки.' },
   { icon: 'fa-store', title: 'Наш магазин', text: 'Ссылка на магазин продавца и каталог других товаров с фото и ценами.' },
   { icon: 'fa-file-shield', title: 'Гарантия', text: 'Условия гарантии и возврата — покупатель знает, что делать, ещё до претензии.' },
-  { icon: 'fa-chart-line', title: 'Статистика по товару', text: 'Сколько покупателей открыли инструкцию — по каждому QR и каждому дню.' },
+  { icon: 'fa-chart-line', title: 'Статистика по товару', text: 'Сколько раз отсканировали код — по каждому QR и каждому дню.' },
 ];
 
 const faq = [
@@ -42,7 +42,7 @@ const faq = [
   },
   {
     q: 'Нужен ли отдельный QR на каждый товар?',
-    a: 'Лучше да: у каждого товара своя инструкция и своя ссылка на отзыв. На тарифе PRO количество QR-кодов не ограничено, а статистика считается по каждому коду отдельно.',
+    a: 'Если инструкции у товаров разные, то да. Страница магазина с инструкцией, формой и кнопками (микросайт) одна на проект. А отдельный QR на артикул может вести на свою инструкцию: страницу, PDF-файл или анкету, и сканы считаются по каждому коду отдельно. QR-кодов без лимита на всех тарифах.',
   },
   {
     q: 'Что, если инструкция изменится после печати вкладышей?',
@@ -50,7 +50,7 @@ const faq = [
   },
   {
     q: 'Сколько это стоит?',
-    a: `Бесплатно: QR-код на PDF-инструкцию или на любую ссылку. Страница товара со всеми разделами (инструкция, поддержка, отзывы, каталог) — на тарифе PRO: ${PRO_HALFYEAR} за полгода или ${PRO_YEARLY} за год, QR-кодов — без лимита.`,
+    a: `Бесплатно: QR-код на PDF-инструкцию, на любую ссылку или на анкету (до ${FORM_FREE_LIMIT} ответов в месяц). Страница магазина со всеми разделами на одной странице (инструкция, поддержка, отзывы, каталог) — это микросайт, он на тарифе PRO: ${PRO_HALFYEAR} за полгода или ${PRO_YEARLY} за год. На PRO анкета принимает ответы без лимита, их можно выгрузить в Excel. QR-кодов без лимита на всех тарифах.`,
   },
   {
     q: 'Как сделать сам вкладыш?',
@@ -93,7 +93,7 @@ const related = [
             QR-код на вкладыш: покупатель с проблемой пишет <span class="text-teal-600">вам</span>, а не в отзыв
           </h1>
           <p class="text-lg md:text-xl text-slate-600 mb-8 max-w-xl leading-relaxed">
-            Один QR на каждый товар: инструкция, помощь продавца, кнопка отзыва на Wildberries и Ozon и другие ваши товары. Поменяли инструкцию — вкладыши перепечатывать не нужно.
+            Страница магазина с инструкцией, помощью продавца, кнопкой отзыва на Wildberries и Ozon и другими вашими товарами. На каждый артикул можно сделать свой QR: на инструкцию, PDF или анкету. Поменяли инструкцию — вкладыши перепечатывать не нужно.
           </p>
           <div class="flex flex-col sm:flex-row gap-4">
             <a href={HERO_CTA} data-goal="seller_register" data-goal-params='{"place":"hero"}' class="inline-flex items-center justify-center bg-teal-600 text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-teal-700 transition shadow-lg shadow-teal-600/30">
@@ -228,13 +228,13 @@ const related = [
       <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
           <div class="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold mb-4">1</div>
-          <h3 class="font-bold text-lg mb-2">Страница товара</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">Добавьте инструкцию, форму поддержки, ссылки на отзыв и магазин — как в примере выше.</p>
+          <h3 class="font-bold text-lg mb-2">Страница магазина</h3>
+          <p class="text-slate-600 text-sm leading-relaxed">Добавьте инструкцию, форму поддержки, ссылки на отзыв и магазин, как в примере выше. Это микросайт на PRO, он один на проект.</p>
         </div>
         <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
           <div class="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold mb-4">2</div>
           <h3 class="font-bold text-lg mb-2">QR на каждый товар</h3>
-          <p class="text-slate-600 text-sm leading-relaxed">Отдельный код на артикул — своя инструкция и своя статистика. На PRO QR-кодов без лимита.</p>
+          <p class="text-slate-600 text-sm leading-relaxed">Отдельный код на артикул ведёт на свою инструкцию (страницу, PDF или анкету) и считает свои сканы. QR-кодов без лимита на всех тарифах.</p>
         </div>
         <div class="bg-slate-50 p-6 rounded-2xl border border-slate-100">
           <div class="w-10 h-10 bg-teal-600 text-white rounded-lg flex items-center justify-center font-bold mb-4">3</div>
@@ -255,6 +255,8 @@ const related = [
           <ul class="mt-5 space-y-2 text-slate-700 text-sm">
             <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>QR на PDF-инструкцию</li>
             <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>QR на любую ссылку, в том числе на карточку товара (на FREE — через экран QrStars на 3 секунды)</li>
+            <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>Анкета «Проблема с товаром?»: до {FORM_FREE_LIMIT} ответов в месяц</li>
+            <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>QR-кодов без лимита: свой на каждый артикул</li>
             <li><i class="fa-solid fa-check text-teal-600 mr-2"></i>Меняйте файл и ссылку после печати</li>
           </ul>
         </div>
@@ -263,8 +265,8 @@ const related = [
           <p class="mt-2 text-3xl font-extrabold">{PRO_HALFYEAR} <span class="text-base font-medium text-slate-300">/ полгода</span></p>
           <p class="text-sm text-slate-400">или {PRO_YEARLY} за год</p>
           <ul class="mt-5 space-y-2 text-slate-200 text-sm">
-            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Страница товара со всеми разделами</li>
-            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>QR-кодов без лимита — на каждый артикул</li>
+            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Страница магазина со всеми разделами (микросайт)</li>
+            <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Анкета без лимита ответов и выгрузка в Excel</li>
             <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Переход по QR сразу, без экрана QrStars</li>
             <li><i class="fa-solid fa-check text-teal-300 mr-2"></i>Статистика по дням и устройствам, можно без логотипа QrStars</li>
           </ul>

@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { ensureContrast, flowPalette, isQrAnimationId, QR_ANIMATIONS } from "./animate";
+import {
+  ensureContrast,
+  flowPalette,
+  isQrAnimationId,
+  QR_ANIMATIONS,
+  QR_LOGO_ANIMATIONS,
+  QR_TRANSFORM_ANIMATIONS,
+  qrAnimationFrameCount,
+} from "./animate";
 import { contrastRatio, MIN_QR_CONTRAST } from "./palette";
 
 const design = (over: Partial<Parameters<typeof flowPalette>[0]> = {}) => ({
@@ -19,6 +27,21 @@ describe("qr-engine animate", () => {
     assert.equal(new Set(ids).size, ids.length);
     assert.ok(isQrAnimationId("shine"));
     assert.ok(!isQrAnimationId("explode"));
+  });
+
+  it("keeps old ids in place and appends new ones", () => {
+    const ids = QR_ANIMATIONS.map((a) => a.id);
+    assert.deepEqual(ids.slice(0, 8), ["shine", "flow", "scan", "pulse", "swing", "float", "youtube", "telegram"]);
+    assert.equal(ids.length, 18);
+    for (const id of [...QR_LOGO_ANIMATIONS, ...QR_TRANSFORM_ANIMATIONS]) assert.ok(isQrAnimationId(id), id);
+    for (const a of QR_ANIMATIONS) assert.ok(a.label && a.hint, a.id);
+  });
+
+  it("gives long scenarios 60 frames and the rest 40", () => {
+    assert.equal(qrAnimationFrameCount("shine"), 40);
+    assert.equal(qrAnimationFrameCount("shake"), 40);
+    assert.equal(qrAnimationFrameCount("assemble"), 60);
+    assert.equal(qrAnimationFrameCount("spin"), 60);
   });
 
   it("keeps flow colors readable on light and dark backgrounds", () => {
