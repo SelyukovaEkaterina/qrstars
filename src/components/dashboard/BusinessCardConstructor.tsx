@@ -6,7 +6,7 @@ import { useSyncPropState } from "@/lib/sync-prop-state";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
-import { Camera, Loader2, Plus, Trash2 } from "lucide-react";
+import { Camera, ChevronDown, ChevronUp, Loader2, Plus, Trash2 } from "lucide-react";
 import {
   formatMessengerContactLabel,
   messengerProviderLabel,
@@ -194,6 +194,16 @@ export default function BusinessCardConstructor({
       ...prev,
       socialLinks: prev.socialLinks.filter((_, i) => i !== index),
     }));
+  };
+
+  const moveSocialLink = (index: number, delta: -1 | 1) => {
+    setCard((prev) => {
+      const target = index + delta;
+      if (target < 0 || target >= prev.socialLinks.length) return prev;
+      const links = [...prev.socialLinks];
+      [links[index], links[target]] = [links[target], links[index]];
+      return { ...prev, socialLinks: links };
+    });
   };
 
   const updateSocialLink = (index: number, field: "type" | "url" | "label", value: string) => {
@@ -515,6 +525,26 @@ export default function BusinessCardConstructor({
                   placeholder={link.type === CUSTOM_SOCIAL_TYPE ? "https://..." : "https://vk.com/username"}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                 />
+              </div>
+              <div className="flex flex-shrink-0 flex-col">
+                <button
+                  type="button"
+                  onClick={() => moveSocialLink(index, -1)}
+                  disabled={index === 0}
+                  className="rounded p-0.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                  aria-label="Поднять выше"
+                >
+                  <ChevronUp className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveSocialLink(index, 1)}
+                  disabled={index === card.socialLinks.length - 1}
+                  className="rounded p-0.5 text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:hover:bg-transparent"
+                  aria-label="Опустить ниже"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
               </div>
               <button
                 onClick={() => removeSocialLink(index)}
