@@ -62,6 +62,12 @@ const seoCollection = defineCollection({
     stickyCta: z.boolean().optional(),
     /** Блок «Анимированный QR» (PRO) после первого экрана. */
     animatedQrPromo: z.boolean().optional(),
+    /** Мини-генератор vCard в первом экране (`VcardQrTool`). */
+    vcardTool: z.boolean().optional(),
+    /** Блок цен FREE / PRO / «Сеть» после первого экрана (суммы — из plans.ts). */
+    prices: z
+      .object({ title: z.string().optional(), free: z.array(z.string()), pro: z.array(z.string()) })
+      .optional(),
     howItWorks: z.array(stepSchema).optional(),
     forWhom: z.array(industrySchema).optional(),
     faq: z.array(faqSchema),

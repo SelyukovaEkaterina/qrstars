@@ -1,0 +1,215 @@
+---
+/**
+ * Мини-генератор QR-визитки (vCard) для первого экрана SEO-страницы.
+ * Данные и отрисовка — общий движок `src/lib/qr-engine` (то же, что в /free-qr-generator.html);
+ * логотип, стили и другие форматы — по ссылке «Больше настроек» в полном генераторе (поля едут в #hash).
+ * Поля — ПД, поэтому `ym-disable-keys ym-hide-content` и всё только в браузере.
+ */
+const COLORS = ['#1e293b', '#4f46e5', '#0f766e', '#b91c1c', '#7c3aed', '#0369a1'];
+---
+
+<div id="vcard-tool" class="bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-900/5 p-5 md:p-6">
+  <div class="flex items-center justify-between gap-3 mb-4">
+    <div class="font-bold text-lg">QR-код с вашим контактом</div>
+    <span class="text-xs font-semibold bg-green-100 text-green-800 px-2.5 py-1 rounded-full whitespace-nowrap">Бесплатно</span>
+  </div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-5">
+    <form class="grid grid-cols-2 gap-3 ym-disable-keys ym-hide-content" autocomplete="on" onsubmit="return false">
+      <label class="col-span-1 text-sm font-medium text-slate-700">Имя
+        <input data-vc="input-vcard-fname" autocomplete="given-name" class="vc-input" placeholder="Алексей" />
+      </label>
+      <label class="col-span-1 text-sm font-medium text-slate-700">Фамилия
+        <input data-vc="input-vcard-lname" autocomplete="family-name" class="vc-input" placeholder="Иванов" />
+      </label>
+      <label class="col-span-2 text-sm font-medium text-slate-700">Телефон
+        <input data-vc="input-vcard-phone" type="tel" autocomplete="tel" inputmode="tel" class="vc-input" placeholder="+7 999 123-45-67" />
+      </label>
+      <label class="col-span-2 text-sm font-medium text-slate-700">Email
+        <input data-vc="input-vcard-email" type="email" autocomplete="email" class="vc-input" placeholder="alex@company.ru" />
+      </label>
+      <label class="col-span-1 text-sm font-medium text-slate-700">Компания
+        <input data-vc="input-vcard-org" autocomplete="organization" class="vc-input" />
+      </label>
+      <label class="col-span-1 text-sm font-medium text-slate-700">Сайт
+        <input data-vc="input-vcard-url" type="url" inputmode="url" class="vc-input" placeholder="company.ru" />
+      </label>
+    </form>
+    <div class="flex flex-col items-center gap-3 sm:w-[200px]">
+      <div class="relative w-[200px] h-[200px] rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center overflow-hidden">
+        <canvas id="vc-canvas" class="w-full h-full hidden"></canvas>
+        <p id="vc-empty" class="text-sm text-slate-400 text-center px-4">Впишите имя — QR появится здесь</p>
+      </div>
+      <div class="flex gap-2" role="radiogroup" aria-label="Цвет кода">
+        {COLORS.map((c, i) => (
+          <button type="button" data-vc-color={c} aria-label={`Цвет ${c}`} aria-checked={i === 0 ? 'true' : 'false'} role="radio"
+            class="vc-color w-6 h-6 rounded-full border-2 border-white ring-1 ring-slate-200" style={`background:${c}`}></button>
+        ))}
+      </div>
+    </div>
+  </div>
+  <p id="vc-error" class="hidden mt-3 text-sm text-red-600"></p>
+  <div class="mt-4 flex flex-wrap gap-2">
+    <button type="button" id="vc-png" disabled class="inline-flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-xl font-bold hover:bg-indigo-700 transition disabled:opacity-40 disabled:cursor-not-allowed">
+      <i class="fa-solid fa-download"></i> Скачать PNG
+    </button>
+    <button type="button" id="vc-svg" disabled class="inline-flex items-center gap-2 bg-slate-100 text-slate-800 px-5 py-3 rounded-xl font-bold hover:bg-slate-200 transition disabled:opacity-40 disabled:cursor-not-allowed">
+      SVG для типографии
+    </button>
+  </div>
+  <a id="vc-more" href="/free-qr-generator.html#t=vcard" data-goal="vcard_tool_more" class="mt-3 inline-block text-sm text-primary font-medium hover:underline">
+    Логотип, стиль точек и рамка — в полном генераторе →
+  </a>
+</div>
+
+<style>
+  .vc-input {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 0.75rem;
+    padding: 0.55rem 0.75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    background: #fff;
+  }
+  .vc-input:focus {
+    outline: 2px solid rgb(79 70 229 / 0.4);
+    border-color: rgb(79 70 229);
+  }
+  .vc-color[aria-checked='true'] {
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px rgb(79 70 229);
+  }
+</style>
+
+<script>
+  import QRCode from 'qrcode';
+  import {
+    buildPayload,
+    computeLayout,
+    renderToCanvas,
+    renderToSvg,
+    type QrDesign,
+    type QrModules,
+    type QrLayout,
+  } from '../../../../src/lib/qr-engine';
+  import { canvasToBlob, deliverFile } from '../../lib/qr-generator/deliver';
+
+  const root = document.getElementById('vcard-tool');
+  if (root) {
+    const inputs = Array.from(root.querySelectorAll<HTMLInputElement>('[data-vc]'));
+    const canvas = root.querySelector<HTMLCanvasElement>('#vc-canvas')!;
+    const empty = root.querySelector<HTMLElement>('#vc-empty')!;
+    const errorEl = root.querySelector<HTMLElement>('#vc-error')!;
+    const pngBtn = root.querySelector<HTMLButtonElement>('#vc-png')!;
+    const svgBtn = root.querySelector<HTMLButtonElement>('#vc-svg')!;
+    const more = root.querySelector<HTMLAnchorElement>('#vc-more')!;
+    const HASH_KEYS: Record<string, string> = {
+      'input-vcard-fname': 'vfn',
+      'input-vcard-lname': 'vln',
+      'input-vcard-phone': 'vph',
+      'input-vcard-email': 'vem',
+      'input-vcard-org': 'vorg',
+      'input-vcard-url': 'vurl',
+    };
+
+    const design: QrDesign = {
+      dotStyle: 'classic',
+      eyeStyle: 'square',
+      fg: '#1e293b',
+      bg: '#ffffff',
+      bgTransparent: false,
+      gradient: false,
+      grad1: '#4f46e5',
+      grad2: '#a855f7',
+      gradType: 'linear-tb',
+      eyeCustom: false,
+      eyeColor: '#4f46e5',
+      logoSize: 22,
+      logoFill: false,
+      frame: false,
+      frameText: '',
+      frameStyle: 'bottom',
+      // vCard длинный: M держит код крупнее, логотипа здесь нет.
+      ecc: 'M',
+      margin: 2,
+      scatter: false,
+      scatterDensity: 3,
+      scatterShape: 'square',
+    };
+
+    let layout: QrLayout | null = null;
+    let touchedGoal = false;
+
+    const field = (id: string) => inputs.find((i) => i.dataset.vc === id)?.value ?? '';
+
+    function update() {
+      const res = buildPayload('vcard', field);
+      layout = null;
+      errorEl.classList.add('hidden');
+      if (res.kind === 'ok') {
+        try {
+          const modules = QRCode.create(res.payload, { errorCorrectionLevel: design.ecc }).modules as unknown as QrModules;
+          layout = computeLayout(modules, design);
+        } catch {
+          errorEl.textContent = 'Слишком много данных для QR — сократите поля.';
+          errorEl.classList.remove('hidden');
+        }
+      } else if (res.kind === 'error') {
+        errorEl.textContent = res.message;
+        errorEl.classList.remove('hidden');
+      }
+      if (layout) {
+        renderToCanvas(canvas, layout, design, {}, 400);
+        canvas.classList.remove('hidden');
+        empty.classList.add('hidden');
+      } else {
+        canvas.classList.add('hidden');
+        empty.classList.remove('hidden');
+      }
+      pngBtn.disabled = svgBtn.disabled = !layout;
+
+      const p = new URLSearchParams({ t: 'vcard', fg: design.fg.slice(1) });
+      for (const input of inputs) {
+        const key = HASH_KEYS[input.dataset.vc!];
+        if (key && input.value.trim()) p.set(key, input.value.trim());
+      }
+      more.href = `/free-qr-generator.html#${p.toString()}`;
+    }
+
+    inputs.forEach((i) =>
+      i.addEventListener('input', () => {
+        if (!touchedGoal) {
+          touchedGoal = true;
+          (window as any).ymGoal?.('vcard_tool_input');
+        }
+        update();
+      }),
+    );
+
+    root.querySelectorAll<HTMLButtonElement>('[data-vc-color]').forEach((btn) =>
+      btn.addEventListener('click', () => {
+        design.fg = btn.dataset.vcColor!;
+        root.querySelectorAll('[data-vc-color]').forEach((b) => b.setAttribute('aria-checked', String(b === btn)));
+        update();
+      }),
+    );
+
+    pngBtn.addEventListener('click', async () => {
+      if (!layout) return;
+      const c = document.createElement('canvas');
+      renderToCanvas(c, layout, design, {}, 1200);
+      await deliverFile(await canvasToBlob(c, 'image/png'), 'qr-vizitka.png');
+      (window as any).ymGoal?.('vcard_tool_download', { format: 'png' });
+    });
+
+    svgBtn.addEventListener('click', async () => {
+      if (!layout) return;
+      const blob = new Blob([renderToSvg(layout, design)], { type: 'image/svg+xml' });
+      await deliverFile(blob, 'qr-vizitka.svg', false);
+      (window as any).ymGoal?.('vcard_tool_download', { format: 'svg' });
+    });
+
+    update();
+  }
+</script>

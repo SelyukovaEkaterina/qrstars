@@ -9,6 +9,18 @@ ctaText: "Создать QR для отзывов"
 ctaHref: "https://app.qrstars.ru/register?utm_source=qrstars&utm_medium=seo&utm_campaign=reviews_landing&utm_content=otzyvov"
 ctaSecondaryText: "Где взять ссылку"
 ctaSecondaryHref: "#где-взять-ссылку-на-отзывы"
+prices:
+  title: "Сколько стоит QR-код для отзывов"
+  free:
+    - "QR-код для отзывов и смена ссылки без перепечатки"
+    - "4–5★ — на одну площадку: Яндекс Карты или 2ГИС"
+    - "Жалобы 1–3★ — на email, в Telegram или MAX"
+    - "Базовая статистика: сканирования и средний рейтинг"
+  pro:
+    - "Свой сценарий на каждую оценку от 1 до 5★"
+    - "Ротация площадок для 5★: Яндекс, 2ГИС, Авито, Flamp"
+    - "Без вотермарки QrStars (White Label)"
+    - "Расширенная аналитика по дням и устройствам"
 demoScanUrl: "https://app.qrstars.ru/q/demo-review"
 demoScanLabel: "Умные отзывы"
 demoScanTitle: "Отсканируйте демо-код отзывов"

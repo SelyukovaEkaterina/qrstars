@@ -1,0 +1,55 @@
+---
+/**
+ * Компактный блок цен для SEO-страниц: FREE / PRO / «Сеть».
+ * Суммы — только из `src/lib/plans.ts` (через `lib/prices.ts`), состав — по теме страницы.
+ */
+import { NETWORK_INCLUDED, NETWORK_YEARLY, PRO_HALFYEAR, PRO_YEARLY } from '../../lib/prices';
+
+interface Props {
+  title?: string;
+  free: string[];
+  pro: string[];
+}
+
+const { title = 'Сколько стоит', free, pro } = Astro.props;
+---
+
+<section id="ceny" class="py-12 lg:py-14 bg-white border-b border-slate-100">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-2xl md:text-3xl font-bold mb-6">{title}</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div class="rounded-2xl border border-slate-200 p-5">
+        <div class="text-sm font-semibold text-slate-500 uppercase tracking-wide">FREE</div>
+        <div class="text-2xl font-extrabold mt-1">0 ₽ <span class="text-base font-semibold text-slate-500">— бесплатно навсегда</span></div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-700">
+          {free.map((item) => (
+            <li class="flex gap-2"><i class="fa-solid fa-check text-green-500 mt-1 shrink-0"></i><span>{item}</span></li>
+          ))}
+        </ul>
+      </div>
+      <div class="rounded-2xl border-2 border-primary p-5 bg-primary/5">
+        <div class="text-sm font-semibold text-primary uppercase tracking-wide">PRO</div>
+        <div class="text-2xl font-extrabold mt-1">от {PRO_HALFYEAR} <span class="text-base font-semibold text-slate-500">за полгода</span></div>
+        <div class="text-sm text-slate-500">или {PRO_YEARLY} за год</div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-700">
+          <li class="flex gap-2"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i><span>Всё, что в FREE</span></li>
+          {pro.map((item) => (
+            <li class="flex gap-2"><i class="fa-solid fa-check text-primary mt-1 shrink-0"></i><span>{item}</span></li>
+          ))}
+        </ul>
+      </div>
+      <div class="rounded-2xl border border-slate-200 p-5">
+        <div class="text-sm font-semibold text-slate-500 uppercase tracking-wide">Сеть</div>
+        <div class="text-2xl font-extrabold mt-1">{NETWORK_YEARLY} <span class="text-base font-semibold text-slate-500">за год</span></div>
+        <ul class="mt-4 space-y-2 text-sm text-slate-700">
+          <li class="flex gap-2"><i class="fa-solid fa-check text-slate-400 mt-1 shrink-0"></i><span>Всё из PRO для каждой точки</span></li>
+          <li class="flex gap-2"><i class="fa-solid fa-check text-slate-400 mt-1 shrink-0"></i><span>До {NETWORK_INCLUDED} заведений в одном кабинете</span></li>
+          <li class="flex gap-2"><i class="fa-solid fa-check text-slate-400 mt-1 shrink-0"></i><span>Сводка по сети и выгрузка в CSV</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="mt-4 text-sm text-slate-500">
+      QR-кодов внутри заведения — без лимита на всех тарифах. <a href="/#buy" class="text-primary font-medium hover:underline">Подробнее о тарифах</a>
+    </p>
+  </div>
+</section>

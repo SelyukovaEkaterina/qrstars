@@ -30,11 +30,14 @@ const {
   ctaSecondaryGoalParams,
   ctaSecondaryExternal = false,
 } = Astro.props;
+// Инструмент в первом экране (слот aside): на телефоне — сразу после H1, на десктопе — справа.
+const hasAside = Astro.slots.has('aside');
 ---
 
 <section class="pt-32 pb-16 lg:pt-40 lg:pb-20 overflow-hidden bg-slate-50 relative">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-    <div class="max-w-3xl">
+    <div class={hasAside ? 'grid grid-cols-1 gap-8 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:gap-x-12 lg:gap-y-0 items-start' : 'max-w-3xl'}>
+      <div>
       {badge && (
         <div class="inline-block bg-primary/10 text-primary font-semibold px-4 py-1.5 rounded-full text-sm mb-6 border border-primary/20">
           {badge}
@@ -43,6 +46,13 @@ const {
       <h1 class="text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight leading-tight mb-6">
         {h1}
       </h1>
+      </div>
+      {hasAside && (
+        <div class="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
+          <slot name="aside" />
+        </div>
+      )}
+      <div>
       <p class="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed" set:html={intro} />
       <div class="flex flex-col sm:flex-row gap-4">
         <a
@@ -68,6 +78,7 @@ const {
             {ctaSecondaryText}
           </a>
         )}
+      </div>
       </div>
     </div>
   </div>

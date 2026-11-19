@@ -9,6 +9,8 @@ import QrExamples from '../components/seo/QrExamples.astro';
 import DemoQrScan from '../components/DemoQrScan.astro';
 import AnimatedQrPromo from '../components/AnimatedQrPromo.astro';
 import SeoCta from '../components/seo/SeoCta.astro';
+import PlanPrices from '../components/seo/PlanPrices.astro';
+import VcardQrTool from '../components/seo/VcardQrTool.astro';
 import RelatedPages from '../components/seo/RelatedPages.astro';
 import StickyRegisterCta from '../components/seo/StickyRegisterCta.astro';
 import {
@@ -159,7 +161,11 @@ const faqPageSchema = d.faq && d.faq.length > 0 ? {
     ctaExternal={ctaExternal}
     ctaSecondaryGoal={ctaSecondaryGoal}
     ctaSecondaryExternal={ctaSecondaryExternal}
-  />
+  >
+    {d.vcardTool && <VcardQrTool slot="aside" />}
+  </SeoHero>
+
+  {d.prices && <PlanPrices title={d.prices.title} free={d.prices.free} pro={d.prices.pro} />}
 
   {d.demoScanUrl && (
     <DemoQrScan

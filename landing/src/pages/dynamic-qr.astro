@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import Faq from '../components/seo/Faq.astro';
+import PlanPrices from '../components/seo/PlanPrices.astro';
 import { redirectRegisterUrl } from '../lib/utm';
 
 const APP_URL = redirectRegisterUrl('dynamic_qr', Astro.url.searchParams);
@@ -77,7 +78,7 @@ const faqSchema = {
 ---
 
 <Layout
-  title="Создать динамический QR-код бесплатно — поменять ссылку в личном кабинете"
+  title="Динамический QR-код бесплатно — меняйте ссылку после печати"
   description="Создавайте QR-коды с произвольным редиректом для баннеров, конференций, выставок и печатной рекламы. Меняйте ссылку после печати и смотрите статистику сканирований."
 >
   <section class="pt-24 sm:pt-32 pb-16 lg:pt-40 lg:pb-24 bg-white overflow-hidden relative">
@@ -151,6 +152,22 @@ const faqSchema = {
       </div>
     </div>
   </section>
+
+  <PlanPrices
+    title="Сколько стоит динамический QR-код"
+    free={[
+      'Динамические QR без лимита: редирект, отзывы, меню, визитка, Wi‑Fi, файл',
+      'Меняйте ссылку после печати сколько угодно раз',
+      'Базовая статистика сканирований',
+      'Перед переходом по ссылке — короткий экран QrStars',
+    ]}
+    pro={[
+      'Прямой переход по ссылке — без экрана QrStars',
+      'Расширенная аналитика: по дням, устройствам и городам',
+      'Микросайт: все разделы в одном QR',
+      'Анимированные QR (GIF) и STL для 3D-печати динамического кода',
+    ]}
+  />
 
   <section class="py-16 lg:py-20 bg-slate-50 border-y border-slate-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

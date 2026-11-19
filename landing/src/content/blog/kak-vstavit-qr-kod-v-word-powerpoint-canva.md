@@ -1,5 +1,5 @@
 ---
-title: "Как вставить QR-код в Word, PowerPoint, Keynote и Canva: пошаговая инструкция | QrStars"
+title: "Как вставить QR-код в Word, PowerPoint и Canva | QrStars"
 description: "Полное руководство: как правильно вставить QR-код в Microsoft Word, PowerPoint, Apple Keynote и Canva без потери качества, размытия и проблем со сканированием."
 pubDate: 2026-10-08
 tags: ["ворд", "powerpoint", "canva", "презентация", "инструкция", "qr-код"]
