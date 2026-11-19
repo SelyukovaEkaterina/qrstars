@@ -28,6 +28,7 @@ import {
   safeHttpUrl,
   telHref,
   yandexMapsSearchHref,
+  CUSTOM_SOCIAL_TYPE,
   type CardMessengerKind,
   type PublicBusinessCard,
 } from "@/lib/business-card";
@@ -35,7 +36,7 @@ import {
 export type BusinessCardData = PublicBusinessCard;
 
 const socialLabels: Record<string, { label: string; icon: string }> = {
-  telegram: { label: "Telegram", icon: "✈️" },
+  telegram: { label: "Telegram-канал", icon: "✈️" },
   whatsapp: { label: "WhatsApp", icon: "📞" },
   max: { label: "MAX", icon: "💬" },
   vk: { label: "VK", icon: "💻" },
@@ -428,7 +429,10 @@ function MobileBusinessCard({
             <div className="px-6 pb-4">
               <div className="flex flex-wrap justify-center gap-2">
                 {chips.map((link, i) => {
-                  const meta = socialLabels[link.type] || { label: link.type, icon: "💻" };
+                  const meta =
+                    link.type === CUSTOM_SOCIAL_TYPE
+                      ? { label: link.label || "Ссылка", icon: "🔗" }
+                      : socialLabels[link.type] || { label: link.type, icon: "💻" };
                   return (
                     <a
                       key={i}

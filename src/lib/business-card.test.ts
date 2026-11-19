@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   buildBusinessCardVCard,
   cardChipLinks,
+  parseCardSocialLinks,
   cardMessengerButtons,
   cardTextFieldsFromBody,
   normalizeCardServices,
@@ -41,7 +42,7 @@ describe("business card links", () => {
     assert.equal(safeHttpUrl("localhost"), null);
   });
 
-  it("promotes messenger socials to buttons and keeps other socials as chips", () => {
+  it("keeps a Telegram channel as a chip when personal Telegram is a button", () => {
     const card = {
       whatsapp: null,
       telegram: "@master_ivan",
@@ -57,7 +58,52 @@ describe("business card links", () => {
       { kind: "whatsapp", href: "https://wa.me/79991234567" },
       { kind: "telegram", href: "https://t.me/master_ivan" },
     ]);
-    assert.deepEqual(cardChipLinks(card), [{ type: "vk", url: "https://vk.com/master" }]);
+    assert.deepEqual(cardChipLinks(card), [
+      { type: "telegram", url: "https://t.me/other" },
+      { type: "vk", url: "https://vk.com/master" },
+    ]);
+  });
+
+  it("hides a messenger social only when it is already a button", () => {
+    const card = {
+      whatsapp: null,
+      telegram: null,
+      maxUrl: null,
+      socialLinks: [{ type: "telegram", url: "https://t.me/channel" }],
+    };
+    assert.deepEqual(cardMessengerButtons(card), [
+      { kind: "telegram", href: "https://t.me/channel" },
+    ]);
+    assert.deepEqual(cardChipLinks(card), []);
+  });
+});
+
+describe("custom social link", () => {
+  it("keeps the owner's label only for the custom type", () => {
+    assert.deepEqual(
+      parseCardSocialLinks([
+        { type: "custom", url: "https://forms.yandex.ru/x", label: "  Отзывы   о докладе " },
+        { type: "vk", url: "https://vk.com/a", label: "чужая подпись" },
+        { type: "custom", url: "https://example.com", label: "   " },
+      ]),
+      [
+        { type: "custom", url: "https://forms.yandex.ru/x", label: "Отзывы о докладе" },
+        { type: "vk", url: "https://vk.com/a" },
+        { type: "custom", url: "https://example.com" },
+      ],
+    );
+  });
+
+  it("shows a custom link as a chip with its label and drops non-http urls", () => {
+    const card = {
+      socialLinks: [
+        { type: "custom", url: "forms.yandex.ru/x", label: "Отзывы о докладе" },
+        { type: "custom", url: "javascript:alert(1)", label: "XSS" },
+      ],
+    };
+    assert.deepEqual(cardChipLinks(card), [
+      { type: "custom", url: "https://forms.yandex.ru/x", label: "Отзывы о докладе" },
+    ]);
   });
 });
 

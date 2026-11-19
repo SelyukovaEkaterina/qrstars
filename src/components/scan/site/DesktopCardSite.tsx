@@ -60,6 +60,9 @@ export interface DesktopCardSiteProps {
 }
 
 const SOCIAL_LABELS: Record<string, string> = {
+  telegram: "Telegram-канал",
+  whatsapp: "WhatsApp",
+  max: "MAX",
   vk: "ВКонтакте",
   instagram: "Instagram",
   youtube: "YouTube",
@@ -566,9 +569,9 @@ export default function DesktopCardSite(p: DesktopCardSiteProps) {
                         </a>
                       );
                     })}
-                    {chips.map((c) => (
-                      <a key={c.url} href={c.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 border px-3.5 py-2 text-sm font-medium hover:opacity-80" style={{ borderRadius: 999, borderColor: t.border, color: t.muted }}>
-                        {SOCIAL_LABELS[c.type] ?? c.type} <ArrowUpRight className="h-3.5 w-3.5" />
+                    {chips.map((c, i) => (
+                      <a key={i} href={c.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 border px-3.5 py-2 text-sm font-medium hover:opacity-80" style={{ borderRadius: 999, borderColor: t.border, color: t.muted }}>
+                        {c.label || SOCIAL_LABELS[c.type] || (c.type === "custom" ? "Ссылка" : c.type)} <ArrowUpRight className="h-3.5 w-3.5" />
                       </a>
                     ))}
                   </div>

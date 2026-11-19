@@ -7,7 +7,19 @@ import { escapeVcard } from "./qr-engine/payload";
 export type CardSocialLink = {
   type: string;
   url: string;
+  /** Подпись кнопки — у типа `custom` («Своя ссылка»). */
+  label?: string;
 };
+
+/** Тип соцсети «Своя ссылка»: подпись задаёт владелец. */
+export const CUSTOM_SOCIAL_TYPE = "custom";
+export const CUSTOM_SOCIAL_LABEL_MAX = 40;
+
+function socialLabel(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const label = raw.replace(/\s+/g, " ").trim().slice(0, CUSTOM_SOCIAL_LABEL_MAX);
+  return label || undefined;
+}
 
 export type CardService = {
   name: string;
@@ -108,7 +120,8 @@ export function parseCardSocialLinks(raw: unknown): CardSocialLink[] {
     const rec = item as Record<string, unknown>;
     const type = typeof rec.type === "string" ? rec.type : rec.platform;
     if (typeof type === "string" && typeof rec.url === "string") {
-      result.push({ type, url: rec.url });
+      const label = type === CUSTOM_SOCIAL_TYPE ? socialLabel(rec.label) : undefined;
+      result.push(label ? { type, url: rec.url, label } : { type, url: rec.url });
     }
   }
   return result;
@@ -153,7 +166,8 @@ export function toPublicBusinessCard(bc: BusinessCardRow): PublicBusinessCard {
         return href ? [{ type: l.type, url: href }] : [];
       }
       const href = safeHttpUrl(l.url);
-      return href ? [{ type: l.type, url: href }] : [];
+      if (!href) return [];
+      return l.label ? [{ type: l.type, url: href, label: l.label }] : [{ type: l.type, url: href }];
     }),
     accentColor: bc.accentColor,
     tipsUrl: safeHttpUrl(bc.tipsUrl),
@@ -269,12 +283,35 @@ export function cardMessengerButtons(
   return buttons;
 }
 
-/** Соцсети-«чипсы» без мессенджеров, которые уже показаны крупными кнопками. */
-export function cardChipLinks(card: Pick<PublicBusinessCard, "socialLinks">): CardSocialLink[] {
+/**
+ * Соцсети-«чипсы». Мессенджер из соцсетей прячется, только если он уже показан
+ * крупной кнопкой: например, «Telegram-канал» при заполненном личном Telegram
+ * остаётся отдельной ссылкой.
+ */
+export function cardChipLinks(
+  card: Pick<PublicBusinessCard, "socialLinks"> &
+    Partial<Pick<PublicBusinessCard, "whatsapp" | "telegram" | "maxUrl">>,
+): CardSocialLink[] {
+  const buttonHrefs = new Set(
+    cardMessengerButtons({
+      whatsapp: card.whatsapp ?? null,
+      telegram: card.telegram ?? null,
+      maxUrl: card.maxUrl ?? null,
+      socialLinks: card.socialLinks,
+    }).map((b) => b.href),
+  );
   return card.socialLinks
-    .filter((l) => !MESSENGER_SOCIAL_TYPES.includes(l.type as CardMessengerKind))
-    .map((l) => ({ type: l.type, url: safeHttpUrl(l.url) ?? "" }))
-    .filter((l) => l.url);
+    .map((l) => ({
+      type: l.type,
+      url: safeHttpUrl(l.url) ?? "",
+      ...(l.label ? { label: l.label } : {}),
+    }))
+    .filter((l) => l.url)
+    .filter(
+      (l) =>
+        !MESSENGER_SOCIAL_TYPES.includes(l.type as CardMessengerKind) ||
+        !buttonHrefs.has(l.url),
+    );
 }
 
 export function buildBusinessCardVCard(

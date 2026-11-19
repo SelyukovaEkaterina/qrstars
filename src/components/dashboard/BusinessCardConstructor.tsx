@@ -13,6 +13,8 @@ import {
 } from "@/lib/messenger-contact";
 import type { MessengerContactItem } from "@/components/dashboard/MessengerContactsManager";
 import {
+  CUSTOM_SOCIAL_LABEL_MAX,
+  CUSTOM_SOCIAL_TYPE,
   MASTER_PROFESSION_SUGGESTIONS,
   MAX_CARD_SERVICES,
   telegramInputError,
@@ -22,6 +24,7 @@ import {
 interface SocialLink {
   type: string;
   url: string;
+  label?: string;
 }
 
 export interface BusinessCardFormData {
@@ -94,6 +97,7 @@ const socialTypes = [
   { value: "twitter", label: "Twitter / X" },
   { value: "linkedin", label: "LinkedIn" },
   { value: "github", label: "GitHub" },
+  { value: CUSTOM_SOCIAL_TYPE, label: "Своя ссылка" },
 ];
 
 const AVATAR_MAX_PX = 512;
@@ -192,7 +196,7 @@ export default function BusinessCardConstructor({
     }));
   };
 
-  const updateSocialLink = (index: number, field: "type" | "url", value: string) => {
+  const updateSocialLink = (index: number, field: "type" | "url" | "label", value: string) => {
     setCard((prev) => ({
       ...prev,
       socialLinks: prev.socialLinks.map((link, i) =>
@@ -495,12 +499,23 @@ export default function BusinessCardConstructor({
                   </option>
                 ))}
               </select>
-              <input
-                value={link.url}
-                onChange={(e) => updateSocialLink(index, "url", e.target.value)}
-                placeholder="https://vk.com/username"
-                className="min-w-0 flex-1 px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              />
+              <div className="flex min-w-0 flex-1 flex-col gap-2">
+                {link.type === CUSTOM_SOCIAL_TYPE && (
+                  <input
+                    value={link.label ?? ""}
+                    onChange={(e) => updateSocialLink(index, "label", e.target.value)}
+                    maxLength={CUSTOM_SOCIAL_LABEL_MAX}
+                    placeholder="Название кнопки, например «Отзывы о докладе»"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                )}
+                <input
+                  value={link.url}
+                  onChange={(e) => updateSocialLink(index, "url", e.target.value)}
+                  placeholder={link.type === CUSTOM_SOCIAL_TYPE ? "https://..." : "https://vk.com/username"}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
               <button
                 onClick={() => removeSocialLink(index)}
                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors flex-shrink-0"
