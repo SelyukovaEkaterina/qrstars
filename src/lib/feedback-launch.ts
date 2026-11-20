@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
+import { marketingUnsubscribeUrl } from "@/lib/email-layout";
 import { loadLifecycleUserState } from "@/lib/lifecycle-email-state";
 import { isUserEligibleForLifecycle } from "@/lib/lifecycle-email-campaigns";
 import {
@@ -57,7 +58,9 @@ export async function runFeedbackLaunch(): Promise<FeedbackLaunchResult> {
     const subjectTemplate = LIFECYCLE_EMAIL_SUBJECTS[FEEDBACK_LAUNCH_CAMPAIGN_KEY];
     const subject =
       typeof subjectTemplate === "function" ? subjectTemplate(state) : subjectTemplate;
-    const ok = await sendMail(state.email, subject, html);
+    const ok = await sendMail(state.email, subject, html, {
+      listUnsubscribeUrl: marketingUnsubscribeUrl(userId),
+    });
 
     if (!ok) {
       console.error(`[feedback-launch] userId=${userId} fail=smtp`);

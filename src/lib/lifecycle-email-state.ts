@@ -33,6 +33,10 @@ export interface LifecycleUserState {
   firstOwnedQrAt: Date | null;
   /** Режим самого сканируемого активного QR-кода владельца (fallback: первый QR). */
   topQrMode?: string | null;
+  /** Тот же QR: ссылки в письмах (короткий адрес /q/{code}, табличка для печати). */
+  topQr?: { id: string; code: string; establishmentId: string | null } | null;
+  /** Последнее действие в кабинете (`dash.*` в UserEvent) — вернулся ли человек после мастера. */
+  lastDashboardActivityAt?: Date | null;
   /** Отсечка кампании: первый скан раньше этой даты письмо со скидкой не получает. */
   proOfferCampaignStartedAt: Date | null;
   proIntroOffer: {
@@ -46,6 +50,12 @@ export interface LifecycleUserState {
 
 function daysAgoDate(days: number): Date {
   return new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+}
+
+function pickQrLink(
+  qr: { id: string; code: string; establishmentId: string | null } | null
+): LifecycleUserState["topQr"] {
+  return qr ? { id: qr.id, code: qr.code, establishmentId: qr.establishmentId } : null;
 }
 
 export async function loadLifecycleUserState(userId: string): Promise<LifecycleUserState | null> {
@@ -90,6 +100,7 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
     topScannedQr,
     proOfferCampaignMeta,
     proIntroOffer,
+    lastDashboardEvent,
   ] = await Promise.all([
     prisma.establishment.count({ where: establishmentAccessWhere(userId) }),
     prisma.qRCode.count({ where: { userId } }),
@@ -118,12 +129,12 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
     prisma.qRCode.findFirst({
       where: { userId },
       orderBy: { createdAt: "asc" },
-      select: { createdAt: true, mode: true },
+      select: { createdAt: true, mode: true, id: true, code: true, establishmentId: true },
     }),
     prisma.qRCode.findFirst({
       where: { userId, isActive: true },
       orderBy: [{ scansCount: "desc" }, { createdAt: "asc" }],
-      select: { mode: true },
+      select: { mode: true, id: true, code: true, establishmentId: true },
     }),
     prisma.platformMeta.findUnique({
       where: { key: PRO_OFFER_CAMPAIGN_STARTED_AT_KEY },
@@ -132,6 +143,11 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
       where: {
         userId_campaignKey: { userId, campaignKey: PRO_INTRO_OFFER.campaignKey },
       },
+    }),
+    prisma.userEvent.findFirst({
+      where: { userId, event: { startsWith: "dash." } },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
     }),
   ]);
 
@@ -164,6 +180,8 @@ export async function loadLifecycleUserState(userId: string): Promise<LifecycleU
     firstOwnedEstablishmentAt: firstOwnedEstablishment?.createdAt ?? null,
     firstOwnedQrAt: firstOwnedQr?.createdAt ?? null,
     topQrMode: topScannedQr?.mode ?? firstOwnedQr?.mode ?? null,
+    topQr: pickQrLink(topScannedQr ?? firstOwnedQr),
+    lastDashboardActivityAt: lastDashboardEvent?.createdAt ?? null,
     proOfferCampaignStartedAt:
       campaignStartedAt && !Number.isNaN(campaignStartedAt.getTime()) ? campaignStartedAt : null,
     proIntroOffer: proIntroOffer

@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { sendMail } from "@/lib/mailer";
+import { marketingUnsubscribeUrl } from "@/lib/email-layout";
 import {
   getEligibleCampaigns,
   getCampaignByKey,
@@ -167,6 +168,7 @@ export async function sendLifecycleEmail(
   const html = render(renderState);
   const ok = await sendMail(state.email, subject, html, {
     kind: campaignKey === "welcome" ? "welcome" : "lifecycle",
+    listUnsubscribeUrl: marketingUnsubscribeUrl(userId),
   });
   if (!ok) {
     console.error(`[lifecycle-email] campaign=${campaignKey} userId=${userId} fail=smtp`);

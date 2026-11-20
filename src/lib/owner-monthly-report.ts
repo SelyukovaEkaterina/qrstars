@@ -3,7 +3,7 @@ import { Prisma } from "@/generated/prisma/client";
 import { sendMail } from "@/lib/mailer";
 import { sendTelegramContactNotification } from "@/lib/telegram";
 import { sendMaxMessage } from "@/lib/max";
-import { renderEmailLayout, featureBlock } from "@/lib/email-layout";
+import { renderEmailLayout, featureBlock, reportsUnsubscribeUrl } from "@/lib/email-layout";
 import { userHasPaidFeatures } from "@/lib/subscription-utils";
 import { pluralize } from "@/lib/utils";
 import { MODE_LABELS } from "@/lib/qr-routing";
@@ -22,7 +22,6 @@ import {
   fmtRu,
   fmtRuDecimal,
 } from "@/lib/report-formatting";
-import { createSignedUserToken, getBaseUrl } from "@/lib/signed-user-token";
 
 export interface MonthlyReportRange {
   /** Период: первый день месяца 00:00:00 МСК */
@@ -681,11 +680,7 @@ export function renderOwnerMonthlyReportEmail(m: OwnerReportMetrics): string {
   const bodyHtml = lines.join("\n");
   // Отписка из письма-отчёта глушит именно отчёты (reportsEmailEnabled),
   // а не onboarding-подсказки.
-  const unsubscribeUrl = `${getBaseUrl()}/api/unsubscribe?token=${createSignedUserToken(
-    m.userId,
-    "unsubscribe",
-    90 * 24 * 60 * 60 * 1000
-  )}&type=reports`;
+  const unsubscribeUrl = reportsUnsubscribeUrl(m.userId);
   return renderEmailLayout({
     userId: m.userId,
     title: `Ваш отчёт за ${r.labelHuman}`,
@@ -1009,7 +1004,9 @@ export async function sendOwnerMonthlyReport(
     const html = renderOwnerMonthlyReportEmail(metrics);
     const subject = `Ваш отчёт QrStars за ${range.labelHuman}`;
     for (const to of emailTargets) {
-      if (await sendMail(to, subject, html)) emailSent++;
+      if (await sendMail(to, subject, html, { listUnsubscribeUrl: reportsUnsubscribeUrl(userId) })) {
+        emailSent++;
+      }
     }
   }
 

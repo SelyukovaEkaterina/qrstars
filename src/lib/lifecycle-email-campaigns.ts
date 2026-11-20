@@ -59,6 +59,16 @@ export function isProIntroOfferReminderDue(state: LifecycleUserState, now = new 
   return msLeft <= PRO_INTRO_OFFER.reminderLeadDays * 24 * 60 * 60 * 1000;
 }
 
+/**
+ * Вернулся ли человек в кабинет хотя бы на следующий день (МСК) после первого QR.
+ * Второе письмо «нет сканов» шлём только таким: три письма за пять дней тому,
+ * кто зашёл один раз, раздражают (жалоба в поддержку 2026-11-20).
+ */
+export function returnedAfterFirstQr(state: LifecycleUserState): boolean {
+  if (!state.firstOwnedQrAt || !state.lastDashboardActivityAt) return false;
+  return calendarDaysSinceMsk(state.firstOwnedQrAt, state.lastDashboardActivityAt) >= 1;
+}
+
 export const LIFECYCLE_CAMPAIGNS: LifecycleCampaign[] = [
   {
     key: "welcome",
@@ -106,6 +116,7 @@ export const LIFECYCLE_CAMPAIGNS: LifecycleCampaign[] = [
       if (state.totalScans > 0) return false;
       if (state.ownedQrCount === 0) return false;
       if (!state.firstOwnedQrAt) return false;
+      if (!returnedAfterFirstQr(state)) return false;
       return calendarDaysSinceMsk(state.firstOwnedQrAt, now) >= 5;
     },
   },

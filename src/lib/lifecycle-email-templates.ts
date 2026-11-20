@@ -1,7 +1,7 @@
 import { PLANS, PLAN_PRICING, formatRub } from "@/lib/plans";
 import { renderEmailLayout, featureBlock, bulletList } from "@/lib/email-layout";
 import { createSignedFeedbackToken, getBaseUrl } from "@/lib/signed-user-token";
-import { TEMPLATE_ROUTES } from "@/lib/template-routes";
+import { projectQrPath, UNASSIGNED_PROJECT_ID } from "@/lib/project-routes";
 import { formatMskDayMonth } from "@/lib/lifecycle-email-msk";
 import type { LifecycleUserState } from "@/lib/lifecycle-email-state";
 
@@ -112,46 +112,229 @@ export function renderNoQrD4Email(state: LifecycleUserState): string {
   });
 }
 
-export function renderNoScansD2Email(state: LifecycleUserState): string {
+type NoScansProfile = "review" | "menu" | "card" | "form" | "wifi" | "link" | "site";
+
+/**
+ * Советы «нет сканов» зависят от режима QR: раньше всем слали советы для кафе
+ * («на столах», «в туалетных комнатах»), и мастер с визиткой отписался со скандалом.
+ */
+export function resolveNoScansProfile(mode: string | null | undefined): NoScansProfile {
+  switch (mode) {
+    case "MENU":
+      return "menu";
+    case "BUSINESS_CARD":
+      return "card";
+    case "FORM":
+      return "form";
+    case "WIFI":
+      return "wifi";
+    case "REDIRECT":
+    case "FILE":
+      return "link";
+    case "LANDING":
+    case "CUSTOM_SECTION":
+    case "TIPS":
+      return "site";
+    default:
+      return "review";
+  }
+}
+
+interface NoScansCopy {
+  subject: string;
+  preheader: string;
+  intro: string;
+  bullets: string[];
+}
+
+const NO_SCANS_D2: Record<NoScansProfile, NoScansCopy> = {
+  review: {
+    subject: "Куда поставить QR-код для отзывов",
+    preheader: "Готовая табличка для печати — в карточке QR-кода",
+    intro: "QR-код для отзывов готов. Теперь его нужно показать клиентам — лучше в момент, когда они довольны:",
+    bullets: [
+      "Распечатайте готовую табличку из карточки QR-кода: формат, цвет и подпись уже подобраны",
+      "Поставьте её туда, где клиент ждёт: стойка, касса, зона ожидания",
+      "Попросите сотрудников предлагать отсканировать код после оплаты",
+    ],
+  },
+  menu: {
+    subject: "Как гостям найти ваше QR-меню",
+    preheader: "Табличка на стол и ссылка для соцсетей",
+    intro: "QR-меню готово. Чтобы гости им пользовались, код должен быть перед глазами:",
+    bullets: [
+      "Распечатайте табличку или домик из карточки QR-кода и поставьте на каждый стол",
+      "Повесьте код у входа или на витрине — меню можно посмотреть ещё до того, как зайти",
+      "Добавьте ссылку на меню в соцсети и карточку на Яндекс Картах",
+    ],
+  },
+  card: {
+    subject: "Как отправить свою визитку клиентам",
+    preheader: "Ссылку можно переслать в мессенджер — без печати",
+    intro: "Визитка готова. Её не обязательно печатать — проще всего отправить ссылку:",
+    bullets: [
+      "Пришлите ссылку клиентам в WhatsApp или Telegram после заказа — контакт сохранится в один клик",
+      "Добавьте ссылку в профиль на Авито, Профи или в соцсетях",
+      "Распечатайте стикер с QR-кодом из карточки QR — на чек, квитанцию или рабочий инструмент",
+    ],
+  },
+  form: {
+    subject: "Как собрать первые ответы на анкету",
+    preheader: "Ссылку можно отправить в чат, QR — распечатать",
+    intro: "Анкета готова. Вот самые быстрые способы получить первые ответы:",
+    bullets: [
+      "Отправьте ссылку в чат с клиентами или в рассылку",
+      "Опубликуйте её в соцсетях с короткой просьбой ответить",
+      "Распечатайте табличку с QR-кодом для места, где люди ждут или стоят в очереди",
+    ],
+  },
+  wifi: {
+    subject: "Куда повесить QR-код для Wi‑Fi",
+    preheader: "Табличка на стол или стойку — и пароль больше не спрашивают",
+    intro: "QR-код для Wi‑Fi готов. Повесьте его там, где обычно спрашивают пароль:",
+    bullets: [
+      "Распечатайте табличку из карточки QR-кода — она уже подписана «Wi‑Fi»",
+      "Поставьте её на столы, стойку или у входа",
+      "Сотрудникам больше не нужно диктовать пароль",
+    ],
+  },
+  link: {
+    subject: "Где разместить ваш QR-код",
+    preheader: "Табличка, стикер или картинка для соцсетей",
+    intro: "QR-код готов. Ссылку внутри можно менять в любой момент — напечатанный код продолжит работать. Где его разместить:",
+    bullets: [
+      "Распечатайте табличку или стикеры из карточки QR-кода",
+      "Добавьте код на упаковку, листовку или ценник",
+      "Покажите код на экране или в соцсетях — его можно отсканировать и с экрана",
+    ],
+  },
+  site: {
+    subject: "Как привести первых посетителей на страницу",
+    preheader: "QR на печати и ссылка в профилях",
+    intro: "Страница готова. Вот как привести на неё первых посетителей:",
+    bullets: [
+      "Распечатайте табличку из карточки QR-кода для стойки, входа или витрины",
+      "Поставьте ссылку на страницу в профили соцсетей и в карточку на картах",
+      "Отправьте ссылку постоянным клиентам в мессенджер",
+    ],
+  },
+};
+
+const NO_SCANS_D5: Record<NoScansProfile, NoScansCopy> = {
+  review: {
+    subject: "Почему QR-код для отзывов могут не сканировать",
+    preheader: "Три проверки, которые занимают пару минут",
+    intro: "Сканирований пока нет. Обычно помогает одно из трёх:",
+    bullets: [
+      "<strong>Код на виду?</strong> Он должен быть там, где клиент ждёт, а не за стойкой",
+      "<strong>Понятно, зачем сканировать?</strong> Подпись «Оцените нас — это 10 секунд» работает лучше голого кода",
+      "<strong>Сотрудники напоминают?</strong> Одна фраза после оплаты даёт больше сканов, чем любая табличка",
+    ],
+  },
+  menu: {
+    subject: "QR-меню пока не открывали — что проверить",
+    preheader: "Код на столе, понятная подпись, ссылка в соцсетях",
+    intro: "Меню пока не открывали. Что обычно помогает:",
+    bullets: [
+      "<strong>Код на каждом столе</strong>, а не один у кассы",
+      "<strong>Подпись «Меню здесь»</strong> рядом с кодом — гости не гадают, что внутри",
+      "<strong>Настоящие блюда</strong> вместо примеров — гость уходит, если видит пустое меню",
+    ],
+  },
+  card: {
+    subject: "Визитку пока не открывали — пара идей",
+    preheader: "Где клиенты увидят вашу визитку",
+    intro: "Визитку пока не открывали. Вот где её обычно видят клиенты:",
+    bullets: [
+      "<strong>В переписке</strong> — отправьте ссылку после первого звонка вместо номера",
+      "<strong>В объявлениях</strong> — на Авито и Профи ссылку можно вставить в описание",
+      "<strong>На бумажной визитке или магните</strong> — QR-код ведёт на визитку с кнопками звонка и мессенджеров",
+    ],
+  },
+  form: {
+    subject: "На анкету пока не ответили — что проверить",
+    preheader: "Короткая анкета и понятная просьба",
+    intro: "Ответов пока нет. Что обычно помогает:",
+    bullets: [
+      "<strong>Короче анкета</strong> — 3–5 вопросов заполняют чаще, чем 15",
+      "<strong>Понятная причина</strong> — «чтобы записать вас без звонка» или «чтобы стать лучше»",
+      "<strong>Ссылка, а не только QR</strong> — отправьте её в чат или в соцсети",
+    ],
+  },
+  wifi: {
+    subject: "QR-код для Wi‑Fi пока не сканировали",
+    preheader: "Код должен быть там, где спрашивают пароль",
+    intro: "Сканирований пока нет. Проверьте:",
+    bullets: [
+      "<strong>Код на виду</strong> — на столах или у входа, а не только у кассы",
+      "<strong>Подпись «Wi‑Fi» крупно</strong> — гость должен понять, что это пароль",
+      "<strong>Код не слишком маленький</strong> — от 3 см для стола, больше — для стены",
+    ],
+  },
+  link: {
+    subject: "QR-код пока не сканировали — что проверить",
+    preheader: "Размер, подпись и место",
+    intro: "Сканирований пока нет. Обычно помогает одно из трёх:",
+    bullets: [
+      "<strong>Понятная подпись</strong> — что человек получит, если отсканирует",
+      "<strong>Размер</strong> — от 2–3 см для стола, крупнее для стены и витрины",
+      "<strong>Место</strong> — там, где у человека есть минута: очередь, ожидание, упаковка",
+    ],
+  },
+  site: {
+    subject: "Страницу пока не открывали — что проверить",
+    preheader: "Где люди увидят ссылку на вашу страницу",
+    intro: "Заходов пока нет. Что обычно помогает:",
+    bullets: [
+      "<strong>Ссылка в профилях</strong> — соцсети, мессенджеры, карточка на картах",
+      "<strong>QR на печати</strong> с подписью, что внутри: меню, запись, контакты",
+      "<strong>Заполненные разделы</strong> — пустую страницу закрывают",
+    ],
+  },
+};
+
+function noScansQrLinks(state: LifecycleUserState): { scanUrl: string | null; qrUrl: string } {
   const base = getBaseUrl();
+  const qr = state.topQr;
+  if (!qr) return { scanUrl: null, qrUrl: `${base}/dashboard` };
+  return {
+    scanUrl: `${base}/q/${qr.code}`,
+    qrUrl: `${base}${projectQrPath(qr.establishmentId ?? UNASSIGNED_PROJECT_ID, qr.id)}`,
+  };
+}
+
+function renderNoScansEmail(state: LifecycleUserState, copy: NoScansCopy, profile: NoScansProfile): string {
+  const { scanUrl, qrUrl } = noScansQrLinks(state);
+  // Визитку, анкету и страницу проще отправить ссылкой — её и показываем.
+  const shareable = profile === "card" || profile === "form" || profile === "site";
+  const linkBlock =
+    scanUrl && shareable
+      ? `<p style="font-size:15px;color:#374151;">Ваша ссылка: <a href="${scanUrl}" style="color:#4f46e5;">${scanUrl.replace(/^https?:\/\//, "")}</a></p>`
+      : "";
   return renderEmailLayout({
     userId: state.userId,
-    preheader: "Скачайте готовый QR-код и разместите его на видном месте",
-    title: "Разместите QR-код там, где его заметят гости",
+    preheader: copy.preheader,
+    title: copy.subject,
     bodyHtml: `
       <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
-      <p style="font-size:16px;color:#374151;">
-        QR-код успешно создан! Следующий шаг — распечатать его и разместить там, где гость точно его заметит:
-      </p>
-      ${bulletList([
-        "Скачайте изображение в формате PNG из личного кабинета",
-        "Выберите оформление QR-кода в личном кабинете, если хотите добавить фирменные цвета или логотип",
-        "Разместите готовый печатный материал на столах, стойке ресепшена или зеркале в зоне ожидания",
-      ])}
+      <p style="font-size:16px;color:#374151;">${copy.intro}</p>
+      ${bulletList(copy.bullets)}
+      ${linkBlock}
     `,
-    cta: { label: "Оформить QR-код", href: `${base}${TEMPLATE_ROUTES.qr}` },
+    cta: shareable
+      ? { label: "Открыть QR-код", href: qrUrl }
+      : { label: "Распечатать табличку", href: `${qrUrl}${state.topQr ? "?print=1" : ""}` },
   });
 }
 
+export function renderNoScansD2Email(state: LifecycleUserState): string {
+  const profile = resolveNoScansProfile(state.topQrMode);
+  return renderNoScansEmail(state, NO_SCANS_D2[profile], profile);
+}
+
 export function renderNoScansD5Email(state: LifecycleUserState): string {
-  const base = getBaseUrl();
-  return renderEmailLayout({
-    userId: state.userId,
-    preheader: "Стойка, чек, зона ожидания и другие заметные места",
-    title: "5 мест, где QR-код работает эффективнее всего",
-    bodyHtml: `
-      <p style="font-size:16px;color:#374151;">${greeting(state)}</p>
-      <p style="font-size:16px;color:#374151;">Если сканирований пока нет, попробуйте разместить QR-код в других зонах:</p>
-      ${bulletList([
-        "<strong>На столах</strong> — рядом со счётом или меню, с понятным призывом к действию",
-        "<strong>У кассы или на стойке ресепшена</strong> — гость легко заметит его, пока ждёт расчёт",
-        "<strong>На чеках или упаковке</strong> — отлично работает для заказов на вынос и доставки",
-        "<strong>В туалетных комнатах</strong> — неожиданная локация, которая показывает отличную конверсию (серьёзно)",
-        "<strong>На визитках у входа</strong> — для привлечения внимания прохожих",
-      ])}
-    `,
-    cta: { label: "Оформить QR-код", href: `${base}${TEMPLATE_ROUTES.qr}` },
-  });
+  const profile = resolveNoScansProfile(state.topQrMode);
+  return renderNoScansEmail(state, NO_SCANS_D5[profile], profile);
 }
 
 export function renderNoReviewsD3Email(state: LifecycleUserState): string {
@@ -536,8 +719,8 @@ export const LIFECYCLE_EMAIL_SUBJECTS: Record<
   no_establishment_d3: "Получайте обратную связь до публикации отзыва",
   no_qr_d1: "Заведение готово — создайте первый QR-код",
   no_qr_d4: "Какой QR-код вам нужен: отзывы, меню или микролендинг?",
-  no_scans_d2: "Разместите QR-код там, где его заметят гости",
-  no_scans_d5: "5 мест, где QR-код работает эффективнее всего",
+  no_scans_d2: (state) => NO_SCANS_D2[resolveNoScansProfile(state.topQrMode)].subject,
+  no_scans_d5: (state) => NO_SCANS_D5[resolveNoScansProfile(state.topQrMode)].subject,
   no_reviews_d3: "Ваш QR-код уже сканируют — настройте сбор отзывов",
   connect_telegram_d2: "Подключите Telegram для уведомлений о жалобах",
   feedback_d7: "Как вам QrStars? Опрос займёт всего 30 секунд",

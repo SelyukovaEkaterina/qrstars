@@ -18,6 +18,11 @@ export function marketingUnsubscribeUrl(userId: string): string {
   return `${getBaseUrl()}/api/unsubscribe?token=${createSignedUserToken(userId, "unsubscribe", 90 * 24 * 60 * 60 * 1000)}`;
 }
 
+/** Отписка от ежемесячных отчётов (гасит только `reportsEmailEnabled`). */
+export function reportsUnsubscribeUrl(userId: string): string {
+  return `${marketingUnsubscribeUrl(userId)}&type=reports`;
+}
+
 export function renderEmailLayout(options: EmailLayoutOptions): string {
   const base = getBaseUrl();
   const unsubscribeUrl = marketingUnsubscribeUrl(options.userId);
@@ -34,15 +39,19 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
   const footerLinks = [
     `<a href="${base}/dashboard/support" style="color:#6366f1;text-decoration:none;">Поддержка</a>`,
   ];
-  if (options.unsubscribe) {
-    footerLinks.push(
-      `<a href="${options.unsubscribe.url}" style="color:#9ca3af;text-decoration:none;">${options.unsubscribe.label}</a>`
-    );
-  } else if (options.showUnsubscribe !== false) {
-    footerLinks.push(
-      `<a href="${unsubscribeUrl}" style="color:#9ca3af;text-decoration:none;">Отписаться от подсказок</a>`
-    );
-  }
+  // Отписка заметная и в один клик: серую мелкую ссылку не находили и писали
+  // «НЕ НАДО МНЕ ВАШИХ ПИСЕМ» в поддержку (2026-11-20).
+  const unsubscribe =
+    options.unsubscribe ??
+    (options.showUnsubscribe !== false
+      ? { url: unsubscribeUrl, label: "Отписаться" }
+      : null);
+  const unsubscribeBlock = unsubscribe
+    ? `<p style="margin:0 0 12px;font-size:13px;color:#4b5563;">
+         Не хотите получать такие письма?
+         <a href="${unsubscribe.url}" style="color:#4f46e5;text-decoration:underline;font-weight:600;">${unsubscribe.label}</a> — в один клик, без входа в кабинет.
+       </p>`
+    : "";
 
   return `<!DOCTYPE html>
 <html lang="ru">
@@ -62,6 +71,7 @@ export function renderEmailLayout(options: EmailLayoutOptions): string {
           ${ctaBlock}
         </td></tr>
         <tr><td style="padding:20px 32px 28px;border-top:1px solid #e5e7eb;font-family:sans-serif;font-size:12px;color:#9ca3af;line-height:1.8;">
+          ${unsubscribeBlock}
           ${footerLinks.join(" &nbsp;·&nbsp; ")}
           <p style="margin:12px 0 0;">© QrStars.ru — сервис QR-отзывов и микросайтов для HoReCa и локального бизнеса</p>
         </td></tr>
